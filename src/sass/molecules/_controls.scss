@@ -1,0 +1,81 @@
+/*------------------------------------*\
+    $CONTROLS
+\*------------------------------------*/
+
+.controls {
+    margin: 70px auto 0;
+    overflow: hidden;
+    text-align: center;
+
+    button {
+        position: relative;
+        z-index: 1;
+
+        &:last-of-type {
+            margin-right: 0;
+        }
+    }
+
+    .stop,
+    .finish,
+    .cancel {
+        opacity: 0.5;
+
+        &:hover,
+        &:focus {
+            color: #f0eef9;
+            cursor: pointer;
+            background-color: transparent;
+            border: 1px solid #777094;
+        }
+
+        &::before {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: default;
+            content: '';
+        }
+    }
+
+    &--running {
+        .stop,
+        .finish,
+        .cancel {
+            opacity: 1;
+
+            &:hover,
+            &:focus {
+                color: #09061b;
+                background-color: #fff;
+                border-color: #09061b;
+                outline: 0;
+            }
+
+            &::before {
+                display: none;
+            }
+        }
+    }
+
+    .task-form {
+        position: relative;
+        z-index: 0;
+        opacity: 0;
+        transform: translate3d(0, -65px, 0);
+        transition: transform 500ms ease, opacity 500ms ease;
+
+        &--show {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+        }
+
+        label {
+            @include hidden;
+        }
+    }
+}

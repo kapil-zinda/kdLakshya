@@ -1,0 +1,73 @@
+/*------------------------------------*\
+    $VARIABLES
+\*------------------------------------*/
+
+
+/* ============================================
+   Colours
+*/
+$color--default: #000;
+$color--link: #000;
+$color--white: #fff;
+
+
+/* ============================================
+   Typography
+   :: Default to system font stack
+*/
+$font--primary: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+$font--secondary: 'Droid Sans Mono', monospace;
+
+$base-font-size: 16px;
+$base-line-height: 25px;
+$font-sizes: (
+
+    // non-standard large sizes
+    giga:    80px,
+    mega:    60px,
+    kilo:    48px,
+
+    // standard sizes
+    alpha:   38px,
+    beta:    30px,
+    gamma:   28px,
+    delta:   22px,
+    epsilon: 20px,
+    zeta:    16px,
+
+    // non-standard small sizes
+    milli:   14px
+);
+
+
+/* ============================================
+    Wrappers and grids
+*/
+$wrapper-width: 1300px;
+$gutter: 40px;
+
+
+/* ============================================
+   Breakpoints
+*/
+$breakpoints: (
+    'wide'          '(max-width: 1440px)',
+    'desktop'       '(max-width: 1200px)',
+    'laptop'        '(max-width: 1000px)',
+    'tablet'        '(max-width: 700px)',
+    'mobile'        '(max-width: 650px)',
+);
+
+$breakpoint-has-widths: (
+    'wide',
+    'desktop',
+    'laptop',
+    'tablet',
+    'mobile'
+);
+
+
+/* ============================================
+    Transition speeds
+*/
+$default-transition-speed: 300ms;
