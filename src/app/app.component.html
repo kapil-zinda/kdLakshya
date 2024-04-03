@@ -1,0 +1,85 @@
+<mat-drawer-container>
+  <mat-drawer mode="side" [opened]="true">
+    <div class="drawer-container">
+      <mat-nav-list>
+        <a
+          mat-list-item
+          routerLink="all"
+          queryParamsHandling="merge"
+          routerLinkActive="nav-link-active"
+          class="link-all"
+          matTooltip="All tasks"
+        >
+          <img src="assets/favicon.svg" alt="Timer" />
+        </a>
+      </mat-nav-list>
+      <mat-nav-list class="states">
+        <a
+          mat-list-item
+          [routerLink]="taskState.active"
+          queryParamsHandling="merge"
+          routerLinkActive="nav-link-active"
+          matTooltip="Active tasks"
+          data-e2e="navigation__button-tasks-active"
+        >
+          <mat-icon>{{ taskState.active | taskStateIcon }}</mat-icon>
+        </a>
+        <a
+          mat-list-item
+          [routerLink]="taskState.finished"
+          queryParamsHandling="merge"
+          routerLinkActive="nav-link-active"
+          matTooltip="Finished tasks"
+          data-e2e="navigation__button-tasks-finished"
+          ><mat-icon>{{ taskState.finished | taskStateIcon }}</mat-icon></a
+        >
+        <a
+          mat-list-item
+          [routerLink]="taskState.dropped"
+          queryParamsHandling="merge"
+          routerLinkActive="nav-link-active"
+          matTooltip="Dropped tasks"
+          data-e2e="navigation__button-tasks-dropped"
+          ><mat-icon>{{ taskState.dropped | taskStateIcon }}</mat-icon></a
+        >
+      </mat-nav-list>
+      <mat-action-list>
+        <button
+          mat-list-item
+          matTooltip="Import/Export"
+          [matMenuTriggerFor]="importExportMenu"
+          data-e2e="navigation__button-import-export"
+        >
+          <mat-icon>import_export</mat-icon>
+        </button>
+        <mat-menu #importExportMenu="matMenu">
+          <label mat-menu-item class="import-label">
+            <input type="file" (change)="import($event)" data-e2e="navigation__input-import" />
+            Import
+          </label>
+          <a
+            mat-menu-item
+            data-e2e="navigation__button-export"
+            *ngrxLet="exportUrl$ as exportUrl"
+            [href]="exportUrl | safeResourceUrl"
+            download="timer-data.json"
+            target="_blank"
+            >Export</a
+          >
+        </mat-menu>
+
+        <button
+          *ngrxLet="theme$ as theme"
+          mat-list-item
+          (click)="toggleTheme()"
+          [matTooltip]="theme !== 'dark' ? 'Dark mode' : 'Day mode'"
+        >
+          <mat-icon>{{ theme !== 'dark' ? 'nights_stay' : 'wb_sunny' }}</mat-icon>
+        </button>
+      </mat-action-list>
+    </div>
+  </mat-drawer>
+  <mat-drawer-content cdkDropListGroup>
+    <router-outlet></router-outlet>
+  </mat-drawer-content>
+</mat-drawer-container>
