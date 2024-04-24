@@ -1,44 +1,39 @@
 {
-  "name": "kd",
+  "name": "side-nav-with-submenus",
   "version": "0.1.0",
   "private": true,
-  "dependencies": {
-    "@emotion/react": "^11.11.4",
-    "@emotion/styled": "^11.11.5",
-    "@mui/icons-material": "^5.15.15",
-    "@mui/material": "^5.15.15",
-    "@mui/styled-engine-sc": "^6.0.0-alpha.18",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "styled-components": "^6.1.8",
-    "web-vitals": "^2.1.4"
-  },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "lint:fix": "eslint --fix .",
+    "format:check": "prettier --check .",
+    "format": "prettier --write . --list-different"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.7.4",
+    "clsx": "^2.0.0",
+    "eslint-plugin-unused-imports": "^3.0.0",
+    "framer-motion": "^10.16.4",
+    "next": "^13.5.4",
+    "react": "^18",
+    "react-dom": "^18",
+    "tailwind-merge": "^1.14.0"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+  "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "^4.1.0",
+    "@iconify/react": "^4.1.1",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "autoprefixer": "^10",
+    "eslint": "^8",
+    "eslint-config-next": "13.5.4",
+    "postcss": "^8",
+    "prettier": "^3.0.3",
+    "prettier-plugin-tailwindcss": "^0.5.5",
+    "tailwindcss": "^3",
+    "typescript": "^5"
   }
 }
