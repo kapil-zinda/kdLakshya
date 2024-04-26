@@ -15,8 +15,8 @@ export const SIDENAV_ITEMS: SideNavItem[] = [
     submenu: true,
     subMenuItems: [
       { title: 'All', path: '/todo' },
-      { title: 'Create Todo', path: '/todo/create' },
-      { title: 'Create Challange', path: '/todo/challanges' },
+      { title: 'Create Todo', path: '/todo/tasks' },
+      { title: 'Create Challange', path: '/todo/challenges' },
     ],
   },
   {

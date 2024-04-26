@@ -1,14 +1,18 @@
-import React from 'react';
+import Box from "@/components/box/box";
 
-const ProjectsPage = () => {
+const Home = () => {
   return (
-    <>
-      <span className="font-bold text-4xl">Projects</span>
-
-      <div className="border-dashed border border-zinc-500 w-full h-12 rounded-lg"></div>
-      <div className="border-dashed border border-zinc-500 w-full h-64 rounded-lg"></div>
-    </>
+    <main className="mb-8">
+      <div className="max-w-screen-xl mx-auto py-3">
+        <h2 className="text-2xl font-bold tracking-tight">Welcome to 10k Hours</h2>
+        <p className="text-muted-foreground">
+          Simplify your task management with ease and efficiency.
+        </p>
+      </div>
+      <div className="max-w-screen-xl mx-auto">
+        <Box />
+      </div>
+    </main>
   );
 };
-
-export default ProjectsPage;
+export default Home;
