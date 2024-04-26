@@ -1,0 +1,137 @@
+"use client"
+import * as React from 'react';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import Slide from '@mui/material/Slide';
+import TextField from '@mui/material/TextField';
+
+const Transition = React.forwardRef(function Transition(props, ref) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
+
+export default function PopUpSlide({ onAdd, onEdit, editingData }) {
+  const [open, setOpen] = React.useState(false);
+  const [formData, setFormData] = React.useState({
+    name: '',
+    start_time: '',
+    end_time: '',
+    duration: '',
+    description: '',
+  });
+
+  React.useEffect(() => {
+    if (editingData) {
+      setFormData(editingData);
+      setOpen(true);
+    }
+  }, [editingData]);
+
+  const handleClickOpen = () => {
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setFormData({
+      name: '',
+      start_time: '',
+      end_time: '',
+      duration: '',
+      description: '',
+    });
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+  };
+
+  const handleSubmit = () => {
+    if (editingData) {
+      onEdit(editingData.name, formData);
+    } else {
+      onAdd(formData);
+    }
+    handleClose();
+  };
+
+  return (
+    <React.Fragment>
+      <div style={{width: "100%", display: "flex", alignItems: 'center', justifyContent: "center"}}>
+      <Button variant="outlined" onClick={handleClickOpen}>
+        {editingData ? 'Edit' : 'Create'}
+      </Button>
+      </div>
+      <Dialog
+        open={open}
+        TransitionComponent={Transition}
+        keepMounted
+        onClose={handleClose}
+        aria-describedby="alert-dialog-slide-description"
+      >
+        <DialogTitle>{editingData ? 'Edit entry' : 'Create a new entry'}</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="name"
+            label="Name"
+            type="text"
+            fullWidth
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            id="start_time"
+            label="Start Time"
+            type="number"
+            fullWidth
+            name="start_time"
+            value={formData.start_time}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            id="end_time"
+            label="End Time"
+            type="number"
+            fullWidth
+            name="end_time"
+            value={formData.end_time}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            id="duration"
+            label="Duration"
+            type="number"
+            fullWidth
+            name="duration"
+            value={formData.duration}
+            onChange={handleChange}
+          />
+          <TextField
+            margin="dense"
+            id="description"
+            label="Description"
+            type="text"
+            fullWidth
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleSubmit}>{editingData ? 'Save' : 'Add'}</Button>
+        </DialogActions>
+      </Dialog>
+    </React.Fragment>
+  );
+}
+
