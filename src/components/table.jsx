@@ -47,12 +47,12 @@ export default function BasicTable({ arrayData, columnHeaders }) {
 
   return (
     <>
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} className='bg-background' style={{color: "white"}}>
         <Table sx={{ minWidth: 650 }} aria-label="simple table">
           <TableHead>
             <TableRow>
               {columnHeaders.map((header) => (
-                <TableCell key={header.label} align={header.align}>
+                <TableCell style={{color: "white"}} key={header.label} align={header.align}>
                   {header.label}
                 </TableCell>
               ))}
@@ -62,16 +62,17 @@ export default function BasicTable({ arrayData, columnHeaders }) {
             {rows.map((row) => (
               <TableRow
                 key={row.name}
+                style={{color: "white"}}
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
               >
-                <TableCell component="th" scope="row">
+                <TableCell component="th" scope="row" style={{color: "white"}}>
                   {row.name}
                 </TableCell>
-                <TableCell align="right">{row.start_time}</TableCell>
-                <TableCell align="right">{row.end_time}</TableCell>
-                <TableCell align="right">{row.duration}</TableCell>
-                <TableCell align="right">{row.description}</TableCell>
-                <TableCell align="right">
+                <TableCell align="right" style={{color: "white"}}>{row.start_time}</TableCell>
+                <TableCell align="right" style={{color: "white"}}>{row.end_time}</TableCell>
+                <TableCell align="right" style={{color: "white"}}>{row.duration}</TableCell>
+                <TableCell align="right" style={{color: "white"}}>{row.description}</TableCell>
+                <TableCell align="right" style={{color: "white"}}>
                   <span>
                     <EditNoteIcon onClick={() => handleEdit(row)} />
                   </span>
