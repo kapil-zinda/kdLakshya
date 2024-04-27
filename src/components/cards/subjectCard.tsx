@@ -8,11 +8,11 @@ type SubjectCardProps = {
 const SubjectCard:React.FC<SubjectCardProps> = ({name, id}) => {
   return (
     <div
-      className="p-6 rounded-lg shadow bg-gray-800 border-gray-700"
+      className="pl-6 pb-2 pt-2 rounded-lg shadow bg-gray-800 border-gray-700"
       id="subjectCardHome"
     >
       <a href="#">
-        <h5 className="mb-2 text-2xl font-semibold tracking-tight text-white border-gray-200">
+        <h5 className="mb-1 text-2xl font-semibold tracking-tight text-white border-gray-200">
           {name}
         </h5>
       </a>
