@@ -1,3 +1,4 @@
+import { useRouter } from "next/navigation";
 import React from "react";
 
 type SubjectCardProps = {
@@ -6,12 +7,16 @@ type SubjectCardProps = {
 };
 
 const SubjectCard:React.FC<SubjectCardProps> = ({name, id}) => {
+  const router = useRouter();
+  const handleCall = async() => {
+    router.push(`/subject/${id}/`);
+  }
   return (
     <div
       className="pl-6 pb-2 pt-2 rounded-lg shadow bg-gray-800 border-gray-700"
       id="subjectCardHome"
     >
-      <a href="#">
+      <a href="#" onClick={handleCall}>
         <h5 className="mb-1 text-2xl font-semibold tracking-tight text-white border-gray-200">
           {name}
         </h5>

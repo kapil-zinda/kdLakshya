@@ -16,13 +16,12 @@ const subjectTablePage: React.FC<SubjectTablePageProps> = ({
   const [indexEndPage, setIndexEndPage] = useState<number>(9);
   const total_pages = Math.ceil(total / 10);
   const pages_on_last = total % 10;
-  const [showPages, setShowPages] = useState(question);
 
 //   const updatedata: any = ({currentpp, modify_number}) => {
 //     useEffect
 //   }
 
-  const updatedata = async (currentpp, modify_number) => {
+  const updatedata = async (currentpp:any, modify_number:any) => {
     await setCurrentPage(currentpp + modify_number);
     await setIndexStartPage(indexStartPage + modify_number*10);
     await setIndexEndPage(total < indexEndPage + modify_number*10 ? total - 1 : indexEndPage == total -1 ? (total_pages-1)*10-1 : indexEndPage + modify_number*10)
