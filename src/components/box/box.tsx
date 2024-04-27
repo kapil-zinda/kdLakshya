@@ -23,7 +23,7 @@ const Box = () => {
               Urgent
             </div>
             <div className="w-2/4 p-3 text-blue-500 text-lg font-bold border-l border-blue-500">
-              Not Urgent
+              Not Urgent 
             </div>
           </div>
           <div className="flex min-h-40">
