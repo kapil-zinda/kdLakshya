@@ -1,5 +1,8 @@
 "use client"
 import BasicTable from "@/components/table"
+import { useEffect, useState } from "react";
+import axios from 'axios';
+
 export default function Home() {
   const arrayData = [
     {"name":'Frozen math',"start_time": 11, "end_time":6.0, "duration":24, "description":'easy math'},
@@ -8,6 +11,18 @@ export default function Home() {
     {"name":'Cupcake zoology', "start_time":305, "end_time":3.7, "duration":67, "description":'testing desc'},
     {"name":'Gingerbread botany', "start_time":356, "end_time":16.0, "duration":49, "description":'gingerbread cake'},
   ]
+  // console.log(process.env.REACT_APP_BASE_URL," hello")
+  useEffect(()=>{
+    const fetchData = async()=>{
+      try {
+        const res = await axios.get("https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/time-table");
+        console.log(res)
+      } catch (error) {
+        console.log(error)
+      }
+    }
+    fetchData()
+  },[])
   const columnHeaders = [
     { label: 'Subject', align: 'left' },
     { label: 'Start Time', align: 'right' },

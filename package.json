@@ -37,6 +37,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "cmdk": "^1.0.0",
+    "dotenv": "^16.4.5",
     "eslint-plugin-unused-imports": "^3.0.0",
     "framer-motion": "^10.16.4",
     "lucide-react": "^0.305.0",
