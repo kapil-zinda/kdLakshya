@@ -4,6 +4,7 @@ export const taskSchema = z.object({
     title: z.string(),
     status: z.string(),
     label: z.string(),
+    need: z.string(),
     priority: z.string(),
 })
 
