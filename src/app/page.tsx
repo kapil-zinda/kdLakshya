@@ -1,8 +1,7 @@
 "use client"
 import BasicTable from "@/components/table"
-import PopUpSlide from "@/components/PopUpSlide"
 export default function Home() {
-  var arrayData = [
+  const arrayData = [
     {"name":'Frozen math',"start_time": 11, "end_time":6.0, "duration":24, "description":'easy math'},
     {"name":'Ice cream chemistry', "start_time":237, "end_time":9.0,"duration":37, "description":'chemistry'},
     {"name":'Eclair physics', "start_time":262, "end_time":16.0, "duration":24, "description":'modest physics'},

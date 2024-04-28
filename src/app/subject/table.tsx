@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {  useState } from 'react';
 
 type SubjectTablePageProps = {
   question: any;
@@ -15,7 +15,7 @@ const subjectTablePage: React.FC<SubjectTablePageProps> = ({
   const [indexStartPage, setIndexStartPage] = useState<number>(0);
   const [indexEndPage, setIndexEndPage] = useState<number>(9);
   const total_pages = Math.ceil(total / 10);
-  const pages_on_last = total % 10;
+  // const pages_on_last = total % 10;
 
 //   const updatedata: any = ({currentpp, modify_number}) => {
 //     useEffect
