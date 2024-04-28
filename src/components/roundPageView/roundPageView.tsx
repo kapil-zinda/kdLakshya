@@ -5,7 +5,7 @@ type AllRoundPageProps = {
   
   const allRoundSpace: React.FC<AllRoundPageProps> = ({
     question,
-    total,
+    // total,
   }) => {
     return (
       <>   

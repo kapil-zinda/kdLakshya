@@ -14,9 +14,9 @@ import TableRow from '@mui/material/TableRow';
 
 import PopUpSlide from './PopUpSlide';
 
-function createData(name, start_time, end_time, duration, description) {
-  return { name, start_time, end_time, duration, description };
-}
+// function createData(name, start_time, end_time, duration, description) {
+//   return { name, start_time, end_time, duration, description };
+// }
 
 export default function BasicTable({ arrayData, columnHeaders }) {
   const [rows, setRows] = React.useState(arrayData);

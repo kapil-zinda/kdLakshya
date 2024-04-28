@@ -1,12 +1,12 @@
 import { useTask } from "@/context/task-context";
-import { useState } from "react";
-import { labels, statuses } from "../data/data";
+// import { useState } from "react";
+import {  statuses } from "../data/data";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectItemIndicator,
-  SelectItemText,
+  // SelectItemText,
   SelectTrigger,
   SelectValue,
 } from "@radix-ui/react-select";

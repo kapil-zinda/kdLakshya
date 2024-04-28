@@ -43,9 +43,9 @@ const Challenges = () => {
     setEditingChallenge(null);
   };
 
-  const handleDateTimeClick = (challenge: any) => {
-    setEditingChallenge(challenge);
-  };
+  // const handleDateTimeClick = (challenge: any) => {
+  //   setEditingChallenge(challenge);
+  // };
 
   return (
     <>

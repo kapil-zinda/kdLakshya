@@ -2,7 +2,7 @@ import '../styles/globals.css';
 import { Analytics } from "@vercel/analytics/react";
 
 import type { Metadata } from 'next';
-import type { Viewport } from 'next'
+// import type { Viewport } from 'next'
 import { Inter } from 'next/font/google';
 
 import Header from '@/components/header';
@@ -35,9 +35,9 @@ export const metadata: Metadata = {
   ],
 };
 
-export const viewport: Viewport = {
-  themeColor: "#ffffff",
-};
+// export const viewport: Viewport = {
+//   themeColor: "#ffffff",
+// };
 
 export default function RootLayout({
   children,
