@@ -7,7 +7,7 @@ type SubjectTablePageProps = {
   total: number;
 };
 
-const subjectTablePage: React.FC<SubjectTablePageProps> = ({
+const SubjectTablePage: React.FC<SubjectTablePageProps> = ({
   question,
   total,
 }) => {
@@ -213,4 +213,4 @@ const subjectTablePage: React.FC<SubjectTablePageProps> = ({
   );
 };
 
-export default subjectTablePage;
+export default SubjectTablePage;
