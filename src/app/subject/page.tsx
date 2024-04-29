@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import SubjectCard from '@/components/cards/subjectCard';
+import axios from 'axios';
 
 // import AllQuestionSpace from '../../components/roundPageView/roundPageView';
 // import SubjectTablePage from './table';
@@ -90,6 +91,20 @@ export default function SubjectPage() {
   //   ],
   // };
 
+  useEffect(()=>{
+    const fetchData = async()=>{
+      try {
+        const res = await axios.get("https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject");
+        console.log(res.data.data);
+        setSubjectData(res.data.data);
+      } catch (error) {
+        console.log(error)
+      }
+    }
+    fetchData()
+  },[])
+
+  const [subject_data, setSubjectData] = useState<any>([]);
   const subjects = [
     {
       id: 'subject3',
@@ -118,11 +133,11 @@ export default function SubjectPage() {
         <div className="max-w-screen-xl mx-auto">
           <div className="p-4 border-2 rounded-lg ">
             {subjects.length ? (
-              subjects.map((subject_dd: any, index: number) => {
+              subject_data.map((subject_dd: any, index: number) => {
                 return (
                   <div key={index}>
                     <SubjectCard
-                      name={subject_dd.name}
+                      name={subject_dd.attributes.name}
                       id={String(subject_dd.id)}
                     />
                   </div>
