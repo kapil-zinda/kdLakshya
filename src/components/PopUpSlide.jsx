@@ -7,6 +7,7 @@ import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Slide from '@mui/material/Slide';
 import TextField from '@mui/material/TextField';
+import axios from 'axios';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -22,12 +23,12 @@ export default function PopUpSlide({ onAdd, onEdit, editingData }) {
     description: '',
   });
 
-  React.useEffect(() => {
-    if (editingData) {
-      setFormData(editingData);
-      setOpen(true);
-    }
-  }, [editingData]);
+  // React.useEffect(() => {
+  //   if (editingData) {
+  //     setFormData(editingData);
+  //     setOpen(true);
+  //   }
+  // }, [editingData]);
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -35,13 +36,12 @@ export default function PopUpSlide({ onAdd, onEdit, editingData }) {
 
   const handleClose = () => {
     setOpen(false);
-    setFormData({
-      name: '',
-      start_time: '',
-      end_time: '',
-      duration: '',
-      description: '',
-    });
+    // setFormData({
+    //   name: '',
+    //   start_time: '',
+    //   end_time: '',
+    //   description: '',
+    // });
   };
 
   const handleChange = (e) => {
@@ -49,12 +49,28 @@ export default function PopUpSlide({ onAdd, onEdit, editingData }) {
     setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = () => {
-    if (editingData) {
-      onEdit(editingData.name, formData);
-    } else {
-      onAdd(formData);
+  const handleSubmit = async() => {
+    try {
+      const URL = "https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/time-table"
+      const Payload = {
+        data: {
+          type: 'time-table',
+          attributes: {
+            title: formData.name,
+            start: '12:12',
+            end: formData.end_time,
+            note: formData.description
+          }
+        }
+      }
+      const res = await axios.patch(URL, Payload);
+
+      console.log(res)
+      return res;
+    } catch (error) {
+      console.log(error)
     }
+   
     handleClose();
   };
 
@@ -62,7 +78,8 @@ export default function PopUpSlide({ onAdd, onEdit, editingData }) {
     <React.Fragment>
       <div style={{width: "100%", display: "flex", alignItems: 'center', justifyContent: "center"}}>
       <Button variant="outlined" onClick={handleClickOpen}>
-        {editingData ? 'Edit' : 'Create'}
+        {/* {editingData ? 'Edit' : 'Push I'} */}
+        Push Item
       </Button>
       </div>
       <Dialog
@@ -78,41 +95,33 @@ export default function PopUpSlide({ onAdd, onEdit, editingData }) {
             autoFocus
             margin="dense"
             id="name"
-            label="Name"
+            label="Title"
             type="text"
             fullWidth
             name="name"
             value={formData.name}
             onChange={handleChange}
+            required
           />
           <TextField
             margin="dense"
             id="start_time"
             label="Start Time"
-            type="number"
+            type="time"
             fullWidth
             name="start_time"
             value={formData.start_time}
             onChange={handleChange}
+            required
           />
           <TextField
             margin="dense"
             id="end_time"
             label="End Time"
-            type="number"
+            type="time"
             fullWidth
             name="end_time"
             value={formData.end_time}
-            onChange={handleChange}
-          />
-          <TextField
-            margin="dense"
-            id="duration"
-            label="Duration"
-            type="number"
-            fullWidth
-            name="duration"
-            value={formData.duration}
             onChange={handleChange}
           />
           <TextField

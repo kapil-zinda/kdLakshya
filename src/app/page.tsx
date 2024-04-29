@@ -1,6 +1,6 @@
 "use client"
 import BasicTable from "@/components/table"
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import axios from 'axios';
 
 export default function Home() {
@@ -11,12 +11,13 @@ export default function Home() {
     {"name":'Cupcake zoology', "start_time":305, "end_time":3.7, "duration":67, "description":'testing desc'},
     {"name":'Gingerbread botany', "start_time":356, "end_time":16.0, "duration":49, "description":'gingerbread cake'},
   ]
+  const [tableData, setTableData] = useState<any>(null)
   // console.log(process.env.REACT_APP_BASE_URL," hello")
   useEffect(()=>{
     const fetchData = async()=>{
       try {
         const res = await axios.get("https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/time-table");
-        console.log(res)
+        setTableData(res.data.data.attributes)
       } catch (error) {
         console.log(error)
       }
@@ -37,7 +38,7 @@ export default function Home() {
     <>
       <span className="font-bold text-4xl">Home</span>
       <div className="border-dashed border border-zinc-500 w-full h-12 rounded-lg"></div>
-      <BasicTable arrayData={arrayData} columnHeaders={columnHeaders}/>
+      <BasicTable tableData={tableData} setTableData={setTableData} columnHeaders={columnHeaders}/>
       {/* <PopUpSlide/> */}
     </>
   );
