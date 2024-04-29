@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useParams } from "next/navigation";
 
 import SubjectCard from '@/components/cards/subjectCard';
 import AllQuestionSpace from '@/components/roundPageView/roundPageView';
 
 import SubjectTablePage from '../table';
+import axios from 'axios';
 
 // export const metadata: Metadata = {
 //   title: "10k Hours - Task and Issue Tracker",
@@ -89,11 +91,27 @@ export default function SubjectPage() {
       [],
     ],
   };
+  const params = useParams();
+  const subject_id = String(params.subject_id);
 
   const [gridView, setGridView] = useState<number>(0);
   const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
   const [addPageToSubject, setAddPageToSubject] = useState<boolean>(false);
   const [updateSubjectPage, setUpdateSubjectPage] = useState<boolean>(false);
+  const [subject_data, setSubjectData] = useState<any>({});
+
+  useEffect(()=>{
+    const fetchData = async()=>{
+      try {
+        const res = await axios.get("https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/"+subject_id);
+        console.log(res.data.data);
+        setSubjectData(res.data.data.attributes);
+      } catch (error) {
+        console.log(error)
+      }
+    }
+    fetchData()
+  },[])
 
   const handleAddSubject = async () => {
     setPopAddSubject(false);
@@ -111,7 +129,7 @@ export default function SubjectPage() {
       <main className="mb-8">
         <div className="max-w-screen-xl mx-auto py-3">
           <h2 className="text-2xl font-bold tracking-tight">
-            {subjectdata.name}
+            {subject_data.name}
           </h2>
           <p className="text-muted-foreground">
             Simplify your task management with ease and efficiency.
