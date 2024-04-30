@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from "next/navigation";
+
+import { useParams } from 'next/navigation';
 
 import SubjectCard from '@/components/cards/subjectCard';
 import AllQuestionSpace from '@/components/roundPageView/roundPageView';
+import axios from 'axios';
 
 import SubjectTablePage from '../table';
-import axios from 'axios';
 
 // export const metadata: Metadata = {
 //   title: "10k Hours - Task and Issue Tracker",
@@ -100,18 +101,21 @@ export default function SubjectPage() {
   const [updateSubjectPage, setUpdateSubjectPage] = useState<boolean>(false);
   const [subject_data, setSubjectData] = useState<any>({});
 
-  useEffect(()=>{
-    const fetchData = async()=>{
+  useEffect(() => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get("https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/"+subject_id);
+        const res = await axios.get(
+          'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
+            subject_id,
+        );
         console.log(res.data.data);
         setSubjectData(res.data.data.attributes);
       } catch (error) {
-        console.log(error)
+        console.log(error);
       }
-    }
-    fetchData()
-  },[])
+    };
+    fetchData();
+  }, []);
 
   const [subjectPageToAdd, setSubjectPageToAdd] = useState<number>(0);
   const handleSubjectPageChange = (e: any) => {
@@ -128,12 +132,20 @@ export default function SubjectPage() {
       data: {
         type: 'time-table',
         attributes: {
-          total : subjectPageToAdd
+          total: subjectPageToAdd,
         },
       },
     };
-    const res = await axios.post('https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' + subject_id + "/add-page", Payload);
-    const resp = await axios.get('https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' + subject_id);
+    const res = await axios.post(
+      'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
+        subject_id +
+        '/add-page',
+      Payload,
+    );
+    const resp = await axios.get(
+      'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
+        subject_id,
+    );
     console.log('Subject log:', res);
     setSubjectData(res.data.data);
     // Clear the input field after adding the subject
@@ -141,7 +153,54 @@ export default function SubjectPage() {
     setAddPageToSubject(false);
   };
 
-  const handleUpdateSubjectPage = async () => {
+  const [subjectUpdatePageStart, setSubjectUpdatePageStart] =
+    useState<number>(0);
+  const handleSubjectUpdateStartChange = (e: any) => {
+    const { value } = e.target;
+    setSubjectUpdatePageStart(value);
+  };
+
+  const [subjectUpdatePageEnd, setSubjectUpdatePageEnd] = useState<number>(0);
+  const handleSubjectUpdateEndChange = (e: any) => {
+    const { value } = e.target;
+    setSubjectUpdatePageEnd(value);
+  };
+
+  const handleUpdateSubjectPage = async (event: any) => {
+    event.preventDefault();
+
+    if (
+      subjectUpdatePageStart &&
+      subjectUpdatePageEnd &&
+      subjectUpdatePageStart <= subjectUpdatePageEnd
+    ) {
+      // Add your logic here for handling the addition of the subject
+      const url =
+        'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject';
+      const Payload = {
+        data: {
+          type: 'time-table',
+          attributes: {
+            start: subjectUpdatePageStart,
+            last: subjectUpdatePageEnd,
+          },
+        },
+      };
+      const res = await axios.post(
+        'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
+          subject_id,
+        Payload,
+      );
+      const resp = await axios.get(
+        'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
+          subject_id,
+      );
+      console.log('Subject log:', res);
+      setSubjectData(res.data.data);
+      // Clear the input field after adding the subject
+      setSubjectUpdatePageEnd(0);
+      setSubjectUpdatePageStart(0);
+    }
     setUpdateSubjectPage(false);
   };
 
@@ -165,7 +224,10 @@ export default function SubjectPage() {
       },
     };
     const res = await axios.post(url, Payload);
-    const resp = await axios.get('https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' + subject_id);
+    const resp = await axios.get(
+      'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
+        subject_id,
+    );
     console.log('Subject log:', res);
     setSubjectData(resp.data.data.attributes);
     // Clear the input field after adding the subject
@@ -186,16 +248,18 @@ export default function SubjectPage() {
         </div>
         <div className="max-w-screen-xl mx-auto">
           <div className="p-4 border-2 rounded-lg ">
-            {subject_data.inner_subject.map((subject_dd: any, index: number) => {
-              return (
-                <div key={index}>
-                  <SubjectCard
-                    name={subject_dd.name}
-                    id={String(subject_dd.id)}
-                  />
-                </div>
-              );
-            })}
+            {subject_data.inner_subject.map(
+              (subject_dd: any, index: number) => {
+                return (
+                  <div key={index}>
+                    <SubjectCard
+                      name={subject_dd.name}
+                      id={String(subject_dd.id)}
+                    />
+                  </div>
+                );
+              },
+            )}
             <div className="flex flex-col space-y-4 sm:flex-row sm:justify-center sm:space-y-0">
               {popAddSubject ? (
                 <div
@@ -418,6 +482,8 @@ export default function SubjectPage() {
                               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-auto p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
                               placeholder="pages"
                               required={true}
+                              value={subjectUpdatePageStart}
+                              onChange={handleSubjectUpdateStartChange}
                             />
                             <input
                               type="number"
@@ -426,6 +492,8 @@ export default function SubjectPage() {
                               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-auto p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
                               placeholder="pages"
                               required={true}
+                              value={subjectUpdatePageEnd}
+                              onChange={handleSubjectUpdateEndChange}
                             />
                             <button
                               type="submit"
