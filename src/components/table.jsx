@@ -14,6 +14,7 @@ import TableRow from '@mui/material/TableRow';
 import axios from 'axios';
 
 import PopUpSlide from './PopUpSlide';
+import EditPopup from './EditPopup';
 
 // function createData(name, start_time, end_time, duration, description) {
 //   return { name, start_time, end_time, duration, description };
@@ -61,7 +62,7 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
           };
           const res = await axios.post(url, Payload);
           setTableData(res.data.data.attributes);
-          return res.status(201).json(res);
+          return res
         } catch (error) {
           console.log('error during starting day', error);
         }
@@ -98,7 +99,7 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
               </TableRow>
             </TableHead>
             <TableBody>
-              {tableData && tableData.table_item.map((row) => (
+              {tableData && tableData.table_item.map((row, index) => (
                 <TableRow
                   key={row.name}
                   style={{ color: 'white' }}
@@ -111,32 +112,30 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
                   >
                     {row.title}
                   </TableCell>
-                  <TableCell align="right" style={{ color: 'pink' }}>
+                  <TableCell align="left" style={{ color: 'pink' }}>
                     {row.start}
                   </TableCell>
-                  <TableCell align="right" style={{ color: 'white' }}>
+                  <TableCell align="left" style={{ color: 'pink' }}>
                     {row.end}
                   </TableCell>
-                  <TableCell align="right" style={{ color: 'white' }}>
+                  {/* <TableCell align="left" style={{ color: 'pink' }}>
                     {row.duration}
-                  </TableCell>
-                  <TableCell align="right" style={{ color: 'white' }}>
+                  </TableCell> */}
+                  <TableCell align="left" style={{ color: 'pink' }}>
                     {row.note}
                   </TableCell>
-                  <TableCell align="right" style={{ color: 'white' }}>
+                  <TableCell align="right" style={{ color: 'pink' }}>
                     <span>
-                      <EditNoteIcon onClick={() => handleEdit(row)} />
+                       <EditPopup previousData={row} rowNumber={index} setTableData={setTableData}/>
                     </span>
-                    <DeleteSweepIcon onClick={() => handleDelete(row.name)} />
+                    {/* <DeleteSweepIcon onClick={() => handleDelete(row.name)} /> */}
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
           <PopUpSlide
-            onAdd={handleAdd}
-            onEdit={handleEditSubmit}
-            editingData={editingData}
+            setTableData={setTableData}
           />
         </TableContainer>
       )}

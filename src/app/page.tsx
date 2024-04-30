@@ -26,11 +26,10 @@ export default function Home() {
   },[])
   const columnHeaders = [
     { label: 'Subject', align: 'left' },
-    { label: 'Start Time', align: 'right' },
-    { label: 'End Time', align: 'right' },
-    { label: 'Duration', align: 'right' },
-    { label: 'Description', align: 'right' },
-    { label: 'Function', align: 'right' }
+    { label: 'Start Time', align: 'left' },
+    { label: 'End Time', align: 'left' },
+    { label: 'Description', align: 'left' },
+    { label: 'Edit', align: 'right' }
   ];
   
   

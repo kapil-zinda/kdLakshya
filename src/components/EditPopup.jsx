@@ -9,19 +9,16 @@ import Slide from '@mui/material/Slide';
 import TextField from '@mui/material/TextField';
 import axios from 'axios';
 
+import EditNoteIcon from '@mui/icons-material/EditNote';
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
-export default function PopUpSlide({setTableData}) {
+export default function EditPopup({ rowNumber, previousData, setTableData}) {
   const [open, setOpen] = React.useState(false);
-  const [formData, setFormData] = React.useState({
-    name: '',
-    start_time: '',
-    end_time: '',
-    duration: '',
-    description: '',
-  });
+  const [formData, setFormData] = React.useState(previousData);
+  console.log("previous data >>>>> ", formData)
+  console.log("rowNumber >>>>> ", rowNumber)
 
   // React.useEffect(() => {
   //   if (editingData) {
@@ -56,17 +53,18 @@ export default function PopUpSlide({setTableData}) {
         data: {
           type: 'time-table',
           attributes: {
-            title: formData.name,
+            row: rowNumber,
+            title: formData.title,
             start: '12:12',
-            end: formData.end_time,
-            note: formData.description
+            end: '12:25',
+            note: formData.note
           }
         }
       }
-      const res = await axios.patch(URL, Payload);
-      console.log(res)
+      const res = await axios.put(URL, Payload);
       setTableData(res.data.data.attributes)
-      setOpen(false)
+      console.log("edit popup", res.data.data.attributes)
+      setOpen(false);
       return res;
     } catch (error) {
       console.log(error)
@@ -78,10 +76,7 @@ export default function PopUpSlide({setTableData}) {
   return (
     <React.Fragment>
       <div style={{width: "100%", display: "flex", alignItems: 'center', justifyContent: "center"}}>
-      <Button variant="outlined" onClick={handleClickOpen}>
-        {/* {editingData ? 'Edit' : 'Push I'} */}
-        Push Item
-      </Button>
+      <EditNoteIcon sx={{color: "red"}} variant="outlined" onClick={handleClickOpen}/>
       </div>
       <Dialog
         open={open}
@@ -90,7 +85,7 @@ export default function PopUpSlide({setTableData}) {
         onClose={handleClose}
         aria-describedby="alert-dialog-slide-description"
       >
-        <DialogTitle>Create a new entry</DialogTitle>
+        <DialogTitle>Edit entry</DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
@@ -99,8 +94,8 @@ export default function PopUpSlide({setTableData}) {
             label="Title"
             type="text"
             fullWidth
-            name="name"
-            value={formData.name}
+            name="title"
+            value={formData.title}
             onChange={handleChange}
             required
           />
@@ -110,8 +105,8 @@ export default function PopUpSlide({setTableData}) {
             label="Start Time"
             type="time"
             fullWidth
-            name="start_time"
-            value={formData.start_time}
+            name="start"
+            value={formData.start}
             onChange={handleChange}
             required
           />
@@ -121,8 +116,8 @@ export default function PopUpSlide({setTableData}) {
             label="End Time"
             type="time"
             fullWidth
-            name="end_time"
-            value={formData.end_time}
+            name="end"
+            value={formData.end}
             onChange={handleChange}
           />
           <TextField
@@ -131,14 +126,14 @@ export default function PopUpSlide({setTableData}) {
             label="Description"
             type="text"
             fullWidth
-            name="description"
-            value={formData.description}
+            name="note"
+            value={formData.note}
             onChange={handleChange}
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button onClick={handleSubmit}>Add</Button>
+          <Button onClick={handleSubmit}>{'Save'}</Button>
         </DialogActions>
       </Dialog>
     </React.Fragment>
