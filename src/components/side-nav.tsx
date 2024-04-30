@@ -11,7 +11,7 @@ import { Icon } from '@iconify/react';
 
 const SideNav = () => {
   return (
-    <div className="md:w-60 bg-black h-screen flex-1 fixed border-r border-zinc-200 hidden md:flex">
+    <div className="md:w-60 bg-black h-screen flex-1 fixed border-r border-zinc-200 md:flex">
       <div className="flex flex-col space-y-6 w-full">
         <Link
           href="/"
@@ -46,8 +46,8 @@ const MenuItem = ({ item }: { item: SideNavItem }) => {
         <>
           <button
             onClick={toggleSubMenu}
-            className={`flex flex-row items-center p-2 rounded-lg hover-bg-zinc-100 w-full justify-between hover:bg-zinc-100 ${
-              pathname.includes(item.path) ? 'bg-zinc-100' : ''
+            className={`flex flex-row items-center p-2 rounded-lg hover-bg-zinc-100 w-full justify-between hover:bg-zinc-600 ${
+              pathname.includes(item.path) ? 'bg-zinc-400' : ''
             }`}
           >
             <div className="flex flex-row space-x-4 items-center">
@@ -69,7 +69,7 @@ const MenuItem = ({ item }: { item: SideNavItem }) => {
                     href={subItem.path}
                     className={`${
                       subItem.path === pathname ? 'font-bold' : ''
-                    }`}
+                    } bg-zinc-600`}
                   >
                     <span>{subItem.title}</span>
                   </Link>
@@ -81,8 +81,8 @@ const MenuItem = ({ item }: { item: SideNavItem }) => {
       ) : (
         <Link
           href={item.path}
-          className={`flex flex-row space-x-4 items-center p-2 rounded-lg hover:bg-zinc-100 ${
-            item.path === pathname ? 'bg-zinc-100' : ''
+          className={`flex flex-row space-x-4 items-center p-2 rounded-lg hover:bg-zinc-600 ${
+            item.path === pathname ? 'bg-zinc-400' : ''
           }`}
         >
           {item.icon}

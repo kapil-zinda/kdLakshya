@@ -50,7 +50,7 @@ export default function RootLayout({
       <Providers>
         <div className="flex">
           <SideNav />
-          <main className="flex-1 relative">
+          <main className="flex-1">
             <MarginWidthWrapper>
               <Header />
               <HeaderMobile />
