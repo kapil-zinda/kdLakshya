@@ -124,8 +124,8 @@ export default function SubjectPage() {
   //   setPopAddSubject(false);
   // };
 
-  const [subjectName, setSubjectName] = useState<string>('');
-  const handleChange = (e) => {
+  const [subjectName, setSubjectName] = useState<string>("");
+  const handleChange = (e : any) => {
     const { value } = e.target;
     setSubjectName(value);
   };
@@ -143,9 +143,8 @@ export default function SubjectPage() {
         },
       },
     };
-    const res = await axios.post(url, Payload);
+    await axios.post(url, Payload);
     const resp = await axios.get(url);
-    console.log('Subject log:', res);
     setSubjectData(resp.data.data);
     // Clear the input field after adding the subject
     setSubjectName('');
