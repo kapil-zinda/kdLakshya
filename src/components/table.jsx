@@ -20,8 +20,6 @@ import PopUpSlide from './PopUpSlide';
 
 export default function BasicTable({ tableData, setTableData, columnHeaders }) {
   const handleStartDayClick = async () => {
-    // React.useEffect(() => {
-    // const createTable = async () => {
     try {
       const url =
         'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/time-table';
@@ -39,9 +37,6 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
     } catch (error) {
       console.log('error during starting day', error);
     }
-    // };
-    // createTable();
-    // }, []);
   };
 
   return (
