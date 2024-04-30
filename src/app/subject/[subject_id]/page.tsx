@@ -10,91 +10,9 @@ import axios from 'axios';
 
 import SubjectTablePage from '../table';
 
-// export const metadata: Metadata = {
-//   title: "10k Hours - Task and Issue Tracker",
-//   description:
-//     "Efficiently manage tasks and track issues with iTasks, your dedicated task and issue tracker.",
-// };
-
 export default function SubjectPage() {
-  const subjectdata = {
-    id: 'subject3',
-    name: 'physics',
-    parent: 'subject1',
-    completed_page: 5,
-    total_page: 60,
-    inner_subject: [{ name: 'kinetics', id: '12345' }],
-    page_array: [
-      3, 2, 1, 0, 1, 2, 3, 1, 2, 2, 0, 1, 2, 2, 3, 3, 2, 1, 0, 1, 2, 3, 1, 2, 2,
-      0, 1, 2, 2, 3, 3, 2, 1, 0, 1, 2, 3, 1, 2, 2, 0, 1, 2, 2, 3, 3, 2, 1, 0, 1,
-      2, 3, 1, 2, 2, 0, 1, 2, 2, 3,
-    ],
-    page_dates: [
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-      ['12', '15'],
-      ['4'],
-      ['7', '9', '28'],
-      [],
-    ],
-  };
   const params = useParams();
   const subject_id = String(params.subject_id);
-  console.log(subject_id);
 
   const [gridView, setGridView] = useState<number>(0);
   const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
@@ -109,7 +27,6 @@ export default function SubjectPage() {
           'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
             subject_id,
         );
-        console.log(res.data.data);
         setSubjectData(res.data.data.attributes);
       } catch (error) {
         console.log(error);
@@ -143,11 +60,6 @@ export default function SubjectPage() {
         '/add-page',
       Payload,
     );
-    const resp = await axios.get(
-      'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
-        subject_id,
-    );
-    console.log('Subject log:', res);
     setSubjectData(res.data.data.attributes);
     // Clear the input field after adding the subject
     setSubjectPageToAdd(0);
@@ -192,11 +104,6 @@ export default function SubjectPage() {
           subject_id,
         Payload,
       );
-      const resp = await axios.get(
-        'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
-          subject_id,
-      );
-      console.log('Subject log:', res);
       setSubjectData(res.data.data.attributes);
       // Clear the input field after adding the subject
       setSubjectUpdatePageEnd(0);
@@ -229,14 +136,11 @@ export default function SubjectPage() {
       'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
         subject_id,
     );
-    console.log('Subject log:', res);
     setSubjectData(resp.data.data.attributes);
     // Clear the input field after adding the subject
     setSubjectName('');
     setPopAddSubject(false);
   };
-
-  console.log(subject_data);
 
   return (
     <>
