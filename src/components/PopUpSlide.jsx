@@ -44,10 +44,6 @@ export default function PopUpSlide({setTableData}) {
     //   description: '',
     // });
   };
-
-  console.log(onAdd);
-  console.log(onEdit);
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
@@ -61,14 +57,14 @@ export default function PopUpSlide({setTableData}) {
           type: 'time-table',
           attributes: {
             title: formData.name,
-            start: '12:12',
+            start: formData.start_time,
             end: formData.end_time,
             note: formData.description
           }
         }
       }
       const res = await axios.patch(URL, Payload);
-      console.log(res)
+      console.log(res, Payload)
       setTableData(res.data.data.attributes)
       setOpen(false)
       return res;

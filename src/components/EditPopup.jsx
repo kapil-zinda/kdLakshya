@@ -55,8 +55,8 @@ export default function EditPopup({ rowNumber, previousData, setTableData}) {
           attributes: {
             row: rowNumber,
             title: formData.title,
-            start: '12:12',
-            end: '12:25',
+            start: formData.start,
+            end: formData.end,
             note: formData.note
           }
         }

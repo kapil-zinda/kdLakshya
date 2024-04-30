@@ -81,9 +81,9 @@ export default function SubjectPage() {
     event.preventDefault();
 
     if (
-      subjectUpdatePageStart &&
-      subjectUpdatePageEnd &&
-      subjectUpdatePageStart <= subjectUpdatePageEnd
+      Number(subjectUpdatePageStart) &&
+      Number(subjectUpdatePageEnd) &&
+      Number(subjectUpdatePageStart) <= Number(subjectUpdatePageEnd)
     ) {
       // Add your logic here for handling the addition of the subject
       const url =
@@ -92,14 +92,15 @@ export default function SubjectPage() {
         data: {
           type: 'time-table',
           attributes: {
-            start: subjectUpdatePageStart,
-            last: subjectUpdatePageEnd,
+            start: Number(subjectUpdatePageStart),
+            last: Number(subjectUpdatePageEnd),
           },
         },
       };
       const res = await axios.patch(url + '/' + subject_id, Payload);
       setSubjectData(res.data.data.attributes);
       // Clear the input field after adding the subject
+      console.log("payload>>> ", Payload, typeof((subjectUpdatePageStart)))
       setSubjectUpdatePageEnd(0);
       setSubjectUpdatePageStart(0);
     }
