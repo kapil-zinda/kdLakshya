@@ -113,17 +113,66 @@ export default function SubjectPage() {
     fetchData()
   },[])
 
-  const handleAddSubject = async () => {
-    setPopAddSubject(false);
+  const [subjectPageToAdd, setSubjectPageToAdd] = useState<number>(0);
+  const handleSubjectPageChange = (e: any) => {
+    const { value } = e.target;
+    setSubjectPageToAdd(value);
   };
 
-  const handleAddPageToSubject = async () => {
+  const handleAddPageToSubject = async (event: any) => {
+    event.preventDefault();
+    // Add your logic here for handling the addition of the subject
+    const url =
+      'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject';
+    const Payload = {
+      data: {
+        type: 'time-table',
+        attributes: {
+          total : subjectPageToAdd
+        },
+      },
+    };
+    const res = await axios.post('https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' + subject_id + "/add-page", Payload);
+    const resp = await axios.get('https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' + subject_id);
+    console.log('Subject log:', res);
+    setSubjectData(res.data.data);
+    // Clear the input field after adding the subject
+    setSubjectPageToAdd(0);
     setAddPageToSubject(false);
   };
 
   const handleUpdateSubjectPage = async () => {
     setUpdateSubjectPage(false);
   };
+
+  const [subjectName, setSubjectName] = useState<string>('');
+  const handleChange = (e: any) => {
+    const { value } = e.target;
+    setSubjectName(value);
+  };
+  const handleAddSubject = async (event: any) => {
+    event.preventDefault();
+    // Add your logic here for handling the addition of the subject
+    const url =
+      'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject';
+    const Payload = {
+      data: {
+        type: 'time-table',
+        attributes: {
+          name: subjectName,
+          parent: subject_id,
+        },
+      },
+    };
+    const res = await axios.post(url, Payload);
+    const resp = await axios.get('https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' + subject_id);
+    console.log('Subject log:', res);
+    setSubjectData(resp.data.data.attributes);
+    // Clear the input field after adding the subject
+    setSubjectName('');
+    setPopAddSubject(false);
+  };
+
   return (
     <>
       <main className="mb-8">
@@ -137,7 +186,7 @@ export default function SubjectPage() {
         </div>
         <div className="max-w-screen-xl mx-auto">
           <div className="p-4 border-2 rounded-lg ">
-            {subjectdata.inner_subject.map((subject_dd: any, index: number) => {
+            {subject_data.inner_subject.map((subject_dd: any, index: number) => {
               return (
                 <div key={index}>
                   <SubjectCard
@@ -186,7 +235,7 @@ export default function SubjectPage() {
                       </div>
                       {/* Modal body */}
                       <div className="p-4 md:p-5">
-                        <form className="space-y-4" action="#">
+                        <form className="space-y-4" onSubmit={handleAddSubject}>
                           <div>
                             <label
                               htmlFor="subb"
@@ -195,17 +244,18 @@ export default function SubjectPage() {
                               subject name
                             </label>
                             <input
-                              type="subb"
+                              type="text"
                               name="subb"
                               id="subb"
                               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
                               placeholder="subject"
                               required={true}
+                              value={subjectName}
+                              onChange={handleChange}
                             />
                           </div>
                           <button
                             type="submit"
-                            onClick={handleAddSubject}
                             className="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
                           >
                             Add Subject
@@ -228,7 +278,7 @@ export default function SubjectPage() {
           </div>
         </div>
 
-        {subjectdata.total_page ? (
+        {subject_data.total_page ? (
           <>
             <div className="border-b border-gray-200 dark:border-gray-700">
               <ul className="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500 dark:text-gray-400">
@@ -296,19 +346,20 @@ export default function SubjectPage() {
                   >
                     <div className="relative p-4 w-full max-w-md max-h-full">
                       <div className="relative bg-white rounded-lg shadow dark:bg-gray-700">
-                        <form className="" action="#">
+                        <form className="" onSubmit={handleAddPageToSubject}>
                           <div className="flex items-center justify-between md:p-1 border-b rounded-t dark:border-gray-600">
                             <input
-                              type="pagg"
+                              type="number"
                               name="pagg"
                               id="pagg"
                               className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-auto p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
                               placeholder="pages"
                               required={true}
+                              value={subjectPageToAdd}
+                              onChange={handleSubjectPageChange}
                             />
                             <button
                               type="submit"
-                              onClick={handleAddPageToSubject}
                               className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
                             >
                               Add

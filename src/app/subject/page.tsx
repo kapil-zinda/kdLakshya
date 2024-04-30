@@ -125,7 +125,7 @@ export default function SubjectPage() {
   // };
 
   const [subjectName, setSubjectName] = useState<string>('');
-  const handleChange = (e) => {
+  const handleChange = (e : any) => {
     const { value } = e.target;
     setSubjectName(value);
   };
