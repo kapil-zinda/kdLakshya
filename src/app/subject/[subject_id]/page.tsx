@@ -55,9 +55,7 @@ export default function SubjectPage() {
       },
     };
     const res = await axios.patch(
-      'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
-        subject_id +
-        '/add-page',
+      url + '/' + subject_id + '/add-page',
       Payload,
     );
     setSubjectData(res.data.data.attributes);
@@ -99,11 +97,7 @@ export default function SubjectPage() {
           },
         },
       };
-      const res = await axios.patch(
-        'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
-          subject_id,
-        Payload,
-      );
+      const res = await axios.patch(url + '/' + subject_id, Payload);
       setSubjectData(res.data.data.attributes);
       // Clear the input field after adding the subject
       setSubjectUpdatePageEnd(0);
@@ -131,7 +125,7 @@ export default function SubjectPage() {
         },
       },
     };
-    const res = await axios.post(url, Payload);
+    await axios.post(url, Payload);
     const resp = await axios.get(
       'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
         subject_id,

@@ -74,7 +74,7 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
     <>
       {tableData == null ? (
         <div>
-          <h1>You haven't started a day, please create a day</h1>
+          <h1>You have not started a day, please create a day</h1>
           <button onClick={handleStartDayClick}>start a day</button>
         </div>
       ) : (

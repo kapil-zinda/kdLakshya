@@ -8,6 +8,7 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Slide from '@mui/material/Slide';
 import TextField from '@mui/material/TextField';
 import axios from 'axios';
+// import { log } from 'console';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
@@ -43,6 +44,9 @@ export default function PopUpSlide({ onAdd, onEdit, editingData }) {
     //   description: '',
     // });
   };
+
+  console.log(onAdd);
+  console.log(onEdit);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
