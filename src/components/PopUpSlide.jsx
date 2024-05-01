@@ -8,12 +8,12 @@ import DialogTitle from '@mui/material/DialogTitle';
 import Slide from '@mui/material/Slide';
 import TextField from '@mui/material/TextField';
 import axios from 'axios';
-// import { log } from 'console';
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
+const BaseURL = process.env.BaseURL;
 export default function PopUpSlide({setTableData}) {
   const [open, setOpen] = React.useState(false);
   const [formData, setFormData] = React.useState({
@@ -24,25 +24,12 @@ export default function PopUpSlide({setTableData}) {
     description: '',
   });
 
-  // React.useEffect(() => {
-  //   if (editingData) {
-  //     setFormData(editingData);
-  //     setOpen(true);
-  //   }
-  // }, [editingData]);
-
   const handleClickOpen = () => {
     setOpen(true);
   };
 
   const handleClose = () => {
     setOpen(false);
-    // setFormData({
-    //   name: '',
-    //   start_time: '',
-    //   end_time: '',
-    //   description: '',
-    // });
   };
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -51,7 +38,6 @@ export default function PopUpSlide({setTableData}) {
 
   const handleSubmit = async() => {
     try {
-      const URL = "https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/time-table"
       const Payload = {
         data: {
           type: 'time-table',
@@ -63,8 +49,7 @@ export default function PopUpSlide({setTableData}) {
           }
         }
       }
-      const res = await axios.patch(URL, Payload);
-      console.log(res, Payload)
+      const res = await axios.patch(BaseURL + "time-table", Payload);
       setTableData(res.data.data.attributes)
       setOpen(false)
       return res;

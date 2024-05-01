@@ -14,15 +14,10 @@ import axios from 'axios';
 import EditPopup from './EditPopup';
 import PopUpSlide from './PopUpSlide';
 
-// function createData(name, start_time, end_time, duration, description) {
-//   return { name, start_time, end_time, duration, description };
-// }
-
+const BaseURL = process.env.BaseURL;
 export default function BasicTable({ tableData, setTableData, columnHeaders }) {
   const handleStartDayClick = async () => {
     try {
-      const url =
-        'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/time-table';
       const Payload = {
         data: {
           type: 'time-table',
@@ -31,7 +26,7 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
           },
         },
       };
-      const res = await axios.post(url, Payload);
+      const res = await axios.post(BaseURL + "time-table", Payload);
       setTableData(res.data.data.attributes);
       return res;
     } catch (error) {
@@ -70,7 +65,7 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
               {tableData &&
                 tableData.table_item.map((row, index) => (
                   <TableRow
-                    key={row.name}
+                    key={index}
                     style={{ color: 'white' }}
                     sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                   >
@@ -87,9 +82,6 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
                     <TableCell align="left" style={{ color: 'pink' }}>
                       {row.end}
                     </TableCell>
-                    {/* <TableCell align="left" style={{ color: 'pink' }}>
-                    {row.duration}
-                  </TableCell> */}
                     <TableCell align="left" style={{ color: 'pink' }}>
                       {row.note}
                     </TableCell>
@@ -117,15 +109,10 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
                   {parseInt(tableData.total_min / 60)} hours{' '}
                   {tableData.total_min % 60} min
                 </TableCell>
-                {/* <TableCell align="left" style={{ color: 'pink' }}>
-                    {row.duration}
-                  </TableCell> */}
                 <TableCell align="left" style={{ color: 'pink' }}></TableCell>
                 <TableCell align="right" style={{ color: 'pink' }}>
                   <span>
-                    {/* <EditPopup previousData={row} rowNumber={index} setTableData={setTableData}/> */}
                   </span>
-                  {/* <DeleteSweepIcon onClick={() => handleDelete(row.name)} /> */}
                 </TableCell>
               </TableRow>
             </TableBody>
