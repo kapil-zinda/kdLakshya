@@ -57,7 +57,8 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
               <TableRow>
                 {columnHeaders.map((header) => (
                   <TableCell
-                    style={{ color: 'white', background: 'pink' }}
+                    style={{ color: 'white'}}
+                    className=' bg-background'
                     key={header.label}
                     align={header.align}
                   >
@@ -66,34 +67,36 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
                 ))}
               </TableRow>
             </TableHead>
-            <TableBody>
+            <TableBody className=' bg-background'>
               {tableData &&
                 tableData.table_item.map((row, index) => (
                   <TableRow
+                  className=' bg-background'
                     key={row.name}
                     style={{ color: 'white' }}
                     sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                   >
                     <TableCell
+                    className=' bg-background'
                       component="th"
                       scope="row"
-                      style={{ color: 'pink' }}
+                      style={{ color: 'white' }}
                     >
                       {row.title}
                     </TableCell>
-                    <TableCell align="left" style={{ color: 'pink' }}>
+                    <TableCell align="left" style={{ color: 'white' }}>
                       {row.start}
                     </TableCell>
-                    <TableCell align="left" style={{ color: 'pink' }}>
+                    <TableCell align="left" style={{ color: 'white' }}>
                       {row.end}
                     </TableCell>
-                    {/* <TableCell align="left" style={{ color: 'pink' }}>
+                    {/* <TableCell align="left" style={{ color: 'white' }}>
                     {row.duration}
                   </TableCell> */}
-                    <TableCell align="left" style={{ color: 'pink' }}>
+                    <TableCell align="left" style={{ color: 'white' }}>
                       {row.note}
                     </TableCell>
-                    <TableCell align="right" style={{ color: 'pink' }}>
+                    <TableCell align="right" style={{ color: 'white' }}>
                       <span>
                         <EditPopup
                           previousData={row}
@@ -109,19 +112,19 @@ export default function BasicTable({ tableData, setTableData, columnHeaders }) {
                 style={{ color: 'white' }}
                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
               >
-                <TableCell component="th" scope="row" style={{ color: 'pink' }}>
+                <TableCell component="th" scope="row" style={{ color: 'white' }}>
                   Duration:
                 </TableCell>
-                <TableCell align="left" style={{ color: 'pink' }}></TableCell>
-                <TableCell align="left" style={{ color: 'pink' }}>
+                <TableCell align="left" style={{ color: 'white' }}></TableCell>
+                <TableCell align="left" style={{ color: 'white' }}>
                   {parseInt(tableData.total_min / 60)} hours{' '}
                   {tableData.total_min % 60} min
                 </TableCell>
-                {/* <TableCell align="left" style={{ color: 'pink' }}>
+                {/* <TableCell align="left" style={{ color: 'white' }}>
                     {row.duration}
                   </TableCell> */}
-                <TableCell align="left" style={{ color: 'pink' }}></TableCell>
-                <TableCell align="right" style={{ color: 'pink' }}>
+                <TableCell align="left" style={{ color: 'white' }}></TableCell>
+                <TableCell align="right" style={{ color: 'white' }}>
                   <span>
                     {/* <EditPopup previousData={row} rowNumber={index} setTableData={setTableData}/> */}
                   </span>

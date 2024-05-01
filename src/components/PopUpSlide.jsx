@@ -77,9 +77,8 @@ export default function PopUpSlide({setTableData}) {
 
   return (
     <React.Fragment>
-      <div style={{width: "100%", display: "flex", alignItems: 'center', justifyContent: "center"}}>
-      <Button variant="outlined" onClick={handleClickOpen}>
-        {/* {editingData ? 'Edit' : 'Push I'} */}
+      <div className='bg-background' style={{width: "100%", display: "flex", alignItems: 'center', justifyContent: "center"}}>
+      <Button variant="outlined" className=' bg-green-300' onClick={handleClickOpen}>
         Push Item
       </Button>
       </div>

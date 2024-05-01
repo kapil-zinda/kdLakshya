@@ -75,8 +75,8 @@ export default function EditPopup({ rowNumber, previousData, setTableData}) {
 
   return (
     <React.Fragment>
-      <div style={{width: "100%", display: "flex", alignItems: 'center', justifyContent: "center"}}>
-      <EditNoteIcon sx={{color: "red"}} variant="outlined" onClick={handleClickOpen}/>
+      <div style={{width: "100%", display: "flex", alignItems: 'center', justifyContent: "right"}}>
+      <EditNoteIcon sx={{color: "white"}} variant="outlined" onClick={handleClickOpen}/>
       </div>
       <Dialog
         open={open}
