@@ -5,99 +5,16 @@ import { useEffect, useState } from 'react';
 import SubjectCard from '@/components/cards/subjectCard';
 import axios from 'axios';
 
-// import AllQuestionSpace from '../../components/roundPageView/roundPageView';
-// import SubjectTablePage from './table';
-
-// export const metadata: Metadata = {
-//   title: "10k Hours - Task and Issue Tracker",
-//   description:
-//     "Efficiently manage tasks and track issues with iTasks, your dedicated task and issue tracker.",
-// };
+const BaseURL = process.env.BaseURL;
 
 export default function SubjectPage() {
-  // const subjectdata = {
-  //   id: 'subject3',
-  //   name: 'physics',
-  //   parent: 'subject1',
-  //   completed_page: 5,
-  //   total_page: 60,
-  //   inner_subject: [{ name: 'kinetics', id: '12345' }],
-  //   page_array: [
-  //     3, 2, 1, 0, 1, 2, 3, 1, 2, 2, 0, 1, 2, 2, 3, 3, 2, 1, 0, 1, 2, 3, 1, 2, 2,
-  //     0, 1, 2, 2, 3, 3, 2, 1, 0, 1, 2, 3, 1, 2, 2, 0, 1, 2, 2, 3, 3, 2, 1, 0, 1,
-  //     2, 3, 1, 2, 2, 0, 1, 2, 2, 3,
-  //   ],
-  //   page_dates: [
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //     ['12', '15'],
-  //     ['4'],
-  //     ['7', '9', '28'],
-  //     [],
-  //   ],
-  // };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const res = await axios.get(
-          'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject',
+          BaseURL + "subject",
         );
-        console.log(res.data.data);
         setSubjectData(res.data.data);
       } catch (error) {
         console.log(error);
@@ -107,22 +24,7 @@ export default function SubjectPage() {
   }, []);
 
   const [subject_data, setSubjectData] = useState<any>([]);
-  const subjects = [
-    {
-      id: 'subject3',
-      name: 'physics',
-      parent: 'subject1',
-      completed_page: 5,
-      total_page: 60,
-      inner_subject: [{ name: 'kinetics', id: '12345' }],
-      page_array: [3],
-      page_dates: [['12', '15']],
-    },
-  ];
   const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
-  // const handleAddSubject = async () => {
-  //   setPopAddSubject(false);
-  // };
 
   const [subjectName, setSubjectName] = useState<string>("");
   const handleChange = (e : any) => {
@@ -131,9 +33,6 @@ export default function SubjectPage() {
   };
   const handleAddSubject = async (event: any) => {
     event.preventDefault();
-    // Add your logic here for handling the addition of the subject
-    const url =
-      'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject';
     const Payload = {
       data: {
         type: 'time-table',
@@ -143,8 +42,8 @@ export default function SubjectPage() {
         },
       },
     };
-    await axios.post(url, Payload);
-    const resp = await axios.get(url);
+    await axios.post(BaseURL + "subject", Payload);
+    const resp = await axios.get(BaseURL + "subject");
     setSubjectData(resp.data.data);
     // Clear the input field after adding the subject
     setSubjectName('');
@@ -154,14 +53,14 @@ export default function SubjectPage() {
     <>
       <main className="mb-8">
         <div className="max-w-screen-xl mx-auto py-3">
-          <h2 className="text-2xl font-bold tracking-tight">Subjects</h2>
+          <h2 className="text-2xl font-bold tracking-tight">☺☺</h2>
           <p className="text-muted-foreground">
             Simplify your task management with ease and efficiency.
           </p>
         </div>
         <div className="max-w-screen-xl mx-auto">
           <div className="p-4 border-2 rounded-lg ">
-            {subjects.length ? (
+            {subject_data.length ? (
               subject_data && subject_data.map((subject_dd: any, index: number) => {
                 return (
                   <div key={index}>
@@ -217,33 +116,6 @@ export default function SubjectPage() {
                       </div>
                       {/* Modal body */}
                       <div className="p-4 md:p-5">
-                        {/* <form className="space-y-4" action="#">
-                          <div>
-                            <label
-                              htmlFor="subb"
-                              className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-                            >
-                              subject name
-                            </label>
-                            <input
-                              type="subb"
-                              name="subb"
-                              id="subb"
-                              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
-                              placeholder="subject"
-                              required={true}
-                              value={subjectName}
-                              onChange={handleChange}
-                            />
-                          </div>
-                          <button
-                            type="submit"
-                            onClick={handleAddSubject}
-                            className="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-                          >
-                            Add Subject
-                          </button>
-                        </form> */}
                         <form className="space-y-4" onSubmit={handleAddSubject}>
                           <div>
                             <label

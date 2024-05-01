@@ -14,18 +14,11 @@ const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="up" ref={ref} {...props} />;
 });
 
+const BaseURL = process.env.BaseURL;
+
 export default function EditPopup({ rowNumber, previousData, setTableData}) {
   const [open, setOpen] = React.useState(false);
   const [formData, setFormData] = React.useState(previousData);
-  console.log("previous data >>>>> ", formData)
-  console.log("rowNumber >>>>> ", rowNumber)
-
-  // React.useEffect(() => {
-  //   if (editingData) {
-  //     setFormData(editingData);
-  //     setOpen(true);
-  //   }
-  // }, [editingData]);
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -33,12 +26,6 @@ export default function EditPopup({ rowNumber, previousData, setTableData}) {
 
   const handleClose = () => {
     setOpen(false);
-    // setFormData({
-    //   name: '',
-    //   start_time: '',
-    //   end_time: '',
-    //   description: '',
-    // });
   };
 
   const handleChange = (e) => {
@@ -48,7 +35,6 @@ export default function EditPopup({ rowNumber, previousData, setTableData}) {
 
   const handleSubmit = async() => {
     try {
-      const URL = "https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/time-table"
       const Payload = {
         data: {
           type: 'time-table',
@@ -61,9 +47,8 @@ export default function EditPopup({ rowNumber, previousData, setTableData}) {
           }
         }
       }
-      const res = await axios.put(URL, Payload);
+      const res = await axios.put(BaseURL + "time-table", Payload);
       setTableData(res.data.data.attributes)
-      console.log("edit popup", res.data.data.attributes)
       setOpen(false);
       return res;
     } catch (error) {

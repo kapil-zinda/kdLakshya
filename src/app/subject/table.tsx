@@ -1,6 +1,6 @@
 'use client';
 
-import {  useState } from 'react';
+import { useState } from 'react';
 
 type SubjectTablePageProps = {
   question: any;
@@ -17,14 +17,20 @@ const SubjectTablePage: React.FC<SubjectTablePageProps> = ({
   const total_pages = Math.ceil(total / 10);
   // const pages_on_last = total % 10;
 
-//   const updatedata: any = ({currentpp, modify_number}) => {
-//     useEffect
-//   }
+  //   const updatedata: any = ({currentpp, modify_number}) => {
+  //     useEffect
+  //   }
 
-  const updatedata = async (currentpp:any, modify_number:any) => {
+  const updatedata = async (currentpp: any, modify_number: any) => {
     await setCurrentPage(currentpp + modify_number);
-    await setIndexStartPage(indexStartPage + modify_number*10);
-    await setIndexEndPage(total < indexEndPage + modify_number*10 ? total - 1 : indexEndPage == total -1 ? (total_pages-1)*10-1 : indexEndPage + modify_number*10)
+    await setIndexStartPage(indexStartPage + modify_number * 10);
+    await setIndexEndPage(
+      total < indexEndPage + modify_number * 10
+        ? total - 1
+        : indexEndPage == total - 1
+        ? (total_pages - 1) * 10 - 1
+        : indexEndPage + modify_number * 10,
+    );
   };
 
   return (
@@ -53,7 +59,10 @@ const SubjectTablePage: React.FC<SubjectTablePageProps> = ({
                 return (
                   index >= indexStartPage &&
                   index <= indexEndPage && (
-                    <tr className="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700">
+                    <tr
+                      key={index}
+                      className="odd:bg-white odd:dark:bg-gray-900 even:bg-gray-50 even:dark:bg-gray-800 border-b dark:border-gray-700"
+                    >
                       <th
                         scope="row"
                         className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
@@ -101,109 +110,95 @@ const SubjectTablePage: React.FC<SubjectTablePageProps> = ({
                   </a>
                 </li>
               )}
-              {
-                total_pages == currentPage && currentPage > 3 && (
-                    <li>
-                <a
-                  href="#"
-                  onClick={() => updatedata(currentPage, -3)}
-                  className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                >
-                  {currentPage - 3}
-                </a>
-              </li>
-                )
-              }
-              {
-                currentPage > 2 && (
-                    <li>
-                <a
-                  href="#"
-                  onClick={() => updatedata(currentPage, -2)}
-                  className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                >
-                  {currentPage - 2}
-                </a>
-              </li>
-                )
-              }
+              {total_pages == currentPage && currentPage > 3 && (
+                <li>
+                  <a
+                    href="#"
+                    onClick={() => updatedata(currentPage, -3)}
+                    className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  >
+                    {currentPage - 3}
+                  </a>
+                </li>
+              )}
+              {currentPage > 2 && (
+                <li>
+                  <a
+                    href="#"
+                    onClick={() => updatedata(currentPage, -2)}
+                    className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  >
+                    {currentPage - 2}
+                  </a>
+                </li>
+              )}
 
-            {
-                currentPage > 1 && (
-                    <li>
-                <a
-                  href="#"
-                  onClick={() => updatedata(currentPage, -1)}
-                  className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                >
-                  {currentPage - 1}
-                </a>
-              </li>
-                )
-              }
-              {
-                currentPage > 0 && (
-                    <li>
-                <a
-                  href="#"
-                  className="flex items-center justify-center px-3 h-8 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white"
-                >
-                  {currentPage}
-                </a>
-              </li>
-                )
-              }
-              
-              {
-                total_pages >= currentPage + 1 && (
-                    <li>
-                <a
-                  href="#"
-                  onClick={() => updatedata(currentPage, 1)}
-                  className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                >
-                  {currentPage + 1}
-                </a>
-              </li>
-                )
-              }
-              {
-                total_pages >= currentPage + 2 && currentPage < 3 && (
-                    <li>
-                <a
-                  href="#"
-                  onClick={() => updatedata(currentPage, 2)}
-                  className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                >
-                  {currentPage + 2}
-                </a>
-              </li>
-                )
-              }
+              {currentPage > 1 && (
+                <li>
+                  <a
+                    href="#"
+                    onClick={() => updatedata(currentPage, -1)}
+                    className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  >
+                    {currentPage - 1}
+                  </a>
+                </li>
+              )}
+              {currentPage > 0 && (
+                <li>
+                  <a
+                    href="#"
+                    className="flex items-center justify-center px-3 h-8 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white"
+                  >
+                    {currentPage}
+                  </a>
+                </li>
+              )}
 
-            {
-                total_pages >= currentPage + 3 && currentPage == 1 && (
-                    <li>
-                <a
-                  href="#"
-                  onClick={() => updatedata(currentPage, 3)}
-                  className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                >
-                  {currentPage + 3}
-                </a>
-              </li>
-                )
-              }
+              {total_pages >= currentPage + 1 && (
+                <li>
+                  <a
+                    href="#"
+                    onClick={() => updatedata(currentPage, 1)}
+                    className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  >
+                    {currentPage + 1}
+                  </a>
+                </li>
+              )}
+              {total_pages >= currentPage + 2 && currentPage < 3 && (
+                <li>
+                  <a
+                    href="#"
+                    onClick={() => updatedata(currentPage, 2)}
+                    className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  >
+                    {currentPage + 2}
+                  </a>
+                </li>
+              )}
+
+              {total_pages >= currentPage + 3 && currentPage == 1 && (
+                <li>
+                  <a
+                    href="#"
+                    onClick={() => updatedata(currentPage, 3)}
+                    className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  >
+                    {currentPage + 3}
+                  </a>
+                </li>
+              )}
               {currentPage < total_pages && (
-              <li>
-                <a
-                  href="#"
-                  onClick={() => updatedata(currentPage, 1)}
-                  className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-                >
-                  Next
-                </a>
-              </li>
+                <li>
+                  <a
+                    href="#"
+                    onClick={() => updatedata(currentPage, 1)}
+                    className="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+                  >
+                    Next
+                  </a>
+                </li>
               )}
             </ul>
           </nav>

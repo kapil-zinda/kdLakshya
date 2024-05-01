@@ -10,6 +10,7 @@ import axios from 'axios';
 
 import SubjectTablePage from '../table';
 
+const BaseURL = process.env.BaseURL;
 export default function SubjectPage() {
   const params = useParams();
   const subject_id = String(params.subject_id);
@@ -23,10 +24,7 @@ export default function SubjectPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(
-          'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
-            subject_id,
-        );
+        const res = await axios.get(BaseURL + 'subject/' + subject_id);
         setSubjectData(res.data.data.attributes);
       } catch (error) {
         console.log(error);
@@ -43,9 +41,6 @@ export default function SubjectPage() {
 
   const handleAddPageToSubject = async (event: any) => {
     event.preventDefault();
-    // Add your logic here for handling the addition of the subject
-    const url =
-      'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject';
     const Payload = {
       data: {
         type: 'time-table',
@@ -55,7 +50,7 @@ export default function SubjectPage() {
       },
     };
     const res = await axios.patch(
-      url + '/' + subject_id + '/add-page',
+      BaseURL + 'subject/' + subject_id + '/add-page',
       Payload,
     );
     setSubjectData(res.data.data.attributes);
@@ -85,9 +80,6 @@ export default function SubjectPage() {
       Number(subjectUpdatePageEnd) &&
       Number(subjectUpdatePageStart) <= Number(subjectUpdatePageEnd)
     ) {
-      // Add your logic here for handling the addition of the subject
-      const url =
-        'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject';
       const Payload = {
         data: {
           type: 'time-table',
@@ -97,10 +89,8 @@ export default function SubjectPage() {
           },
         },
       };
-      const res = await axios.patch(url + '/' + subject_id, Payload);
+      const res = await axios.patch(BaseURL + 'subject/' + subject_id, Payload);
       setSubjectData(res.data.data.attributes);
-      // Clear the input field after adding the subject
-      console.log("payload>>> ", Payload, typeof((subjectUpdatePageStart)))
       setSubjectUpdatePageEnd(0);
       setSubjectUpdatePageStart(0);
     }
@@ -114,9 +104,6 @@ export default function SubjectPage() {
   };
   const handleAddSubject = async (event: any) => {
     event.preventDefault();
-    // Add your logic here for handling the addition of the subject
-    const url =
-      'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject';
     const Payload = {
       data: {
         type: 'time-table',
@@ -126,11 +113,8 @@ export default function SubjectPage() {
         },
       },
     };
-    await axios.post(url, Payload);
-    const resp = await axios.get(
-      'https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/subject/' +
-        subject_id,
-    );
+    await axios.post(BaseURL + 'subject', Payload);
+    const resp = await axios.get(BaseURL + 'subject/' + subject_id);
     setSubjectData(resp.data.data.attributes);
     // Clear the input field after adding the subject
     setSubjectName('');
