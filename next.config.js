@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     env: {
-        BaseURL : "https://sw3px4kmhm3irjwvvq5bfsoupi0wtxmj.lambda-url.ap-south-1.on.aws/"
+        BaseURL : "https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/"
     }
 };
 
