@@ -24,4 +24,9 @@ export const SIDENAV_ITEMS: SideNavItem[] = [
     path: '/subject',
     icon: <Icon icon="lucide:mail" width="24" height="24" />,
   },
+  {
+    title: 'Notes',
+    path: '/notes',
+    icon: <Icon icon="lucide:note" width="24" height="24" />,
+  },
 ];
