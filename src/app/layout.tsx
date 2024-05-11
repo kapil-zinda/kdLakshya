@@ -5,6 +5,7 @@ import type { Metadata } from 'next';
 // import type { Viewport } from 'next'
 import { Inter } from 'next/font/google';
 
+import { UserProvider } from '@auth0/nextjs-auth0/client';
 import Header from '@/components/header';
 import { Providers } from "./providers";
 import HeaderMobile from '@/components/header-mobile';
@@ -44,10 +45,11 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+
   return (
     <html lang="en">
       <body className={inter.className}>
-      <Providers>
+      <UserProvider>
         <div className="flex">
           <SideNav />
           <main className="flex-1">
@@ -58,7 +60,7 @@ export default function RootLayout({
             </MarginWidthWrapper>
           </main>
         </div>
-        </Providers>
+        </UserProvider>
         <Analytics />
       </body>
     </html>
