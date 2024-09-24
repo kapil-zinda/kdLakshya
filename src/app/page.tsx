@@ -2,6 +2,10 @@
 import BasicTable from "@/components/table"
 import { useEffect, useState } from "react";
 import axios from 'axios';
+import CreateUserGroupPopUp from "@/components/modal/CreateUserGroupPopUp";
+import EditUserGroupPopup from "@/components/modal/EditUserGroupPopup";
+import DeleteUserGroupPopup from "@/components/modal/DeleteUserGroupPopup";
+
 
 const BaseURL = process.env.BaseURL;
 
@@ -15,6 +19,10 @@ export default function Home() {
   //   https://qwqp4upxb2s2e5snuna7sw77me0pfxnj.lambda-url.ap-south-1.on.aws/
   // ]
   const [tableData, setTableData] = useState<any>(null)
+  const handleDelete = () => {
+    // Perform the delete action (API call or local delete)
+    console.log('User group deleted.');
+  };
   useEffect(()=>{
     const fetchData = async()=>{
       try {
@@ -40,6 +48,9 @@ export default function Home() {
     <>
       <span className="font-bold text-4xl">Home</span>
       <div className="border-dashed border border-zinc-500 w-full h-12 rounded-lg"></div>
+      <CreateUserGroupPopUp/>
+      <EditUserGroupPopup/>
+      <DeleteUserGroupPopup onDelete={handleDelete}/>
       <BasicTable tableData={tableData} setTableData={setTableData} columnHeaders={columnHeaders}/>
       {/* <PopUpSlide/> */}
     </>
