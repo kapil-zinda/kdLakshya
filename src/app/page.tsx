@@ -5,7 +5,9 @@ import axios from 'axios';
 import CreateUserGroupPopUp from "@/components/modal/CreateUserGroupPopUp";
 import EditUserGroupPopup from "@/components/modal/EditUserGroupPopup";
 import DeleteUserGroupPopup from "@/components/modal/DeleteUserGroupPopup";
-
+import {DataTables} from "@/components/table/DataTable"
+import {UpdateUserPopUp} from '@/components/modal/EditUserPopup'
+import {DeleteUserPopup} from "@/components/modal/DeleteUserPopUp"
 
 const BaseURL = process.env.BaseURL;
 
@@ -51,6 +53,9 @@ export default function Home() {
       <CreateUserGroupPopUp/>
       <EditUserGroupPopup/>
       <DeleteUserGroupPopup onDelete={handleDelete}/>
+      <DeleteUserPopup onDelete={handleDelete}/>
+      <DataTables />
+      <UpdateUserPopUp />
       <BasicTable tableData={tableData} setTableData={setTableData} columnHeaders={columnHeaders}/>
       {/* <PopUpSlide/> */}
     </>
