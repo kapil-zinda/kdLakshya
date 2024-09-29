@@ -7,7 +7,6 @@ import EditUserGroupPopup from "@/components/modal/EditUserGroupPopup";
 import DeleteUserGroupPopup from "@/components/modal/DeleteUserGroupPopup";
 import {DataTables} from "@/components/table/DataTable"
 import {UpdateUserPopUp} from '@/components/modal/EditUserPopup'
-import {DeleteUserPopup} from "@/components/modal/DeleteUserPopUp"
 
 const BaseURL = process.env.BaseURL;
 
@@ -50,12 +49,11 @@ export default function Home() {
     <>
       <span className="font-bold text-4xl">Home</span>
       <div className="border-dashed border border-zinc-500 w-full h-12 rounded-lg"></div>
+      <DataTables />
       <CreateUserGroupPopUp/>
       <EditUserGroupPopup/>
       <DeleteUserGroupPopup onDelete={handleDelete}/>
       {/* <DeleteUserPopup onDelete={handleDelete}/> */}
-      <DataTables />
-      <UpdateUserPopUp />
       <BasicTable tableData={tableData} setTableData={setTableData} columnHeaders={columnHeaders}/>
       {/* <PopUpSlide/> */}
     </>

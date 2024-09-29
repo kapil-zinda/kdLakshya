@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/table"
 import CreateUserPopUp from "../modal/CreareNewUser"
 import { DeleteUserPopup } from "../modal/DeleteUserPopUp"
+import { UpdateUserPopUp } from "../modal/EditUserPopup"
 
 
 export type User = {
@@ -496,59 +497,75 @@ export const columns: ColumnDef<User>[] = [
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
-      const user = row.original; // Accessing the entire user data here, including the id
-      const [openDeletePopup, setOpenDeletePopup] = React.useState(false);
+      const user = row.original;
+    const [openDeletePopup, setOpenDeletePopup] = React.useState(false);
+    const [openEditPopup, setOpenEditPopup] = React.useState(false);
 
-      const handleDeleteUserClick = () => {
-        setOpenDeletePopup(true);
-      };
+    const handleDeleteUserClick = () => {
+      setOpenDeletePopup(true);
+    };
 
-      const handleClosePopup = () => {
-        setOpenDeletePopup(false);
-      };
+    const handleCloseDeletePopup = () => {
+      setOpenDeletePopup(false);
+    };
 
-      const handleDeleteUser = (user) => {
-        console.log('Deleting user:', user);
-        // Perform your delete logic here
-        // Example: deleteUserById(user.id);
-      };
+    const handleDeleteUser = (user: User) => {
+      console.log('Deleting user:', user);
+      // Perform your delete logic here
+    };
 
-      const handleUpdateStateUserClick = (action: string) => {
-        console.log(`Action: ${action}`, user);
-      };
-      const handleEditUserClick = (action: string) => {
-        console.log(`Action: ${action}`, user);
-      };
+    const handleEditUserClick = () => {
+      setOpenEditPopup(true);
+    };
 
+    const handleCloseEditPopup = () => {
+      setOpenEditPopup(false);
+    };
 
+    const handleUpdateStateUserClick = (status: string) => {
+      const updatedStatus = status === 'active' ? 'inactive' : 'active';
+  
+      // Make an API call to update the user's status
+      console.log(`User status updated to: ${updatedStatus}`);
+      // You can implement an API call here to update the user status in your backend
+    };
+    
       return (
        <>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-            {
-              row.original.status === 'active' ?  <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => handleUpdateStateUserClick('Disable User')}>Disable User</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleEditUserClick('Edit User')}>Edit User</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleDeleteUserClick()}>Delete User</DropdownMenuItem>
-              {/* <DeleteUserPopup id={row.original.id} onDelete={handleDeleteUserClick} stateValue={true}/> */}
-            </DropdownMenuContent>: <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleUpdateStateUserClick('Activate User')}>Activate User</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleDeleteUserClick()}>Delete User</DropdownMenuItem>
-          </DropdownMenuContent>
-            }
-         
-        </DropdownMenu>
-         {openDeletePopup && (
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <span className="sr-only">Open menu</span>
+          <MoreHorizontal className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleUpdateStateUserClick(row.original.status)}>
+          {row.original.status === 'active' ? 'Disable User' : 'Activate User'}
+        </DropdownMenuItem>
+        {row.original.status === 'active' && (
+          <DropdownMenuItem onClick={handleEditUserClick}>Edit User</DropdownMenuItem>
+        )}
+        <DropdownMenuItem onClick={handleDeleteUserClick}>Delete User</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+        {openDeletePopup && (
           <DeleteUserPopup
             user={user}
             open={openDeletePopup}
-            onClose={handleClosePopup}
-            onDelete={handleDeleteUser}
+            onClose={handleCloseDeletePopup}
+            onDelete={() => handleDeleteUser(user)}
+          />
+        )}
+        {openEditPopup && (
+          <UpdateUserPopUp
+            open1={openEditPopup}
+            onClose={handleCloseEditPopup}
+            user={{
+              email: user.email,
+              firstName: user.name,
+              lastName: user.name,
+            }}
           />
         )}
        </>
