@@ -53,7 +53,7 @@ export default function Home() {
       <CreateUserGroupPopUp/>
       <EditUserGroupPopup/>
       <DeleteUserGroupPopup onDelete={handleDelete}/>
-      <DeleteUserPopup onDelete={handleDelete}/>
+      {/* <DeleteUserPopup onDelete={handleDelete}/> */}
       <DataTables />
       <UpdateUserPopUp />
       <BasicTable tableData={tableData} setTableData={setTableData} columnHeaders={columnHeaders}/>

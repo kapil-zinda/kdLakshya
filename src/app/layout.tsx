@@ -49,7 +49,7 @@ export default function RootLayout({
       <body className={inter.className}>
       <Providers>
         <div className="flex">
-          {/* <SideNav /> */}
+          <SideNav />
           <main className="flex-1">
             <MarginWidthWrapper>
               <Header />

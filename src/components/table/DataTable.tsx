@@ -38,6 +38,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import CreateUserPopUp from "../modal/CreareNewUser"
+import { DeleteUserPopup } from "../modal/DeleteUserPopUp"
 
 
 export type User = {
@@ -370,6 +371,81 @@ const data: User[] = [
 
 
 
+// export const columns: ColumnDef<User>[] = [
+//   {
+//     accessorKey: "name",
+//     header: ({ column }) => {
+//       return (
+//         <Button
+//           variant="ghost"
+//           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+//         >
+//           Name
+//         </Button>
+//       )
+//     },
+//     cell: ({ row }) => <div className="lowercase">{row.getValue("name")}</div>,
+//   },
+  
+//   {
+//     accessorKey: "email",
+//     header: ({ column }) => {
+//       return (
+//         <Button
+//           variant="ghost"
+//         >
+//           Email
+//         </Button>
+//       )
+//     },
+//     cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
+//   },
+//   {
+//     accessorKey: "status",
+//     header: "Status",
+//     cell: ({ row }) => (
+//       <div className="capitalize">{row.getValue("status")}</div>
+//     ),
+//   },
+  
+//   {
+//     accessorKey: "createdAt",
+//     header: ({ column }) => {
+//       return (
+//         <Button
+//           variant="ghost"
+//         >
+//           Dated Added
+//         </Button>
+//       )
+//     },
+//     cell: ({ row }) => <div className="lowercase">{row.getValue("createdAt")}</div>,
+//   },
+//   {
+//     id: "actions",
+//     enableHiding: false,
+//     cell: ({ row }) => {
+//       const payment = row.original
+
+//       return (
+//         <DropdownMenu>
+//           <DropdownMenuTrigger asChild>
+//             <Button variant="ghost" className="h-8 w-8 p-0">
+//               <span className="sr-only">Open menu</span>
+//               <MoreHorizontal className="h-4 w-4" />
+//             </Button>
+//           </DropdownMenuTrigger>
+//           <DropdownMenuContent align="end">
+//             <DropdownMenuItem>Disable User</DropdownMenuItem>
+//             <DropdownMenuItem>Edit User</DropdownMenuItem>
+//             <DropdownMenuItem>Delete User</DropdownMenuItem>
+//           </DropdownMenuContent>
+//         </DropdownMenu>
+        
+//       )
+//     },
+//   },
+// ]
 export const columns: ColumnDef<User>[] = [
   {
     accessorKey: "name",
@@ -381,29 +457,27 @@ export const columns: ColumnDef<User>[] = [
         >
           Name
         </Button>
-      )
+      );
     },
-    cell: ({ row }) => <div className="lowercase">{row.getValue("name")}</div>,
+    cell: ({ row }) => <div className="lowercase">{row.original.name}</div>, // Access name directly from row.original
   },
   
   {
     accessorKey: "email",
     header: ({ column }) => {
       return (
-        <Button
-          variant="ghost"
-        >
+        <Button variant="ghost">
           Email
         </Button>
-      )
+      );
     },
-    cell: ({ row }) => <div className="lowercase">{row.getValue("email")}</div>,
+    cell: ({ row }) => <div className="lowercase">{row.original.email}</div>, // Access email directly from row.original
   },
   {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => (
-      <div className="capitalize">{row.getValue("status")}</div>
+      <div className="capitalize">{row.original.status}</div> // Access status directly from row.original
     ),
   },
   
@@ -411,22 +485,44 @@ export const columns: ColumnDef<User>[] = [
     accessorKey: "createdAt",
     header: ({ column }) => {
       return (
-        <Button
-          variant="ghost"
-        >
-          Dated Added
+        <Button variant="ghost">
+          Date Added
         </Button>
-      )
+      );
     },
-    cell: ({ row }) => <div className="lowercase">{row.getValue("createdAt")}</div>,
+    cell: ({ row }) => <div className="lowercase">{row.original.createdAt}</div>, // Access createdAt directly from row.original
   },
   {
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
-      const payment = row.original
+      const user = row.original; // Accessing the entire user data here, including the id
+      const [openDeletePopup, setOpenDeletePopup] = React.useState(false);
+
+      const handleDeleteUserClick = () => {
+        setOpenDeletePopup(true);
+      };
+
+      const handleClosePopup = () => {
+        setOpenDeletePopup(false);
+      };
+
+      const handleDeleteUser = (user) => {
+        console.log('Deleting user:', user);
+        // Perform your delete logic here
+        // Example: deleteUserById(user.id);
+      };
+
+      const handleUpdateStateUserClick = (action: string) => {
+        console.log(`Action: ${action}`, user);
+      };
+      const handleEditUserClick = (action: string) => {
+        console.log(`Action: ${action}`, user);
+      };
+
 
       return (
+       <>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
@@ -434,17 +530,32 @@ export const columns: ColumnDef<User>[] = [
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>Disable User</DropdownMenuItem>
-            <DropdownMenuItem>Edit User</DropdownMenuItem>
-            <DropdownMenuItem>Delete User</DropdownMenuItem>
+            {
+              row.original.status === 'active' ?  <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleUpdateStateUserClick('Disable User')}>Disable User</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEditUserClick('Edit User')}>Edit User</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDeleteUserClick()}>Delete User</DropdownMenuItem>
+              {/* <DeleteUserPopup id={row.original.id} onDelete={handleDeleteUserClick} stateValue={true}/> */}
+            </DropdownMenuContent>: <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleUpdateStateUserClick('Activate User')}>Activate User</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleDeleteUserClick()}>Delete User</DropdownMenuItem>
           </DropdownMenuContent>
+            }
+         
         </DropdownMenu>
-        
-      )
+         {openDeletePopup && (
+          <DeleteUserPopup
+            user={user}
+            open={openDeletePopup}
+            onClose={handleClosePopup}
+            onDelete={handleDeleteUser}
+          />
+        )}
+       </>
+      );
     },
   },
-]
+];
 
 export function DataTables() {
   const [sorting, setSorting] = React.useState<SortingState>([])
@@ -456,22 +567,22 @@ export function DataTables() {
     React.useState<VisibilityState>({})
   const [rowSelection, setRowSelection] = React.useState({})
 
-  const onDisableUser = (userId: number) => {
-    setData((prevData) =>
-      prevData.map((user) =>
-        user.id === userId ? { ...user, status: "inactive" } : user
-      )
-    )
-  }
+  // const onDisableUser = (userId: number) => {
+  //   setData((prevData) =>
+  //     prevData.map((user) =>
+  //       user.id === userId ? { ...user, status: "inactive" } : user
+  //     )
+  //   )
+  // }
 
-  const onEditUser = (userId: number) => {
-    // Logic to edit user details (e.g., open a modal with user data)
-    console.log("Edit user with ID:", userId)
-  }
+  // const onEditUser = (userId: number) => {
+  //   // Logic to edit user details (e.g., open a modal with user data)
+  //   console.log("Edit user with ID:", userId)
+  // }
 
-  const onDeleteUser = (userId: number) => {
-    setData((prevData) => prevData.filter((user) => user.id !== userId))
-  }
+  // const onDeleteUser = (userId: number) => {
+  //   setData((prevData) => prevData.filter((user) => user.id !== userId))
+  // }
 
 
   const table = useReactTable({
@@ -492,17 +603,6 @@ export function DataTables() {
       rowSelection,
     },
   })
-  table.getRowModel().rows.map((row) => (
-                
-  //  console.log(row)
-
-   row.getVisibleCells().map((cell) => (console.log(cell.getContext())))
-  //  <TableCell key={cell.id}>
-                    
-  //                   {flexRender(cell.column.columnDef.cell, cell.getContext())}
-  //                 </TableCell>
-   
-  ))
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
@@ -521,95 +621,6 @@ export function DataTables() {
         <Button variant="outline" style={{margin: "0 5px"}}><Search/></Button>
       </div>
       <div className="rounded-md border">
-        {/* <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  No results.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table> */}
-          
-        {/* <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead> 
-              <TableHead>Status</TableHead>
-              <TableHead className="hidden md:table-cell">Created at</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((item, index) => (
-              <TableRow key={index}>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell>{item.email}</TableCell> 
-                <TableCell>
-                  <Badge variant="outline">{item.status}</Badge>
-                </TableCell>
-                <TableCell className="hidden md:table-cell">{item.createdAt}</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-haspopup="true" size="icon" variant="ghost">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Toggle menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem>Edit</DropdownMenuItem>
-                      <DropdownMenuItem>Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table> */}
         <Table>
         <TableHeader>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -627,7 +638,7 @@ export function DataTables() {
             </TableRow>
           ))}
         </TableHeader>
-        <TableBody>
+        {/* <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
                 
@@ -650,7 +661,26 @@ export function DataTables() {
               </TableCell>
             </TableRow>
           )}
-        </TableBody>
+        </TableBody> */}
+        <TableBody>
+  {table.getRowModel().rows?.length ? (
+    table.getRowModel().rows.map((row) => (
+      <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+        {row.getVisibleCells().map((cell) => (
+          <TableCell key={cell.id}>
+            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          </TableCell>
+        ))}
+      </TableRow>
+    ))
+  ) : (
+    <TableRow>
+      <TableCell colSpan={columns.length} className="h-24 text-center">
+        No results.
+      </TableCell>
+    </TableRow>
+  )}
+</TableBody>
       </Table>
 
       </div>
