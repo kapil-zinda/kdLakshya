@@ -4,13 +4,15 @@ import { Analytics } from "@vercel/analytics/react";
 import type { Metadata } from 'next';
 // import type { Viewport } from 'next'
 import { Inter } from 'next/font/google';
-
-import Header from '@/components/header';
 import { Providers } from "./providers";
 import HeaderMobile from '@/components/header-mobile';
 import MarginWidthWrapper from '@/components/margin-width-wrapper';
 import PageWrapper from '@/components/page-wrapper';
-import SideNav from '@/components/side-nav';
+import SideNav from '@/components/globalComponents/SideNav';
+import Header from '@/components/globalComponents/Header';
+import MobileNav from '@/components/globalComponents/MobileNav';
+import UserMenu from '@/components/globalComponents/UserMenu';
+import { NewSideBar } from '@/components/sidebar/NewSideBar';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -48,16 +50,17 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
       <Providers>
-        <div className="flex">
-          <SideNav />
-          <main className="flex-1">
-            <MarginWidthWrapper>
-              <Header />
-              <HeaderMobile />
-              <PageWrapper>{children}</PageWrapper>
-            </MarginWidthWrapper>
-          </main>
-        </div>
+      <div className="grid min-h-screen w-full ">
+            {/* <SideNav /> */}
+            <div className="flex flex-col">
+              {/* <Header />
+              <MobileNav />
+              <UserMenu /> */}
+              <main className="flex-1 p-4 lg:gap-6 lg:p-6">
+                <NewSideBar>{children}</NewSideBar>
+              </main>
+            </div>
+          </div>
         </Providers>
         <Analytics />
       </body>

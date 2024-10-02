@@ -1,5 +1,5 @@
 "use client";
-
+import { useEffect } from 'react';
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
 import { type ThemeProviderProps } from "next-themes/dist/types";
@@ -13,6 +13,10 @@ export function Providers({ children }: ThemeProviderProps) {
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const token = localStorage.getItem("bearerToken");
+      console.log(token, "helelo")
+      if(!token) {
+        loginHandler();
+      }
       setAccessTkn(token);
     }
   }, []);
