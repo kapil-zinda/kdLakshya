@@ -44,23 +44,23 @@ export function NewSideBar({ children }) {
   const logoutHandler = async () => {
     console.log("Clicked logout");
     localStorage.removeItem("bearerToken");
+    window.location.href = "https://dev-p3hppyisuuaems5y.us.auth0.com/v2/logout?client_id=Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL&returnTo=http://localhost:3000"
+    // try {
+    //   const response = await axios.get('https://dev-p3hppyisuuaems5y.us.auth0.com/v2/logout', {
+    //     params: {
+    //       client_id: 'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL',
+    //       returnTo: 'https://test-10k-hours.uchhal.in/',
+    //     },
+    //   });
   
-    try {
-      const response = await axios.get('https://dev-p3hppyisuuaems5y.us.auth0.com/v2/logout', {
-        params: {
-          client_id: 'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL',
-          returnTo: 'https://test-10k-hours.uchhal.in/',
-        },
-      });
-  
-      // Redirect after a successful logout
-      if (response.status === 200) {
-        // Example redirect
-        window.location.href = '/?hello=kapil';
-      }
-    } catch (error) {
-      console.error('Error during logout:', error);
-    }
+    //   // Redirect after a successful logout
+    //   if (response.status === 200) {
+    //     // Example redirect
+    //     window.location.href = '/?hello=kapil';
+    //   }
+    // } catch (error) {
+    //   console.error('Error during logout:', error);
+    // }
   };
   
   const router = useRouter()
@@ -192,7 +192,7 @@ export function NewSideBar({ children }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={logoutHandler}>Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={logoutHandler} > Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>

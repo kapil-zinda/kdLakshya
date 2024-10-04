@@ -27,7 +27,7 @@ export function Providers({ children }: ThemeProviderProps) {
       data.append('client_id', 'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL');
       data.append('client_secret', 'LpLbv2fd249ULiWf_t689qFem9IjS2yFDxkZmsm-0-pCmOhFAdOp1Xgr4TUOjGYY');
       data.append('code', code);
-      data.append('redirect_uri', 'https://test-10k-hours.uchhal.in/');
+      data.append('redirect_uri', 'http://localhost:3000/');
 
       const config = {
         method: 'post',
@@ -69,7 +69,7 @@ export function Providers({ children }: ThemeProviderProps) {
    try {
     console.log("hello", bearerToken);
     if(!accessTkn) {
-      window.location.href = `https://dev-p3hppyisuuaems5y.us.auth0.com/authorize?response_type=code&client_id=Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL&redirect_uri=https://test-10k-hours.uchhal.in/&scope=${encodeURIComponent("openid profile email")}`; 
+      window.location.href = `https://dev-p3hppyisuuaems5y.us.auth0.com/authorize?response_type=code&client_id=Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL&redirect_uri=http://localhost:3000/&scope=${encodeURIComponent("openid profile email")}`; 
     }
    } catch (error) {
       console.log(error);
