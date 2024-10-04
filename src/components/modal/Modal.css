@@ -1,0 +1,57 @@
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5); /* Dark semi-transparent background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensures modal stays on top */
+  }
+  
+  .modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 8px;
+    min-width: 400px;
+    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.2); /* Adds a shadow for more visibility */
+    z-index: 1001; /* Modal box should appear on top of the overlay */
+  }
+  
+  body.modal-open {
+    overflow: hidden; /* Prevent scrolling when the modal is open */
+    filter: blur(5px); /* Optional: Adds blur to the background */
+  }
+  
+  .modal-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  
+  button {
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border-radius: 5px;
+  }
+  
+  button:hover {
+    background-color: #0056b3;
+  }
+  
+  button[type="button"] {
+    background-color: gray;
+  }
+  
+  button[type="button"]:hover {
+    background-color: darkgray;
+  }
+  
+  .css-1t1j96h-MuiPaper-root-MuiDialog-paper {
+    width: 900px;
+  }

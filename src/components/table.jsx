@@ -15,7 +15,7 @@ import EditPopup from './EditPopup';
 import PopUpSlide from './PopUpSlide';
 
 const BaseURL = process.env.BaseURL;
-export default function BasicTable({ tableData, setTableData, columnHeaders }) {
+export default function UserCreationModal({ tableData, setTableData, columnHeaders }) {
   const handleStartDayClick = async () => {
     try {
       const Payload = {

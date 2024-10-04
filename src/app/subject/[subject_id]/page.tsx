@@ -13,7 +13,7 @@ import SubjectTablePage from '../table';
 const BaseURL = process.env.BaseURL;
 export default function SubjectPage() {
   const params = useParams();
-  const subject_id = String(params.subject_id);
+  const subject_id = String(params?.subject_id);
 
   const [gridView, setGridView] = useState<number>(0);
   const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
@@ -150,7 +150,7 @@ export default function SubjectPage() {
               <div className="flex flex-col space-y-4 sm:flex-row sm:justify-center sm:space-y-0">
                 {popAddSubject ? (
                   <div
-                    aria-hidden="true"
+                    //aria-hidden="true"
                     className="overflow-y-auto overflow-x-hidden z-50 justify-center items-center md:inset-0 h-[calc(100%-1rem)] max-h-full"
                   >
                     <div className="relative p-4 w-full max-w-md max-h-full">
@@ -168,7 +168,7 @@ export default function SubjectPage() {
                           >
                             <svg
                               className="w-3 h-3"
-                              aria-hidden="true"
+                              //aria-hidden="true"
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"
                               viewBox="0 0 14 14"
@@ -253,7 +253,7 @@ export default function SubjectPage() {
                             ? 'text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-300'
                             : 'text-blue-600 dark:text-blue-500'
                         } `}
-                        aria-hidden="true"
+                        //aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="currentColor"
                         viewBox="0 0 18 18"
@@ -279,7 +279,7 @@ export default function SubjectPage() {
                             ? 'text-blue-600 dark:text-blue-500'
                             : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-300'
                         } `}
-                        aria-hidden="true"
+                        //aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="currentColor"
                         viewBox="0 0 18 20"
@@ -295,7 +295,7 @@ export default function SubjectPage() {
                 <div className="grow">
                   {addPageToSubject ? (
                     <div
-                      aria-hidden="true"
+                      //aria-hidden="true"
                       className="overflow-y-auto overflow-x-hidden z-50 justify-center items-center md:inset-0 h-[calc(100%-1rem)] max-h-full"
                     >
                       <div className="relative p-4 w-full max-w-md max-h-full">
@@ -325,7 +325,7 @@ export default function SubjectPage() {
                               >
                                 <svg
                                   className="w-3 h-3"
-                                  aria-hidden="true"
+                                  //aria-hidden="true"
                                   xmlns="http://www.w3.org/2000/svg"
                                   fill="none"
                                   viewBox="0 0 14 14"
@@ -358,7 +358,7 @@ export default function SubjectPage() {
                 <div>
                   {updateSubjectPage ? (
                     <div
-                      aria-hidden="true"
+                      //aria-hidden="true"
                       className="overflow-y-auto overflow-x-hidden z-50 justify-center items-center md:inset-0 h-[calc(100%-1rem)] max-h-full"
                     >
                       <div className="relative p-4 w-full max-w-md max-h-full">
@@ -399,7 +399,7 @@ export default function SubjectPage() {
                               >
                                 <svg
                                   className="w-3 h-3"
-                                  aria-hidden="true"
+                                  //aria-hidden="true"
                                   xmlns="http://www.w3.org/2000/svg"
                                   fill="none"
                                   viewBox="0 0 14 14"
@@ -446,7 +446,7 @@ export default function SubjectPage() {
             <>
               {addPageToSubject ? (
                 <div
-                  aria-hidden="true"
+                  //aria-hidden="true"
                   className="overflow-y-auto overflow-x-hidden z-50 justify-center items-center md:inset-0 h-[calc(100%-1rem)] max-h-full"
                 >
                   <div className="relative p-4 w-full max-w-md max-h-full">
@@ -476,7 +476,7 @@ export default function SubjectPage() {
                           >
                             <svg
                               className="w-3 h-3"
-                              aria-hidden="true"
+                              //aria-hidden="true"
                               xmlns="http://www.w3.org/2000/svg"
                               fill="none"
                               viewBox="0 0 14 14"
