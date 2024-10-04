@@ -595,13 +595,7 @@ export function Dashboard() {
                     {data.map((item, index) => (
                     <TableRow key={index}>
                         <TableCell className="hidden sm:table-cell">
-                        <Image
-                            alt="Product image"
-                            className="aspect-square rounded-md object-cover"
-                            height="64"
-                            src={item.image}
-                            width="64"
-                        />
+                        
                         </TableCell>
                         <TableCell className="font-medium">{item.name}</TableCell>
                         <TableCell>

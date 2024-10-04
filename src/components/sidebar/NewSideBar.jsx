@@ -49,7 +49,7 @@ export function NewSideBar({ children }) {
       const response = await axios.get('https://dev-p3hppyisuuaems5y.us.auth0.com/v2/logout', {
         params: {
           client_id: 'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL',
-          returnTo: 'http://localhost:3000/',
+          returnTo: 'https://test-10k-hours.uchhal.in/',
         },
       });
   

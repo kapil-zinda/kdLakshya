@@ -13,7 +13,7 @@ import SubjectTablePage from '../table';
 const BaseURL = process.env.BaseURL;
 export default function SubjectPage() {
   const params = useParams();
-  const subject_id = String(params.subject_id);
+  const subject_id = String(params?.subject_id);
 
   const [gridView, setGridView] = useState<number>(0);
   const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
