@@ -48,11 +48,11 @@ export default function Home() {
   return (
     <>
       <span className="font-bold text-4xl">Home</span>
-      <div className="border-dashed border border-zinc-500 w-full h-12 rounded-lg"></div>
-      <DataTables />
-      <CreateUserGroupPopUp/>
+      {/* <div className="border-dashed border border-zinc-500 w-full h-12 rounded-lg"></div> */}
+      {/* <DataTables /> */}
+      {/* <CreateUserGroupPopUp/>
       <EditUserGroupPopup/>
-      <DeleteUserGroupPopup onDelete={handleDelete}/>
+      <DeleteUserGroupPopup onDelete={handleDelete}/> */}
       {/* <DeleteUserPopup onDelete={handleDelete}/> */}
       <BasicTable tableData={tableData} setTableData={setTableData} columnHeaders={columnHeaders}/>
       {/* <PopUpSlide/> */}

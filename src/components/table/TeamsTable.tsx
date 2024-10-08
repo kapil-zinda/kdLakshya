@@ -42,328 +42,328 @@ import { DeleteUserPopup } from "../modal/DeleteUserPopUp"
 import { UpdateUserPopUp } from "../modal/EditUserPopup"
 
 
-export type User = {
+export type Team = {
   id: number
   name: string
   status: "active" | "inactive"
-  email: string
+  description: string
   createdAt: string
 }
 
 
-const data: User[] = [
+const data: Team[] = [
   {
     id: 1,
     name: "John Doe",
-    email: "john.doe@gmail.com",
+    description: "john.doe@gmail.com",
     status: "active",
     createdAt: "2024-07-01T10:15:00Z",
   },
   {
     id: 2,
     name: "Jane Smith",
-    email: "jane.smith@yahoo.com",
+    description: "jane.smith@yahoo.com",
     status: "inactive",
     createdAt: "2024-07-02T12:30:00Z",
   },
   {
     id: 3,
     name: "Mike Johnson",
-    email: "mike.johnson@outlook.com",
+    description: "mike.johnson@outlook.com",
     status: "inactive",
     createdAt: "2024-07-03T14:45:00Z",
   },
   {
     id: 4,
     name: "Emily Davis",
-    email: "emily.davis@gmail.com",
+    description: "emily.davis@gmail.com",
     status: "active",
     createdAt: "2024-07-04T16:00:00Z",
   },
   {
     id: 5,
     name: "Chris Brown",
-    email: "chris.brown@hotmail.com",
+    description: "chris.brown@hotmail.com",
     status: "inactive",
     createdAt: "2024-07-05T09:20:00Z",
   },
   {
     id: 6,
     name: "Sarah Wilson",
-    email: "sarah.wilson@yahoo.com",
+    description: "sarah.wilson@yahoo.com",
     status: "active",
     createdAt: "2024-07-06T11:10:00Z",
   },
   {
     id: 7,
     name: "David Miller",
-    email: "david.miller@gmail.com",
+    description: "david.miller@gmail.com",
     status: "inactive",
     createdAt: "2024-07-07T15:30:00Z",
   },
   {
     id: 8,
     name: "Laura Martin",
-    email: "laura.martin@outlook.com",
+    description: "laura.martin@outlook.com",
     status: "inactive",
     createdAt: "2024-07-08T13:45:00Z",
   },
   {
     id: 9,
     name: "James Anderson",
-    email: "james.anderson@hotmail.com",
+    description: "james.anderson@hotmail.com",
     status: "active",
     createdAt: "2024-07-09T17:00:00Z",
   },
   {
     id: 10,
     name: "Megan Taylor",
-    email: "megan.taylor@gmail.com",
+    description: "megan.taylor@gmail.com",
     status: "inactive",
     createdAt: "2024-07-10T18:15:00Z",
   },
   {
     id: 11,
     name: "Robert Lee",
-    email: "robert.lee@yahoo.com",
+    description: "robert.lee@yahoo.com",
     status: "active",
     createdAt: "2024-07-11T08:00:00Z",
   },
   {
     id: 12,
     name: "Linda Walker",
-    email: "linda.walker@gmail.com",
+    description: "linda.walker@gmail.com",
     status: "inactive",
     createdAt: "2024-07-12T19:25:00Z",
   },
   {
     id: 13,
     name: "Kevin Harris",
-    email: "kevin.harris@outlook.com",
+    description: "kevin.harris@outlook.com",
     status: "active",
     createdAt: "2024-07-13T10:50:00Z",
   },
   {
     id: 14,
     name: "Olivia Scott",
-    email: "olivia.scott@hotmail.com",
+    description: "olivia.scott@hotmail.com",
     status: "inactive",
     createdAt: "2024-07-14T13:35:00Z",
   },
   {
     id: 15,
     name: "Ethan White",
-    email: "ethan.white@gmail.com",
+    description: "ethan.white@gmail.com",
     status: "active",
     createdAt: "2024-07-15T14:40:00Z",
   },
   {
     id: 16,
     name: "Sophia Hall",
-    email: "sophia.hall@yahoo.com",
+    description: "sophia.hall@yahoo.com",
     status: "inactive",
     createdAt: "2024-07-16T16:10:00Z",
   },
   {
     id: 17,
     name: "Daniel Allen",
-    email: "daniel.allen@outlook.com",
+    description: "daniel.allen@outlook.com",
     status: "inactive",
     createdAt: "2024-07-17T11:20:00Z",
   },
   {
     id: 18,
     name: "Ava Young",
-    email: "ava.young@gmail.com",
+    description: "ava.young@gmail.com",
     status: "active",
     createdAt: "2024-07-18T15:00:00Z",
   },
   {
     id: 19,
     name: "Matthew King",
-    email: "matthew.king@hotmail.com",
+    description: "matthew.king@hotmail.com",
     status: "inactive",
     createdAt: "2024-07-19T09:45:00Z",
   },
   {
     id: 20,
     name: "Isabella Wright",
-    email: "isabella.wright@yahoo.com",
+    description: "isabella.wright@yahoo.com",
     status: "active",
     createdAt: "2024-07-20T12:15:00Z",
   },
   {
     id: 21,
     name: "Joseph Green",
-    email: "joseph.green@gmail.com",
+    description: "joseph.green@gmail.com",
     status: "inactive",
     createdAt: "2024-07-21T14:30:00Z",
   },
   {
     id: 22,
     name: "Mia Adams",
-    email: "mia.adams@outlook.com",
+    description: "mia.adams@outlook.com",
     status: "inactive",
     createdAt: "2024-07-22T13:55:00Z",
   },
   {
     id: 23,
     name: "William Nelson",
-    email: "william.nelson@gmail.com",
+    description: "william.nelson@gmail.com",
     status: "active",
     createdAt: "2024-07-23T18:10:00Z",
   },
   {
     id: 24,
     name: "Charlotte Baker",
-    email: "charlotte.baker@hotmail.com",
+    description: "charlotte.baker@hotmail.com",
     status: "inactive",
     createdAt: "2024-07-24T10:20:00Z",
   },
   {
     id: 25,
     name: "Alexander Carter",
-    email: "alexander.carter@yahoo.com",
+    description: "alexander.carter@yahoo.com",
     status: "inactive",
     createdAt: "2024-07-25T11:50:00Z",
   },
   {
     id: 26,
     name: "Amelia Mitchell",
-    email: "amelia.mitchell@gmail.com",
+    description: "amelia.mitchell@gmail.com",
     status: "active",
     createdAt: "2024-07-26T14:05:00Z",
   },
   {
     id: 27,
     name: "Elijah Perez",
-    email: "elijah.perez@outlook.com",
+    description: "elijah.perez@outlook.com",
     status: "inactive",
     createdAt: "2024-07-27T15:25:00Z",
   },
   {
     id: 28,
     name: "Grace Roberts",
-    email: "grace.roberts@gmail.com",
+    description: "grace.roberts@gmail.com",
     status: "active",
     createdAt: "2024-07-28T17:45:00Z",
   },
   {
     id: 29,
     name: "Henry Evans",
-    email: "henry.evans@yahoo.com",
+    description: "henry.evans@yahoo.com",
     status: "inactive",
     createdAt: "2024-07-29T16:00:00Z",
   },
   {
     id: 30,
     name: "Ella Turner",
-    email: "ella.turner@gmail.com",
+    description: "ella.turner@gmail.com",
     status: "inactive",
     createdAt: "2024-07-30T12:40:00Z",
   },
   {
     id: 31,
     name: "Jack Collins",
-    email: "jack.collins@hotmail.com",
+    description: "jack.collins@hotmail.com",
     status: "active",
     createdAt: "2024-07-31T11:15:00Z",
   },
   {
     id: 32,
     name: "Scarlett Stewart",
-    email: "scarlett.stewart@gmail.com",
+    description: "scarlett.stewart@gmail.com",
     status: "inactive",
     createdAt: "2024-08-01T13:10:00Z",
   },
   {
     id: 33,
     name: "Sebastian Morris",
-    email: "sebastian.morris@outlook.com",
+    description: "sebastian.morris@outlook.com",
     status: "inactive",
     createdAt: "2024-08-02T14:55:00Z",
   },
   {
     id: 34,
     name: "Zoe Cooper",
-    email: "zoe.cooper@yahoo.com",
+    description: "zoe.cooper@yahoo.com",
     status: "active",
     createdAt: "2024-08-03T16:20:00Z",
   },
   {
     id: 35,
     name: "Luke Richardson",
-    email: "luke.richardson@gmail.com",
+    description: "luke.richardson@gmail.com",
     status: "inactive",
     createdAt: "2024-08-04T18:30:00Z",
   },
   {
     id: 36,
     name: "Harper Sanchez",
-    email: "harper.sanchez@outlook.com",
+    description: "harper.sanchez@outlook.com",
     status: "inactive",
     createdAt: "2024-08-05T09:40:00Z",
   },
   {
     id: 37,
     name: "Leo Ramirez",
-    email: "leo.ramirez@gmail.com",
+    description: "leo.ramirez@gmail.com",
     status: "active",
     createdAt: "2024-08-06T15:05:00Z",
   },
   {
     id: 38,
     name: "Chloe Barnes",
-    email: "chloe.barnes@yahoo.com",
+    description: "chloe.barnes@yahoo.com",
     status: "inactive",
     createdAt: "2024-08-07T13:35:00Z",
   },
   {
     id: 39,
     name: "Nathan Ross",
-    email: "nathan.ross@hotmail.com",
+    description: "nathan.ross@hotmail.com",
     status: "active",
     createdAt: "2024-08-08T11:50:00Z",
   },
   {
     id: 40,
     name: "Mila Brooks",
-    email: "mila.brooks@gmail.com",
+    description: "mila.brooks@gmail.com",
     status: "inactive",
     createdAt: "2024-08-09T17:30:00Z",
   },
   {
     id: 41,
     name: "Connor Bell",
-    email: "connor.bell@outlook.com",
+    description: "connor.bell@outlook.com",
     status: "inactive",
     createdAt: "2024-08-10T15:40:00Z",
   },
   {
     id: 42,
     name: "Layla Coleman",
-    email: "layla.coleman@gmail.com",
+    description: "layla.coleman@gmail.com",
     status: "active",
     createdAt: "2024-08-11T14:20:00Z",
   },
   {
     id: 43,
     name: "Aaron Jenkins",
-    email: "aaron.jenkins@yahoo.com",
+    description: "aaron.jenkins@yahoo.com",
     status: "inactive",
     createdAt: "2024-08-12T16:50:00Z",
   },
   {
     id: 44,
     name: "Hannah Perry",
-    email: "hannah.perry@gmail.com",
+    description: "hannah.perry@gmail.com",
     status: "inactive",
     createdAt: "2024-08-13T18:10:00Z",
   },
   {
     id: 45,
     name: "Mason Powell",
-    email: "mason.powell@hotmail.com",
+    description: "mason.powell@hotmail.com",
     status: "active",
     createdAt: "2024-08-14",
   },
@@ -464,15 +464,15 @@ export const columns: ColumnDef<User>[] = [
   },
   
   {
-    accessorKey: "email",
+    accessorKey: "description",
     header: ({ column }) => {
       return (
         <Button variant="ghost">
-          Email
+          Description
         </Button>
       );
     },
-    cell: ({ row }) => <div className="lowercase">{row.original.email}</div>, // Access email directly from row.original
+    cell: ({ row }) => <div className="lowercase">{row.original.description}</div>, // Access email directly from row.original
   },
   {
     accessorKey: "status",
@@ -541,12 +541,12 @@ export const columns: ColumnDef<User>[] = [
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem onClick={() => handleUpdateStateUserClick(row.original.status)}>
-          {row.original.status === 'active' ? 'Disable User' : 'Activate User'}
+          {row.original.status === 'active' ? 'Disable Team' : 'Activate Team'}
         </DropdownMenuItem>
         {row.original.status === 'active' && (
-          <DropdownMenuItem onClick={handleEditUserClick}>Edit User</DropdownMenuItem>
+          <DropdownMenuItem onClick={handleEditUserClick}>Edit Team</DropdownMenuItem>
         )}
-        <DropdownMenuItem onClick={handleDeleteUserClick}>Delete User</DropdownMenuItem>
+        <DropdownMenuItem onClick={handleDeleteUserClick}>Delete Team</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
         {openDeletePopup && (
@@ -562,7 +562,7 @@ export const columns: ColumnDef<User>[] = [
             open1={openEditPopup}
             onClose={handleCloseEditPopup}
             user={{
-              email: user.email,
+              description: user.description,
               firstName: user.name,
               lastName: user.name,
             }}
@@ -574,7 +574,7 @@ export const columns: ColumnDef<User>[] = [
   },
 ];
 
-export function DataTables() {
+export function TeamsTable() {
   const [sorting, setSorting] = React.useState<SortingState>([])
   
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -627,15 +627,15 @@ export function DataTables() {
               + New User 
             </Button> */}
             <CreateUserPopUp/>
-        <Input
-          placeholder="Search users..."
+        {/* <Input
+          placeholder="Search Team..."
           value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("email")?.setFilterValue(event.target.value)
           }
           className="max-w-sm"
-        />
-        <Button variant="outline" style={{margin: "0 5px"}}><Search/></Button>
+        /> */}
+        {/* <Button variant="outline" style={{margin: "0 5px"}}><Search/></Button> */}
       </div>
       <div className="rounded-md border">
         <Table>

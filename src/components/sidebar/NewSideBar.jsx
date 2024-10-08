@@ -2,6 +2,7 @@
 import Link from "next/link"
 import {
   Bell,
+  Book,
   CircleUser,
   Home,
   LineChart,
@@ -14,7 +15,7 @@ import {
 } from "lucide-react"
 
 import { useRouter } from "next/navigation";
-
+import FunctionsIcon from '@mui/icons-material/Functions';
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -35,6 +36,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import axios from "axios";
+import { useState } from "react";
 
 export const description =
   "A products dashboard with a sidebar navigation and a main content area. The dashboard has a header with a search input and a user menu. The sidebar has a logo, navigation links, and a card with a call to action. The main content area shows an empty state with a call to action."
@@ -64,6 +66,10 @@ export function NewSideBar({ children }) {
   };
   
   const router = useRouter()
+  const [activeTab, setActiveTab] = useState("/");
+  const handleTabClick = (href) => {
+    setActiveTab(href);
+  };
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
       <div className="hidden border-r bg-muted/40 md:block">
@@ -75,46 +81,68 @@ export function NewSideBar({ children }) {
             </Link>
           </div>
           <div className="flex-1" id= "radheradhe">
-            <nav className="grid items-start px-2 text-sm font-medium lg:px-4 ">
-              <Link
-                href="#"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              >
-                <Home className="h-4 w-4" />
-                Dashboard
-              </Link>
-              <Link
-                href="#"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              >
-                <ShoppingCart className="h-4 w-4" />
-                Orders
-                <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
-                  6
-                </Badge>
-              </Link>
-              <Link
-                href="#"
-                className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary transition-all hover:text-primary"
-              >
-                <Package className="h-4 w-4" />
-                Products{" "}
-              </Link>
-              <Link
-                href="#"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              >
-                <Users className="h-4 w-4" />
-                Customers
-              </Link>
-              <Link
-                href="#"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              >
-                <LineChart className="h-4 w-4" />
-                Analytics
-              </Link>
-            </nav>
+             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+      <Link
+        href="/.."
+        className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+          activeTab === "/.." ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary"
+        }`}
+        onClick={() => handleTabClick("/..")}
+      >
+        <Home className="h-4 w-4" />
+        Dashboard
+      </Link>
+      <Link
+        href="/subject"
+        className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+          activeTab === "/subject" ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary"
+        }`}
+        onClick={() => handleTabClick("/subject")}
+      >
+        <FunctionsIcon className="h-4 w-4" />
+        Subject
+      </Link>
+      <Link
+        href="/todo"
+        className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+          activeTab === "/todo" ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary"
+        }`}
+        onClick={() => handleTabClick("/todo")}
+      >
+        <Package className="h-4 w-4" />
+        TODO
+      </Link>
+      <Link
+        href="/teams"
+        className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+          activeTab === "/teams" ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary"
+        }`}
+        onClick={() => handleTabClick("/teams")}
+      >
+        <Users className="h-4 w-4" />
+        Teams
+      </Link>
+      <Link
+        href="/notes"
+        className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+          activeTab === "/notes" ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary"
+        }`}
+        onClick={() => handleTabClick("/notes")}
+      >
+        <Book className="h-4 w-4" />
+        Notes
+      </Link>
+      <Link
+        href="/admin"
+        className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
+          activeTab === "/admin" ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary"
+        }`}
+        onClick={() => handleTabClick("/admin")}
+      >
+        <LineChart className="h-4 w-4" />
+        Admin panel
+      </Link>
+    </nav>
           </div>
         </div>
       </div>
@@ -132,53 +160,122 @@ export function NewSideBar({ children }) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="flex flex-col w-[200px]">
-              <nav className="grid gap-2 text-lg font-medium">
+              {/* <nav className="grid gap-2 text-lg font-medium">
                 <Link
-                  href="#"
+                  href="/.."
                   className="flex items-center gap-2 text-lg font-semibold"
                 >
                   <Package2 className="h-6 w-6" />
                   <span className="sr-only">10K hours</span>
                 </Link>
                 <Link
-                  href="#"
+                  href="/.."
                   className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                 >
                   <Home className="h-5 w-5" />
                   Dashboard
                 </Link>
                 <Link
-                  href="#"
+                  href="/subject"
                   className="mx-[-0.65rem] flex items-center gap-4 rounded-xl bg-muted px-3 py-2 text-foreground hover:text-foreground"
                 >
                   <ShoppingCart className="h-5 w-5" />
-                  Orders
-                  <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
-                    6
-                  </Badge>
+                  Subject
                 </Link>
                 <Link
-                  href="#"
+                  href="/todo"
                   className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                 >
                   <Package className="h-5 w-5" />
-                  Products
+                  TODO
                 </Link>
                 <Link
-                  href="#"
+                  href="/teams"
                   className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                 >
                   <Users className="h-5 w-5" />
-                  Customers
+                  Teams
                 </Link>
                 <Link
-                  href="#"
+                  href="/notes"
                   className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
                 >
                   <LineChart className="h-5 w-5" />
-                  Analytics
+                  Notes
                 </Link>
-              </nav>
+              </nav> */}
+               <nav className="grid gap-2 text-lg font-medium">
+      <Link
+        href="/.."
+        className={`flex items-center gap-2 text-lg font-semibold ${
+          activeTab === "/.." ? "text-foreground" : "text-muted-foreground"
+        }`}
+        onClick={() => handleTabClick("/..")}
+      >
+        <Package2 className="h-6 w-6" />
+        <span className="sr-only">10K hours</span>
+      </Link>
+      <Link
+        href="/.."
+        className={`mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 transition-all ${
+          activeTab === "/.." ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+        onClick={() => handleTabClick("/..")}
+      >
+        <Home className="h-5 w-5" />
+        Dashboard
+      </Link>
+      <Link
+        href="/subject"
+        className={`mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 transition-all ${
+          activeTab === "/subject" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+        onClick={() => handleTabClick("/subject")}
+      >
+        <FunctionsIcon className="h-5 w-5" />
+        Subject
+      </Link>
+      <Link
+        href="/todo"
+        className={`mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 transition-all ${
+          activeTab === "/todo" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+        onClick={() => handleTabClick("/todo")}
+      >
+        <Package className="h-5 w-5" />
+        TODO
+      </Link>
+      <Link
+        href="/teams"
+        className={`mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 transition-all ${
+          activeTab === "/teams" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+        onClick={() => handleTabClick("/teams")}
+      >
+        <Users className="h-5 w-5" />
+        Teams
+      </Link>
+      <Link
+        href="/notes"
+        className={`mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 transition-all ${
+          activeTab === "/notes" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+        onClick={() => handleTabClick("/notes")}
+      >
+        <Book className="h-5 w-5" />
+        Notes
+      </Link>
+      <Link
+        href="/admin"
+        className={`mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 transition-all ${
+          activeTab === "/admin" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+        }`}
+        onClick={() => handleTabClick("/admin")}
+      >
+        <LineChart className="h-5 w-5" />
+        Admin panel
+      </Link>
+    </nav>
             </SheetContent>
           </Sheet>
           <div className="w-full flex-1">

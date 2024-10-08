@@ -10,10 +10,23 @@ import { useRouter } from "next/navigation";
 
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null)
+
+  const userMeData = async(bearerToken: string) => {
+    try {
+      const res = await axios.get("https://apis.testkdlakshya.uchhal.in/auth/users/me?include=permission", {
+        headers: {
+          "Authorization": `Bearer ${bearerToken}`,
+          "Content-Type": "application/vnd.api+json"
+        }
+      })
+      console.log(res.data);  
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    }
+  }
   React.useEffect(() => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("bearerToken");
-      console.log(token, "helelo")
+      const token = getItemWithTTL("bearerToken");
       if(!token) {
         loginHandler();
       }
@@ -42,8 +55,10 @@ export function Providers({ children }: ThemeProviderProps) {
           console.log('Auth Token:', response.data);  
           setAccessTkn(response.data.access_token)
           if (typeof window !== "undefined") {
-            localStorage.setItem("bearerToken", response.data.access_token);
+            setItemWithTTL("bearerToken", response.data.access_token, 23);
+            await userMeData(response.data.access_token)
           }
+
       }
     } catch (error) {
       console.error('Error fetching auth token:', error);
@@ -74,6 +89,32 @@ export function Providers({ children }: ThemeProviderProps) {
    } catch (error) {
       console.log(error);
    }
+  }
+  function setItemWithTTL(key: string, value: any, ttlHours: number) {
+    const now = new Date().getTime();
+    const ttlMilliseconds = ttlHours * 60 * 60 * 1000; // Convert hours to milliseconds
+    const item = {
+      value: value,
+      expiry: now + ttlMilliseconds,
+    };
+    localStorage.setItem(key, JSON.stringify(item));
+  }
+  function getItemWithTTL(key: string) {
+    const itemStr = localStorage.getItem(key);
+    if (!itemStr) {
+      return null;
+    }
+  
+    const item = JSON.parse(itemStr);
+    const now = new Date().getTime();
+  
+    // Check if the item is expired
+    if (now > item.expiry) {
+      localStorage.removeItem(key); // Remove expired item
+      return null;
+    }
+  
+    return item.value;
   }
   return (
     <NextThemesProvider

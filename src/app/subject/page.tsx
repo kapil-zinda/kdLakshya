@@ -51,7 +51,7 @@ export default function SubjectPage() {
   };
   return (
     <>
-      <main className="mb-8">
+      <div className="mb-8">
         <div className="max-w-screen-xl mx-auto py-3">
           <h2 className="text-2xl font-bold tracking-tight">☺☺</h2>
           <p className="text-muted-foreground">
@@ -158,7 +158,7 @@ export default function SubjectPage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }

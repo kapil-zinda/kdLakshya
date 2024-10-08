@@ -124,7 +124,7 @@ export default function SubjectPage() {
   return (
     <>
       {subject_data.name && (
-        <main className="mb-8">
+        <div className="mb-8">
           <div className="max-w-screen-xl mx-auto py-3">
             <h2 className="text-2xl font-bold tracking-tight">
               {subject_data.name}
@@ -509,7 +509,7 @@ export default function SubjectPage() {
               )}
             </>
           )}
-        </main>
+        </div>
       )}
     </>
   );
