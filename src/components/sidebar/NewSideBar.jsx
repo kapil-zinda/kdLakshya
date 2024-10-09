@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { userData } from "@/app/interfaces/userInterface";
 
 export const description =
@@ -30,6 +30,9 @@ export const description =
 export function NewSideBar({ children }) {
 
   const [userDatas, setuserdatas] = useState(userData)
+  useEffect(()=>{
+    setuserdatas(userData)
+  },[userData])
   console.log(userDatas)
   console.log(userData)
   const logoutHandler = async () => {
