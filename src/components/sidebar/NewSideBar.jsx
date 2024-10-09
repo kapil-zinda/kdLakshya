@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link"
 import {
-  Bell,
   Book,
   CircleUser,
   Home,
@@ -9,40 +8,30 @@ import {
   Menu,
   Package,
   Package2,
-  Search,
-  ShoppingCart,
   Users,
 } from "lucide-react"
 
 import { useRouter } from "next/navigation";
 import FunctionsIcon from '@mui/icons-material/Functions';
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import axios from "axios";
 import { useState } from "react";
+import { userData } from "@/app/interfaces/userInterface";
 
 export const description =
   "A products dashboard with a sidebar navigation and a main content area. The dashboard has a header with a search input and a user menu. The sidebar has a logo, navigation links, and a card with a call to action. The main content area shows an empty state with a call to action."
 
 export function NewSideBar({ children }) {
 
+  const [userDatas, setuserdatas] = useState(userData)
+  console.log(userDatas)
+  console.log(userData)
   const logoutHandler = async () => {
     console.log("Clicked logout");
     localStorage.removeItem("bearerToken");
@@ -289,6 +278,7 @@ export function NewSideBar({ children }) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem> Hi {userDatas?.firstName}</DropdownMenuItem>
               <DropdownMenuItem onClick={logoutHandler} > Logout</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

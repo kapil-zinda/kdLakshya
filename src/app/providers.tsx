@@ -7,19 +7,36 @@ import { TaskProvider } from "@/context/task-context";
 import { ChallengeProvider } from "@/context/challenge-context";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import { userData, updateUserData } from './interfaces/userInterface';
 
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null)
 
   const userMeData = async(bearerToken: string) => {
     try {
-      const res = await axios.get("https://apis.testkdlakshya.uchhal.in/auth/users/me?include=permission", {
+      // const res1 = await axios.options("https://apis.testkdlakshya.uchhal.in/auth/users/me?include=permission");
+      const res = await axios.get("https://apis.testkdlakshya.uchhal.in/auth/users/me", {
         headers: {
-          "Authorization": `Bearer ${bearerToken}`,
-          "Content-Type": "application/vnd.api+json"
-        }
+          'Authorization': `Bearer ${bearerToken}`,
+          'Content-Type': 'application/vnd.api+json',
+        },
+        withCredentials: true,
+      }) 
+      const response = res.data.data;
+      await updateUserData({
+        userId: response.id,
+        keyId: "user-"+response.attributes.user_id,
+        orgKeyId: "org-"+response.attributes.org,
+        orgId: response.attributes.org,
+        userEmail: response.attributes.email,
+        firstName: response.attributes.first_name,
+        lastName: response.attributes.last_name,
+        permission: response.user_permissions,
+        // allowedTeams: Object.keys(response.user_permissions).filter(key => key.startsWith('team')),
+        allowedTeams: []
       })
-      console.log(res.data);  
+      console.log(res.data);
+      console.log(userData)
     } catch (error) {
       console.error("Error fetching user data:", error);
     }
