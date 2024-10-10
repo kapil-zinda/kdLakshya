@@ -24,7 +24,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const initialFiles = [
+interface File {
+  id: number;
+  name: string;
+  type: 'folder' | 'document' | 'spreadsheet' | 'archive';
+  owner: string;
+  lastModified: string;
+  size: string;
+  starred: boolean;
+}
+
+type SortDirection = 'asc' | 'desc';
+type SortField = keyof Pick<File, 'name' | 'lastModified' | 'size'>;
+
+const initialFiles: File[] = [
   { 
     id: 1,
     name: 'Colab Notebooks',
@@ -72,12 +85,12 @@ const initialFiles = [
   }
 ];
 
-const NotesTable = () => {
-  const [files, setFiles] = useState(initialFiles);
-  const [sortField, setSortField] = useState('name');
-  const [sortDirection, setSortDirection] = useState('asc');
+const NotesTable: React.FC = () => {
+  const [files, setFiles] = useState<File[]>(initialFiles);
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
 
-  const getFileIcon = (type) => {
+  const getFileIcon = (type: File['type']) => {
     switch (type) {
       case 'folder':
         return <Folder className="text-blue-500" size={20} />;
@@ -90,32 +103,46 @@ const NotesTable = () => {
     }
   };
 
-  const handleSort = (field) => {
-    const newDirection = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
+  const customSort = (a: File, b: File, field: SortField, direction: SortDirection): number => {
+    // First, prioritize folders
+    if (a.type === 'folder' && b.type !== 'folder') return -1;
+    if (a.type !== 'folder' && b.type === 'folder') return 1;
+
+    // If both are folders or both are files, sort by the specified field
+    if (field === 'lastModified') {
+      const dateA = new Date(a[field].replace('me', '').trim());
+      const dateB = new Date(b[field].replace('me', '').trim());
+      return direction === 'asc' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
+    }
+
+    // For all other fields (including name), sort alphabetically
+    return direction === 'asc' ? 
+      a[field].toString().localeCompare(b[field].toString()) : 
+      b[field].toString().localeCompare(a[field].toString());
+  };
+
+  const handleSort = (field: SortField) => {
+    const newDirection: SortDirection = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
     setSortField(field);
     setSortDirection(newDirection);
     
-    const sortedFiles = [...files].sort((a, b) => {
-      if (newDirection === 'asc') {
-        return a[field] > b[field] ? 1 : -1;
-      }
-      return a[field] < b[field] ? 1 : -1;
-    });
-    
+    const sortedFiles = [...files].sort((a, b) => customSort(a, b, field, newDirection));
     setFiles(sortedFiles);
   };
 
-  const getSortIcon = (field) => {
+  const getSortIcon = (field: SortField) => {
     if (sortField !== field) return null;
     return sortDirection === 'asc' ? 
       <ChevronUp size={16} className="inline" /> : 
       <ChevronDown size={16} className="inline" />;
   };
 
+  interface ActionButtonsProps {
+    file: File;
+  }
 
-  const ActionButtons = ({ file }) => (
+  const ActionButtons: React.FC<ActionButtonsProps> = ({ file }) => (
     <div className="flex items-center gap-1">
-    
       <button className="p-1.5 hover:bg-gray-100 rounded-full">
         <Download size={18} className="text-gray-600" />
       </button>
@@ -147,48 +174,42 @@ const NotesTable = () => {
   );
 
   return (
-    <div className="max-w-6xl mx-auto p-4 bg-white rounded-lg shadow">
+    <div className="max-w-6xl mx-auto p-4 bg-transparent text-white rounded-lg shadow">
       <table className="w-full">
         <thead>
           <tr className="border-b">
             <th 
-              className="py-2 px-4 text-left font-medium text-gray-600 cursor-pointer"
+              className="py-2 px-4 text-left font-medium text-white cursor-pointer"
               onClick={() => handleSort('name')}
             >
               Name {getSortIcon('name')}
             </th>
-            {/* <th 
-              className="py-2 px-4 text-left font-medium text-gray-600 cursor-pointer"
-              onClick={() => handleSort('owner')}
-            >
-              Owner {getSortIcon('owner')}
-            </th> */}
             <th 
-              className="py-2 px-4 text-left font-medium text-gray-600 cursor-pointer"
+              className="py-2 px-4 text-left font-medium text-white cursor-pointer"
               onClick={() => handleSort('lastModified')}
             >
               Last modified {getSortIcon('lastModified')}
             </th>
             <th 
-              className="py-2 px-4 text-left font-medium text-gray-600 cursor-pointer"
+              className="py-2 px-4 text-left font-medium text-white cursor-pointer"
               onClick={() => handleSort('size')}
             >
               File size {getSortIcon('size')}
             </th>
-            <th className="py-2 px-4 text-left font-medium text-gray-600">
+            <th className="py-2 px-4 text-left font-medium text-white">
               Actions
             </th>
           </tr>
         </thead>
         <tbody>
           {files.map((file) => (
-            <tr key={file.id} className="hover:bg-gray-50">
+            <tr key={file.id} className="hover:bg-gray-800 hover:rounded-[50%]">
               <td className="py-2 px-4 flex items-center gap-2">
                 {getFileIcon(file.type)}
-                <span className="text-gray-700">{file.name}</span>
+                <span className="text-white">{file.name}</span>
               </td>
-              <td className="py-2 px-4 text-gray-600">{file.lastModified}</td>
-              <td className="py-2 px-4 text-gray-600">{file.size}</td>
+              <td className="py-2 px-4 text-white">{file.lastModified}</td>
+              <td className="py-2 px-4 text-white">{file.size}</td>
               <td className="py-2 px-4">
                 <ActionButtons file={file} />
               </td>
