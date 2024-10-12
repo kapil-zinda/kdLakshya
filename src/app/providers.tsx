@@ -8,12 +8,19 @@ import { ChallengeProvider } from "@/context/challenge-context";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { userData, updateUserData } from './interfaces/userInterface';
-const BaseURLAuth = process.env.BaseURLAuth || '';
+
+const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
+const AUTH0_Client_Id = process.env.NEXT_PUBLIC_AUTH0_Client_Id || '';
+const AUTH0_Client_Secreate = process.env.NEXT_PUBLIC_AUTH0_Client_Secreat || '';
+const AUTH0_Domain_Name = process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME || '';
+const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
+
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null)
 
   const userMeData = async(bearerToken: string) => {
     try {
+      console.log(BaseURLAuth)
       const res = await axios.get(`${BaseURLAuth}/users/me?include=permission`, {
         headers: {
           'Authorization': `Bearer ${bearerToken}`,
@@ -55,14 +62,14 @@ export function Providers({ children }: ThemeProviderProps) {
     try {
       const data = new URLSearchParams();
       data.append('grant_type', 'authorization_code');
-      data.append('client_id', 'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL');
-      data.append('client_secret', 'LpLbv2fd249ULiWf_t689qFem9IjS2yFDxkZmsm-0-pCmOhFAdOp1Xgr4TUOjGYY');
+      data.append('client_id', AUTH0_Client_Id);
+      data.append('client_secret', AUTH0_Client_Secreate);
       data.append('code', code);
-      data.append('redirect_uri', 'http://localhost:3000/');
+      data.append('redirect_uri', login_redirect);
 
       const config = {
         method: 'post',
-        url: 'https://dev-p3hppyisuuaems5y.us.auth0.com/oauth/token',
+        url: `https://${AUTH0_Domain_Name}/oauth/token`,
         headers: { 
           'Content-Type': 'application/x-www-form-urlencoded'
         },
@@ -106,7 +113,7 @@ export function Providers({ children }: ThemeProviderProps) {
    try {
     console.log("hello", bearerToken);
     if(!accessTkn) {
-      window.location.href = `https://dev-p3hppyisuuaems5y.us.auth0.com/authorize?response_type=code&client_id=Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL&redirect_uri=http://localhost:3000/&scope=${encodeURIComponent("openid profile email")}`; 
+      window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${login_redirect}&scope=${encodeURIComponent("openid profile email")}`;
     }
    } catch (error) {
       console.log(error);

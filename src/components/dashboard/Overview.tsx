@@ -7,7 +7,7 @@ import axios from 'axios';
 import { PenIcon, User2Icon } from 'lucide-react';
 import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
 import {EditOrganisationDetails} from "../modal/EditOrganisationDetails"
-const BaseURLAuth = process.env.BaseURLAuth || '';
+const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
 type OverviewProps = {
 	orgId: string;
   privillege: string;

@@ -24,6 +24,10 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { useEffect, useState } from "react";
 import { userData } from "@/app/interfaces/userInterface";
 
+const AUTH0_Client_Id = process.env.NEXT_PUBLIC_AUTH0_Client_Id || '';
+const AUTH0_Domain_Name = process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME || '';
+const AUTH0_logout_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGOUT_REDIRECT_URL || '';
+
 export const description =
   "A products dashboard with a sidebar navigation and a main content area. The dashboard has a header with a search input and a user menu. The sidebar has a logo, navigation links, and a card with a call to action. The main content area shows an empty state with a call to action."
 
@@ -37,7 +41,7 @@ export function NewSideBar({ children }) {
   const logoutHandler = async () => {
     console.log("Clicked logout");
     localStorage.removeItem("bearerToken");
-    window.location.href = "https://dev-p3hppyisuuaems5y.us.auth0.com/v2/logout?client_id=Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL&returnTo=http://localhost:3000"
+    window.location.href = `https://${AUTH0_Domain_Name}/v2/logout?client_id=${AUTH0_Client_Id}&returnTo=${AUTH0_logout_redirect}`
     // try {
     //   const response = await axios.get('https://dev-p3hppyisuuaems5y.us.auth0.com/v2/logout', {
     //     params: {

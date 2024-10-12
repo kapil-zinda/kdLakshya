@@ -11,7 +11,7 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import axios from 'axios';
 import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
-const BaseURLAuth = process.env.BaseURLAuth || '';
+const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialogContent-root': {
