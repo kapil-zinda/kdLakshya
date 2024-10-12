@@ -8,14 +8,13 @@ import { ChallengeProvider } from "@/context/challenge-context";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { userData, updateUserData } from './interfaces/userInterface';
-
+const BaseURLAuth = process.env.BaseURLAuth || '';
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null)
 
   const userMeData = async(bearerToken: string) => {
     try {
-      // const res1 = await axios.options("https://apis.testkdlakshya.uchhal.in/auth/users/me?include=permission");
-      const res = await axios.get("https://apis.testkdlakshya.uchhal.in/auth/users/me", {
+      const res = await axios.get(`${BaseURLAuth}/users/me?include=permission`, {
         headers: {
           'Authorization': `Bearer ${bearerToken}`,
           'Content-Type': 'application/vnd.api+json',
@@ -23,6 +22,7 @@ export function Providers({ children }: ThemeProviderProps) {
         withCredentials: true,
       }) 
       const response = res.data.data;
+      console.log("zinda hai kapil", response)
       await updateUserData({
         userId: response.id,
         keyId: "user-"+response.attributes.user_id,
@@ -44,6 +44,7 @@ export function Providers({ children }: ThemeProviderProps) {
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const token = getItemWithTTL("bearerToken");
+      // console.log(token)
       if(!token) {
         loginHandler();
       }
@@ -76,6 +77,10 @@ export function Providers({ children }: ThemeProviderProps) {
             await userMeData(response.data.access_token)
           }
 
+      }
+      else {
+        console.log("hello")
+        await userMeData(accessTkn)
       }
     } catch (error) {
       console.error('Error fetching auth token:', error);

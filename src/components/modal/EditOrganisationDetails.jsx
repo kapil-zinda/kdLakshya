@@ -22,69 +22,64 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   },
 }));
 
-export function UpdateUserPopUp({ open1, onClose, user,setUserDatas, userDatas}) {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [firstNameError, setFirstNameError] = useState(false);
-  const [lastNameError, setLastNameError] = useState(false);
-  console.log("edit user id", user.id)
+export function EditOrganisationDetails({onCloses, data, orgId, setData }) {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [nameError, setNameError] = useState(false);
+  const [descriptionError, setDescriptionError] = useState(false);
   const [bearerToken, setBearerToken] = useState(''); 
-  // Populate data when user prop or open1 changes
+
+  // Populate data when dialog opens
   useEffect(() => {
-    if (user && open1) {
-      setFirstName(user.firstName);
-      setLastName(user.lastName);
-      setEmail(user.email);
+    if (data ) {
+      setName(data.name || ''); // Use data.name instead of user.name
+      setDescription(data.description || ''); // Use data.description instead of user.description
     }
     const token = getItemWithTTL("bearerToken"); 
     setBearerToken(token);
-  }, [user, open1, userDatas]);
-
+  }, [data]);
 
   const handleClose = () => {
-    onClose();
-    // Reset error states when the modal is closed
-    setFirstNameError(false);
-    setLastNameError(false);
+    onCloses();
+    setNameError(false);
+    setDescriptionError(false);
   };
 
   const handleSave = async() => {
     let isValid = true;
 
-    // Validate first name
-    if (!firstName.trim()) {
-      setFirstNameError(true);
+    // Validate name
+    if (!name.trim()) {
+      setNameError(true);
       isValid = false;
     } else {
-      setFirstNameError(false);
+      setNameError(false);
     }
 
-    // Validate last name
-    if (!lastName.trim()) {
-      setLastNameError(true);
+    // Validate description
+    if (!description.trim()) {
+      setDescriptionError(true);
       isValid = false;
     } else {
-      setLastNameError(false);
+      setDescriptionError(false);
     }
 
-    // If both inputs are valid, proceed to save
     if (isValid) {
-      const updatedUserData = {
-        first_name: firstName,
-        last_name: lastName,
-      };
-
-      // Here you would send the updated data to your backend (API call)
-      console.log('Updated User Data:', updatedUserData);
+      // Call an API or handle the save logic here 
+      console.log({ name, description, bearerToken });
+    //   const bearerToken = getItemWithTTL("bearerToken")
+         
       try {
         const res = await axios.patch(
-            `${BaseURLAuth}/users/${user.id}`,
+            `${BaseURLAuth}/organizations/${orgId}`,
             {
               data: {
-                type: "users",
-                id: user.id,
-                attributes: updatedUserData,
+                type: "organizations",
+                id: orgId,
+                attributes: {
+                  name: name,
+                  description: description,
+                },
               },
             },
             {
@@ -94,17 +89,8 @@ export function UpdateUserPopUp({ open1, onClose, user,setUserDatas, userDatas})
               },
             }
           );
-          const updatedUser = res.data.data.attributes;
-
-          // Update the userDatas array
-          const updatedUserDatas = userDatas.map((u) => 
-            u.user_id === user.user_id ? { ...u, ...updatedUser } : u
-          );
-      
-          // Update state with new user data
-          setUserDatas(updatedUserDatas);
-          
-        console.log(updatedUserDatas, "aise faadega bhai...");
+        setData(res.data.data.attributes);
+        console.log(res.data.data, "faad diya bhai ne...");
       } catch (error) {
         console.log(error);
       }
@@ -118,10 +104,10 @@ export function UpdateUserPopUp({ open1, onClose, user,setUserDatas, userDatas})
     <BootstrapDialog
       onClose={handleClose}
       aria-labelledby="customized-dialog-title"
-      open={open1}
+      open="true"
     >
       <DialogTitle sx={{ m: 0, p: 2, width: 900, background: "#fff0f5" }} id="customized-dialog-title">
-        Update User
+        Update Organisation Details
       </DialogTitle>
       <IconButton
         aria-label="close"
@@ -137,48 +123,36 @@ export function UpdateUserPopUp({ open1, onClose, user,setUserDatas, userDatas})
       </IconButton>
       <DialogContent dividers>
         <Typography gutterBottom>
-          Please update the details for the user.
+          Please update the details for the organisation.
         </Typography>
 
-        {/* Email Input (Disabled) */}
+        {/* Organisation Name Input */}
         <TextField
           margin="dense"
-          id="email"
-          label="Email"
-          type="email"
-          fullWidth
-          variant="outlined"
-          value={email}
-          disabled
-        />
-
-        {/* First Name Input */}
-        <TextField
-          margin="dense"
-          id="firstName"
-          label="Update First Name"
+          id="name"
+          label="Organisation Name"
           type="text"
           fullWidth
           variant="outlined"
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-          error={firstNameError}
-          helperText={firstNameError ? 'First name is required' : ''}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          error={nameError}
+          helperText={nameError ? 'Organisation name is required' : ''}
           required
         />
 
-        {/* Last Name Input */}
+        {/* Organisation Description Input */}
         <TextField
           margin="dense"
-          id="lastName"
-          label="Update Last Name"
+          id="description"
+          label="Organisation Description"
           type="text"
           fullWidth
           variant="outlined"
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-          error={lastNameError}
-          helperText={lastNameError ? 'Last name is required' : ''}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          error={descriptionError}
+          helperText={descriptionError ? 'Organisation description is required' : ''}
           required
         />
       </DialogContent>
@@ -188,9 +162,10 @@ export function UpdateUserPopUp({ open1, onClose, user,setUserDatas, userDatas})
           autoFocus
           style={{ border: "1px solid #00a2ed", background: "#00a2ed", color: "white" }}
         >
-          Update User
+          Update Organisation
         </Button>
       </DialogActions>
     </BootstrapDialog>
+    // <div>hello guys</div>
   );
 }

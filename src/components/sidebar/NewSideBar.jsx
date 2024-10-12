@@ -33,7 +33,6 @@ export function NewSideBar({ children }) {
   useEffect(()=>{
     setuserdatas(userData)
   },[userData])
-  console.log(userDatas)
   console.log(userData)
   const logoutHandler = async () => {
     console.log("Clicked logout");

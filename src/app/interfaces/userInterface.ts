@@ -1,4 +1,4 @@
-interface UserData {
+export interface UserData {
     userId: string;
     keyId: string;
     orgKeyId: string;

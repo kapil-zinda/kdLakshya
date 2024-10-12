@@ -5,7 +5,13 @@ import styled from '@emotion/styled';
 import { Button } from '@mui/material';
 import axios from 'axios';
 import { PenIcon, User2Icon } from 'lucide-react';
-
+import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
+import {EditOrganisationDetails} from "../modal/EditOrganisationDetails"
+const BaseURLAuth = process.env.BaseURLAuth || '';
+type OverviewProps = {
+	orgId: string;
+  privillege: string;
+};
 const Card = styled.div`
   background: '#d3ebffcc';
   position: relative;
@@ -87,9 +93,6 @@ interface OverviewData {
   permission?: Permission;
 }
 
-interface Permission {
-  [key: string]: string; // Key is the email, value is the role
-}
 
 interface UserListProps {
   permission: Permission;
@@ -116,42 +119,48 @@ export const UserList: React.FC<UserListProps> = ({ permission }) => {
 };
 
 
-// TODO: implement expiration-based token cleanup and re-login handler
-const BaseURLAuth = process.env.BaseURLAuth || '';
-
-const Overview: React.FC = () => {
+const Overview: React.FC<OverviewProps> = ({orgId, privillege}) => {
+  const [showModal, setShowModal] = useState(false)
   const [overviewData, setOverviewData] = useState<OverviewData>({});
-  const bearerData = localStorage.getItem('bearerToken');
-  let jsonBearer: { value?: string } | null = null;
-  let bearerToken = 'rohan';
+  // const bearerData = localStorage.getItem('bearerToken');
+  // let jsonBearer: { value?: string } | null = null;
+  // let bearerToken = null
 
-  if (bearerData) {
-    try {
-      jsonBearer = JSON.parse(bearerData);
-      bearerToken = jsonBearer?.value || 'rohan';
-    } catch (error) {
-      console.error('Error parsing JSON:', error);
-    }
+  // if (bearerData) {
+  //   try {
+  //     jsonBearer = JSON.parse(bearerData);
+  //     bearerToken = jsonBearer?.value || 'rohan';
+  //   } catch (error) {
+  //     console.error('Error parsing JSON:', error);
+  //   }
+  // }
+  const bearerToken = getItemWithTTL("bearerToken")
+  // console.log(bearerToken, "zinda hai kapil")
+  const onClose = () => {
+    setShowModal(false);
   }
-
+  const handleClicked = function (){
+    setShowModal(true);
+    console.log("clicked...")
+  }
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`${BaseURLAuth}/organizations/1`, {
+        const res = await axios.get(`${BaseURLAuth}/organizations/${orgId}`, {
           headers: {
             Authorization: `Bearer ${bearerToken}`,
             'Content-Type': 'application/vnd.api+json',
           },
         });
         setOverviewData(res.data.data.attributes);
-        console.log(res.data.data);
+        // console.log(res.data.data);
       } catch (error) {
         console.log(error);
       }
     };
 
     fetchData();
-  }, [bearerToken]);
+  }, [orgId]);
 
   return (
     <>
@@ -172,9 +181,9 @@ const Overview: React.FC = () => {
         >
           Organisation Management Dashboard
         </h1>
-        <Button variant="outlined" style={{ marginBottom: '1rem' }}>
+       {privillege == "head" && <Button variant="outlined" style={{ marginBottom: '1rem' }} onClick={handleClicked}>
           <PenIcon style={{ marginRight: '8px', width: '15px' }} /> Edit Details
-        </Button>
+        </Button>}
       </div>
       {overviewData.name ? (
         <Card>
@@ -219,6 +228,7 @@ const Overview: React.FC = () => {
       ) : (
         <div>Loading...</div>
       )}
+      {showModal && <EditOrganisationDetails  onCloses={onClose} data={overviewData} orgId={orgId} setData={setOverviewData} />}
     </>
   );
 };

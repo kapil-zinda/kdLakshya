@@ -5,12 +5,17 @@ import React, { useState } from 'react';
 import { TeamsTable } from '@/components/table/TeamsTable';
 import { UsersTable } from '@/components/table/UsersTable';
 import Overview from '@/components/dashboard/Overview';
+import { UserData, userData } from "@/app/interfaces/userInterface"
+
 
 const AdminDashboard = () => {
   const [gridView, setGridView] = useState<string>('overview');
+  const [userDatas, setUserDatas] = useState<UserData>(userData);
+  
   return (
     <>
-      <div className="border-b border-gray-200 dark:border-gray-700">
+   {(userDatas && userDatas.orgId && userDatas.orgId.length > 0 )?  <div>
+    <div className="border-b border-gray-200 dark:border-gray-700">
         <ul className="flex flex-wrap -mb-px text-sm font-medium text-center text-gray-500 dark:text-gray-400">
           <li className="me-2">
             <a
@@ -98,8 +103,9 @@ const AdminDashboard = () => {
       ) : gridView === 'teams' ? (
         <TeamsTable />
       ) : (
-        <Overview />
+        <Overview orgId={userDatas.orgId} privillege={userDatas.permission && userDatas.permission.org} />
       )}
+    </div>: <div>Loading...</div>}
     </>
   );
 };
