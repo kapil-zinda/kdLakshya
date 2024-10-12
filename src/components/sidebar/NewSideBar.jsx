@@ -39,7 +39,6 @@ export function NewSideBar({ children }) {
   },[userData])
   console.log(userData)
   const logoutHandler = async () => {
-    console.log("Clicked logout");
     localStorage.removeItem("bearerToken");
     window.location.href = `https://${AUTH0_Domain_Name}/v2/logout?client_id=${AUTH0_Client_Id}&returnTo=${AUTH0_logout_redirect}`
     // try {

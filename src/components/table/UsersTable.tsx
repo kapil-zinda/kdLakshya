@@ -220,7 +220,6 @@ export function UsersTable() {
             "Content-Type": "application/vnd.api+json",
           },
         });
-        console.log("djjj",res.data.data)
         setUserDatas(res.data.data);  // Update state with the user data
       } catch (error) {
         console.log(error);

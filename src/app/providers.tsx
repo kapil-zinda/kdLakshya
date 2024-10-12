@@ -18,22 +18,20 @@ const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null)
 
-  const userMeData = async(bearerToken: string) => {
+  const userMeData = async (bearerToken: string) => {
     try {
-      console.log(BaseURLAuth)
       const res = await axios.get(`${BaseURLAuth}/users/me?include=permission`, {
         headers: {
           'Authorization': `Bearer ${bearerToken}`,
           'Content-Type': 'application/vnd.api+json',
         },
         withCredentials: true,
-      }) 
+      })
       const response = res.data.data;
-      console.log("zinda hai kapil", response)
       await updateUserData({
         userId: response.id,
-        keyId: "user-"+response.attributes.user_id,
-        orgKeyId: "org-"+response.attributes.org,
+        keyId: "user-" + response.attributes.user_id,
+        orgKeyId: "org-" + response.attributes.org,
         orgId: response.attributes.org,
         userEmail: response.attributes.email,
         firstName: response.attributes.first_name,
@@ -42,8 +40,6 @@ export function Providers({ children }: ThemeProviderProps) {
         // allowedTeams: Object.keys(response.user_permissions).filter(key => key.startsWith('team')),
         allowedTeams: []
       })
-      console.log(res.data);
-      console.log(userData)
     } catch (error) {
       console.error("Error fetching user data:", error);
     }
@@ -51,8 +47,7 @@ export function Providers({ children }: ThemeProviderProps) {
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       const token = getItemWithTTL("bearerToken");
-      // console.log(token)
-      if(!token) {
+      if (!token) {
         loginHandler();
       }
       setAccessTkn(token);
@@ -70,23 +65,21 @@ export function Providers({ children }: ThemeProviderProps) {
       const config = {
         method: 'post',
         url: `https://${AUTH0_Domain_Name}/oauth/token`,
-        headers: { 
+        headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         },
         data: data
       };
-      if(!accessTkn) {
-          const response = await axios(config);
-          console.log('Auth Token:', response.data);  
-          setAccessTkn(response.data.access_token)
-          if (typeof window !== "undefined") {
-            setItemWithTTL("bearerToken", response.data.access_token, 23);
-            await userMeData(response.data.access_token)
-          }
+      if (!accessTkn) {
+        const response = await axios(config);
+        setAccessTkn(response.data.access_token)
+        if (typeof window !== "undefined") {
+          setItemWithTTL("bearerToken", response.data.access_token, 23);
+          await userMeData(response.data.access_token)
+        }
 
       }
       else {
-        console.log("hello")
         await userMeData(accessTkn)
       }
     } catch (error) {
@@ -102,22 +95,21 @@ export function Providers({ children }: ThemeProviderProps) {
         fetchAuthToken(parsedAuthCode); // Fetch the auth token
       }
     }
-  }, []); 
+  }, []);
   let bearerToken: string | null = null;
 
   // Only access localStorage in the client
   if (typeof window !== "undefined") {
     bearerToken = localStorage.getItem("bearerToken");
   }
-  const loginHandler = async() => {
-   try {
-    console.log("hello", bearerToken);
-    if(!accessTkn) {
-      window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${login_redirect}&scope=${encodeURIComponent("openid profile email")}`;
-    }
-   } catch (error) {
+  const loginHandler = async () => {
+    try {
+      if (!accessTkn) {
+        window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${login_redirect}&scope=${encodeURIComponent("openid profile email")}`;
+      }
+    } catch (error) {
       console.log(error);
-   }
+    }
   }
   function setItemWithTTL(key: string, value: any, ttlHours: number) {
     const now = new Date().getTime();
@@ -133,16 +125,16 @@ export function Providers({ children }: ThemeProviderProps) {
     if (!itemStr) {
       return null;
     }
-  
+
     const item = JSON.parse(itemStr);
     const now = new Date().getTime();
-  
+
     // Check if the item is expired
     if (now > item.expiry) {
       localStorage.removeItem(key); // Remove expired item
       return null;
     }
-  
+
     return item.value;
   }
   return (

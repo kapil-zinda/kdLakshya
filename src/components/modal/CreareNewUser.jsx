@@ -82,7 +82,6 @@ export default function CreateUserPopUp() {
         last_name: lastName,
         temporary_password: temporaryPassword,
       };
-      console.log('User Data:', userData);
       handleClose();
     }
   };

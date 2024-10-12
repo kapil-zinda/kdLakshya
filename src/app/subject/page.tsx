@@ -27,7 +27,7 @@ export default function SubjectPage() {
   const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
 
   const [subjectName, setSubjectName] = useState<string>("");
-  const handleChange = (e : any) => {
+  const handleChange = (e: any) => {
     const { value } = e.target;
     setSubjectName(value);
   };

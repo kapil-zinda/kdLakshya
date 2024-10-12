@@ -28,7 +28,7 @@ export function UpdateUserPopUp({ open1, onClose, user,setUserDatas, userDatas})
   const [email, setEmail] = useState('');
   const [firstNameError, setFirstNameError] = useState(false);
   const [lastNameError, setLastNameError] = useState(false);
-  console.log("edit user id", user.id)
+
   const [bearerToken, setBearerToken] = useState(''); 
   // Populate data when user prop or open1 changes
   useEffect(() => {
@@ -75,8 +75,6 @@ export function UpdateUserPopUp({ open1, onClose, user,setUserDatas, userDatas})
         last_name: lastName,
       };
 
-      // Here you would send the updated data to your backend (API call)
-      console.log('Updated User Data:', updatedUserData);
       try {
         const res = await axios.patch(
             `${BaseURLAuth}/users/${user.id}`,
@@ -103,8 +101,6 @@ export function UpdateUserPopUp({ open1, onClose, user,setUserDatas, userDatas})
       
           // Update state with new user data
           setUserDatas(updatedUserDatas);
-          
-        console.log(updatedUserDatas, "aise faadega bhai...");
       } catch (error) {
         console.log(error);
       }

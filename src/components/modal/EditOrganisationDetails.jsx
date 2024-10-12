@@ -65,9 +65,6 @@ export function EditOrganisationDetails({onCloses, data, orgId, setData }) {
     }
 
     if (isValid) {
-      // Call an API or handle the save logic here 
-      console.log({ name, description, bearerToken });
-    //   const bearerToken = getItemWithTTL("bearerToken")
          
       try {
         const res = await axios.patch(
@@ -90,7 +87,6 @@ export function EditOrganisationDetails({onCloses, data, orgId, setData }) {
             }
           );
         setData(res.data.data.attributes);
-        console.log(res.data.data, "faad diya bhai ne...");
       } catch (error) {
         console.log(error);
       }

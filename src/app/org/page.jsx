@@ -23,31 +23,31 @@ const Card = styled.div`
     }
 `;
 const page = () => {
-  return (
-    <>
-    <div style={{display: "flex", justifyContent: "center", alignItems: "center"}}>
-        <h1 style={{fontSize: "22px"}}>Uchhal Organisation Management Dashboard</h1>
-       <button style={{marginLeft: "auto"}}> Edit Details </button> 
-    </div>
-    <Card>
-    <h2 style={{margin: "10px 5px", fontSize: "20px", fontWeight: "500"}}>Organisation Details</h2>
-    <hr style={{margin: "10px 0"}}/>
-    <div style={{fontSize: "18px", margin: "5px 1rem"}}>Name {"&"} Email</div>
-    <p style={{fontSize: "14px",margin: "5px 1rem" }}>Edit the details for the Organisation</p>
-    <div style={{fontSize: "18px", margin: "24px 1rem"}}>
-        <h3>Organisation Name</h3>
-        <p style={{fontSize: "14px",margin: "5px 0rem"}}>Uchhal Data Service</p>
-    </div>
-    <hr style={{margin: "10px 0"}}/>
-    <div style={{fontSize: "18px", margin: "5px 1rem"}}>Organisation Admin</div>
-    <p style={{fontSize: "14px",margin: "5px 1rem" }}>Edit the details for the Organisation</p>
-    <div>
-        
-        <p>Uchhal Data Service</p>
-    </div>
-    </Card>
-    </>
-  )
+    return (
+        <>
+            <div style={{ display: "flex", justifyContent: "center", alignItems: "center" }}>
+                <h1 style={{ fontSize: "22px" }}>Uchhal Organisation Management Dashboard</h1>
+                <button style={{ marginLeft: "auto" }}> Edit Details </button>
+            </div>
+            <Card>
+                <h2 style={{ margin: "10px 5px", fontSize: "20px", fontWeight: "500" }}>Organisation Details</h2>
+                <hr style={{ margin: "10px 0" }} />
+                <div style={{ fontSize: "18px", margin: "5px 1rem" }}>Name {"&"} Email</div>
+                <p style={{ fontSize: "14px", margin: "5px 1rem" }}>Edit the details for the Organisation</p>
+                <div style={{ fontSize: "18px", margin: "24px 1rem" }}>
+                    <h3>Organisation Name</h3>
+                    <p style={{ fontSize: "14px", margin: "5px 0rem" }}>Uchhal Data Service</p>
+                </div>
+                <hr style={{ margin: "10px 0" }} />
+                <div style={{ fontSize: "18px", margin: "5px 1rem" }}>Organisation Admin</div>
+                <p style={{ fontSize: "14px", margin: "5px 1rem" }}>Edit the details for the Organisation</p>
+                <div>
+
+                    <p>Uchhal Data Service</p>
+                </div>
+            </Card>
+        </>
+    )
 }
 
 export default page

@@ -135,13 +135,11 @@ const Overview: React.FC<OverviewProps> = ({orgId, privillege}) => {
   //   }
   // }
   const bearerToken = getItemWithTTL("bearerToken")
-  // console.log(bearerToken, "zinda hai kapil")
   const onClose = () => {
     setShowModal(false);
   }
   const handleClicked = function (){
     setShowModal(true);
-    console.log("clicked...")
   }
   useEffect(() => {
     const fetchData = async () => {
@@ -153,7 +151,6 @@ const Overview: React.FC<OverviewProps> = ({orgId, privillege}) => {
           },
         });
         setOverviewData(res.data.data.attributes);
-        // console.log(res.data.data);
       } catch (error) {
         console.log(error);
       }

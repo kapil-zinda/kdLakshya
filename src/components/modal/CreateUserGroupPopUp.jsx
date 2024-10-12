@@ -65,9 +65,6 @@ export default function CreateUserGroupPopUp() {
         groupDescription,
       };
 
-      // Here you would send the data to your backend (API call)
-      console.log('Group Data:', userData);
-
       // Close the modal after saving
       handleClose();
     }
