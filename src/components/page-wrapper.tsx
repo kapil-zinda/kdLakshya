@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { NewSideBar } from './sidebar/MainNav';
+import { NewSideBar } from './sidebar/NewSideBar';
 
 export default function PageWrapper({ children }: { children: ReactNode }) {
   return (

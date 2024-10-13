@@ -387,7 +387,7 @@ const data: Team[] = [
 //     },
 //     cell: ({ row }) => <div className="lowercase">{row.getValue("name")}</div>,
 //   },
-  
+
 //   {
 //     accessorKey: "email",
 //     header: ({ column }) => {
@@ -408,7 +408,7 @@ const data: Team[] = [
 //       <div className="capitalize">{row.getValue("status")}</div>
 //     ),
 //   },
-  
+
 //   {
 //     accessorKey: "createdAt",
 //     header: ({ column }) => {
@@ -442,12 +442,12 @@ const data: Team[] = [
 //             <DropdownMenuItem>Delete User</DropdownMenuItem>
 //           </DropdownMenuContent>
 //         </DropdownMenu>
-        
+
 //       )
 //     },
 //   },
 // ]
-export const columns: ColumnDef<User>[] = [
+export const columns: ColumnDef<Team>[] = [
   {
     accessorKey: "name",
     header: ({ column }) => {
@@ -462,7 +462,7 @@ export const columns: ColumnDef<User>[] = [
     },
     cell: ({ row }) => <div className="lowercase">{row.original.name}</div>, // Access name directly from row.original
   },
-  
+
   {
     accessorKey: "description",
     header: ({ column }) => {
@@ -481,7 +481,7 @@ export const columns: ColumnDef<User>[] = [
       <div className="capitalize">{row.original.status}</div> // Access status directly from row.original
     ),
   },
-  
+
   {
     accessorKey: "createdAt",
     header: ({ column }) => {
@@ -498,76 +498,65 @@ export const columns: ColumnDef<User>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const user = row.original;
-    const [openDeletePopup, setOpenDeletePopup] = React.useState(false);
-    const [openEditPopup, setOpenEditPopup] = React.useState(false);
+      const [openDeletePopup, setOpenDeletePopup] = React.useState(false);
+      const [openEditPopup, setOpenEditPopup] = React.useState(false);
 
-    const handleDeleteUserClick = () => {
-      setOpenDeletePopup(true);
-    };
+      const handleDeleteUserClick = () => {
+        setOpenDeletePopup(true);
+      };
 
-    const handleCloseDeletePopup = () => {
-      setOpenDeletePopup(false);
-    };
+      const handleCloseDeletePopup = () => {
+        setOpenDeletePopup(false);
+      };
 
-    const handleDeleteUser = (user: User) => {
-      console.log('Deleting user:', user);
-      // Perform your delete logic here
-    };
+      const handleDeleteUser = (user: Team) => {
+        console.log('Deleting user:', user);
+        // Perform your delete logic here
+      };
 
-    const handleEditUserClick = () => {
-      setOpenEditPopup(true);
-    };
+      const handleEditUserClick = () => {
+        setOpenEditPopup(true);
+      };
 
-    const handleCloseEditPopup = () => {
-      setOpenEditPopup(false);
-    };
+      const handleCloseEditPopup = () => {
+        setOpenEditPopup(false);
+      };
 
-    const handleUpdateStateUserClick = (status: string) => {
-      const updatedStatus = status === 'active' ? 'inactive' : 'active';
-  
-      // Make an API call to update the user's status
-      console.log(`User status updated to: ${updatedStatus}`);
-      // You can implement an API call here to update the user status in your backend
-    };
-    
+      const handleUpdateStateUserClick = (status: string) => {
+        const updatedStatus = status === 'active' ? 'inactive' : 'active';
+
+        // Make an API call to update the user's status
+        console.log(`User status updated to: ${updatedStatus}`);
+        // You can implement an API call here to update the user status in your backend
+      };
+
       return (
-       <>
-        <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-8 w-8 p-0">
-          <span className="sr-only">Open menu</span>
-          <MoreHorizontal className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => handleUpdateStateUserClick(row.original.status)}>
-          {row.original.status === 'active' ? 'Disable Team' : 'Activate Team'}
-        </DropdownMenuItem>
-        {row.original.status === 'active' && (
-          <DropdownMenuItem onClick={handleEditUserClick}>Edit Team</DropdownMenuItem>
-        )}
-        <DropdownMenuItem onClick={handleDeleteUserClick}>Delete Team</DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-        {openDeletePopup && (
-          <DeleteUserPopup
-            user={user}
-            open={openDeletePopup}
-            onClose={handleCloseDeletePopup}
-            onDelete={() => handleDeleteUser(user)}
-          />
-        )}
-        {openEditPopup && (
-          <UpdateUserPopUp
-            open1={openEditPopup}
-            onClose={handleCloseEditPopup}
-            user={{
-              description: user.description,
-              firstName: user.name,
-              lastName: user.name,
-            }}
-          />
-        )}
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleUpdateStateUserClick(row.original.status)}>
+                {row.original.status === 'active' ? 'Disable Team' : 'Activate Team'}
+              </DropdownMenuItem>
+              {row.original.status === 'active' && (
+                <DropdownMenuItem onClick={handleEditUserClick}>Edit Team</DropdownMenuItem>
+              )}
+              <DropdownMenuItem onClick={handleDeleteUserClick}>Delete Team</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {openDeletePopup && (
+            <DeleteUserPopup
+              user={user}
+              open={openDeletePopup}
+              onClose={handleCloseDeletePopup}
+              onDelete={() => handleDeleteUser(user)}
+            />
+          )}
        </>
       );
     },
@@ -576,7 +565,7 @@ export const columns: ColumnDef<User>[] = [
 
 export function TeamsTable() {
   const [sorting, setSorting] = React.useState<SortingState>([])
-  
+
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   )
@@ -623,10 +612,10 @@ export function TeamsTable() {
   return (
     <div className="w-full">
       <div className="flex items-center py-4">
-            {/* <Button variant="outline" className="mr-auto">
+        {/* <Button variant="outline" className="mr-auto">
               + New User 
             </Button> */}
-            <CreateUserPopUp/>
+        <CreateUserPopUp />
         {/* <Input
           placeholder="Search Team..."
           value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
@@ -639,23 +628,23 @@ export function TeamsTable() {
       </div>
       <div className="rounded-md border">
         <Table>
-        <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => (
-                <TableHead key={header.id}>
-                  {header.isPlaceholder
-                    ? null
-                    : flexRender(
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
                         header.column.columnDef.header,
                         header.getContext()
                       )}
-                </TableHead>
-              ))}
-            </TableRow>
-          ))}
-        </TableHeader>
-        {/* <TableBody>
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          {/* <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
                 
@@ -679,26 +668,26 @@ export function TeamsTable() {
             </TableRow>
           )}
         </TableBody> */}
-        <TableBody>
-  {table.getRowModel().rows?.length ? (
-    table.getRowModel().rows.map((row) => (
-      <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
-        {row.getVisibleCells().map((cell) => (
-          <TableCell key={cell.id}>
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </TableCell>
-        ))}
-      </TableRow>
-    ))
-  ) : (
-    <TableRow>
-      <TableCell colSpan={columns.length} className="h-24 text-center">
-        No results.
-      </TableCell>
-    </TableRow>
-  )}
-</TableBody>
-      </Table>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} data-state={row.getIsSelected() && "selected"}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
 
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
