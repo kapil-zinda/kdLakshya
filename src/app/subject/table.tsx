@@ -28,8 +28,8 @@ const SubjectTablePage: React.FC<SubjectTablePageProps> = ({
       total < indexEndPage + modify_number * 10
         ? total - 1
         : indexEndPage == total - 1
-        ? (total_pages - 1) * 10 - 1
-        : indexEndPage + modify_number * 10,
+          ? (total_pages - 1) * 10 - 1
+          : indexEndPage + modify_number * 10,
     );
   };
 

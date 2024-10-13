@@ -27,7 +27,7 @@ export default function SubjectPage() {
   const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
 
   const [subjectName, setSubjectName] = useState<string>("");
-  const handleChange = (e : any) => {
+  const handleChange = (e: any) => {
     const { value } = e.target;
     setSubjectName(value);
   };
@@ -51,7 +51,7 @@ export default function SubjectPage() {
   };
   return (
     <>
-      <main className="mb-8">
+      <div className="mb-8">
         <div className="max-w-screen-xl mx-auto py-3">
           <h2 className="text-2xl font-bold tracking-tight">☺☺</h2>
           <p className="text-muted-foreground">
@@ -80,7 +80,7 @@ export default function SubjectPage() {
             <div className="flex flex-col space-y-4 sm:flex-row sm:justify-center sm:space-y-0">
               {popAddSubject ? (
                 <div
-                  aria-hidden="true"
+                  // //aria-hidden="true"
                   className="overflow-y-auto overflow-x-hidden z-50 justify-center items-center md:inset-0 h-[calc(100%-1rem)] max-h-full"
                 >
                   <div className="relative p-4 w-full max-w-md max-h-full">
@@ -98,7 +98,7 @@ export default function SubjectPage() {
                         >
                           <svg
                             className="w-3 h-3"
-                            aria-hidden="true"
+                            // //aria-hidden="true"
                             xmlns="http://www.w3.org/2000/svg"
                             fill="none"
                             viewBox="0 0 14 14"
@@ -158,7 +158,7 @@ export default function SubjectPage() {
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </>
   );
 }
