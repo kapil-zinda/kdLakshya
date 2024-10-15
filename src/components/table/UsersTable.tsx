@@ -77,7 +77,7 @@ export function UsersTable() {
 
 
 
-  const [data, setUserDatas] = useState<any []>([]);  // Initialize state with an empty array
+  const [data, setUserDatas] = useState<User[]>([]);  // Initialize state with an empty array
   const columns: ColumnDef<User>[] = [
     {
       accessorKey: "first_name",
@@ -140,9 +140,18 @@ export function UsersTable() {
         setOpenDeletePopup(false);
       };
   
-      const handleDeleteUser = (user: User) => {
-        console.log('Deleting user:', user);
-        // Perform your delete logic here
+      const handleDeleteUser = async(user: User) => {
+        const res = await axios.delete(`${BaseURLAuth}/users/${user.id}?permanent=true`, {
+          headers: {
+            'Authorization': `Bearer ${bearerToken}`,
+            'Content-Type': 'application/vnd.api+json',
+          }
+        })
+        const deletedUser = res.data.data;
+        console.log('User deleted successfully:', deletedUser);
+        if (user.id === user.id) {
+          setUserDatas((prevUsers: User[]) => prevUsers.filter(u => u.id !== user.id));
+        }
       };
   
       const handleEditUserClick = () => {
@@ -256,7 +265,7 @@ export function UsersTable() {
     };
 
     fetchData();
-  }, [data]);
+  }, []);
 
   const [sorting, setSorting] = React.useState<SortingState>([])
   
