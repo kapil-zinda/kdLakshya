@@ -1,4 +1,5 @@
 import Box from "@/components/box/box";
+import TodoDashboard from "@/components/dashboard/TodoDashboard";
 
 const Home = () => {
   return (
@@ -10,7 +11,8 @@ const Home = () => {
         </p>
       </div>
       <div className="max-w-screen-xl mx-auto">
-        <Box />
+        {/* <Box /> */}
+        <TodoDashboard />
       </div>
     </div>
   );
