@@ -1,6 +1,7 @@
 "use client"
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import TaskList from './PriorityTable';
 
 interface PriorityData {
   name: string;
@@ -36,11 +37,11 @@ const TodoDashboard: React.FC = () => {
     <div className="bg-gray-800  p-4 md:p-6 font-sans rounded-3xl w-[100%]">
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {/* Header */}
-        <div className="col-span-1 md:col-span-3 lg:col-span-3 bg-blue-500 p-4 rounded-lg">
+        <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-blue-500 p-4 rounded-lg">
           <h1 className="text-xl md:text-2xl font-bold">DASHBOARD</h1>
           <p>Task Tracker</p>
         </div>
-        <div className="bg-green-500 p-4 rounded-lg">
+        <div className="bg-green-500 p-4 rounded-lg hidden sm:block" >
             <h2 className="font-bold text-sm md:text-base">TODAY'S DATE</h2>
             <p className="text-lg md:text-xl">{currentDate}</p>
           </div>
@@ -64,24 +65,25 @@ const TodoDashboard: React.FC = () => {
             <p className="text-xl md:text-2xl">5</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 col-span-1 md:col-span-3 lg:col-span-4 h-[500px]">
-        <div className="bg-[#696969] p-4 rounded-lg  ">
-            <h2 className="font-bold mb-2">BY PRIORITY</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 col-span-1 md:col-span-4 lg:col-span-4 ">
+        {/* <div className="bg-[#696969] p-4 rounded-lg  ">
+            <h2 className="font-bold mb-2" style={{fontSize: "22px"}}>BY PRIORITY</h2>
             <ul className="space-y-2">
               <li className="bg-red-500 p-2 rounded text-sm md:text-base">High: Complete project proposal</li>
               <li className="bg-yellow-500 p-2 rounded text-sm md:text-base">Medium: Schedule team meeting</li>
               <li className="bg-blue-500 p-2 rounded text-sm md:text-base">Low: Update personal blog</li>
             </ul>
-          </div>
-          <div className="bg-blue-600 p-4 rounded-lg">
-            <h2 className="font-bold mb-2"> BY CATEGORY </h2>
+          </div> */}
+          <TaskList />
+          <div className="bg-[#696969] p-4 rounded-lg ">
+            <h2 className="font-bold mb-2 text-[22px]"> BY CATEGORY </h2>
             <ul className="space-y-2 text-sm md:text-base">
               <li>John: Review Q3 sales report</li>
               <li>Sarah: Prepare presentation slides</li>
             </ul>
           </div>
-          <div className="bg-pink-500 p-4 rounded-lg">
-            <h2 className="font-bold mb-2">BY STATUS</h2>
+          <div className="bg-[#696969] p-4 rounded-lg ">
+            <h2 className="font-bold mb-2 text-[22px]">BY STATUS</h2>
             <ul className="space-y-2 text-sm md:text-base">
               <li>In Progress: Develop marketing strategy</li>
               <li>Completed: Submit expense report</li>
@@ -89,11 +91,6 @@ const TodoDashboard: React.FC = () => {
             </ul>
           </div>
           <div className="col-span-1 space-y-4">
-          {/* <div className="bg-green-500 p-4 rounded-lg">
-            <h2 className="font-bold text-sm md:text-base">TODAY'S DATE</h2>
-            <p className="text-lg md:text-xl">{currentDate}</p>
-          </div> */}
-
           <div className="bg-cyan-700 p-4 rounded-lg">
             <h2 className="font-bold mb-2 text-sm md:text-base">TASKS BY EACH PRIORITY</h2>
             <ResponsiveContainer width="100%" height={256}>
