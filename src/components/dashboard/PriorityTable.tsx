@@ -33,20 +33,19 @@ const TaskList: React.FC = () => {
   };
 
   const filteredTasks = filter === 'all' ? tasks : tasks.filter(task => task.priority === filter);
-
   return (
     <div className="bg-gray-600 p-4 rounded-lg">
-      <h2 className="font-bold mb-2 text-[22px] text-white">BY CATEGORY</h2>
-      <div className="mb-4">
+      <div className="mb-4 flex">
+      <h2 className="font-bold mb-2 text-[22px] text-white mr-[auto]">BY PRIORITY</h2>
         <Select onValueChange={(value: Priority) => setFilter(value)}>
-          <SelectTrigger className="w-[200px] bg-white text-gray-800">
-            <SelectValue placeholder="Filter by priority" />
+          <SelectTrigger className="w-[100px] bg-white text-gray-800">
+            <SelectValue placeholder="All" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Priorities</SelectItem>
-            <SelectItem value="low">Low Priority</SelectItem>
-            <SelectItem value="medium">Medium Priority</SelectItem>
-            <SelectItem value="high">High Priority</SelectItem>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="low">Low</SelectItem>
+            <SelectItem value="medium">Medium</SelectItem>
+            <SelectItem value="high">High</SelectItem>
           </SelectContent>
         </Select>
       </div>

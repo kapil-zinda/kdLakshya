@@ -2,6 +2,9 @@
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import TaskList from './PriorityTable';
+import CategoryList from './CategoryTable';
+import StatusList from './StatusTable';
+import NotesComponent from './NotesComponent';
 
 interface PriorityData {
   name: string;
@@ -66,30 +69,9 @@ const TodoDashboard: React.FC = () => {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 col-span-1 md:col-span-4 lg:col-span-4 ">
-        {/* <div className="bg-[#696969] p-4 rounded-lg  ">
-            <h2 className="font-bold mb-2" style={{fontSize: "22px"}}>BY PRIORITY</h2>
-            <ul className="space-y-2">
-              <li className="bg-red-500 p-2 rounded text-sm md:text-base">High: Complete project proposal</li>
-              <li className="bg-yellow-500 p-2 rounded text-sm md:text-base">Medium: Schedule team meeting</li>
-              <li className="bg-blue-500 p-2 rounded text-sm md:text-base">Low: Update personal blog</li>
-            </ul>
-          </div> */}
           <TaskList />
-          <div className="bg-[#696969] p-4 rounded-lg ">
-            <h2 className="font-bold mb-2 text-[22px]"> BY CATEGORY </h2>
-            <ul className="space-y-2 text-sm md:text-base">
-              <li>John: Review Q3 sales report</li>
-              <li>Sarah: Prepare presentation slides</li>
-            </ul>
-          </div>
-          <div className="bg-[#696969] p-4 rounded-lg ">
-            <h2 className="font-bold mb-2 text-[22px]">BY STATUS</h2>
-            <ul className="space-y-2 text-sm md:text-base">
-              <li>In Progress: Develop marketing strategy</li>
-              <li>Completed: Submit expense report</li>
-              <li>On Hold: Client website redesign</li>
-            </ul>
-          </div>
+          <CategoryList />
+          <StatusList />
           <div className="col-span-1 space-y-4">
           <div className="bg-cyan-700 p-4 rounded-lg">
             <h2 className="font-bold mb-2 text-sm md:text-base">TASKS BY EACH PRIORITY</h2>
@@ -123,73 +105,8 @@ const TodoDashboard: React.FC = () => {
           </div>
         </div>
         </div>
-        {/* <div className="grid-cols-3 col-span-1 md:col-span-2 lg:col-span-3 space-y-4">
-
-          <div className="bg-[#696969] p-4 rounded-lg  ">
-            <h2 className="font-bold mb-2">BY PRIORITY</h2>
-            <ul className="space-y-2">
-              <li className="bg-red-500 p-2 rounded text-sm md:text-base">High: Complete project proposal</li>
-              <li className="bg-yellow-500 p-2 rounded text-sm md:text-base">Medium: Schedule team meeting</li>
-              <li className="bg-blue-500 p-2 rounded text-sm md:text-base">Low: Update personal blog</li>
-            </ul>
-          </div>
-
-
-          <div className="bg-blue-600 p-4 rounded-lg">
-            <h2 className="font-bold mb-2"> BY CATEGORY </h2>
-            <ul className="space-y-2 text-sm md:text-base">
-              <li>John: Review Q3 sales report</li>
-              <li>Sarah: Prepare presentation slides</li>
-            </ul>
-          </div>
-
-          <div className="bg-pink-500 p-4 rounded-lg">
-            <h2 className="font-bold mb-2">BY STATUS</h2>
-            <ul className="space-y-2 text-sm md:text-base">
-              <li>In Progress: Develop marketing strategy</li>
-              <li>Completed: Submit expense report</li>
-              <li>On Hold: Client website redesign</li>
-            </ul>
-          </div>
-        </div> */}
-        {/* <div className="col-span-1 space-y-4">
-
-
-          <div className="bg-cyan-700 p-4 rounded-lg">
-            <h2 className="font-bold mb-2 text-sm md:text-base">TASKS BY EACH PRIORITY</h2>
-            <ResponsiveContainer width="100%" height={200}>
-              <PieChart>
-                <Pie
-                  data={priorityData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  label
-                >
-                  {priorityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="bg-orange-600 p-4 rounded-lg">
-            <h2 className="font-bold mb-2 text-sm md:text-base">TODAY'S TASKS</h2>
-            <ul className="list-disc list-inside text-sm md:text-base">
-              <li>Call accountant to clarify tax questions</li>
-              <li>Finish report for team meeting</li>
-              <li>Buy groceries for dinner party</li>
-            </ul>
-          </div>
-        </div> */}
-
-        {/* Footer sections */}
         <div className="col-span-1 md:col-span-2 bg-blue-400 p-4 rounded-lg">
-          <h2 className="font-bold mb-2 text-sm md:text-base">NOTES</h2>
+          <h2 className="font-bold mb-2 text-sm md:text-base">TASKS BY EACH STATUS</h2>
           <ul className="text-sm md:text-base">
             <li>October 7, 2023: Quarterly business review</li>
             <li>October 12, 2023: Dentist appointment</li>
@@ -217,13 +134,15 @@ const TodoDashboard: React.FC = () => {
             </PieChart>
           </ResponsiveContainer>
         </div>
-        <div className="col-span-1 md:col-span-2 bg-blue-400 p-4 rounded-lg">
-          <h2 className="font-bold mb-2 text-sm md:text-base">TASKS BY EACH STATUS</h2>
+       
+        {/* <div className="col-span-1 md:col-span-2 bg-blue-400 p-4 rounded-lg">
+          <h2 className="font-bold mb-2 text-sm md:text-base">NOTES</h2>
           <ul className="text-sm md:text-base">
             <li>October 7, 2023: Quarterly business review</li>
             <li>October 12, 2023: Dentist appointment</li>
           </ul>
-        </div>
+        </div> */}
+        <NotesComponent/>
 
         <div className="col-span-1 md:col-span-2 bg-yellow-800 p-4 rounded-lg">
         <div className="bg-yellow-800 p-4 rounded-lg">
