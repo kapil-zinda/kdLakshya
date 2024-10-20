@@ -53,7 +53,7 @@ const TaskList: React.FC = () => {
         {filteredTasks.map((task) => (
             // style={{background: priorityColors[task.priority]}}
           <li key={task.id} className="flex items-center justify-between text-white">
-            <span>{task.name}: {task.task}</span>
+        <span className={priorityColors[task.priority]} style={{width: "100%", borderRadius: "6px", padding: "4px 6px", margin: "3px 0"}}>{task.name}: {task.task}</span>
           </li>
         ))}
       </ul>

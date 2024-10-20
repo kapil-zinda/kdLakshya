@@ -1,10 +1,86 @@
 "use client"
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid} from 'recharts';
 import TaskList from './PriorityTable';
 import CategoryList from './CategoryTable';
 import StatusList from './StatusTable';
 import NotesComponent from './NotesComponent';
+
+const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', 'red', 'pink'];
+
+interface DataEntry {
+  name: string;
+  uv: number;
+  pv: number;
+  amt: number;
+}
+
+// Define props for custom shapes
+interface TriangleBarProps {
+  fill: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+const data11: DataEntry[] = [
+  {
+    name: 'Page A',
+    uv: 4000,
+    pv: 2400,
+    amt: 2400,
+  },
+  {
+    name: 'Page B',
+    uv: 3000,
+    pv: 1398,
+    amt: 2210,
+  },
+  {
+    name: 'Page C',
+    uv: 2000,
+    pv: 9800,
+    amt: 2290,
+  },
+  {
+    name: 'Page D',
+    uv: 2780,
+    pv: 3908,
+    amt: 2000,
+  },
+  {
+    name: 'Page E',
+    uv: 1890,
+    pv: 4800,
+    amt: 2181,
+  },
+  {
+    name: 'Page F',
+    uv: 2390,
+    pv: 3800,
+    amt: 2500,
+  },
+  {
+    name: 'Page G',
+    uv: 3490,
+    pv: 4300,
+    amt: 2100,
+  },
+];
+
+const getPath = (x: number, y: number, width: number, height: number): string => {
+  return `M${x},${y + height}C${x + width / 3},${y + height} ${x + width / 2},${y + height / 3}
+  ${x + width / 2}, ${y}
+  C${x + width / 2},${y + height / 3} ${x + (2 * width) / 3},${y + height} ${x + width}, ${y + height}
+  Z`;
+};
+
+const TriangleBar: React.FC<TriangleBarProps> = (props) => {
+  const { fill, x, y, width, height } = props;
+
+  return <path d={getPath(x, y, width, height)} stroke="none" fill={fill} />;
+};
 
 interface PriorityData {
   name: string;
@@ -107,32 +183,56 @@ const TodoDashboard: React.FC = () => {
         </div>
         <div className="col-span-1 md:col-span-2 bg-blue-400 p-4 rounded-lg">
           <h2 className="font-bold mb-2 text-sm md:text-base">TASKS BY EACH STATUS</h2>
-          <ul className="text-sm md:text-base">
-            <li>October 7, 2023: Quarterly business review</li>
-            <li>October 12, 2023: Dentist appointment</li>
-          </ul>
+          <ResponsiveContainer width="100%" height={256}>
+              <PieChart>
+                <Pie
+                  data={priorityData}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  outerRadius={80}
+                  fill="#8884d8"
+                  label
+                >
+                  {priorityData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
         </div>
 
         <div className="col-span-1 md:col-span-2 bg-yellow-800 p-4 rounded-lg">
           <h2 className="font-bold mb-2 text-sm md:text-base">TASKS BY EACH CATEGORY / PROJECT</h2>
           <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={categoryData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
+          <BarChart
+            width={500}
+            height={300}
+            data={data11}
+            margin={{
+              top: 20,
+              right: 30,
+              left: 20,
+              bottom: 5,
+            }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="name" />
+            <YAxis />
+            <Bar
+                dataKey="uv"
                 fill="#8884d8"
-                label
+                shape={(props: any) => <TriangleBar {...props} />} // Pass props to the TriangleBar
+                label={{ position: 'top' }}
               >
-                {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={`hsl(${index * 60}, 70%, 60%)`} />
-                ))}
-              </Pie>
-            </PieChart>
+              {data11.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+              ))}
+            </Bar>
+          </BarChart>
           </ResponsiveContainer>
+          
         </div>
        
         {/* <div className="col-span-1 md:col-span-2 bg-blue-400 p-4 rounded-lg">
