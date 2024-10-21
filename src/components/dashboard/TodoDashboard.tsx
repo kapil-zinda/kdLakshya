@@ -203,8 +203,8 @@ const TodoDashboard: React.FC = () => {
             </ResponsiveContainer>
         </div>
 
-        <div className="col-span-1 md:col-span-2 bg-yellow-800 p-4 rounded-lg">
-          <h2 className="font-bold mb-2 text-sm md:text-base">TASKS BY EACH CATEGORY / PROJECT</h2>
+        <div className="col-span-1 md:col-span-2 bg-yellow-400 p-4 rounded-lg">
+          <h2 className="font-bold mb-2 text-sm md:text-[20px] text-black">TASKS BY EACH CATEGORY / PROJECT</h2>
           <ResponsiveContainer width="100%" height={200}>
           <BarChart
             width={500}
