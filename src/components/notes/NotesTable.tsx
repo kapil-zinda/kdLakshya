@@ -31,6 +31,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { makeApiCall } from "@/utils/ApiRequest";
 import { useRouter } from "next/navigation";
+import { v4 as uuidv4 } from 'uuid';
+import { toast } from 'react-toastify';
+import { onFilesUpload } from '@/utils/fileUploadUtils';
 
 interface CustomSwitchProps {
   checked: boolean;
@@ -287,20 +290,76 @@ const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
     ]);
   };
 
-  const handleFileUpload = (uploadedFiles: FileList) => {
-    // Implement file upload logic here
+  const handleFileUpload = async (uploadedFiles: FileList) => {
     console.log(`Uploading ${uploadedFiles.length} files`);
-    const newFiles: FileItem[] = Array.from(uploadedFiles).map(file => ({
-      id: Date.now(),
-      name: file.name,
-      type: determineFileType(file.name),
-      owner: 'me',
-      lastModified: new Date(file.lastModified).toLocaleDateString(),
-      size: formatFileSize(file.size),
-      starred: false,
-      file: file // Store the actual File object
-    }));
-    setFiles(prevFiles => [...prevFiles, ...newFiles]);
+  
+    // Prepare an array to store file upload promises
+    const uploadPromises = Array.from(uploadedFiles).map(async (file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+  
+      try {
+        await onFilesUpload(formData);  // Call the server-side function to upload the file
+        console.log(`File ${file.name} uploaded successfully.`);
+        return { success: true, file };
+      } catch (error) {
+        console.error(`Failed to upload file ${file.name}:`, error);
+        return { success: false, file };
+      }
+    });
+  
+    // Wait for all uploads to complete
+    const results = await Promise.all(uploadPromises);
+  
+    // Check if all files were uploaded successfully
+    const successfulUploads = results.filter(result => result.success);
+  
+    if (successfulUploads.length === uploadedFiles.length) {
+      // If all files were uploaded, update the UI
+      const newFiles: FileObject[] = successfulUploads.map(({ file }) => {
+        const id = uuidv4(); // Generate a UUID for each file
+        const extension = file.name.split('.').pop()?.toLowerCase() || '';
+        const fileSize = file.size;
+  
+        return {
+          id,
+          entity_name: file.name,
+          entity_type: 'file',
+          created_by: 'user_id', // Replace with actual user ID
+          modified_date: Date.now(),
+          size: fileSize,
+          extension,
+          s3_key: `s3/path/to/${file.name}`, // Set this to the correct S3 path
+          is_active: true,
+          parent_folder_name: 'root', // Or any folder name you are working with
+          workspace_id: 'workspace_id', // Replace with actual workspace ID
+          created_date: Date.now(),
+          links: {
+            self: `https://your-app.com/files/${id}`, // Link to the file in your app
+          },
+        };
+      });
+  
+      // Update the state with the new files
+      setFileData(prevFileData => [...prevFileData, ...newFiles]);
+  
+      // Show a toast notification
+      toast.success("File upload complete", {
+        position: "bottom-right",
+        autoClose: 10000,  // Display the toast for 10 seconds
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+    } else {
+      // Handle partial upload failures if needed
+      toast.error("Some files failed to upload", {
+        position: "bottom-right",
+        autoClose: 10000,
+      });
+    }
   };
 
   const determineFileType = (fileName: string): FileItem['type'] => {

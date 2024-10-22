@@ -1,6 +1,9 @@
 import '../styles/globals.css';
 import { Analytics } from "@vercel/analytics/react";
 
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { Providers } from "./providers";
@@ -47,6 +50,7 @@ export default function RootLayout({
           </div>
         </Providers>
         <Analytics />
+        <ToastContainer />
       </body>
     </html>
   );
