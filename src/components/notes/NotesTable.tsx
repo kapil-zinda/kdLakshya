@@ -174,7 +174,7 @@ const CreateFolderModal: React.FC<CreateFolderModalProps> = ({ isOpen, onClose, 
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white p-6 rounded-lg">
+      <div className="bg-[#152160] p-6 rounded-lg">
         <h2 className="text-xl font-bold mb-4">Create New Folder</h2>
         <input
           type="text"
@@ -185,7 +185,7 @@ const CreateFolderModal: React.FC<CreateFolderModalProps> = ({ isOpen, onClose, 
         />
         <div className="flex justify-end">
           <button onClick={handleCreate} className="bg-purple-600 text-white px-4 py-2 rounded mr-2">Create</button>
-          <button onClick={onClose} className="bg-gray-300 px-4 py-2 rounded">Cancel</button>
+          <button onClick={onClose} className="bg-gray-400 px-4 py-2 rounded">Cancel</button>
         </div>
       </div>
     </div>
@@ -226,10 +226,10 @@ type SortDirection = 'asc' | 'desc';
 
 
 type NotesTableProps = {
-	parentPath:string,
+  parentPath: string,
 };
 
-const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
+const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [sortField, setSortField] = useState<SortField>('name');
@@ -239,10 +239,10 @@ const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
   const dateOptions = { timeZone: 'Asia/Kolkata', year: "numeric", month: 'long', day: 'numeric' };
 
   const router = useRouter();
-  const handleCall = async(newParentPath: string) => {
+  const handleCall = async (newParentPath: string) => {
     router.push(`/notes/${newParentPath}/`);
   }
-  
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -255,7 +255,7 @@ const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
         console.log(error);
       }
     };
-  
+
     fetchData();
   }, []);
 
@@ -272,33 +272,84 @@ const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
     }
   };
 
-  const handleCreateFolder = (folderName: string) => {
-    // Implement folder creation logic here
+  const handleCreateFolder = async (folderName: string) => {
     console.log(`Creating folder: ${folderName}`);
-    // Update files state with new folder
-    setFiles(prevFiles => [
-      ...prevFiles,
-      {
-        id: Date.now(),
-        name: folderName,
-        type: 'folder',
-        owner: 'me',
-        lastModified: new Date().toLocaleDateString(),
-        size: '-',
-        starred: false
+
+    try {
+      // Make API call to create the folder in your backend
+      const result = await makeApiCall({
+        path: `workspace/user-2/files`,
+        method: 'POST',
+        payload: {
+          data:{
+              type: "folder",
+              attributes:{
+                  "name":folderName
+              }
+          }
       }
-    ]);
+      });
+
+      // If folder creation is successful, update the UI
+      console.log(result);
+
+      // Generate a unique ID for the new folder
+      const id = uuidv4();
+
+      // Construct the new folder object
+      const newFolder: FileObject = {
+        id,
+        entity_name: folderName,
+        entity_type: 'folder',
+        created_by: 'user_id',
+        s3_key: `user-2/${parentPath}${folderName}/`,
+        is_active: true,
+        parent_folder_name: `user-2/${parentPath}`,
+        workspace_id: 'workspace_id',
+        created_date: Date.now(),
+        links: {
+          self: `https://your-app.com/files/${id}`,
+        },
+      };
+
+      // Update the fileData state with the new folder
+      setFileData(prevFileData => [...prevFileData, newFolder]);
+
+      // Show a success toast
+      toast.success("Folder creation complete", {
+        position: "bottom-right",
+        autoClose: 10000,  // Display the toast for 10 seconds
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+    } catch (error) {
+      console.error("Error creating folder:", error);
+
+      // Show an error toast in case of failure
+      toast.error("Failed to create folder. Please try again.", {
+        position: "bottom-right",
+        autoClose: 10000,  // Display the toast for 10 seconds
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+      });
+    }
   };
 
   const handleFileUpload = async (uploadedFiles: FileList) => {
     console.log(`Uploading ${uploadedFiles.length} files`);
-  
+
     // Prepare an array to store file upload promises
     const uploadPromises = Array.from(uploadedFiles).map(async (file) => {
       const formData = new FormData();
       formData.append('file', file);
       formData.append('s3key', `user-2/${parentPath}${file.name}`)
-  
+
       try {
         await onFilesUpload(formData);  // Call the server-side function to upload the file
         console.log(`File ${file.name} uploaded successfully.`);
@@ -308,20 +359,20 @@ const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
         return { success: false, file };
       }
     });
-  
+
     // Wait for all uploads to complete
     const results = await Promise.all(uploadPromises);
-  
+
     // Check if all files were uploaded successfully
     const successfulUploads = results.filter(result => result.success);
-  
+
     if (successfulUploads.length === uploadedFiles.length) {
       // If all files were uploaded, update the UI
       const newFiles: FileObject[] = successfulUploads.map(({ file }) => {
         const id = uuidv4(); // Generate a UUID for each file
         const extension = file.name.split('.').pop()?.toLowerCase() || '';
         const fileSize = file.size;
-  
+
         return {
           id,
           entity_name: file.name,
@@ -340,10 +391,10 @@ const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
           },
         };
       });
-  
+
       // Update the state with the new files
       setFileData(prevFileData => [...prevFileData, ...newFiles]);
-  
+
       // Show a toast notification
       toast.success("File upload complete", {
         position: "bottom-right",
@@ -430,11 +481,85 @@ const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
     file: FileObject;
   }
 
+  const handleDownloadFile = async (file: FileObject) => {
+    try {
+      // Make API call to get the pre-signed URL
+      const result = await makeApiCall({
+        path: `workspace/user-2/files/${file.entity_name}?action=file_download`,
+        method: 'GET',
+      });
+  
+      // Extract the signed URL from the API response
+      const downloadLink = result.data.links.signed_url;
+  
+      // Trigger the file download
+      if (downloadLink) {
+        // Instead of creating and clicking a link, use the browser's download manager
+        const response = await fetch(downloadLink);
+        
+        // Get filename from content-disposition header or use the original name
+        const contentDisposition = response.headers.get('content-disposition');
+        const fileName = contentDisposition
+          ? contentDisposition.split('filename=')[1]?.replace(/["']/g, '')
+          : file.entity_name;
+  
+        // Check if the response is ok
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        // Get the total size for progress calculation
+        const totalSize = Number(response.headers.get('content-length'));
+  
+        // Create a download stream
+        const reader = response.body?.getReader();
+        const chunks: Uint8Array[] = [];
+        
+        if (reader) {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            chunks.push(value);
+          }
+        }
+  
+        // Combine all chunks into a single Blob
+        const blob = new Blob(chunks, { type: 'application/octet-stream' });
+        
+        // Use the download attribute to trigger browser's download behavior
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = downloadUrl;
+        a.download = fileName;
+        
+        // Trigger download
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        setTimeout(() => {
+          window.URL.revokeObjectURL(downloadUrl);
+          document.body.removeChild(a);
+        }, 100);
+      } else {
+        console.error('No signed URL received from the server.');
+      }
+  
+    } catch (error) {
+      console.error('Error downloading file:', error);
+    }
+  };
+
   const ActionButtons: React.FC<ActionButtonsProps> = ({ file }) => (
     <div className="flex items-center gap-1">
-      <button className="p-1.5 hover:bg-gray-100 rounded-full">
-        <Download size={18} className="text-gray-600" />
-      </button>
+      {file.entity_type === "file" ? (
+        <button className="p-1.5 hover:bg-gray-100 rounded-full" onClick={() => handleDownloadFile(file)}>
+          <Download size={18} className="text-gray-600"/>
+        </button>
+      ) : (
+        <button className="p-1.5 hover:bg-gray-100 rounded-full invisible">
+          <Download size={18} className="text-gray-600" />
+        </button>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button className="p-1.5 hover:bg-gray-100 rounded-full">
@@ -450,9 +575,6 @@ const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
           </DropdownMenuItem>
           <DropdownMenuItem className="gap-2">
             <Move size={16} /> Move
-          </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2">
-            <Info size={16} /> View details
           </DropdownMenuItem>
           <DropdownMenuItem className="gap-2 text-red-600">
             <Trash2 size={16} /> Delete
@@ -492,38 +614,38 @@ const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
 
       {fileData.length > 0 ? (
         <table className="w-full bg-[#081828] rounded-lg">
-        <thead>
-          <tr className="bg-[#092030]">
-            <th className="py-2 px-4 text-left rounded-tl-lg cursor-pointer" onClick={() => handleSort('name')}>
-              Name {getSortIcon('name')}
-            </th>
-            <th className="py-2 px-4 text-left cursor-pointer" onClick={() => handleSort('lastModified')}>
-              Last modified {getSortIcon('lastModified')}
-            </th>
-            <th className="py-2 px-4 text-left cursor-pointer" onClick={() => handleSort('size')}>File size</th>
-            <th className="py-2 px-4 text-left rounded-tr-lg">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {fileData.map((file) => (
-            <tr key={file.id} className="hover:bg-[#112538] cursor-pointer"
-              onDoubleClick={() => handleFileDoubleClick(file)}>
-              <td className="py-2 px-4 flex items-center gap-2 rounded-bl-lg">
-                {getFileIcon(file.entity_type)}
-                <span className="text-white">{file.entity_name}</span>
-              </td>
-              <td className="py-2 px-4">{file.modified_date ? new Date(Number(file.modified_date) * 1000).toLocaleDateString('en-IN', dateOptions) : "--"}</td>
-              <td className="py-2 px-4">{file.size ? file.size : "-"}</td>
-              <td className="py-2 px-4 rounded-br-lg">
-                <ActionButtons file={file} />
-              </td>
+          <thead>
+            <tr className="bg-[#092030]">
+              <th className="py-2 px-4 text-left rounded-tl-lg cursor-pointer" onClick={() => handleSort('name')}>
+                Name {getSortIcon('name')}
+              </th>
+              <th className="py-2 px-4 text-left cursor-pointer" onClick={() => handleSort('lastModified')}>
+                Last modified {getSortIcon('lastModified')}
+              </th>
+              <th className="py-2 px-4 text-left cursor-pointer" onClick={() => handleSort('size')}>File size</th>
+              <th className="py-2 px-4 text-left rounded-tr-lg">
+                Actions
+              </th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-      ):(
+          </thead>
+          <tbody>
+            {fileData.map((file) => (
+              <tr key={file.id} className="hover:bg-[#112538] cursor-pointer"
+                onDoubleClick={() => handleFileDoubleClick(file)}>
+                <td className="py-2 px-4 flex items-center gap-2 rounded-bl-lg">
+                  {getFileIcon(file.entity_type)}
+                  <span className="text-white">{file.entity_name}</span>
+                </td>
+                <td className="py-2 px-4">{file.modified_date ? new Date(Number(file.modified_date) * 1000).toLocaleDateString('en-IN', dateOptions) : "--"}</td>
+                <td className="py-2 px-4">{file.size ? file.size : "-"}</td>
+                <td className="py-2 px-4 rounded-br-lg">
+                  <ActionButtons file={file} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
         <div className="w-full bg-[#081828] rounded-lg">
           This space is empty, once you upload contents, they'll appear here.
         </div>
