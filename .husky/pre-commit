@@ -1,0 +1,18 @@
+# Get staged files
+FILES=$(git diff --name-only --cached --relative | grep -E '\.(js|jsx|ts|tsx|css|json|md)$')
+
+if [ -z "$FILES" ]; then
+  exit 0
+fi
+
+echo "🔍 Running Prettier on staged files..."
+
+# Run Prettier on staged files
+echo "$FILES" | while read -r file; do
+  if [ -f "$file" ]; then
+    npx prettier --write "$file"
+    git add "$file"
+  fi
+done
+
+echo "✨ Prettier formatting complete"
