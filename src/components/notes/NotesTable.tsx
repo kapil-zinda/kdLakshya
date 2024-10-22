@@ -297,6 +297,7 @@ const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
     const uploadPromises = Array.from(uploadedFiles).map(async (file) => {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('s3key', `user-2/${parentPath}${file.name}`)
   
       try {
         await onFilesUpload(formData);  // Call the server-side function to upload the file
@@ -329,9 +330,9 @@ const NotesTable: React.FC<NotesTableProps> = ({parentPath}) =>  {
           modified_date: Date.now(),
           size: fileSize,
           extension,
-          s3_key: `s3/path/to/${file.name}`, // Set this to the correct S3 path
+          s3_key: `user-2/${parentPath}${file.name}`, // Set this to the correct S3 path
           is_active: true,
-          parent_folder_name: 'root', // Or any folder name you are working with
+          parent_folder_name: `user-2/${parentPath}`, // Or any folder name you are working with
           workspace_id: 'workspace_id', // Replace with actual workspace ID
           created_date: Date.now(),
           links: {
