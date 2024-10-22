@@ -281,13 +281,13 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
         path: `workspace/user-2/files`,
         method: 'POST',
         payload: {
-          data:{
-              type: "folder",
-              attributes:{
-                  "name":folderName
-              }
+          data: {
+            type: "folder",
+            attributes: {
+              "name": folderName
+            }
           }
-      }
+        }
       });
 
       // If folder creation is successful, update the UI
@@ -488,31 +488,31 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
         path: `workspace/user-2/files/${file.entity_name}?action=file_download`,
         method: 'GET',
       });
-  
+
       // Extract the signed URL from the API response
       const downloadLink = result.data.links.signed_url;
-  
+
       // Trigger the file download
       if (downloadLink) {
         // Instead of creating and clicking a link, use the browser's download manager
         const response = await fetch(downloadLink);
-        
+
         // Get filename from content-disposition header or use the original name
         const contentDisposition = response.headers.get('content-disposition');
         const fileName = contentDisposition
           ? contentDisposition.split('filename=')[1]?.replace(/["']/g, '')
           : file.entity_name;
-  
+
         // Check if the response is ok
         if (!response.ok) throw new Error('Network response was not ok');
-        
+
         // Get the total size for progress calculation
         const totalSize = Number(response.headers.get('content-length'));
-  
+
         // Create a download stream
         const reader = response.body?.getReader();
         const chunks: Uint8Array[] = [];
-        
+
         if (reader) {
           while (true) {
             const { done, value } = await reader.read();
@@ -520,21 +520,21 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
             chunks.push(value);
           }
         }
-  
+
         // Combine all chunks into a single Blob
         const blob = new Blob(chunks, { type: 'application/octet-stream' });
-        
+
         // Use the download attribute to trigger browser's download behavior
         const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.style.display = 'none';
         a.href = downloadUrl;
         a.download = fileName;
-        
+
         // Trigger download
         document.body.appendChild(a);
         a.click();
-        
+
         // Cleanup
         setTimeout(() => {
           window.URL.revokeObjectURL(downloadUrl);
@@ -543,7 +543,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
       } else {
         console.error('No signed URL received from the server.');
       }
-  
+
     } catch (error) {
       console.error('Error downloading file:', error);
     }
@@ -553,7 +553,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     <div className="flex items-center gap-1">
       {file.entity_type === "file" ? (
         <button className="p-1.5 hover:bg-gray-100 rounded-full" onClick={() => handleDownloadFile(file)}>
-          <Download size={18} className="text-gray-600"/>
+          <Download size={18} className="text-gray-600" />
         </button>
       ) : (
         <button className="p-1.5 hover:bg-gray-100 rounded-full invisible">
