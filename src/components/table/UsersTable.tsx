@@ -77,8 +77,7 @@ export function UsersTable() {
 
 
 
-  const [data, setUserDatas] = useState([]);  // Initialize state with an empty array
-  
+  const [data, setUserDatas] = useState<User[]>([]);  // Initialize state with an empty array
   const columns: ColumnDef<User>[] = [
     {
       accessorKey: "first_name",
@@ -141,9 +140,18 @@ export function UsersTable() {
         setOpenDeletePopup(false);
       };
   
-      const handleDeleteUser = (user: User) => {
-        console.log('Deleting user:', user);
-        // Perform your delete logic here
+      const handleDeleteUser = async(user: User) => {
+        const res = await axios.delete(`${BaseURLAuth}/users/${user.id}?permanent=true`, {
+          headers: {
+            'Authorization': `Bearer ${bearerToken}`,
+            'Content-Type': 'application/vnd.api+json',
+          }
+        })
+        const deletedUser = res.data.data;
+        console.log('User deleted successfully:', deletedUser);
+        if (user.id === user.id) {
+          setUserDatas((prevUsers: User[]) => prevUsers.filter(u => u.id !== user.id));
+        }
       };
   
       const handleEditUserClick = () => {
@@ -154,12 +162,42 @@ export function UsersTable() {
         setOpenEditPopup(false);
       };
   
-      const handleUpdateStateUserClick = (status: string) => {
-        const updatedStatus = status === 'active' ? 'inactive' : 'active';
+      const handleUpdateStateUserClick = async(status: string) => {
+        const updatedStatus = status === 'active' ? false : true;
     
         // Make an API call to update the user's status
         console.log(`User status updated to: ${updatedStatus}`);
         // You can implement an API call here to update the user status in your backend
+        try {
+          const res = await axios.patch(
+              `${BaseURLAuth}/users/${user.id}`,
+              {
+                data: {
+                  type: "users",
+                  id: user.id,
+                  attributes: {
+                    active: updatedStatus
+                  }
+                },
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${bearerToken}`,
+                  'Content-Type': 'application/vnd.api+json',
+                },
+              }
+            );
+            const updatedUser = res.data.data;
+            console.log("hero zinda hai...", updatedUser, data )
+            const updatedUserDatas = data.map((u  : any) => 
+              u.id === updatedUser.id ? { ...u, ...updatedUser } : u
+            );
+            console.log("updatedUserDatas", updatedUserDatas)
+            // Update state with new user data
+            setUserDatas(updatedUserDatas);
+        } catch (error) {
+          console.log(error);
+        }
       };
       
         return (
@@ -214,7 +252,7 @@ export function UsersTable() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(`${BaseURLAuth}/users?page[size]=15`, {
+        const res = await axios.get(`${BaseURLAuth}/users?page[size]=30`, {
           headers: {
             Authorization: `Bearer ${bearerToken}`,
             "Content-Type": "application/vnd.api+json",
@@ -280,7 +318,7 @@ export function UsersTable() {
             {/* <Button variant="outline" className="mr-auto">
               + New User 
             </Button> */}
-            <CreateUserPopUp/>
+            <CreateUserPopUp data={data} setUserDatas={setUserDatas}/>
         <Input
           placeholder="Search users..."
           value={(table.getColumn("email")?.getFilterValue() as string) ?? ""}
