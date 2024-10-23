@@ -1,0 +1,36 @@
+echo "🔍 Checking staged files..."
+
+# Get staged files
+FILES=$(git diff --name-only --cached --relative | grep -E '\.(js|jsx|ts|tsx|css|json|md)$')
+
+if [ -z "$FILES" ]; then
+  echo "No files to format. Proceeding with commit..."
+  exit 0
+fi
+
+echo "Found files to format:"
+echo "$FILES"
+echo "Running Prettier..."
+
+# Store initial hash of staged files
+INITIAL_HASH=$(git diff --cached)
+
+# Run Prettier on staged files
+echo "$FILES" | while read -r file; do
+  if [ -f "$file" ]; then
+    npx prettier --write "$file"
+    git add "$file"
+  fi
+done
+
+# Get new hash after formatting
+NEW_HASH=$(git diff --cached)
+
+# Compare hashes to check if files were modified
+if [ "$INITIAL_HASH" = "$NEW_HASH" ]; then
+  echo "✨ No formatting changes needed. Proceeding with commit..."
+  exit 0
+else
+  echo "⚠️ Files have been formatted. Please review changes and commit again."
+  exit 1
+fi
