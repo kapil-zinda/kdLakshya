@@ -2,19 +2,13 @@
 
 import * as React from 'react';
 
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -35,17 +29,9 @@ import {
   useReactTable,
   VisibilityState,
 } from '@tanstack/react-table';
-import {
-  ArrowUpDown,
-  ChevronDown,
-  MoreHorizontal,
-  Plus,
-  Search,
-} from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
 
-import CreateUserPopUp from '../modal/CreareNewUser';
 import { DeleteUserPopup } from '../modal/DeleteUserPopUp';
-import { UpdateUserPopUp } from '../modal/EditUserPopup';
 
 export type Team = {
   id: number;

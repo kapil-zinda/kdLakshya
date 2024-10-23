@@ -22,13 +22,10 @@ import {
   Edit,
   FileText,
   Folder,
-  Info,
   Link,
   MoreVertical,
   Move,
   Printer,
-  Share2,
-  Star,
   TableProperties,
   Trash2,
   Upload,
@@ -472,34 +469,34 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     }
   };
 
-  const determineFileType = (fileName: string): FileObject['type'] => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    switch (extension) {
-      case 'doc':
-      case 'docx':
-      case 'txt':
-      case 'pdf':
-        return 'document';
-      case 'xls':
-      case 'xlsx':
-      case 'csv':
-        return 'spreadsheet';
-      case 'zip':
-      case 'rar':
-      case '7z':
-        return 'archive';
-      default:
-        return 'document'; // Default to document for unknown types
-    }
-  };
+  // const determineFileType = (fileName: string): FileObject['type'] => {
+  //   const extension = fileName.split('.').pop()?.toLowerCase();
+  //   switch (extension) {
+  //     case 'doc':
+  //     case 'docx':
+  //     case 'txt':
+  //     case 'pdf':
+  //       return 'document';
+  //     case 'xls':
+  //     case 'xlsx':
+  //     case 'csv':
+  //       return 'spreadsheet';
+  //     case 'zip':
+  //     case 'rar':
+  //     case '7z':
+  //       return 'archive';
+  //     default:
+  //       return 'document'; // Default to document for unknown types
+  //   }
+  // };
 
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
+  // const formatFileSize = (bytes: number): string => {
+  //   if (bytes === 0) return '0 Bytes';
+  //   const k = 1024;
+  //   const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  //   const i = Math.floor(Math.log(bytes) / Math.log(k));
+  //   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  // };
 
   const customSort = (
     a: FileObject,
@@ -579,9 +576,6 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
 
         // Check if the response is ok
         if (!response.ok) throw new Error('Network response was not ok');
-
-        // Get the total size for progress calculation
-        const totalSize = Number(response.headers.get('content-length'));
 
         // Create a download stream
         const reader = response.body?.getReader();
@@ -745,7 +739,8 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
         </table>
       ) : (
         <div className="w-full bg-[#081828] rounded-lg">
-          This space is empty, once you upload contents, they'll appear here.
+          `This space is empty, once you upload contents, they&apos;ll appear
+          here.`
         </div>
       )}
 
