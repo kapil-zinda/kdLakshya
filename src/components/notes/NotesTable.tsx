@@ -1,39 +1,41 @@
-"use client"
+'use client';
 
 import React, { useEffect, useState } from 'react';
-import {
-  Folder,
-  Upload,
-  FileText,
-  TableProperties,
-  Archive,
-  MoreVertical,
-  ChevronDown,
-  ChevronUp,
-  Share2,
-  Download,
-  Edit,
-  Star,
-  Trash2,
-  Info,
-  Copy,
-  Move,
-  Printer,
-  X,
-  Link
-} from 'lucide-react';
-import { Label } from '@/components/ui/label';
+
+import { useRouter } from 'next/navigation';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { makeApiCall } from "@/utils/ApiRequest";
-import { useRouter } from "next/navigation";
-import { v4 as uuidv4 } from 'uuid';
-import { toast } from 'react-toastify';
+} from '@/components/ui/dropdown-menu';
+import { Label } from '@/components/ui/label';
+import { makeApiCall } from '@/utils/ApiRequest';
 import { onFilesUpload } from '@/utils/fileUploadUtils';
+import {
+  Archive,
+  ChevronDown,
+  ChevronUp,
+  Copy,
+  Download,
+  Edit,
+  FileText,
+  Folder,
+  Info,
+  Link,
+  MoreVertical,
+  Move,
+  Printer,
+  Share2,
+  Star,
+  TableProperties,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react';
+import { toast } from 'react-toastify';
+import { v4 as uuidv4 } from 'uuid';
 
 interface CustomSwitchProps {
   checked: boolean;
@@ -42,13 +44,15 @@ interface CustomSwitchProps {
 
 const CustomSwitch: React.FC<CustomSwitchProps> = ({ checked, onChange }) => (
   <div
-    className={`w-11 h-6 flex items-center rounded-full p-1 text-gray-600 cursor-pointer ${checked ? 'bg-violet-600' : 'bg-violet-300'
-      }`}
+    className={`w-11 h-6 flex items-center rounded-full p-1 text-gray-600 cursor-pointer ${
+      checked ? 'bg-violet-600' : 'bg-violet-300'
+    }`}
     onClick={onChange}
   >
     <div
-      className={`bg-white w-4 h-4 rounded-full shadow-md transform text-gray-600 transition-transform duration-300 ease-in-out ${checked ? 'translate-x-5' : ''
-        }`}
+      className={`bg-white w-4 h-4 rounded-full shadow-md transform text-gray-600 transition-transform duration-300 ease-in-out ${
+        checked ? 'translate-x-5' : ''
+      }`}
     />
   </div>
 );
@@ -59,31 +63,68 @@ interface FilePreviewProps {
 }
 
 const FilePreview: React.FC<FilePreviewProps> = ({ file, onClose }) => {
+  const [fileLink, setFileLink] = useState<string>('');
   const [isPublic, setIsPublic] = useState(false);
 
-  if (!file.file) {
-    return null; // or show an error message
-  }
+  useEffect(() => {
+    const fetchFileLink = async () => {
+      try {
+        const result = await makeApiCall({
+          path: `workspace/user-2/files/${file.entity_name}?action=file_download`,
+          method: 'GET',
+        });
+        setFileLink(result.data.links.signed_url);
+      } catch (error) {
+        console.error('Error fetching file link:', error);
+      }
+    };
 
-  const fileUrl = URL.createObjectURL(file.file);
+    fetchFileLink();
+  }, [fileLink]);
+
+  const isImage = (extension: string) => {
+    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(
+      extension.toLowerCase(),
+    );
+  };
+
+  // Helper function to check if the file is supported by iframe
+  const isIframeSupported = (extension: string) => {
+    return ['pdf', 'html', 'htm', 'svg'].includes(extension.toLowerCase());
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-gray-300 w-4/5 h-4/5 rounded-lg overflow-hidden flex flex-col">
         <div className="bg-gray-500 p-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold">Preview - {file.name}</h2>
-          <button onClick={onClose} className="text-gray-700 hover:text-red-900">
+          <h2 className="text-lg font-semibold">
+            Preview - {file.entity_name}
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-700 hover:text-red-900"
+          >
             <X size={24} />
           </button>
         </div>
         <div className="flex-1 overflow-auto p-4">
-          {file.file.type.startsWith('image/') ? (
-            <img src={fileUrl} alt={file.name} className="max-w-full h-auto" />
-          ) : file.file.type === 'application/pdf' ? (
-            <iframe src={fileUrl} className="w-full h-full" />
+          {fileLink && file.extension ? (
+            isImage(file.extension) ? (
+              <img
+                src={fileLink}
+                alt={file.entity_name}
+                className="max-w-full h-auto"
+              />
+            ) : isIframeSupported(file.extension) ? (
+              <iframe src={fileLink} className="w-full h-full" />
+            ) : (
+              <div className="text-center text-gray-500 mt-10">
+                Preview not available for this file type
+              </div>
+            )
           ) : (
-            <div className="text-center text-gray-500 mt-10">
-              Preview not available for this file type
+            <div className="flex justify-center items-center h-full">
+              <div className="spinner"></div> {/* Spinner */}
             </div>
           )}
         </div>
@@ -102,7 +143,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, onClose }) => {
                 checked={isPublic}
                 onChange={() => setIsPublic(!isPublic)}
               />
-              <Label htmlFor="public-private" className='text-gray-600'>
+              <Label htmlFor="public-private" className="text-gray-600">
                 {isPublic ? 'Public' : 'Private'}
               </Label>
             </div>
@@ -135,7 +176,7 @@ interface FileItem {
 interface FileObject {
   id: string;
   entity_name: string;
-  entity_type: "folder" | "file";
+  entity_type: 'folder' | 'file';
   created_by?: string | number;
   depth?: number;
   modified_date?: number | null;
@@ -161,7 +202,11 @@ interface CreateFolderModalProps {
   onCreateFolder: (folderName: string) => void;
 }
 
-const CreateFolderModal: React.FC<CreateFolderModalProps> = ({ isOpen, onClose, onCreateFolder }) => {
+const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
+  isOpen,
+  onClose,
+  onCreateFolder,
+}) => {
   const [folderName, setFolderName] = useState('');
 
   const handleCreate = () => {
@@ -184,8 +229,15 @@ const CreateFolderModal: React.FC<CreateFolderModalProps> = ({ isOpen, onClose, 
           className="w-full p-2 border rounded mb-4"
         />
         <div className="flex justify-end">
-          <button onClick={handleCreate} className="bg-purple-600 text-white px-4 py-2 rounded mr-2">Create</button>
-          <button onClick={onClose} className="bg-gray-400 px-4 py-2 rounded">Cancel</button>
+          <button
+            onClick={handleCreate}
+            className="bg-purple-600 text-white px-4 py-2 rounded mr-2"
+          >
+            Create
+          </button>
+          <button onClick={onClose} className="bg-gray-400 px-4 py-2 rounded">
+            Cancel
+          </button>
         </div>
       </div>
     </div>
@@ -196,7 +248,9 @@ interface FileUploadButtonProps {
   onFileUpload: (files: FileList) => void;
 }
 
-const FileUploadButton: React.FC<FileUploadButtonProps> = ({ onFileUpload }) => {
+const FileUploadButton: React.FC<FileUploadButtonProps> = ({
+  onFileUpload,
+}) => {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
@@ -213,7 +267,10 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({ onFileUpload }) => 
         style={{ display: 'none' }}
         id="fileInput"
       />
-      <label htmlFor="fileInput" className="cursor-pointer flex items-center text-purple-600">
+      <label
+        htmlFor="fileInput"
+        className="cursor-pointer flex items-center text-purple-600"
+      >
         <Upload size={20} className="mr-2" />
         Upload Files
       </label>
@@ -224,9 +281,8 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({ onFileUpload }) => 
 type SortField = keyof Pick<FileItem, 'name' | 'lastModified' | 'size'>;
 type SortDirection = 'asc' | 'desc';
 
-
 type NotesTableProps = {
-  parentPath: string,
+  parentPath: string;
 };
 
 const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
@@ -236,12 +292,17 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [previewFile, setPreviewFile] = useState<FileObject | null>(null);
   const [fileData, setFileData] = useState<FileObject[]>([]);
-  const dateOptions = { timeZone: 'Asia/Kolkata', year: "numeric", month: 'long', day: 'numeric' };
+  const dateOptions = {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  };
 
   const router = useRouter();
   const handleCall = async (newParentPath: string) => {
     router.push(`/notes/${newParentPath}/`);
-  }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -282,12 +343,12 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
         method: 'POST',
         payload: {
           data: {
-            type: "folder",
+            type: 'folder',
             attributes: {
-              "name": folderName
-            }
-          }
-        }
+              name: folderName,
+            },
+          },
+        },
       });
 
       // If folder creation is successful, update the UI
@@ -313,12 +374,12 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
       };
 
       // Update the fileData state with the new folder
-      setFileData(prevFileData => [...prevFileData, newFolder]);
+      setFileData((prevFileData) => [...prevFileData, newFolder]);
 
       // Show a success toast
-      toast.success("Folder creation complete", {
-        position: "bottom-right",
-        autoClose: 10000,  // Display the toast for 10 seconds
+      toast.success('Folder creation complete', {
+        position: 'bottom-right',
+        autoClose: 10000, // Display the toast for 10 seconds
         hideProgressBar: false,
         closeOnClick: true,
         pauseOnHover: true,
@@ -326,12 +387,12 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
         progress: undefined,
       });
     } catch (error) {
-      console.error("Error creating folder:", error);
+      console.error('Error creating folder:', error);
 
       // Show an error toast in case of failure
-      toast.error("Failed to create folder. Please try again.", {
-        position: "bottom-right",
-        autoClose: 10000,  // Display the toast for 10 seconds
+      toast.error('Failed to create folder. Please try again.', {
+        position: 'bottom-right',
+        autoClose: 10000, // Display the toast for 10 seconds
         hideProgressBar: false,
         closeOnClick: true,
         pauseOnHover: true,
@@ -348,10 +409,10 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     const uploadPromises = Array.from(uploadedFiles).map(async (file) => {
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('s3key', `user-2/${parentPath}${file.name}`)
+      formData.append('s3key', `user-2/${parentPath}${file.name}`);
 
       try {
-        await onFilesUpload(formData);  // Call the server-side function to upload the file
+        await onFilesUpload(formData); // Call the server-side function to upload the file
         console.log(`File ${file.name} uploaded successfully.`);
         return { success: true, file };
       } catch (error) {
@@ -364,7 +425,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     const results = await Promise.all(uploadPromises);
 
     // Check if all files were uploaded successfully
-    const successfulUploads = results.filter(result => result.success);
+    const successfulUploads = results.filter((result) => result.success);
 
     if (successfulUploads.length === uploadedFiles.length) {
       // If all files were uploaded, update the UI
@@ -393,12 +454,12 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
       });
 
       // Update the state with the new files
-      setFileData(prevFileData => [...prevFileData, ...newFiles]);
+      setFileData((prevFileData) => [...prevFileData, ...newFiles]);
 
       // Show a toast notification
-      toast.success("File upload complete", {
-        position: "bottom-right",
-        autoClose: 10000,  // Display the toast for 10 seconds
+      toast.success('File upload complete', {
+        position: 'bottom-right',
+        autoClose: 10000, // Display the toast for 10 seconds
         hideProgressBar: false,
         closeOnClick: true,
         pauseOnHover: true,
@@ -407,8 +468,8 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
       });
     } else {
       // Handle partial upload failures if needed
-      toast.error("Some files failed to upload", {
-        position: "bottom-right",
+      toast.error('Some files failed to upload', {
+        position: 'bottom-right',
         autoClose: 10000,
       });
     }
@@ -443,7 +504,12 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const customSort = (a: FileItem, b: FileItem, field: SortField, direction: SortDirection): number => {
+  const customSort = (
+    a: FileItem,
+    b: FileItem,
+    field: SortField,
+    direction: SortDirection,
+  ): number => {
     // First, prioritize folders
     if (a.type === 'folder' && b.type !== 'folder') return -1;
     if (a.type !== 'folder' && b.type === 'folder') return 1;
@@ -452,29 +518,36 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     if (field === 'lastModified') {
       const dateA = new Date(a[field].replace('me', '').trim());
       const dateB = new Date(b[field].replace('me', '').trim());
-      return direction === 'asc' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
+      return direction === 'asc'
+        ? dateA.getTime() - dateB.getTime()
+        : dateB.getTime() - dateA.getTime();
     }
 
     // For all other fields (including name), sort alphabetically
-    return direction === 'asc' ?
-      a[field].toString().localeCompare(b[field].toString()) :
-      b[field].toString().localeCompare(a[field].toString());
+    return direction === 'asc'
+      ? a[field].toString().localeCompare(b[field].toString())
+      : b[field].toString().localeCompare(a[field].toString());
   };
 
   const handleSort = (field: SortField) => {
-    const newDirection: SortDirection = sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
+    const newDirection: SortDirection =
+      sortField === field && sortDirection === 'asc' ? 'desc' : 'asc';
     setSortField(field);
     setSortDirection(newDirection);
 
-    const sortedFiles = [...files].sort((a, b) => customSort(a, b, field, newDirection));
+    const sortedFiles = [...files].sort((a, b) =>
+      customSort(a, b, field, newDirection),
+    );
     setFiles(sortedFiles);
   };
 
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) return null;
-    return sortDirection === 'asc' ?
-      <ChevronUp size={16} className="inline" /> :
-      <ChevronDown size={16} className="inline" />;
+    return sortDirection === 'asc' ? (
+      <ChevronUp size={16} className="inline" />
+    ) : (
+      <ChevronDown size={16} className="inline" />
+    );
   };
 
   interface ActionButtonsProps {
@@ -543,7 +616,6 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
       } else {
         console.error('No signed URL received from the server.');
       }
-
     } catch (error) {
       console.error('Error downloading file:', error);
     }
@@ -551,8 +623,11 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
 
   const ActionButtons: React.FC<ActionButtonsProps> = ({ file }) => (
     <div className="flex items-center gap-1">
-      {file.entity_type === "file" ? (
-        <button className="p-1.5 hover:bg-gray-100 rounded-full" onClick={() => handleDownloadFile(file)}>
+      {file.entity_type === 'file' ? (
+        <button
+          className="p-1.5 hover:bg-gray-100 rounded-full"
+          onClick={() => handleDownloadFile(file)}
+        >
           <Download size={18} className="text-gray-600" />
         </button>
       ) : (
@@ -586,11 +661,9 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
 
   const handleFileDoubleClick = (file: FileObject) => {
     // Check if the file is a folder
-    console.log(file)
-    console.log(file.entity_type === "folder")
-    if (file.entity_type === "folder") {
-      console.log("double click")
-      const newParentPath = parentPath + file.entity_name + "/";
+    if (file.entity_type === 'folder') {
+      console.log('double click');
+      const newParentPath = parentPath + file.entity_name + '/';
 
       handleCall(newParentPath);
     } else {
@@ -616,28 +689,46 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
         <table className="w-full bg-[#081828] rounded-lg">
           <thead>
             <tr className="bg-[#092030]">
-              <th className="py-2 px-4 text-left rounded-tl-lg cursor-pointer" onClick={() => handleSort('name')}>
+              <th
+                className="py-2 px-4 text-left rounded-tl-lg cursor-pointer"
+                onClick={() => handleSort('name')}
+              >
                 Name {getSortIcon('name')}
               </th>
-              <th className="py-2 px-4 text-left cursor-pointer" onClick={() => handleSort('lastModified')}>
+              <th
+                className="py-2 px-4 text-left cursor-pointer"
+                onClick={() => handleSort('lastModified')}
+              >
                 Last modified {getSortIcon('lastModified')}
               </th>
-              <th className="py-2 px-4 text-left cursor-pointer" onClick={() => handleSort('size')}>File size</th>
-              <th className="py-2 px-4 text-left rounded-tr-lg">
-                Actions
+              <th
+                className="py-2 px-4 text-left cursor-pointer"
+                onClick={() => handleSort('size')}
+              >
+                File size
               </th>
+              <th className="py-2 px-4 text-left rounded-tr-lg">Actions</th>
             </tr>
           </thead>
           <tbody>
             {fileData.map((file) => (
-              <tr key={file.id} className="hover:bg-[#112538] cursor-pointer"
-                onDoubleClick={() => handleFileDoubleClick(file)}>
+              <tr
+                key={file.id}
+                className="hover:bg-[#112538] cursor-pointer"
+                onDoubleClick={() => handleFileDoubleClick(file)}
+              >
                 <td className="py-2 px-4 flex items-center gap-2 rounded-bl-lg">
                   {getFileIcon(file.entity_type)}
                   <span className="text-white">{file.entity_name}</span>
                 </td>
-                <td className="py-2 px-4">{file.modified_date ? new Date(Number(file.modified_date) * 1000).toLocaleDateString('en-IN', dateOptions) : "--"}</td>
-                <td className="py-2 px-4">{file.size ? file.size : "-"}</td>
+                <td className="py-2 px-4">
+                  {file.modified_date
+                    ? new Date(
+                        Number(file.modified_date) * 1000,
+                      ).toLocaleDateString('en-IN', dateOptions)
+                    : '--'}
+                </td>
+                <td className="py-2 px-4">{file.size ? file.size : '-'}</td>
                 <td className="py-2 px-4 rounded-br-lg">
                   <ActionButtons file={file} />
                 </td>
