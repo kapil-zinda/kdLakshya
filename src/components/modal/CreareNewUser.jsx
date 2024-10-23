@@ -9,6 +9,10 @@ import IconButton from '@mui/material/IconButton';
 import CloseIcon from '@mui/icons-material/Close';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import axios from 'axios';
+import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
+
+const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
 
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialogContent-root': {
@@ -19,7 +23,7 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   },
 }));
 
-export default function CreateUserPopUp() {
+export default function CreateUserPopUp({data, setUserDatas}) {
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -33,7 +37,7 @@ export default function CreateUserPopUp() {
   const handleClickOpen = () => {
     setOpen(true);
   };
-
+  const bearerToken = getItemWithTTL("bearerToken"); 
   const handleClose = () => {
     setOpen(false);
     setEmail('');
@@ -46,7 +50,7 @@ export default function CreateUserPopUp() {
     setPasswordError(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async() => {
     let isValid = true;
     if (!email.trim()) {
       setEmailError(true);
@@ -82,6 +86,28 @@ export default function CreateUserPopUp() {
         last_name: lastName,
         temporary_password: temporaryPassword,
       };
+      console.log(userData)
+      try {
+        const res = await axios.post(
+            `${BaseURLAuth}/users`,
+            {
+              data:{
+                  type: "users",
+                  attributes: userData
+              }
+          },
+            {
+              headers: {
+                Authorization: `Bearer ${bearerToken}`,
+                'Content-Type': 'application/vnd.api+json',
+              },
+            }
+          );
+          const updatedUser = res.data.data;
+          setUserDatas((prevData) => [...prevData, updatedUser]);
+      } catch (error) {
+        console.log(error);
+      }
       handleClose();
     }
   };
@@ -93,14 +119,12 @@ export default function CreateUserPopUp() {
       </Button>
       <BootstrapDialog
         onClose={handleClose}
-        aria-labelledby="customized-dialog-title"
         open={open}
       >
         <DialogTitle sx={{ m: 0, p: 2, width: 900, background: "#fff0f5" }} id="customized-dialog-title">
           Create User
         </DialogTitle>
         <IconButton
-          aria-label="close"
           onClick={handleClose}
           sx={{
             position: 'absolute',

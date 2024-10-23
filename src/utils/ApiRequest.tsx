@@ -1,6 +1,6 @@
+import { userData } from '@/app/interfaces/userInterface';
+import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
 import axios from 'axios';
-import { getItemWithTTL } from "@/utils/customLocalStorageWithTTL";
-import { userData } from "@/app/interfaces/userInterface";
 
 const BaseURL = process.env.NEXT_PUBLIC_BaseURL || '';
 
@@ -17,8 +17,13 @@ const replacePathParams = (path: string, params: Record<string, any>) => {
   }, path);
 };
 
-export const makeApiCall = async ({ path, headers = {}, payload = {}, method = 'GET' }: ApiRequest) => {
-  const bearerToken = getItemWithTTL("bearerToken");
+export const makeApiCall = async ({
+  path,
+  headers = {},
+  payload = {},
+  method = 'GET',
+}: ApiRequest) => {
+  const bearerToken = getItemWithTTL('bearerToken');
 
   const pathParams = {
     org_id: userData.orgId,
@@ -35,9 +40,11 @@ export const makeApiCall = async ({ path, headers = {}, payload = {}, method = '
       method,
       headers: {
         ...headers,
-        'Authorization': `Bearer ${bearerToken}`,
+        Authorization: `Bearer ${bearerToken}`,
       },
-      ...(method === 'POST' || method === 'PUT' || method === 'PATCH' ? { data: payload } : {}),
+      ...(method === 'POST' || method === 'PUT' || method === 'PATCH'
+        ? { data: payload }
+        : {}),
     };
 
     const response = await axios(config);

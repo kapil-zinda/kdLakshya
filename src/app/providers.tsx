@@ -51,6 +51,7 @@ export function Providers({ children }: ThemeProviderProps) {
         loginHandler();
       }
       setAccessTkn(token);
+      userMeData(token);
     }
   }, []);
   const fetchAuthToken = async (code: string) => {
