@@ -37,6 +37,8 @@ import {
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 
+import FileCopyPopup from './CopyModal';
+
 interface CustomSwitchProps {
   checked: boolean;
   onChange: () => void;
@@ -283,6 +285,10 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [previewFile, setPreviewFile] = useState<FileObject | null>(null);
   const [fileData, setFileData] = useState<FileObject[]>([]);
+  const [isCopyPopupOpen, setIsCopyPopupOpen] = useState(false);
+  const [selectedCopyFile, setSelectedCopyFile] = useState<FileObject | null>(
+    null,
+  );
   const dateOptions: Intl.DateTimeFormatOptions = {
     timeZone: 'Asia/Kolkata',
     year: 'numeric', // 'numeric' instead of 'string'
@@ -640,7 +646,13 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
           <DropdownMenuItem className="gap-2">
             <Edit size={16} /> Rename
           </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2">
+          <DropdownMenuItem
+            className="gap-2"
+            onClick={() => {
+              setSelectedCopyFile(file);
+              setIsCopyPopupOpen(true);
+            }}
+          >
             <Copy size={16} /> Copy
           </DropdownMenuItem>
           <DropdownMenuItem className="gap-2">
@@ -745,6 +757,27 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
 
       {previewFile && (
         <FilePreview file={previewFile} onClose={() => setPreviewFile(null)} />
+      )}
+
+      {isCopyPopupOpen && selectedCopyFile && (
+        <FileCopyPopup
+          onClose={() => setIsCopyPopupOpen(false)}
+          selectedFiles={selectedCopyFile}
+          operation="workspace_copy"
+          destinations={[
+            {
+              id: 'random',
+              entity_name: 'notes (root)',
+              entity_type: 'folder',
+              s3_key: 'user-2',
+              parent_folder_name: 'user-2/',
+            },
+          ]}
+          onCopy={(destination) => {
+            console.log('Copying to:', destination.name);
+            setIsCopyPopupOpen(false);
+          }}
+        />
       )}
     </div>
   );
