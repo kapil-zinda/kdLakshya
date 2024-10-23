@@ -1,6 +1,20 @@
-"use client"
-import React, { useState, useEffect } from 'react';
-import Link from "next/link";
+'use client';
+
+import React, { useEffect, useState } from 'react';
+
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+import { userData } from '@/app/interfaces/userInterface';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import FunctionsIcon from '@mui/icons-material/Functions';
 import {
   Book,
   CircleUser,
@@ -10,55 +24,51 @@ import {
   Package,
   Package2,
   Users,
-} from "lucide-react";
-import FunctionsIcon from '@mui/icons-material/Functions';
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useRouter } from "next/navigation";
-import { userData } from "@/app/interfaces/userInterface";
+} from 'lucide-react';
 
 const AUTH0_Client_Id = process.env.NEXT_PUBLIC_AUTH0_Client_Id || '';
 const AUTH0_Domain_Name = process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME || '';
-const AUTH0_logout_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGOUT_REDIRECT_URL || '';
+const AUTH0_logout_redirect =
+  process.env.NEXT_PUBLIC_AUTH0_LOGOUT_REDIRECT_URL || '';
 
 export function NewSideBar({ children }) {
   const [userDatas, setUserDatas] = useState(userData);
   const [isHovered, setIsHovered] = useState(false);
-  const [activeTab, setActiveTab] = useState("/");
+  const [activeTab, setActiveTab] = useState('/');
 
   useEffect(() => {
     setUserDatas(userData);
   }, [userData]);
 
   const logoutHandler = async () => {
-    localStorage.removeItem("bearerToken");
+    localStorage.removeItem('bearerToken');
     window.location.href = `https://${AUTH0_Domain_Name}/v2/logout?client_id=${AUTH0_Client_Id}&returnTo=${AUTH0_logout_redirect}`;
   };
-
-  const router = useRouter();
 
   const handleTabClick = (href) => {
     setActiveTab(href);
   };
 
   const sidebarLinks = [
-    { href: "/..", icon: <Home className="h-5 w-5" />, label: "Dashboard" },
-    { href: "/subject", icon: <FunctionsIcon className="h-5 w-5" />, label: "Subject" },
-    { href: "/todo", icon: <Package className="h-5 w-5" />, label: "TODO" },
-    { href: "/teams", icon: <Users className="h-5 w-5" />, label: "Teams" },
-    { href: "/notes", icon: <Book className="h-5 w-5" />, label: "Notes" },
-    { href: "/admin", icon: <LineChart className="h-5 w-5" />, label: "Admin panel" },
+    { href: '/..', icon: <Home className="h-5 w-5" />, label: 'Dashboard' },
+    {
+      href: '/subject',
+      icon: <FunctionsIcon className="h-5 w-5" />,
+      label: 'Subject',
+    },
+    { href: '/todo', icon: <Package className="h-5 w-5" />, label: 'TODO' },
+    { href: '/teams', icon: <Users className="h-5 w-5" />, label: 'Teams' },
+    { href: '/notes', icon: <Book className="h-5 w-5" />, label: 'Notes' },
+    {
+      href: '/admin',
+      icon: <LineChart className="h-5 w-5" />,
+      label: 'Admin panel',
+    },
   ];
 
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
-      <div 
+      <div
         className={`hidden border-r bg-muted/40 md:block transition-all duration-300 ease-in-out ${isHovered ? 'w-64' : 'w-16'}`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -77,7 +87,9 @@ export function NewSideBar({ children }) {
                   key={link.href}
                   href={link.href}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-all ${
-                    activeTab === link.href ? "bg-muted text-primary" : "text-muted-foreground hover:text-primary"
+                    activeTab === link.href
+                      ? 'bg-muted text-primary'
+                      : 'text-muted-foreground hover:text-primary'
                   }`}
                   onClick={() => handleTabClick(link.href)}
                 >
@@ -109,7 +121,9 @@ export function NewSideBar({ children }) {
                     key={link.href}
                     href={link.href}
                     className={`mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 transition-all ${
-                      activeTab === link.href ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
+                      activeTab === link.href
+                        ? 'bg-muted text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
                     }`}
                     onClick={() => handleTabClick(link.href)}
                   >
@@ -130,7 +144,9 @@ export function NewSideBar({ children }) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem>Hi {userDatas?.firstName}</DropdownMenuItem>
-              <DropdownMenuItem onClick={logoutHandler}>Logout</DropdownMenuItem>
+              <DropdownMenuItem onClick={logoutHandler}>
+                Logout
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>

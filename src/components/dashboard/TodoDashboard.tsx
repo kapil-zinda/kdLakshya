@@ -1,10 +1,23 @@
-"use client"
+'use client';
+
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid} from 'recharts';
-import TaskList from './PriorityTable';
+
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  XAxis,
+  YAxis,
+} from 'recharts';
+
 import CategoryList from './CategoryTable';
-import StatusList from './StatusTable';
 import NotesComponent from './NotesComponent';
+import TaskList from './PriorityTable';
+import StatusList from './StatusTable';
 
 const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', 'red', 'pink'];
 
@@ -69,7 +82,12 @@ const data11: DataEntry[] = [
   },
 ];
 
-const getPath = (x: number, y: number, width: number, height: number): string => {
+const getPath = (
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): string => {
   return `M${x},${y + height}C${x + width / 3},${y + height} ${x + width / 2},${y + height / 3}
   ${x + width / 2}, ${y}
   C${x + width / 2},${y + height / 3} ${x + (2 * width) / 3},${y + height} ${x + width}, ${y + height}
@@ -94,22 +112,17 @@ interface CategoryData {
 }
 
 const TodoDashboard: React.FC = () => {
-  const currentDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-  
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
   const priorityData: PriorityData[] = [
     { name: 'High', value: 4, color: '#ff6b6b' },
     { name: 'Medium', value: 3, color: '#feca57' },
     { name: 'Low', value: 2, color: '#48dbfb' },
     { name: 'None', value: 1, color: '#c8d6e5' },
-  ];
-
-  const categoryData: CategoryData[] = [
-    { name: 'Work Projects', value: 30 },
-    { name: 'Personal', value: 20 },
-    { name: 'Errands', value: 15 },
-    { name: 'Health & Fitness', value: 10 },
-    { name: 'Learning', value: 15 },
-    { name: 'Finance', value: 10 },
   ];
 
   return (
@@ -120,10 +133,10 @@ const TodoDashboard: React.FC = () => {
           <h1 className="text-xl md:text-2xl font-bold">DASHBOARD</h1>
           <p>Task Tracker</p>
         </div>
-        <div className="bg-green-500 p-4 rounded-lg hidden sm:block" >
-            <h2 className="font-bold text-sm md:text-base">TODAY'S DATE</h2>
-            <p className="text-lg md:text-xl">{currentDate}</p>
-          </div>
+        <div className="bg-green-500 p-4 rounded-lg hidden sm:block">
+          <h2 className="font-bold text-sm md:text-base">TODAY&apos;S DATE</h2>
+          <p className="text-lg md:text-xl">{currentDate}</p>
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 col-span-1 md:col-span-3 lg:col-span-4">
@@ -132,7 +145,9 @@ const TodoDashboard: React.FC = () => {
             <p className="text-xl md:text-2xl">18</p>
           </div>
           <div className="bg-blue-500 p-4 rounded-lg">
-            <h2 className="font-bold text-sm md:text-base">TODAY'S TASKS</h2>
+            <h2 className="font-bold text-sm md:text-base">
+              TODAY&apos;S TASKS
+            </h2>
             <p className="text-xl md:text-2xl">3</p>
           </div>
           <div className="bg-blue-500 p-4 rounded-lg">
@@ -149,92 +164,102 @@ const TodoDashboard: React.FC = () => {
           <CategoryList />
           <StatusList />
           <div className="col-span-1 space-y-4">
-          <div className="bg-cyan-700 p-4 rounded-lg">
-            <h2 className="font-bold mb-2 text-sm md:text-base">TASKS BY EACH PRIORITY</h2>
-            <ResponsiveContainer width="100%" height={256}>
-              <PieChart>
-                <Pie
-                  data={priorityData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  label
-                >
-                  {priorityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+            <div className="bg-cyan-700 p-4 rounded-lg">
+              <h2 className="font-bold mb-2 text-sm md:text-base">
+                TASKS BY EACH PRIORITY
+              </h2>
+              <ResponsiveContainer width="100%" height={256}>
+                <PieChart>
+                  <Pie
+                    data={priorityData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={80}
+                    fill="#8884d8"
+                    label
+                  >
+                    {priorityData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
 
-          <div className="bg-orange-600 p-4 rounded-lg">
-            <h2 className="font-bold mb-2 text-sm md:text-base">TODAY'S TASKS</h2>
-            <ul className="list-disc list-inside text-sm md:text-base">
-              <li>Call accountant to clarify tax questions</li>
-              <li>Finish report for team meeting</li>
-              <li>Buy groceries for dinner party</li>
-            </ul>
+            <div className="bg-orange-600 p-4 rounded-lg">
+              <h2 className="font-bold mb-2 text-sm md:text-base">
+                TODAY&apos;S TASKS
+              </h2>
+              <ul className="list-disc list-inside text-sm md:text-base">
+                <li>Call accountant to clarify tax questions</li>
+                <li>Finish report for team meeting</li>
+                <li>Buy groceries for dinner party</li>
+              </ul>
+            </div>
           </div>
-        </div>
         </div>
         <div className="col-span-1 md:col-span-2 bg-blue-400 p-4 rounded-lg">
-          <h2 className="font-bold mb-2 text-sm md:text-base">TASKS BY EACH STATUS</h2>
+          <h2 className="font-bold mb-2 text-sm md:text-base">
+            TASKS BY EACH STATUS
+          </h2>
           <ResponsiveContainer width="100%" height={256}>
-              <PieChart>
-                <Pie
-                  data={priorityData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  fill="#8884d8"
-                  label
-                >
-                  {priorityData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
+            <PieChart>
+              <Pie
+                data={priorityData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={80}
+                fill="#8884d8"
+                label
+              >
+                {priorityData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
         </div>
 
         <div className="col-span-1 md:col-span-2 bg-yellow-400 p-4 rounded-lg">
-          <h2 className="font-bold mb-2 text-sm md:text-[20px] text-black">TASKS BY EACH CATEGORY / PROJECT</h2>
+          <h2 className="font-bold mb-2 text-sm md:text-[20px] text-black">
+            TASKS BY EACH CATEGORY / PROJECT
+          </h2>
           <ResponsiveContainer width="100%" height={200}>
-          <BarChart
-            width={500}
-            height={300}
-            data={data11}
-            margin={{
-              top: 20,
-              right: 30,
-              left: 20,
-              bottom: 5,
-            }}
-          >
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Bar
+            <BarChart
+              width={500}
+              height={300}
+              data={data11}
+              margin={{
+                top: 20,
+                right: 30,
+                left: 20,
+                bottom: 5,
+              }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Bar
                 dataKey="uv"
                 fill="#8884d8"
                 shape={(props: any) => <TriangleBar {...props} />} // Pass props to the TriangleBar
                 label={{ position: 'top' }}
               >
-              {data11.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-              ))}
-            </Bar>
-          </BarChart>
+                {data11.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={colors[index % colors.length]}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
-          
         </div>
-       
+
         {/* <div className="col-span-1 md:col-span-2 bg-blue-400 p-4 rounded-lg">
           <h2 className="font-bold mb-2 text-sm md:text-base">NOTES</h2>
           <ul className="text-sm md:text-base">
@@ -242,20 +267,22 @@ const TodoDashboard: React.FC = () => {
             <li>October 12, 2023: Dentist appointment</li>
           </ul>
         </div> */}
-        <NotesComponent/>
+        <NotesComponent />
 
         <div className="col-span-1 md:col-span-2 bg-yellow-800 p-4 rounded-lg">
-        <div className="bg-yellow-800 p-4 rounded-lg">
-            <h2 className="font-bold mb-2 text-sm md:text-base">CREATE TASK / MOTIVATION QUOTE</h2>
+          <div className="bg-yellow-800 p-4 rounded-lg">
+            <h2 className="font-bold mb-2 text-sm md:text-base">
+              CREATE TASK / MOTIVATION QUOTE
+            </h2>
             <button className="bg-green-500 text-white font-bold py-2 px-4 rounded mb-4">
               Create New Task
             </button>
             <p className="italic text-sm md:text-base">
-              "The secret of getting ahead is getting started." - Mark Twain
+              &quot;The secret of getting ahead is getting started.&quot; - Mark
+              Twain
             </p>
           </div>
         </div>
-        
       </div>
     </div>
   );

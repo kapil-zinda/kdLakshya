@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import Button from '@mui/material/Button';
-import { styled } from '@mui/material/styles';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import IconButton from '@mui/material/IconButton';
+
 import CloseIcon from '@mui/icons-material/Close';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import IconButton from '@mui/material/IconButton';
+import { styled } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 
@@ -29,7 +30,7 @@ export default function CreateUserGroupPopUp() {
   const handleClickOpen = () => {
     setOpen(true);
   };
-  
+
   const handleClose = () => {
     setOpen(false);
     // Clear form inputs when the modal is closed
@@ -60,10 +61,10 @@ export default function CreateUserGroupPopUp() {
 
     // If both inputs are valid, proceed to save
     if (isValid) {
-      const userData = {
-        groupName,
-        groupDescription,
-      };
+      // const userData = {
+      //   groupName,
+      //   groupDescription,
+      // };
 
       // Close the modal after saving
       handleClose();
@@ -80,7 +81,10 @@ export default function CreateUserGroupPopUp() {
         aria-labelledby="customized-dialog-title"
         open={open}
       >
-        <DialogTitle sx={{ m: 0, p: 2, width: 900, background: "#fff0f5" }} id="customized-dialog-title">
+        <DialogTitle
+          sx={{ m: 0, p: 2, width: 900, background: '#fff0f5' }}
+          id="customized-dialog-title"
+        >
           Create User Group
         </DialogTitle>
         <IconButton
@@ -137,7 +141,11 @@ export default function CreateUserGroupPopUp() {
           <Button
             onClick={handleSave}
             autoFocus
-            style={{border: "1px solid #00a2ed", background: "#00a2ed", color: "white"}}
+            style={{
+              border: '1px solid #00a2ed',
+              background: '#00a2ed',
+              color: 'white',
+            }}
           >
             Create user group
           </Button>
