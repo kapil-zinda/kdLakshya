@@ -162,17 +162,6 @@ const FilePreview: React.FC<FilePreviewProps> = ({ file, onClose }) => {
   );
 };
 
-interface FileItem {
-  id: number;
-  name: string;
-  type: 'folder' | 'document' | 'spreadsheet' | 'archive';
-  owner: string;
-  lastModified: string;
-  size: string;
-  starred: boolean;
-  file?: File; // Add this to store the actual File object
-}
-
 interface FileObject {
   id: string;
   entity_name: string;
@@ -278,7 +267,10 @@ const FileUploadButton: React.FC<FileUploadButtonProps> = ({
   );
 };
 
-type SortField = keyof Pick<FileItem, 'name' | 'lastModified' | 'size'>;
+type SortField = keyof Pick<
+  FileObject,
+  'entity_name' | 'modified_date' | 'size'
+>;
 type SortDirection = 'asc' | 'desc';
 
 type NotesTableProps = {
@@ -286,17 +278,16 @@ type NotesTableProps = {
 };
 
 const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
-  const [files, setFiles] = useState<FileItem[]>([]);
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
-  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortField, setSortField] = useState<SortField>('entity_name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [previewFile, setPreviewFile] = useState<FileObject | null>(null);
   const [fileData, setFileData] = useState<FileObject[]>([]);
-  const dateOptions = {
+  const dateOptions: Intl.DateTimeFormatOptions = {
     timeZone: 'Asia/Kolkata',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
+    year: 'numeric', // 'numeric' instead of 'string'
+    month: 'long', // 'long', 'short', 'narrow', 'numeric', or '2-digit'
+    day: 'numeric', // 'numeric' or '2-digit'
   };
 
   const router = useRouter();
@@ -475,7 +466,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     }
   };
 
-  const determineFileType = (fileName: string): FileItem['type'] => {
+  const determineFileType = (fileName: string): FileObject['type'] => {
     const extension = fileName.split('.').pop()?.toLowerCase();
     switch (extension) {
       case 'doc':
@@ -505,8 +496,8 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
   };
 
   const customSort = (
-    a: FileItem,
-    b: FileItem,
+    a: FileObject,
+    b: FileObject,
     field: SortField,
     direction: SortDirection,
   ): number => {
@@ -515,9 +506,13 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     if (a.type !== 'folder' && b.type === 'folder') return 1;
 
     // If both are folders or both are files, sort by the specified field
-    if (field === 'lastModified') {
-      const dateA = new Date(a[field].replace('me', '').trim());
-      const dateB = new Date(b[field].replace('me', '').trim());
+    if (field === 'modified_date') {
+      const dateA = new Date(
+        (a[field]?.toString() ?? '').replace('me', '').trim(),
+      );
+      const dateB = new Date(
+        (b[field]?.toString() ?? '').replace('me', '').trim(),
+      );
       return direction === 'asc'
         ? dateA.getTime() - dateB.getTime()
         : dateB.getTime() - dateA.getTime();
@@ -525,8 +520,8 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
 
     // For all other fields (including name), sort alphabetically
     return direction === 'asc'
-      ? a[field].toString().localeCompare(b[field].toString())
-      : b[field].toString().localeCompare(a[field].toString());
+      ? (a[field]?.toString() ?? '').localeCompare(b[field]?.toString() ?? '')
+      : (b[field]?.toString() ?? '').localeCompare(a[field]?.toString() ?? '');
   };
 
   const handleSort = (field: SortField) => {
@@ -535,10 +530,10 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     setSortField(field);
     setSortDirection(newDirection);
 
-    const sortedFiles = [...files].sort((a, b) =>
+    const sortedFiles = [...fileData].sort((a, b) =>
       customSort(a, b, field, newDirection),
     );
-    setFiles(sortedFiles);
+    setFileData(sortedFiles);
   };
 
   const getSortIcon = (field: SortField) => {
@@ -691,15 +686,15 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
             <tr className="bg-[#092030]">
               <th
                 className="py-2 px-4 text-left rounded-tl-lg cursor-pointer"
-                onClick={() => handleSort('name')}
+                onClick={() => handleSort('entity_name')}
               >
-                Name {getSortIcon('name')}
+                Name {getSortIcon('entity_name')}
               </th>
               <th
                 className="py-2 px-4 text-left cursor-pointer"
-                onClick={() => handleSort('lastModified')}
+                onClick={() => handleSort('modified_date')}
               >
-                Last modified {getSortIcon('lastModified')}
+                Last modified {getSortIcon('modified_date')}
               </th>
               <th
                 className="py-2 px-4 text-left cursor-pointer"
