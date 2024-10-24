@@ -175,9 +175,6 @@ const FileCopyPopup: React.FC<FileCopyPopupProps> = ({
                             <p className="text-sm font-medium">{dest.name}</p>
                             <p className="text-xs text-gray-800 capitalize">
                               {dest.entity_name}
-                              {dest.size ? ` • ${dest.size}` : ''}
-                              {selectedDestination &&
-                                selectedDestination.entity_name}
                             </p>
                           </div>
                         </div>

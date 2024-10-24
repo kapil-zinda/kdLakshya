@@ -396,6 +396,59 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     }
   };
 
+  const handleCopyOperationApply = (
+    file: FileObject,
+    selectedFiles: FileObject,
+  ) => {
+    const pathParts = file.s3_key.split('/');
+
+    const newPath = pathParts.length > 1 ? pathParts.slice(1).join('/') : '';
+
+    setIsCopyPopupOpen(false);
+
+    const copyInitiate = async () => {
+      try {
+        const result = await makeApiCall({
+          path: `workspace/user-2/files/${newPath}?source=workspace&source_workspace_id=user-2`,
+          method: 'POST',
+          payload: {
+            data: {
+              id: 'random',
+              type: 'workspace',
+              attributes: {
+                s3_key: selectedFiles.s3_key, // Use selectedFiles here
+              },
+            },
+          },
+        });
+
+        toast.success(result.data.attributes.body, {
+          position: 'bottom-right',
+          autoClose: 10000, // Display the toast for 10 seconds
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+      } catch (error) {
+        console.log(error);
+
+        toast.error('Failed to perform operation. Please try again.', {
+          position: 'bottom-right',
+          autoClose: 10000, // Display the toast for 10 seconds
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+      }
+    };
+
+    copyInitiate();
+  };
+
   const handleFileUpload = async (uploadedFiles: FileList) => {
     console.log(`Uploading ${uploadedFiles.length} files`);
 
@@ -770,7 +823,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
           ]}
           onCopy={(destination) => {
             console.log('Copying to:', destination.name);
-            setIsCopyPopupOpen(false);
+            handleCopyOperationApply(destination, selectedCopyFile);
           }}
         />
       )}
