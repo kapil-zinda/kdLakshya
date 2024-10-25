@@ -283,6 +283,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
   const [previewFile, setPreviewFile] = useState<FileObject | null>(null);
   const [fileData, setFileData] = useState<FileObject[]>([]);
   const [isCopyPopupOpen, setIsCopyPopupOpen] = useState(false);
+  const [isMovePopupOpen, setIsMovePopupOpen] = useState(false);
   const [selectedCopyFile, setSelectedCopyFile] = useState<FileObject | null>(
     null,
   );
@@ -409,12 +410,12 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     const copyInitiate = async () => {
       try {
         const result = await makeApiCall({
-          path: `workspace/user-2/files/${newPath}?source=workspace&source_workspace_id=user-2`,
+          path: `workspace/{user_key_id}/files/${newPath}?source=workspace&source_workspace_id={user_key_id}`,
           method: 'POST',
           payload: {
             data: {
               id: 'random',
-              type: 'workspace',
+              type: selectedFiles.entity_type,
               attributes: {
                 s3_key: selectedFiles.s3_key, // Use selectedFiles here
               },
@@ -434,7 +435,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
       } catch (error) {
         console.log(error);
 
-        toast.error('Failed to perform operation. Please try again.', {
+        toast.error('Failed to perform copy operation. Please try again.', {
           position: 'bottom-right',
           autoClose: 10000, // Display the toast for 10 seconds
           hideProgressBar: false,
@@ -448,6 +449,61 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
 
     copyInitiate();
   };
+
+  const handleMoveOperationApply = (
+    file: FileObject,
+    selectedFiles: FileObject,
+  ) => {
+    const pathParts = file.s3_key.split('/');
+
+    const newPath = pathParts.length > 1 ? pathParts.slice(1).join('/') : '';
+
+    setIsMovePopupOpen(false);
+
+    const moveInitiate = async () => {
+      try {
+        const result = await makeApiCall({
+          path: `workspace/{user_key_id}/files/${newPath}?action=move&source_workspace_id={user_key_id}`,
+          method: 'PATCH',
+          payload: {
+            data: {
+              id: 'random',
+              type: selectedFiles.entity_type,
+              attributes: {
+                s3_key: selectedFiles.s3_key, // Use selectedFiles here
+              },
+            },
+          },
+        });
+
+        toast.success(result.data.attributes.body, {
+          position: 'bottom-right',
+          autoClose: 10000, // Display the toast for 10 seconds
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+      } catch (error) {
+        console.log(error);
+
+        toast.error('Failed to perform copy operation. Please try again.', {
+          position: 'bottom-right',
+          autoClose: 10000, // Display the toast for 10 seconds
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+      }
+    };
+
+    moveInitiate();
+  };
+
+  // `workspace/{user_key_id}/files/${newPath}?type=file`  DELETE
 
   const handleFileUpload = async (uploadedFiles: FileList) => {
     console.log(`Uploading ${uploadedFiles.length} files`);
@@ -702,7 +758,13 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
           >
             <Copy size={16} /> Copy
           </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2">
+          <DropdownMenuItem
+            className="gap-2"
+            onClick={() => {
+              setSelectedCopyFile(file);
+              setIsMovePopupOpen(true);
+            }}
+          >
             <Move size={16} /> Move
           </DropdownMenuItem>
           <DropdownMenuItem className="gap-2 text-red-600">
@@ -811,7 +873,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
         <FileCopyPopup
           onClose={() => setIsCopyPopupOpen(false)}
           selectedFiles={selectedCopyFile}
-          operation="workspace_copy"
+          operation="copy"
           destinations={[
             {
               id: 'random',
@@ -824,6 +886,26 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
           onCopy={(destination) => {
             console.log('Copying to:', destination.name);
             handleCopyOperationApply(destination, selectedCopyFile);
+          }}
+        />
+      )}
+      {isMovePopupOpen && selectedCopyFile && (
+        <FileCopyPopup
+          onClose={() => setIsMovePopupOpen(false)}
+          selectedFiles={selectedCopyFile}
+          operation="move"
+          destinations={[
+            {
+              id: 'random',
+              entity_name: 'notes (root)',
+              entity_type: 'folder',
+              s3_key: 'user-2',
+              parent_folder_name: 'user-2/',
+            },
+          ]}
+          onCopy={(destination) => {
+            console.log('Moving to:', destination.name);
+            handleMoveOperationApply(destination, selectedCopyFile);
           }}
         />
       )}

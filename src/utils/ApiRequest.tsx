@@ -28,6 +28,7 @@ export const makeApiCall = async ({
   const pathParams = {
     org_id: userData.orgId,
     user_id: userData.userId,
+    user_key_id: userData.keyId,
   };
 
   const updatedPath = replacePathParams(path, pathParams);
