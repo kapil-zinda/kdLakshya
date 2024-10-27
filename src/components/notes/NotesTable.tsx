@@ -10,7 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useWebSocketOperation } from '@/hooks/useWebSocket';
+import WebSocketModal from '@/hooks/useWebSocket';
 import { makeApiCall } from '@/utils/ApiRequest';
 import { onFilesUpload } from '@/utils/fileUploadUtils';
 import {
@@ -160,6 +160,9 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
   const [selectedCopyFile, setSelectedCopyFile] = useState<FileObject | null>(
     null,
   );
+  const [currentOperationId, setCurrentOperationId] = useState<string | null>(
+    null,
+  );
 
   const dateOptions: Intl.DateTimeFormatOptions = {
     timeZone: 'Asia/Kolkata',
@@ -271,37 +274,28 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     }
   };
 
+  const handleOperationComplete = (operationId: string) => {
+    // Update entities to remove the completed operation item
+    console.log('operation done   ', operationId);
+  };
+
   const handleCopyOperationApply = (
     file: FileObject,
     selectedFiles: FileObject,
   ) => {
     const pathParts = file.s3_key.split('/');
+    const operationId = `copy_${Date.now()}`;
+    setCurrentOperationId(operationId);
 
-    const newPath = pathParts.length > 1 ? pathParts.slice(1).join('/') : '';
+    const newPath =
+      pathParts.length > 1 ? '/' + pathParts.slice(1).join('/') : '';
 
     setIsCopyPopupOpen(false);
 
-    const { isConnected, startOperation } = useWebSocketOperation({
-      url: 'wss://websocket.testkdlakshya.uchhal.in/',
-      onComplete: (message) => {
-        toast.success('Copy operation completed.');
-        console.log(message);
-        // Perform any additional operations here after WebSocket completion
-      },
-      onError: (error) => {
-        console.log(error);
-        toast.error('Copy operation failed.', {
-          /* toast options */
-        });
-      },
-    });
-
     const copyInitiate = async () => {
       try {
-        const operationId = startOperation('copy');
-
         const result = await makeApiCall({
-          path: `workspace/{user_key_id}/files/${newPath}?source=workspace&source_workspace_id={user_key_id}`,
+          path: `workspace/{user_key_id}/files${newPath}?source=workspace&source_workspace_id={user_key_id}`,
           method: 'POST',
           payload: {
             data: {
@@ -313,6 +307,14 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
             },
           },
         });
+
+        setFileData((prevFileData) =>
+          prevFileData.map((file1) =>
+            file1.s3_key === selectedFiles.s3_key
+              ? { ...file1, operation: 'workspace_copy' }
+              : file1,
+          ),
+        );
 
         toast.success(result.data.attributes.body, {
           position: 'bottom-right',
@@ -366,6 +368,14 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
             },
           },
         });
+
+        setFileData((prevFileData) =>
+          prevFileData.map((file1) =>
+            file1.s3_key === selectedFiles.s3_key
+              ? { ...file1, operation: 'workspace_move' }
+              : file1,
+          ),
+        );
 
         toast.success(result.data.attributes.body, {
           position: 'bottom-right',
@@ -721,11 +731,17 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
             {fileData.map((file) => (
               <tr
                 key={file.id}
-                className="hover:bg-[#112538] cursor-pointer"
+                className={`hover:bg-[#112538] cursor-pointer ${
+                  file.operation ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
                 onDoubleClick={() => handleFileDoubleClick(file)}
               >
                 <td className="py-2 px-4 flex items-center gap-2 rounded-bl-lg">
-                  {getFileIcon(file.entity_type)}
+                  {file.operation ? (
+                    <span className="smallspinner"></span>
+                  ) : (
+                    getFileIcon(file.entity_type)
+                  )}
                   <span className="text-white">{file.entity_name}</span>
                 </td>
                 <td className="py-2 px-4">
@@ -798,6 +814,13 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
             console.log('Moving to:', destination.name);
             handleMoveOperationApply(destination, selectedCopyFile);
           }}
+        />
+      )}
+      {currentOperationId && (
+        <WebSocketModal
+          url="wss://websocket.testkdlakshya.uchhal.in/"
+          operationId={currentOperationId}
+          onOperationComplete={handleOperationComplete}
         />
       )}
     </div>
