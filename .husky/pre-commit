@@ -1,36 +1,60 @@
+#!/bin/bash
+
 echo "🔍 Checking staged files..."
 
 # Get staged files
 FILES=$(git diff --name-only --cached --relative | grep -E '\.(js|jsx|ts|tsx|css|json|md)$')
 
 if [ -z "$FILES" ]; then
-  echo "No files to format. Proceeding with commit..."
+  echo "No files to format or lint. Proceeding with commit..."
   exit 0
 fi
 
-echo "Found files to format:"
+echo "Found files to format and lint:"
 echo "$FILES"
 echo "Running Prettier..."
 
-# Store initial hash of staged files
-INITIAL_HASH=$(git diff --cached)
-
-# Run Prettier on staged files
+# Run Prettier on staged files but don't automatically re-stage them
 echo "$FILES" | while read -r file; do
   if [ -f "$file" ]; then
     npx prettier --write "$file"
-    git add "$file"
   fi
 done
 
-# Get new hash after formatting
-NEW_HASH=$(git diff --cached)
+# Check if Prettier modified any files
+PRETTIER_MODIFIED=$(git diff --name-only)
 
-# Compare hashes to check if files were modified
-if [ "$INITIAL_HASH" = "$NEW_HASH" ]; then
-  echo "✨ No formatting changes needed. Proceeding with commit..."
-  exit 0
+if [ -z "$PRETTIER_MODIFIED" ]; then
+  echo "✨ No formatting changes needed."
 else
-  echo "⚠️ Files have been formatted. Please review changes and commit again."
+  echo "⚠️ Prettier modified the following files:"
+  echo "$PRETTIER_MODIFIED"
+fi
+
+echo "Running ESLint..."
+
+# Run ESLint on the staged files but don't automatically re-stage them
+echo "$FILES" | while read -r file; do
+  if [ -f "$file" ]; then
+    npx eslint "$file" --fix
+  fi
+done
+
+# Check if ESLint modified any files
+ESLINT_MODIFIED=$(git diff --name-only)
+
+if [ -z "$ESLINT_MODIFIED" ]; then
+  echo "✨ No linting fixes needed."
+else
+  echo "⚠️ ESLint fixed issues in the following files:"
+  echo "$ESLINT_MODIFIED"
+fi
+
+# If either Prettier or ESLint made changes, exit with a message to review and stage manually
+if [ -n "$PRETTIER_MODIFIED" ] || [ -n "$ESLINT_MODIFIED" ]; then
+  echo "⚠️ Some files were modified by Prettier or ESLint. Please review the changes and stage the files manually before committing."
   exit 1
+else
+  echo "✅ No changes detected after formatting and linting. Proceeding with commit..."
+  exit 0
 fi

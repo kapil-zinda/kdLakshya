@@ -4,13 +4,13 @@ import React, { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
+import { WebSocketManager } from '@/app/interfaces/WebsocketManager';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import WebSocketModal from '@/hooks/useWebSocket';
 import { makeApiCall } from '@/utils/ApiRequest';
 import { onFilesUpload } from '@/utils/fileUploadUtils';
 import {
@@ -160,9 +160,6 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
   const [selectedCopyFile, setSelectedCopyFile] = useState<FileObject | null>(
     null,
   );
-  const [currentOperationId, setCurrentOperationId] = useState<string | null>(
-    null,
-  );
 
   const dateOptions: Intl.DateTimeFormatOptions = {
     timeZone: 'Asia/Kolkata',
@@ -211,7 +208,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     try {
       // Make API call to create the folder in your backend
       const result = await makeApiCall({
-        path: `workspace/user-2/files`,
+        path: `workspace/{user_key_id}/files`,
         method: 'POST',
         payload: {
           data: {
@@ -274,9 +271,86 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     }
   };
 
-  const handleOperationComplete = (operationId: string) => {
-    // Update entities to remove the completed operation item
-    console.log('operation done   ', operationId);
+  const useFileOperation = () => {
+    const wsManager = WebSocketManager.getInstance();
+
+    const startFileOperation = (selectedFiles: FileObject) => {
+      if (!wsManager.isConnectedStatus()) {
+        wsManager.connect(
+          (message) => {
+            console.log('Processing message in file operation:', message);
+
+            console.log(message.action);
+
+            toast.success(message.message, {
+              position: 'bottom-right',
+              autoClose: 10000, // Display the toast for 10 seconds
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+            });
+
+            // Handle message actions
+            if (message.action === 'WORKSPACE_MOVE_COMPLETE') {
+              // Remove the selected file from fileData
+              setFileData((prevFileData) =>
+                prevFileData.filter(
+                  (file1) => file1.s3_key !== selectedFiles.s3_key,
+                ),
+              );
+            } else if (message.action === 'WORKSPACE_RENAME_COMPLETE') {
+              // Update entity_name and remove 'operation' key
+              setFileData((prevFileData) =>
+                prevFileData.map((file1) =>
+                  file1.s3_key === selectedFiles.s3_key
+                    ? (() => {
+                        const updatedFile: FileObject = {
+                          ...file1,
+                          entity_name: message.data.new_name,
+                        };
+
+                        // Remove the 'operation' key
+                        delete updatedFile.operation;
+
+                        return updatedFile;
+                      })()
+                    : file1,
+                ),
+              );
+            } else if (message.action === 'WORKSPACE_COPY_COMPLETE') {
+              console.log('in copy');
+              // Remove the 'operation' key
+              setFileData((prevFileData) =>
+                prevFileData.map((file1) =>
+                  file1.s3_key === selectedFiles.s3_key
+                    ? (() => {
+                        const updatedFile = { ...file1 };
+
+                        // Remove the 'operation' key
+                        delete updatedFile.operation;
+
+                        return updatedFile;
+                      })()
+                    : file1,
+                ),
+              );
+              console.log('new data');
+            }
+          },
+          (error) => {
+            console.error('Error in file operation WebSocket:', error);
+          },
+        );
+      } else {
+        throw new Error(
+          'An operation is already in progress. Please wait for it to complete before starting another.',
+        );
+      }
+    };
+
+    return { startFileOperation };
   };
 
   const handleCopyOperationApply = (
@@ -285,7 +359,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
   ) => {
     const pathParts = file.s3_key.split('/');
     const operationId = `copy_${Date.now()}`;
-    setCurrentOperationId(operationId);
+    const { startFileOperation } = useFileOperation();
 
     const newPath =
       pathParts.length > 1 ? '/' + pathParts.slice(1).join('/') : '';
@@ -293,6 +367,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     setIsCopyPopupOpen(false);
 
     const copyInitiate = async () => {
+      startFileOperation(selectedFiles);
       try {
         const result = await makeApiCall({
           path: `workspace/{user_key_id}/files${newPath}?source=workspace&source_workspace_id={user_key_id}`,
@@ -308,6 +383,8 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
           },
         });
 
+        console.log(result);
+
         setFileData((prevFileData) =>
           prevFileData.map((file1) =>
             file1.s3_key === selectedFiles.s3_key
@@ -316,7 +393,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
           ),
         );
 
-        toast.success(result.data.attributes.body, {
+        toast.success(result.data[0].attributes.body, {
           position: 'bottom-right',
           autoClose: 10000, // Display the toast for 10 seconds
           hideProgressBar: false,
@@ -328,15 +405,18 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
       } catch (error) {
         console.log(error);
 
-        toast.error('Failed to perform copy operation. Please try again.', {
-          position: 'bottom-right',
-          autoClose: 10000, // Display the toast for 10 seconds
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-        });
+        toast.error(
+          `Failed to perform copy operation. Please try again. \n ${error}`,
+          {
+            position: 'bottom-right',
+            autoClose: 10000, // Display the toast for 10 seconds
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          },
+        );
       }
     };
 
@@ -566,7 +646,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     try {
       // Make API call to get the pre-signed URL
       const result = await makeApiCall({
-        path: `workspace/user-2/files/${file.entity_name}?action=file_download`,
+        path: `workspace/{user_key_id}/files/${file.entity_name}?action=file_download`,
         method: 'GET',
       });
 
@@ -816,13 +896,13 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
           }}
         />
       )}
-      {currentOperationId && (
+      {/* {currentOperationId && (
         <WebSocketModal
           url="wss://websocket.testkdlakshya.uchhal.in/"
           operationId={currentOperationId}
           onOperationComplete={handleOperationComplete}
         />
-      )}
+      )} */}
     </div>
   );
 };
