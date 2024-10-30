@@ -129,6 +129,42 @@
     changeColor 4s ease-in-out infinite;
 }
 
+@keyframes smoothColorChange {
+  0% {
+    border-color: #f00 transparent;
+  }
+  25% {
+    border-color: #ff8000 transparent;
+  }
+  50% {
+    border-color: #ffff00 transparent;
+  }
+  75% {
+    border-color: #80ff00 transparent;
+  }
+  100% {
+    border-color: #f00 transparent;
+  }
+}
+
+.smallspinner {
+  display: inline-block;
+  width: 20px; /* Adjust size as needed */
+  height: 20px;
+  border: 5px solid;
+  border-radius: 50%;
+  border-color: #f00 transparent; /* 75% part colored, 25% transparent */
+  animation:
+    spin 1.2s linear infinite,
+    smoothColorChange 4s ease-in-out infinite;
+  mask-image: radial-gradient(
+    circle,
+    rgba(0, 0, 0, 1) 70%,
+    rgba(0, 0, 0, 0) 80%
+  );
+  transform-origin: center;
+}
+
 @layer base {
   * {
     @apply border-border;

@@ -40,6 +40,7 @@ const FileCopyPopup: React.FC<FileCopyPopupProps> = ({
   selectedFiles,
   destinations = [],
   onCopy,
+  operation,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDestination, setSelectedDestination] =
@@ -91,7 +92,7 @@ const FileCopyPopup: React.FC<FileCopyPopupProps> = ({
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <Card className="w-full max-w-2xl bg-[#566275]">
         <CardHeader className="flex flex-row items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">Copy File</h2>
+          <h2 className="text-lg font-semibold">{operation} File</h2>
           <button
             onClick={onClose}
             className="hover:bg-gray-900 hover:text-red-500 p-1 rounded transition-colors"
@@ -105,7 +106,7 @@ const FileCopyPopup: React.FC<FileCopyPopupProps> = ({
             {/* Left side - Selected files */}
             <div className="p-4">
               <p className="text-sm text-gray-900 mb-3">
-                Files selected to copy will be shown here.
+                Files selected for {operation}.
               </p>
               <div className="space-y-2">
                 <div
@@ -175,9 +176,6 @@ const FileCopyPopup: React.FC<FileCopyPopupProps> = ({
                             <p className="text-sm font-medium">{dest.name}</p>
                             <p className="text-xs text-gray-800 capitalize">
                               {dest.entity_name}
-                              {dest.size ? ` • ${dest.size}` : ''}
-                              {selectedDestination &&
-                                selectedDestination.entity_name}
                             </p>
                           </div>
                         </div>
