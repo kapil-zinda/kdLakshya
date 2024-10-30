@@ -3,16 +3,49 @@
 import { useEffect, useState } from 'react';
 
 import SubjectCard from '@/components/cards/subjectCard';
-import axios from 'axios';
+import { makeApiCall } from '@/utils/ApiRequest';
 
-const BaseURL = process.env.BaseURL;
+interface InnerSubject {
+  name: string;
+  id: string;
+}
+
+interface SubjectAttributes {
+  name: string;
+  parent: string;
+  completed_page: number;
+  total_page: number;
+  inner_subject: InnerSubject[];
+  page_array: number[];
+  page_dates: string[][];
+  root: string;
+  id: string;
+}
+
+interface SubjectData {
+  type: string;
+  id: string;
+  attributes: SubjectAttributes;
+  links: {
+    self?: string;
+  };
+}
 
 export default function SubjectPage() {
+  const [subject_data, setSubjectData] = useState<SubjectData[]>([]);
+  const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
+
+  const [subjectName, setSubjectName] = useState<string>('');
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(BaseURL + 'subject');
-        setSubjectData(res.data.data);
+        const result = await makeApiCall({
+          path: `subject/subject?source={user_key_id}`,
+          method: 'GET',
+        });
+        setSubjectData(result.data);
+        console.log(result.data);
       } catch (error) {
         console.log(error);
       }
@@ -20,32 +53,41 @@ export default function SubjectPage() {
     fetchData();
   }, []);
 
-  const [subject_data, setSubjectData] = useState<any>([]);
-  const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
-
-  const [subjectName, setSubjectName] = useState<string>('');
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
     setSubjectName(value);
   };
-  const handleAddSubject = async (event: any) => {
+
+  const handleAddSubject = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const Payload = {
       data: {
-        type: 'time-table',
+        type: 'subject',
         attributes: {
           name: subjectName,
-          parent: 'root',
+          parent: '{user_key_id}',
         },
       },
     };
-    await axios.post(BaseURL + 'subject', Payload);
-    const resp = await axios.get(BaseURL + 'subject');
-    setSubjectData(resp.data.data);
-    // Clear the input field after adding the subject
-    setSubjectName('');
-    setPopAddSubject(false);
+
+    try {
+      const result = await makeApiCall({
+        path: `subject/subject`,
+        method: 'POST',
+        payload: Payload,
+      });
+
+      // Update subject data with the new subject
+      setSubjectData((prevData) => [...prevData, result.data]);
+
+      // Clear the input field after adding the subject
+      setSubjectName('');
+      setPopAddSubject(false);
+    } catch (error) {
+      console.error('Error adding subject:', error);
+    }
   };
+
   return (
     <>
       <div className="mb-8">
@@ -59,7 +101,7 @@ export default function SubjectPage() {
           <div className="p-4 border-2 rounded-lg ">
             {subject_data.length ? (
               subject_data &&
-              subject_data.map((subject_dd: any, index: number) => {
+              subject_data.map((subject_dd, index: number) => {
                 return (
                   <div key={index}>
                     <SubjectCard
