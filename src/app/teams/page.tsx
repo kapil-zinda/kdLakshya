@@ -52,8 +52,9 @@ const TeamsPage: React.FC = () => {
 
       <div className="grid gap-4">
         {teams.map((team) => (
-          <div
+          <a
             key={team.id}
+            href={`/teams/${team.id}`}
             className="bg-gray-900 rounded-lg p-6 hover:bg-gray-800/50 transition-colors"
           >
             <div className="flex justify-between items-start">
@@ -80,7 +81,7 @@ const TeamsPage: React.FC = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </div>
+          </a>
         ))}
       </div>
 

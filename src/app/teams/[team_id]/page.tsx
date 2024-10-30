@@ -2,17 +2,23 @@
 
 import { useEffect, useState } from 'react';
 
+import { useParams } from 'next/navigation';
+
 import SubjectCard from '@/components/cards/subjectCard';
-import axios from 'axios';
+import { makeApiCall } from '@/utils/ApiRequest';
 
-const BaseURL = process.env.BaseURL;
+export default function TeamPage() {
+  const params = useParams();
+  const team_id = String(params?.team_id);
 
-export default function SubjectPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(BaseURL + 'subject');
-        setSubjectData(res.data.data);
+        const result = await makeApiCall({
+          path: `subject/subject?source=team-${team_id}`,
+          method: 'GET',
+        });
+        setSubjectData(result.data);
       } catch (error) {
         console.log(error);
       }
@@ -28,23 +34,36 @@ export default function SubjectPage() {
     const { value } = e.target;
     setSubjectName(value);
   };
-  const handleAddSubject = async (event: any) => {
+  const handleAddSubject = async (event: React.FormEvent) => {
     event.preventDefault();
-    const Payload = {
+
+    const payload = {
       data: {
-        type: 'time-table',
+        type: 'subject',
         attributes: {
           name: subjectName,
-          parent: 'root',
+          parent: `team-${team_id}`,
+          description: '--',
         },
       },
     };
-    await axios.post(BaseURL + 'subject', Payload);
-    const resp = await axios.get(BaseURL + 'subject');
-    setSubjectData(resp.data.data);
-    // Clear the input field after adding the subject
-    setSubjectName('');
-    setPopAddSubject(false);
+
+    try {
+      const result = await makeApiCall({
+        path: `subject/subject`,
+        method: 'POST',
+        payload: payload,
+      });
+
+      // Update subject data with the new subject
+      setSubjectData((prevData: any) => [...prevData, result.data]);
+
+      // Clear the input field after adding the subject
+      setSubjectName('');
+      setPopAddSubject(false);
+    } catch (error) {
+      console.error('Error adding subject:', error);
+    }
   };
   return (
     <>

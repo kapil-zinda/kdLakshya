@@ -6,9 +6,8 @@ import { useParams } from 'next/navigation';
 
 import SubjectCard from '@/components/cards/subjectCard';
 import AllQuestionSpace from '@/components/roundPageView/roundPageView';
+import SubjectTablePage from '@/components/table/SubjectTable';
 import axios from 'axios';
-
-import SubjectTablePage from '../table';
 
 const BaseURL = process.env.BaseURL;
 export default function SubjectPage() {
@@ -142,6 +141,7 @@ export default function SubjectPage() {
                       <SubjectCard
                         name={subject_dd.name}
                         id={String(subject_dd.id)}
+                        source="subject"
                       />
                     </div>
                   );
@@ -240,17 +240,19 @@ export default function SubjectPage() {
                     <a
                       href="#"
                       onClick={() => setGridView(0)}
-                      className={`inline-flex items-center justify-center p-4 border-b-2 ${gridView
+                      className={`inline-flex items-center justify-center p-4 border-b-2 ${
+                        gridView
                           ? 'border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 group'
                           : 'text-blue-600 border-blue-600 rounded-t-lg active dark:text-blue-500 dark:border-blue-500 group'
-                        }`}
+                      }`}
                       aria-current="page"
                     >
                       <svg
-                        className={`w-4 h-4 me-2 ${gridView
+                        className={`w-4 h-4 me-2 ${
+                          gridView
                             ? 'text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-300'
                             : 'text-blue-600 dark:text-blue-500'
-                          } `}
+                        } `}
                         //aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="currentColor"
@@ -265,16 +267,18 @@ export default function SubjectPage() {
                     <a
                       href="#"
                       onClick={() => setGridView(1)}
-                      className={`inline-flex items-center justify-center p-4 border-b-2 ${gridView
+                      className={`inline-flex items-center justify-center p-4 border-b-2 ${
+                        gridView
                           ? 'text-blue-600 border-blue-600 rounded-t-lg active dark:text-blue-500 dark:border-blue-500 group'
                           : 'border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 group'
-                        }`}
+                      }`}
                     >
                       <svg
-                        className={`w-4 h-4 me-2 ${gridView
+                        className={`w-4 h-4 me-2 ${
+                          gridView
                             ? 'text-blue-600 dark:text-blue-500'
                             : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-300'
-                          } `}
+                        } `}
                         //aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="currentColor"
