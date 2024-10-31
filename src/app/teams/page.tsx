@@ -47,7 +47,7 @@ const TeamsPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Teams</h1>
 
       <div className="grid gap-4">
