@@ -11,10 +11,18 @@ interface ApiRequest {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 }
 
-const replacePathParams = (path: string, params: Record<string, any>) => {
-  return Object.keys(params).reduce((updatedPath, paramKey) => {
-    return updatedPath.replace(`{${paramKey}}`, params[paramKey]);
+const replacePathAndQueryParams = (
+  path: string,
+  params: Record<string, any>,
+) => {
+  const updatedUrl = Object.keys(params).reduce((updatedUrl, paramKey) => {
+    return updatedUrl.replace(
+      new RegExp(`{${paramKey}}`, 'g'),
+      params[paramKey],
+    );
   }, path);
+
+  return updatedUrl;
 };
 
 export const makeApiCall = async ({
@@ -28,9 +36,10 @@ export const makeApiCall = async ({
   const pathParams = {
     org_id: userData.orgId,
     user_id: userData.userId,
+    user_key_id: userData.keyId,
   };
 
-  const updatedPath = replacePathParams(path, pathParams);
+  const updatedPath = replacePathAndQueryParams(path, pathParams);
 
   const fullUrl = `${BaseURL}${updatedPath}`;
 

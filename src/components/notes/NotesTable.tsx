@@ -4,13 +4,13 @@ import React, { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
+import { WebSocketManager } from '@/app/interfaces/WebsocketManager';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Label } from '@/components/ui/label';
 import { makeApiCall } from '@/utils/ApiRequest';
 import { onFilesUpload } from '@/utils/fileUploadUtils';
 import {
@@ -22,144 +22,17 @@ import {
   Edit,
   FileText,
   Folder,
-  Link,
   MoreVertical,
   Move,
-  Printer,
   TableProperties,
   Trash2,
   Upload,
-  X,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { v4 as uuidv4 } from 'uuid';
 
 import FileCopyPopup from './CopyModal';
-
-interface CustomSwitchProps {
-  checked: boolean;
-  onChange: () => void;
-}
-
-const CustomSwitch: React.FC<CustomSwitchProps> = ({ checked, onChange }) => (
-  <div
-    className={`w-11 h-6 flex items-center rounded-full p-1 text-gray-600 cursor-pointer ${
-      checked ? 'bg-violet-600' : 'bg-violet-300'
-    }`}
-    onClick={onChange}
-  >
-    <div
-      className={`bg-white w-4 h-4 rounded-full shadow-md transform text-gray-600 transition-transform duration-300 ease-in-out ${
-        checked ? 'translate-x-5' : ''
-      }`}
-    />
-  </div>
-);
-
-interface FilePreviewProps {
-  file: FileObject;
-  onClose: () => void;
-}
-
-const FilePreview: React.FC<FilePreviewProps> = ({ file, onClose }) => {
-  const [fileLink, setFileLink] = useState<string>('');
-  const [isPublic, setIsPublic] = useState(false);
-
-  useEffect(() => {
-    const fetchFileLink = async () => {
-      try {
-        const result = await makeApiCall({
-          path: `workspace/user-2/files/${file.entity_name}?action=file_download`,
-          method: 'GET',
-        });
-        setFileLink(result.data.links.signed_url);
-      } catch (error) {
-        console.error('Error fetching file link:', error);
-      }
-    };
-
-    fetchFileLink();
-  }, [fileLink]);
-
-  const isImage = (extension: string) => {
-    return ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(
-      extension.toLowerCase(),
-    );
-  };
-
-  // Helper function to check if the file is supported by iframe
-  const isIframeSupported = (extension: string) => {
-    return ['pdf', 'html', 'htm', 'svg'].includes(extension.toLowerCase());
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-gray-300 w-4/5 h-4/5 rounded-lg overflow-hidden flex flex-col">
-        <div className="bg-gray-500 p-4 flex justify-between items-center">
-          <h2 className="text-lg font-semibold">
-            Preview - {file.entity_name}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-700 hover:text-red-900"
-          >
-            <X size={24} />
-          </button>
-        </div>
-        <div className="flex-1 overflow-auto p-4">
-          {fileLink && file.extension ? (
-            isImage(file.extension) ? (
-              <img
-                src={fileLink}
-                alt={file.entity_name}
-                className="max-w-full h-auto"
-              />
-            ) : isIframeSupported(file.extension) ? (
-              <iframe src={fileLink} className="w-full h-full" />
-            ) : (
-              <div className="text-center text-gray-500 mt-10">
-                Preview not available for this file type
-              </div>
-            )
-          ) : (
-            <div className="flex justify-center items-center h-full">
-              <div className="spinner"></div> {/* Spinner */}
-            </div>
-          )}
-        </div>
-        <div className="bg-gray-300 p-4 flex justify-between items-center">
-          <div className="flex space-x-4">
-            <button className="flex items-center text-gray-600 hover:text-gray-800">
-              <Download size={20} className="mr-2" />
-              Download
-            </button>
-            <button className="flex items-center text-gray-600 hover:text-gray-800">
-              <Printer size={20} className="mr-2" />
-              Print
-            </button>
-            <div className="flex items-center space-x-2">
-              <CustomSwitch
-                checked={isPublic}
-                onChange={() => setIsPublic(!isPublic)}
-              />
-              <Label htmlFor="public-private" className="text-gray-600">
-                {isPublic ? 'Public' : 'Private'}
-              </Label>
-            </div>
-            {isPublic && (
-              <button className="flex items-center text-gray-600 hover:text-gray-800">
-                <Link size={20} className="mr-2" /> Copy Link
-              </button>
-            )}
-          </div>
-          <button className="text-gray-600 hover:text-gray-800">
-            <MoreVertical size={20} />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
+import FilePreview from './FilePreview';
 
 interface FileObject {
   id: string;
@@ -283,9 +156,11 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
   const [previewFile, setPreviewFile] = useState<FileObject | null>(null);
   const [fileData, setFileData] = useState<FileObject[]>([]);
   const [isCopyPopupOpen, setIsCopyPopupOpen] = useState(false);
+  const [isMovePopupOpen, setIsMovePopupOpen] = useState(false);
   const [selectedCopyFile, setSelectedCopyFile] = useState<FileObject | null>(
     null,
   );
+
   const dateOptions: Intl.DateTimeFormatOptions = {
     timeZone: 'Asia/Kolkata',
     year: 'numeric', // 'numeric' instead of 'string'
@@ -333,7 +208,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     try {
       // Make API call to create the folder in your backend
       const result = await makeApiCall({
-        path: `workspace/user-2/files`,
+        path: `workspace/{user_key_id}/files`,
         method: 'POST',
         payload: {
           data: {
@@ -395,6 +270,221 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
       });
     }
   };
+
+  const useFileOperation = () => {
+    const wsManager = WebSocketManager.getInstance();
+
+    const startFileOperation = (selectedFiles: FileObject) => {
+      if (!wsManager.isConnectedStatus()) {
+        wsManager.connect(
+          (message) => {
+            console.log('Processing message in file operation:', message);
+
+            console.log(message.action);
+
+            toast.success(message.message, {
+              position: 'bottom-right',
+              autoClose: 10000, // Display the toast for 10 seconds
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+            });
+
+            // Handle message actions
+            if (message.action === 'WORKSPACE_MOVE_COMPLETE') {
+              // Remove the selected file from fileData
+              setFileData((prevFileData) =>
+                prevFileData.filter(
+                  (file1) => file1.s3_key !== selectedFiles.s3_key,
+                ),
+              );
+            } else if (message.action === 'WORKSPACE_RENAME_COMPLETE') {
+              // Update entity_name and remove 'operation' key
+              setFileData((prevFileData) =>
+                prevFileData.map((file1) =>
+                  file1.s3_key === selectedFiles.s3_key
+                    ? (() => {
+                        const updatedFile: FileObject = {
+                          ...file1,
+                          entity_name: message.data.new_name,
+                        };
+
+                        // Remove the 'operation' key
+                        delete updatedFile.operation;
+
+                        return updatedFile;
+                      })()
+                    : file1,
+                ),
+              );
+            } else if (message.action === 'WORKSPACE_COPY_COMPLETE') {
+              console.log('in copy');
+              // Remove the 'operation' key
+              setFileData((prevFileData) =>
+                prevFileData.map((file1) =>
+                  file1.s3_key === selectedFiles.s3_key
+                    ? (() => {
+                        const updatedFile = { ...file1 };
+
+                        // Remove the 'operation' key
+                        delete updatedFile.operation;
+
+                        return updatedFile;
+                      })()
+                    : file1,
+                ),
+              );
+              console.log('new data');
+            }
+          },
+          (error) => {
+            console.error('Error in file operation WebSocket:', error);
+          },
+        );
+      } else {
+        throw new Error(
+          'An operation is already in progress. Please wait for it to complete before starting another.',
+        );
+      }
+    };
+
+    return { startFileOperation };
+  };
+
+  const handleCopyOperationApply = (
+    file: FileObject,
+    selectedFiles: FileObject,
+  ) => {
+    const pathParts = file.s3_key.split('/');
+    const operationId = `copy_${Date.now()}`;
+    const { startFileOperation } = useFileOperation();
+
+    const newPath =
+      pathParts.length > 1 ? '/' + pathParts.slice(1).join('/') : '';
+
+    setIsCopyPopupOpen(false);
+
+    const copyInitiate = async () => {
+      startFileOperation(selectedFiles);
+      try {
+        const result = await makeApiCall({
+          path: `workspace/{user_key_id}/files${newPath}?source=workspace&source_workspace_id={user_key_id}`,
+          method: 'POST',
+          payload: {
+            data: {
+              id: operationId,
+              type: selectedFiles.entity_type,
+              attributes: {
+                s3_key: selectedFiles.s3_key, // Use selectedFiles here
+              },
+            },
+          },
+        });
+
+        console.log(result);
+
+        setFileData((prevFileData) =>
+          prevFileData.map((file1) =>
+            file1.s3_key === selectedFiles.s3_key
+              ? { ...file1, operation: 'workspace_copy' }
+              : file1,
+          ),
+        );
+
+        toast.success(result.data[0].attributes.body, {
+          position: 'bottom-right',
+          autoClose: 10000, // Display the toast for 10 seconds
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+      } catch (error) {
+        console.log(error);
+
+        toast.error(
+          `Failed to perform copy operation. Please try again. \n ${error}`,
+          {
+            position: 'bottom-right',
+            autoClose: 10000, // Display the toast for 10 seconds
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+            progress: undefined,
+          },
+        );
+      }
+    };
+
+    copyInitiate();
+  };
+
+  const handleMoveOperationApply = (
+    file: FileObject,
+    selectedFiles: FileObject,
+  ) => {
+    const pathParts = file.s3_key.split('/');
+
+    const newPath = pathParts.length > 1 ? pathParts.slice(1).join('/') : '';
+
+    setIsMovePopupOpen(false);
+
+    const moveInitiate = async () => {
+      try {
+        const result = await makeApiCall({
+          path: `workspace/{user_key_id}/files/${newPath}?action=move&source_workspace_id={user_key_id}`,
+          method: 'PATCH',
+          payload: {
+            data: {
+              id: 'random',
+              type: selectedFiles.entity_type,
+              attributes: {
+                s3_key: selectedFiles.s3_key, // Use selectedFiles here
+              },
+            },
+          },
+        });
+
+        setFileData((prevFileData) =>
+          prevFileData.map((file1) =>
+            file1.s3_key === selectedFiles.s3_key
+              ? { ...file1, operation: 'workspace_move' }
+              : file1,
+          ),
+        );
+
+        toast.success(result.data.attributes.body, {
+          position: 'bottom-right',
+          autoClose: 10000, // Display the toast for 10 seconds
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+      } catch (error) {
+        console.log(error);
+
+        toast.error('Failed to perform copy operation. Please try again.', {
+          position: 'bottom-right',
+          autoClose: 10000, // Display the toast for 10 seconds
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+        });
+      }
+    };
+
+    moveInitiate();
+  };
+
+  // `workspace/{user_key_id}/files/${newPath}?type=file`  DELETE
 
   const handleFileUpload = async (uploadedFiles: FileList) => {
     console.log(`Uploading ${uploadedFiles.length} files`);
@@ -556,7 +646,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     try {
       // Make API call to get the pre-signed URL
       const result = await makeApiCall({
-        path: `workspace/user-2/files/${file.entity_name}?action=file_download`,
+        path: `workspace/{user_key_id}/files/${file.entity_name}?action=file_download`,
         method: 'GET',
       });
 
@@ -649,7 +739,13 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
           >
             <Copy size={16} /> Copy
           </DropdownMenuItem>
-          <DropdownMenuItem className="gap-2">
+          <DropdownMenuItem
+            className="gap-2"
+            onClick={() => {
+              setSelectedCopyFile(file);
+              setIsMovePopupOpen(true);
+            }}
+          >
             <Move size={16} /> Move
           </DropdownMenuItem>
           <DropdownMenuItem className="gap-2 text-red-600">
@@ -715,11 +811,17 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
             {fileData.map((file) => (
               <tr
                 key={file.id}
-                className="hover:bg-[#112538] cursor-pointer"
+                className={`hover:bg-[#112538] cursor-pointer ${
+                  file.operation ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
                 onDoubleClick={() => handleFileDoubleClick(file)}
               >
                 <td className="py-2 px-4 flex items-center gap-2 rounded-bl-lg">
-                  {getFileIcon(file.entity_type)}
+                  {file.operation ? (
+                    <span className="smallspinner"></span>
+                  ) : (
+                    getFileIcon(file.entity_type)
+                  )}
                   <span className="text-white">{file.entity_name}</span>
                 </td>
                 <td className="py-2 px-4">
@@ -758,7 +860,7 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
         <FileCopyPopup
           onClose={() => setIsCopyPopupOpen(false)}
           selectedFiles={selectedCopyFile}
-          operation="workspace_copy"
+          operation="copy"
           destinations={[
             {
               id: 'random',
@@ -770,10 +872,37 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
           ]}
           onCopy={(destination) => {
             console.log('Copying to:', destination.name);
-            setIsCopyPopupOpen(false);
+            handleCopyOperationApply(destination, selectedCopyFile);
           }}
         />
       )}
+      {isMovePopupOpen && selectedCopyFile && (
+        <FileCopyPopup
+          onClose={() => setIsMovePopupOpen(false)}
+          selectedFiles={selectedCopyFile}
+          operation="move"
+          destinations={[
+            {
+              id: 'random',
+              entity_name: 'notes (root)',
+              entity_type: 'folder',
+              s3_key: 'user-2',
+              parent_folder_name: 'user-2/',
+            },
+          ]}
+          onCopy={(destination) => {
+            console.log('Moving to:', destination.name);
+            handleMoveOperationApply(destination, selectedCopyFile);
+          }}
+        />
+      )}
+      {/* {currentOperationId && (
+        <WebSocketModal
+          url="wss://websocket.testkdlakshya.uchhal.in/"
+          operationId={currentOperationId}
+          onOperationComplete={handleOperationComplete}
+        />
+      )} */}
     </div>
   );
 };
