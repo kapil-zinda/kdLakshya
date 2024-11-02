@@ -1,10 +1,8 @@
-"use client";
+'use client';
 
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
+import React, { useState } from 'react';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -13,34 +11,43 @@ import {
   FormItem,
   // FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { toast } from "@/components/ui/use-toast";
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { useTask } from "@/context/task-context";
-import { labels, priorities, statuses, needs} from "../data/data";
+} from '@/components/ui/select';
+import { toast } from '@/components/ui/use-toast';
+import { useTask } from '@/context/task-context';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DateCalendar } from '@mui/x-date-pickers/DateCalendar';
+import { DemoContainer, DemoItem } from '@mui/x-date-pickers/internals/demo';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider/LocalizationProvider';
+import dayjs, { Dayjs } from 'dayjs';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+
+import { labels, needs, priorities, statuses } from '../data/data';
 
 const FormSchema = z.object({
   title: z.string().min(2, {
-    message: "Write task title (ex: Geo lecture) ",
+    message: 'Write task title (ex: Geo lecture) ',
   }),
   label: z.string().min(2, {
-    message: "Select Label (ex: watch)",
+    message: 'Select Label (ex: watch)',
   }),
   status: z.string().min(2, {
-    message: "Task Status (ex: todo)",
+    message: 'Task Status (ex: todo)',
   }),
   priority: z.string().min(2, {
-    message: "Task Priority (ex: important)",
+    message: 'Task Priority (ex: important)',
   }),
   need: z.string().min(2, {
-    message: "Task Need (ex: Urgent)",
+    message: 'Task Need (ex: Urgent)',
   }),
 });
 
@@ -48,11 +55,11 @@ export function AddTask() {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      label: "",
-      title: "",
-      status: "",
-      priority: "",
-      need: ""
+      label: '',
+      title: '',
+      status: '',
+      priority: '',
+      need: '',
     },
   });
 
@@ -61,7 +68,7 @@ export function AddTask() {
   function onSubmit(data: z.infer<typeof FormSchema>) {
     addTask(data);
     toast({
-      title: "You submitted the following values:",
+      title: 'You submitted the following values:',
       description: (
         <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
           <code className="text-white">{JSON.stringify(data, null, 2)}</code>
@@ -69,7 +76,15 @@ export function AddTask() {
       ),
     });
   }
+  const [selectedDate, setSelectedDate] = React.useState(null);
 
+  // Handler function to update the state when a date is selected
+  const handleDateChange = (newDate) => {
+    setSelectedDate(newDate);
+  };
+
+  const [value, setValue] = React.useState<Dayjs | null>(dayjs('2022-04-17'));
+  console.log(value, 'time');
   return (
     <Form {...form}>
       <form
@@ -145,17 +160,44 @@ export function AddTask() {
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Prioirity" />
+                    <SelectValue placeholder={`${value}`} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {priorities.map((priority: any, index: number) => (
-                    <SelectItem key={index} value={priority.value}>
-                      <div className="flex justify-center items-center gap-3">
-                        <priority.icon /> {priority.label}
-                      </div>
-                    </SelectItem>
-                  ))}
+                  <LocalizationProvider dateAdapter={AdapterDayjs}>
+                    {/* <DateCalendar
+                  value={selectedDate}
+                  onChange={handleDateChange}
+                   sx={{
+                    backgroundColor: '#292929',
+                    color: 'white', // Changes the text color to white
+                    '.MuiTypography-root': {
+                      color: 'white' // Applies to all typography (text) inside the calendar
+                    },
+                    '.MuiPickersDay-root': {
+                      color: 'white' // Applies to individual day cells
+                    }
+                  }} /> */}
+
+                    <DemoContainer components={['DateCalendar']}>
+                      <DemoItem label="Controlled calendar">
+                        <DateCalendar
+                          value={value}
+                          onChange={(newValue) => setValue(newValue)}
+                          sx={{
+                            backgroundColor: '#292929',
+                            color: 'white', // Changes the text color to white
+                            '.MuiTypography-root': {
+                              color: 'white', // Applies to all typography (text) inside the calendar
+                            },
+                            '.MuiPickersDay-root': {
+                              color: 'white', // Applies to individual day cells
+                            },
+                          }}
+                        />
+                      </DemoItem>
+                    </DemoContainer>
+                  </LocalizationProvider>
                 </SelectContent>
               </Select>
               <FormMessage />
