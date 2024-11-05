@@ -219,7 +219,7 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
       const team_key_id = `team-${team_id}`;
 
       await makeApiCall({
-        path: `auth/users/${userId}/relation`,
+        path: `auth/users/${userId}/relationships`,
         method: 'PATCH',
         payload: {
           data: {
