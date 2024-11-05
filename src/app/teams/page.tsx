@@ -41,6 +41,7 @@ type TeamData = {
 
 const TeamsPage: React.FC = () => {
   const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
+  const [selectedTeamName, setSelectedTeamName] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [teams, setTeams] = useState<TeamData[]>([]);
 
@@ -60,8 +61,9 @@ const TeamsPage: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleOpenModal = (teamId: string) => {
+  const handleOpenModal = (teamId: string, team_name: string) => {
     setSelectedTeam(teamId);
+    setSelectedTeamName(team_name);
     setIsModalOpen(true);
   };
 
@@ -94,7 +96,11 @@ const TeamsPage: React.FC = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-40">
-                  <DropdownMenuItem onClick={() => handleOpenModal(team.id)}>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      handleOpenModal(team.id, team.attributes.name)
+                    }
+                  >
                     Manage Team
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -104,8 +110,13 @@ const TeamsPage: React.FC = () => {
         ))}
       </div>
 
-      {selectedTeam && (
-        <UserGroupModal open={isModalOpen} onOpenChange={setIsModalOpen} />
+      {selectedTeam && selectedTeamName && (
+        <UserGroupModal
+          open={isModalOpen}
+          onOpenChange={setIsModalOpen}
+          team_id={selectedTeam}
+          team_name={selectedTeamName}
+        />
       )}
     </div>
   );

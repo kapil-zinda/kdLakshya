@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -16,99 +16,157 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { makeApiCall } from '@/utils/ApiRequest';
 import { Check, Trash2, UserPlus, X } from 'lucide-react';
 
+import { userData } from '../interfaces/userInterface';
+
 interface User {
-  id: number;
-  email: string;
-  role: 'view' | 'edit' | 'manage';
+  type: 'users';
+  id: string;
+  attributes: {
+    email: string;
+    role: 'view' | 'edit' | 'lead' | 'manage';
+    user_id: string;
+  };
 }
 
 interface PendingRoleChange {
-  userId: number;
-  newRole: User['role'];
+  userId: string;
+  newRole: User['attributes']['role'];
 }
 
 interface UserGroupModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  team_id: string;
+  team_name: string;
 }
 
 const UserGroupModal: React.FC<UserGroupModalProps> = ({
   open,
   onOpenChange,
+  team_id,
+  team_name,
 }) => {
-  const [groupName, setGroupName] = useState<string>('Marketing Team');
   const [pendingRoleChanges, setPendingRoleChanges] = useState<{
-    [key: number]: PendingRoleChange;
+    [key: string]: PendingRoleChange;
   }>({});
   const [successfulChanges, setSuccessfulChanges] = useState<{
-    [key: number]: boolean;
+    [key: string]: boolean;
   }>({});
-  const [newUserRole, setNewUserRole] = useState<User['role']>('view');
-  const [users, setUsers] = useState<User[]>([
-    { id: 1, email: 'john@example.com', role: 'manage' },
-    { id: 2, email: 'sarah@example.com', role: 'edit' },
-    { id: 3, email: 'mike@example.com', role: 'view' },
-    // Adding more users to demonstrate scrolling
-    ...Array.from({ length: 10 }, (_, i) => ({
-      id: i + 4,
-      email: `user${i + 4}@example.com`,
-      role: 'view' as const,
-    })),
-  ]);
+  const [newUserRole, setNewUserRole] =
+    useState<User['attributes']['role']>('view');
+  const [users, setUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [newUserEmail, setNewUserEmail] = useState<string>('');
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   const handleAddUser = (): void => {
-    if (newUserEmail && !users.find((user) => user.email === newUserEmail)) {
-      setUsers([
-        ...users,
-        { id: users.length + 1, email: newUserEmail, role: newUserRole },
-      ]);
+    if (
+      newUserEmail &&
+      !users.find((user) => user.attributes.email === newUserEmail)
+    ) {
+      const newUser: User = {
+        type: 'users',
+        id: (users.length + 1).toString(),
+        attributes: {
+          email: newUserEmail,
+          role: newUserRole,
+          user_id: (users.length + 1).toString(),
+        },
+      };
+      setUsers([...users, newUser]);
       setNewUserEmail('');
-      setNewUserRole('view'); // Reset role to default after adding
+      setNewUserRole('view');
     }
   };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch users with access to the specific team
+        const res = await makeApiCall({
+          path: `auth/users?filter[team]=${team_id}`,
+          method: 'GET',
+        });
+        setUsers(res.data);
+
+        const currentUserId = userData.userId;
+
+        const currentUser = res.data.find(
+          (user: User) => user.id === currentUserId,
+        );
+        if (currentUser && currentUser.attributes.role === 'manage') {
+          // Fetch all users if the current user has manage permission
+          const allUsersRes = await makeApiCall({
+            path: `auth/users`,
+            method: 'GET',
+          });
+          setAllUsers(allUsersRes.data);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    fetchData();
+  }, [team_id]);
 
   const handleRemoveUser = (user: User): void => {
     setUsers(users.filter((u) => u.id !== user.id));
     setUserToDelete(null);
   };
 
-  const initiateRoleChange = (userId: number, newRole: User['role']): void => {
+  const initiateRoleChange = (
+    userId: string,
+    newRole: User['attributes']['role'],
+  ): void => {
     setPendingRoleChanges((prev) => ({
       ...prev,
       [userId]: { userId, newRole },
     }));
   };
 
-  const confirmRoleChange = async (userId: number): Promise<void> => {
+  const confirmRoleChange = async (userId: string): Promise<void> => {
     const pendingChange = pendingRoleChanges[userId];
     if (!pendingChange) return;
 
     try {
-      // Simulate API call
-      // await new Promise(resolve => setTimeout(resolve, 1000));
+      const team_key_id = `team-${team_id}`;
 
-      // Update local state after successful API call
+      await makeApiCall({
+        path: `auth/users/${userId}/relation`,
+        method: 'PATCH',
+        payload: {
+          data: {
+            type: 'relation',
+            attributes: {
+              [team_key_id]: pendingChange.newRole,
+            },
+          },
+        },
+      });
+
       setUsers(
         users.map((user) =>
-          user.id === userId ? { ...user, role: pendingChange.newRole } : user,
+          user.id === userId
+            ? {
+                ...user,
+                attributes: { ...user.attributes, role: pendingChange.newRole },
+              }
+            : user,
         ),
       );
 
-      // Show success state temporarily
       setSuccessfulChanges((prev) => ({ ...prev, [userId]: true }));
 
-      // Clear pending change
       setPendingRoleChanges((prev) => {
         const newPending = { ...prev };
         delete newPending[userId];
         return newPending;
       });
 
-      // Clear success state after delay
       setTimeout(() => {
         setSuccessfulChanges((prev) => {
           const newSuccessful = { ...prev };
@@ -118,11 +176,10 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
       }, 2000);
     } catch (error) {
       console.error('Error updating role:', error);
-      // Handle error case
     }
   };
 
-  const cancelRoleChange = (userId: number): void => {
+  const cancelRoleChange = (userId: string): void => {
     setPendingRoleChanges((prev) => {
       const newPending = { ...prev };
       delete newPending[userId];
@@ -141,20 +198,16 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
           </DialogHeader>
 
           <div className="flex-1 min-h-0 space-y-4">
-            {/* Group Name */}
             <div>
               <label className="text-sm font-medium">Group Name</label>
               <Input
-                value={groupName}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setGroupName(e.target.value)
-                }
-                className="mt-1"
+                value={team_name}
+                className="mt-1 cursor-not-allowed bg-white text-gray-900"
+                disabled
+                style={{ opacity: 1 }}
               />
             </div>
 
-            {/* Add New User */}
-            {/* Add New User */}
             <div className="flex gap-2">
               <Input
                 placeholder="Enter email address"
@@ -167,7 +220,9 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
               />
               <Select
                 value={newUserRole}
-                onValueChange={(value: User['role']) => setNewUserRole(value)}
+                onValueChange={(value: User['attributes']['role']) =>
+                  setNewUserRole(value)
+                }
               >
                 <SelectTrigger className="w-32">
                   <SelectValue />
@@ -175,6 +230,7 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                 <SelectContent>
                   <SelectItem value="view">View</SelectItem>
                   <SelectItem value="edit">Edit</SelectItem>
+                  <SelectItem value="lead">Lead</SelectItem>
                   <SelectItem value="manage">Manage</SelectItem>
                 </SelectContent>
               </Select>
@@ -184,7 +240,6 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
               </Button>
             </div>
 
-            {/* Users List */}
             <div className="border rounded-lg flex flex-col min-h-0 max-h-[40vh] overflow-y-auto">
               <div className="grid grid-cols-12 gap-4 p-3 bg-gray-500 rounded-t-lg border-b">
                 <div className="col-span-5 font-medium">Email</div>
@@ -198,11 +253,11 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                     key={user.id}
                     className="grid grid-cols-12 gap-4 p-3 items-center"
                   >
-                    <div className="col-span-5">{user.email}</div>
+                    <div className="col-span-5">{user.attributes.email}</div>
                     <div className="col-span-5">
                       <Select
-                        value={user.role}
-                        onValueChange={(value: User['role']) =>
+                        value={user.attributes.role}
+                        onValueChange={(value: User['attributes']['role']) =>
                           initiateRoleChange(user.id, value)
                         }
                       >
@@ -212,6 +267,7 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                         <SelectContent>
                           <SelectItem value="view">View</SelectItem>
                           <SelectItem value="edit">Edit</SelectItem>
+                          <SelectItem value="lead">Lead</SelectItem>
                           <SelectItem value="manage">Manage</SelectItem>
                         </SelectContent>
                       </Select>
@@ -253,7 +309,7 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                 ))}
               </div>
             </div>
-            {/* Delete Confirmation */}
+
             {userToDelete && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
                 <div className="bg-gray-400 rounded-lg p-6 shadow-lg w-full max-w-md">
@@ -269,8 +325,9 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                     </button>
                   </div>
                   <p className="text-gray-700 mb-6">
-                    Are you sure you want to remove {userToDelete.email} from
-                    this group? This action cannot be undone.
+                    Are you sure you want to remove{' '}
+                    {userToDelete.attributes.email} from this group? This action
+                    cannot be undone.
                   </p>
                   <div className="flex justify-end gap-2">
                     <Button
@@ -281,9 +338,7 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                     </Button>
                     <Button
                       className="bg-red-600 hover:bg-red-700 text-white"
-                      onClick={() => {
-                        handleRemoveUser(userToDelete);
-                      }}
+                      onClick={() => handleRemoveUser(userToDelete)}
                     >
                       Remove User
                     </Button>
