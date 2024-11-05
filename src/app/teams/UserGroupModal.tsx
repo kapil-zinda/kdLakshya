@@ -192,10 +192,18 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
     fetchData();
   }, [team_id]);
 
-  const handleRemoveUser = (user: User): void => {
+  const handleRemoveUser = async (user: User) => {
     if (!hasManagePermission && !hasOrgPermission) return;
-    setUsers(users.filter((u) => u.id !== user.id));
-    setUserToDelete(null);
+    try {
+      await makeApiCall({
+        path: `auth/users/${user.id}/relationships?team=${team_id}`,
+        method: 'DELETE',
+      });
+      setUsers(users.filter((u) => u.id !== user.id));
+      setUserToDelete(null);
+    } catch (error) {
+      console.error('Error deleting role:', error);
+    }
   };
 
   const initiateRoleChange = (
