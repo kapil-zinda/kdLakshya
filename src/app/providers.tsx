@@ -43,7 +43,10 @@ export function Providers({ children }: ThemeProviderProps) {
         lastName: response.attributes.last_name,
         permission: response.user_permissions,
         // allowedTeams: Object.keys(response.user_permissions).filter(key => key.startsWith('team')),
-        allowedTeams: [],
+        allowedTeams: Object.keys(response.user_permissions)
+          .filter((key) => key.startsWith('team-'))
+          .map((key) => key.match(/team-(\d+)/)?.[1])
+          .filter(Boolean) as string[],
       });
     } catch (error) {
       console.error('Error fetching user data:', error);

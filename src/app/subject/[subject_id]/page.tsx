@@ -6,11 +6,25 @@ import { useParams } from 'next/navigation';
 
 import SubjectCard from '@/components/cards/subjectCard';
 import AllQuestionSpace from '@/components/roundPageView/roundPageView';
-import axios from 'axios';
+import SubjectTablePage from '@/components/table/SubjectTable';
+import { makeApiCall } from '@/utils/ApiRequest';
 
-import SubjectTablePage from '../table';
+interface InnerSubject {
+  name: string;
+  id: string;
+}
+interface SubjectAttributes {
+  name: string;
+  parent: string;
+  completed_page: number;
+  total_page: number;
+  inner_subject: InnerSubject[];
+  page_array: number[];
+  page_dates: string[][];
+  root: string;
+  id: string;
+}
 
-const BaseURL = process.env.BaseURL;
 export default function SubjectPage() {
   const params = useParams();
   const subject_id = String(params?.subject_id);
@@ -19,60 +33,82 @@ export default function SubjectPage() {
   const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
   const [addPageToSubject, setAddPageToSubject] = useState<boolean>(false);
   const [updateSubjectPage, setUpdateSubjectPage] = useState<boolean>(false);
-  const [subject_data, setSubjectData] = useState<any>({});
+  const [subject_data, setSubjectData] = useState<SubjectAttributes | null>(
+    null,
+  );
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await axios.get(BaseURL + 'subject/' + subject_id);
-        setSubjectData(res.data.data.attributes);
+        const result = await makeApiCall({
+          path: `subject/subject/${subject_id}`,
+          method: 'GET',
+        });
+        setSubjectData(result.data.attributes);
       } catch (error) {
         console.log(error);
       }
     };
     fetchData();
-  }, []);
+  }, [subject_id]);
 
   const [subjectPageToAdd, setSubjectPageToAdd] = useState<number>(0);
-  const handleSubjectPageChange = (e: any) => {
+  const handleSubjectPageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
-    setSubjectPageToAdd(value);
+    setSubjectPageToAdd(Number(value));
   };
 
-  const handleAddPageToSubject = async (event: any) => {
+  const handleAddPageToSubject = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
     const Payload = {
       data: {
-        type: 'time-table',
+        type: 'subject',
         attributes: {
           total: subjectPageToAdd,
         },
       },
     };
-    const res = await axios.patch(
-      BaseURL + 'subject/' + subject_id + '/add-page',
-      Payload,
-    );
-    setSubjectData(res.data.data.attributes);
-    // Clear the input field after adding the subject
-    setSubjectPageToAdd(0);
-    setAddPageToSubject(false);
+
+    try {
+      const result = await makeApiCall({
+        path: `subject/subject/${subject_id}`,
+        method: 'PUT',
+        payload: Payload,
+      });
+
+      // Update subject data with the new subject
+      setSubjectData(result.data.attributes);
+
+      // Clear the input field after adding the subject
+      setSubjectPageToAdd(0);
+      setAddPageToSubject(false);
+    } catch (error) {
+      console.error('Error adding subject page:', error);
+    }
   };
 
   const [subjectUpdatePageStart, setSubjectUpdatePageStart] =
     useState<number>(0);
-  const handleSubjectUpdateStartChange = (e: any) => {
+  const handleSubjectUpdateStartChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const { value } = e.target;
-    setSubjectUpdatePageStart(value);
+    setSubjectUpdatePageStart(Number(value));
   };
 
   const [subjectUpdatePageEnd, setSubjectUpdatePageEnd] = useState<number>(0);
-  const handleSubjectUpdateEndChange = (e: any) => {
+  const handleSubjectUpdateEndChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const { value } = e.target;
-    setSubjectUpdatePageEnd(value);
+    setSubjectUpdatePageEnd(Number(value));
   };
 
-  const handleUpdateSubjectPage = async (event: any) => {
+  const handleUpdateSubjectPage = async (
+    event: React.FormEvent<HTMLFormElement>,
+  ) => {
     event.preventDefault();
 
     if (
@@ -82,48 +118,83 @@ export default function SubjectPage() {
     ) {
       const Payload = {
         data: {
-          type: 'time-table',
+          type: 'subject',
           attributes: {
             start: Number(subjectUpdatePageStart),
             last: Number(subjectUpdatePageEnd),
           },
         },
       };
-      const res = await axios.patch(BaseURL + 'subject/' + subject_id, Payload);
-      setSubjectData(res.data.data.attributes);
-      setSubjectUpdatePageEnd(0);
-      setSubjectUpdatePageStart(0);
+
+      try {
+        const result = await makeApiCall({
+          path: `subject/subject/${subject_id}`,
+          method: 'PATCH',
+          payload: Payload,
+        });
+
+        // Update subject data with the new subject
+        setSubjectData(result.data.attributes);
+
+        // Clear the input field after adding the subject
+        setSubjectUpdatePageEnd(0);
+        setSubjectUpdatePageStart(0);
+      } catch (error) {
+        console.error('Error updating subject page:', error);
+      }
     }
     setUpdateSubjectPage(false);
   };
 
   const [subjectName, setSubjectName] = useState<string>('');
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
     setSubjectName(value);
   };
-  const handleAddSubject = async (event: any) => {
+  const handleAddSubject = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const Payload = {
       data: {
-        type: 'time-table',
+        type: 'subject',
         attributes: {
           name: subjectName,
           parent: subject_id,
         },
       },
     };
-    await axios.post(BaseURL + 'subject', Payload);
-    const resp = await axios.get(BaseURL + 'subject/' + subject_id);
-    setSubjectData(resp.data.data.attributes);
-    // Clear the input field after adding the subject
-    setSubjectName('');
-    setPopAddSubject(false);
+
+    try {
+      const result = await makeApiCall({
+        path: `subject/subject`,
+        method: 'POST',
+        payload: Payload,
+      });
+
+      // Update subject data with the new subject
+      const newInnerSubject: InnerSubject = {
+        name: subjectName,
+        id: result.data.id,
+      };
+
+      setSubjectData((prev) => {
+        if (!prev) return prev; // Just a safeguard check
+        return {
+          ...prev,
+          inner_subject: [...prev.inner_subject, newInnerSubject],
+        };
+      });
+
+      // Clear the input field after adding the subject
+      setSubjectName('');
+      setPopAddSubject(false);
+    } catch (error) {
+      console.error('Error updating subject page:', error);
+    }
   };
 
   return (
     <>
-      {subject_data.name && (
+      {subject_data?.name && (
         <div className="mb-8">
           <div className="max-w-screen-xl mx-auto py-3">
             <h2 className="text-2xl font-bold tracking-tight">
@@ -135,18 +206,17 @@ export default function SubjectPage() {
           </div>
           <div className="max-w-screen-xl mx-auto">
             <div className="p-4 border-2 rounded-lg ">
-              {subject_data.inner_subject.map(
-                (subject_dd: any, index: number) => {
-                  return (
-                    <div key={index}>
-                      <SubjectCard
-                        name={subject_dd.name}
-                        id={String(subject_dd.id)}
-                      />
-                    </div>
-                  );
-                },
-              )}
+              {subject_data.inner_subject.map((subject_dd, index: number) => {
+                return (
+                  <div key={index}>
+                    <SubjectCard
+                      name={subject_dd.name}
+                      id={String(subject_dd.id)}
+                      source="subject"
+                    />
+                  </div>
+                );
+              })}
               <div className="flex flex-col space-y-4 sm:flex-row sm:justify-center sm:space-y-0">
                 {popAddSubject ? (
                   <div
@@ -240,17 +310,19 @@ export default function SubjectPage() {
                     <a
                       href="#"
                       onClick={() => setGridView(0)}
-                      className={`inline-flex items-center justify-center p-4 border-b-2 ${gridView
+                      className={`inline-flex items-center justify-center p-4 border-b-2 ${
+                        gridView
                           ? 'border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 group'
                           : 'text-blue-600 border-blue-600 rounded-t-lg active dark:text-blue-500 dark:border-blue-500 group'
-                        }`}
+                      }`}
                       aria-current="page"
                     >
                       <svg
-                        className={`w-4 h-4 me-2 ${gridView
+                        className={`w-4 h-4 me-2 ${
+                          gridView
                             ? 'text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-300'
                             : 'text-blue-600 dark:text-blue-500'
-                          } `}
+                        } `}
                         //aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="currentColor"
@@ -265,16 +337,18 @@ export default function SubjectPage() {
                     <a
                       href="#"
                       onClick={() => setGridView(1)}
-                      className={`inline-flex items-center justify-center p-4 border-b-2 ${gridView
+                      className={`inline-flex items-center justify-center p-4 border-b-2 ${
+                        gridView
                           ? 'text-blue-600 border-blue-600 rounded-t-lg active dark:text-blue-500 dark:border-blue-500 group'
                           : 'border-transparent rounded-t-lg hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-300 group'
-                        }`}
+                      }`}
                     >
                       <svg
-                        className={`w-4 h-4 me-2 ${gridView
+                        className={`w-4 h-4 me-2 ${
+                          gridView
                             ? 'text-blue-600 dark:text-blue-500'
                             : 'text-gray-400 group-hover:text-gray-500 dark:text-gray-500 dark:group-hover:text-gray-300'
-                          } `}
+                        } `}
                         //aria-hidden="true"
                         xmlns="http://www.w3.org/2000/svg"
                         fill="currentColor"
