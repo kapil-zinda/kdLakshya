@@ -97,7 +97,7 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
     setEmailError('');
   };
 
-  const handleAddUser = (): void => {
+  const handleAddUser = async () => {
     if (!hasManagePermission && !hasOrgPermission) return;
 
     const selectedUser = allUsers.find(
@@ -114,18 +114,37 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
       return;
     }
 
-    const newUser: User = {
-      ...selectedUser,
-      attributes: {
-        ...selectedUser.attributes,
-        role: newUserRole,
-      },
-    };
+    try {
+      const team_key_id = `team-${team_id}`;
 
-    setUsers([...users, newUser]);
-    setNewUserEmail('');
-    setNewUserRole('view');
-    setEmailError('');
+      await makeApiCall({
+        path: `auth/users/${selectedUser.id}/relationships`,
+        method: 'POST',
+        payload: {
+          data: {
+            type: 'relation',
+            attributes: {
+              [team_key_id]: newUserRole,
+            },
+          },
+        },
+      });
+      const newUser: User = {
+        ...selectedUser,
+        attributes: {
+          ...selectedUser.attributes,
+          role: newUserRole,
+        },
+      };
+
+      setUsers([...users, newUser]);
+      setNewUserEmail('');
+      setNewUserRole('view');
+      setEmailError('');
+    } catch (error) {
+      console.error('Error adding user to group:', error);
+      setEmailError('Error adding user to group');
+    }
   };
 
   useEffect(() => {
