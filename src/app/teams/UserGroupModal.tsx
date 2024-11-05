@@ -19,8 +19,6 @@ import {
 import { makeApiCall } from '@/utils/ApiRequest';
 import { Check, Trash2, UserPlus, X } from 'lucide-react';
 
-import { userData } from '../interfaces/userInterface';
-
 interface User {
   type: 'users';
   id: string;
@@ -61,44 +59,106 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [newUserEmail, setNewUserEmail] = useState<string>('');
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [emailError, setEmailError] = useState<string>('');
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [hasManagePermission, setHasManagePermission] = useState(false);
+  const [hasOrgPermission, setHasOrgPermission] = useState(false);
+
+  const getCurrentRole = (user: User): User['attributes']['role'] => {
+    return pendingRoleChanges[user.id]?.newRole ?? user.attributes.role;
+  };
+
+  const handleEmailInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setNewUserEmail(value);
+    setEmailError('');
+
+    if (value.length > 0) {
+      const filtered = allUsers.filter(
+        (user) =>
+          user.attributes.email.toLowerCase().includes(value.toLowerCase()) &&
+          !users.some(
+            (existingUser) =>
+              existingUser.attributes.email === user.attributes.email,
+          ),
+      );
+      setFilteredUsers(filtered);
+      setShowDropdown(true);
+    } else {
+      setFilteredUsers([]);
+      setShowDropdown(false);
+    }
+  };
+
+  const handleEmailSelect = (user: User) => {
+    setNewUserEmail(user.attributes.email);
+    setShowDropdown(false);
+    setEmailError('');
+  };
 
   const handleAddUser = (): void => {
-    if (
-      newUserEmail &&
-      !users.find((user) => user.attributes.email === newUserEmail)
-    ) {
-      const newUser: User = {
-        type: 'users',
-        id: (users.length + 1).toString(),
-        attributes: {
-          email: newUserEmail,
-          role: newUserRole,
-          user_id: (users.length + 1).toString(),
-        },
-      };
-      setUsers([...users, newUser]);
-      setNewUserEmail('');
-      setNewUserRole('view');
+    if (!hasManagePermission && !hasOrgPermission) return;
+
+    const selectedUser = allUsers.find(
+      (user) => user.attributes.email === newUserEmail,
+    );
+
+    if (!selectedUser) {
+      setEmailError('Please select a user from the dropdown');
+      return;
     }
+
+    if (users.find((user) => user.attributes.email === newUserEmail)) {
+      setEmailError('User already exists in the group');
+      return;
+    }
+
+    const newUser: User = {
+      ...selectedUser,
+      attributes: {
+        ...selectedUser.attributes,
+        role: newUserRole,
+      },
+    };
+
+    setUsers([...users, newUser]);
+    setNewUserEmail('');
+    setNewUserRole('view');
+    setEmailError('');
   };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch users with access to the specific team
+        // Fetch team users
         const res = await makeApiCall({
           path: `auth/users?filter[team]=${team_id}`,
           method: 'GET',
         });
         setUsers(res.data);
 
-        const currentUserId = userData.userId;
+        // Fetch current user's permissions
+        const permissionsRes = await makeApiCall({
+          path: 'auth/users/{user_id}/relationships',
+          method: 'GET',
+        });
 
-        const currentUser = res.data.find(
-          (user: User) => user.id === currentUserId,
+        // Set manage permission if user has team manage role or org permission
+        const team_key_id = `team-${team_id}`;
+        setHasManagePermission(
+          permissionsRes.data.attributes.permissions?.[team_key_id] ===
+            'manage',
         );
-        if (currentUser && currentUser.attributes.role === 'manage') {
-          // Fetch all users if the current user has manage permission
+        setHasOrgPermission(
+          permissionsRes.data.attributes.permission.org ? true : false,
+        );
+
+        // Only fetch all users if user has manage permissions
+        if (
+          permissionsRes.data.attributes.permission?.org ||
+          permissionsRes.data.attributes.permissions?.[team_key_id] === 'manage'
+        ) {
           const allUsersRes = await makeApiCall({
             path: `auth/users`,
             method: 'GET',
@@ -114,6 +174,7 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
   }, [team_id]);
 
   const handleRemoveUser = (user: User): void => {
+    if (!hasManagePermission && !hasOrgPermission) return;
     setUsers(users.filter((u) => u.id !== user.id));
     setUserToDelete(null);
   };
@@ -122,6 +183,7 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
     userId: string,
     newRole: User['attributes']['role'],
   ): void => {
+    if (!hasManagePermission && !hasOrgPermission) return;
     setPendingRoleChanges((prev) => ({
       ...prev,
       [userId]: { userId, newRole },
@@ -129,6 +191,8 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
   };
 
   const confirmRoleChange = async (userId: string): Promise<void> => {
+    if (!hasManagePermission && !hasOrgPermission) return;
+
     const pendingChange = pendingRoleChanges[userId];
     if (!pendingChange) return;
 
@@ -188,36 +252,55 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold">
-              User Group Settings
-            </DialogTitle>
-          </DialogHeader>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-bold">
+            User Group Settings
+          </DialogTitle>
+        </DialogHeader>
 
-          <div className="flex-1 min-h-0 space-y-4">
-            <div>
-              <label className="text-sm font-medium">Group Name</label>
-              <Input
-                value={team_name}
-                className="mt-1 cursor-not-allowed bg-white text-gray-900"
-                disabled
-                style={{ opacity: 1 }}
-              />
-            </div>
+        <div className="flex-1 min-h-0 space-y-4">
+          <div>
+            <label className="text-sm font-medium">Group Name</label>
+            <Input
+              value={team_name}
+              className="mt-1 cursor-not-allowed bg-white text-gray-900"
+              disabled
+              style={{ opacity: 1 }}
+            />
+          </div>
 
+          {/* Show Add User section only if user has permissions */}
+          {(hasManagePermission || hasOrgPermission) && (
             <div className="flex gap-2">
-              <Input
-                placeholder="Enter email address"
-                value={newUserEmail}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setNewUserEmail(e.target.value)
-                }
-                className="flex-1"
-                type="email"
-              />
+              <div className="flex-1 relative">
+                {emailError && (
+                  <p className="text-red-500 text-sm mt-1 absolute -top-6">
+                    {emailError}
+                  </p>
+                )}
+                <Input
+                  placeholder="Enter email address"
+                  value={newUserEmail}
+                  onChange={handleEmailInputChange}
+                  className={`w-full ${emailError ? 'border-red-500' : ''}`}
+                  type="email"
+                />
+                {showDropdown && filteredUsers.length > 0 && (
+                  <div className="absolute w-full mt-1 bg-gray-700 border rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+                    {filteredUsers.map((user) => (
+                      <div
+                        key={user.id}
+                        className="px-4 py-2 hover:bg-gray-600 cursor-pointer"
+                        onClick={() => handleEmailSelect(user)}
+                      >
+                        {user.attributes.email}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <Select
                 value={newUserRole}
                 onValueChange={(value: User['attributes']['role']) =>
@@ -239,24 +322,34 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                 Add User
               </Button>
             </div>
+          )}
 
-            <div className="border rounded-lg flex flex-col min-h-0 max-h-[40vh] overflow-y-auto">
-              <div className="grid grid-cols-12 gap-4 p-3 bg-gray-500 rounded-t-lg border-b">
-                <div className="col-span-5 font-medium">Email</div>
-                <div className="col-span-5 font-medium">Permission</div>
-                <div className="col-span-2 font-medium">Actions</div>
+          <div className="border rounded-lg flex flex-col min-h-0 max-h-[40vh] overflow-y-auto">
+            <div className="grid grid-cols-12 gap-4 p-3 bg-gray-500 rounded-t-lg border-b">
+              <div className="col-span-5 font-medium">Email</div>
+              <div
+                className={`${hasManagePermission || hasOrgPermission ? 'col-span-5' : 'col-span-7'} font-medium`}
+              >
+                Permission
               </div>
+              {(hasManagePermission || hasOrgPermission) && (
+                <div className="col-span-2 font-medium">Actions</div>
+              )}
+            </div>
 
-              <div className="divide-y">
-                {users.map((user: User) => (
+            <div className="divide-y">
+              {users.map((user: User) => (
+                <div
+                  key={user.id}
+                  className="grid grid-cols-12 gap-4 p-3 items-center"
+                >
+                  <div className="col-span-5">{user.attributes.email}</div>
                   <div
-                    key={user.id}
-                    className="grid grid-cols-12 gap-4 p-3 items-center"
+                    className={`${hasManagePermission || hasOrgPermission ? 'col-span-5' : 'col-span-7'}`}
                   >
-                    <div className="col-span-5">{user.attributes.email}</div>
-                    <div className="col-span-5">
+                    {hasManagePermission || hasOrgPermission ? (
                       <Select
-                        value={user.attributes.role}
+                        value={getCurrentRole(user)}
                         onValueChange={(value: User['attributes']['role']) =>
                           initiateRoleChange(user.id, value)
                         }
@@ -271,7 +364,13 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                           <SelectItem value="manage">Manage</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
+                    ) : (
+                      <span className="text-gray-700">
+                        {user.attributes.role}
+                      </span>
+                    )}
+                  </div>
+                  {(hasManagePermission || hasOrgPermission) && (
                     <div className="col-span-2">
                       {successfulChanges[user.id] ? (
                         <Check className="w-4 h-4 text-green-500" />
@@ -305,58 +404,56 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                         </Button>
                       )}
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {userToDelete && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-                <div className="bg-gray-400 rounded-lg p-6 shadow-lg w-full max-w-md">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium">
-                      Confirm User Removal
-                    </h3>
-                    <button
-                      className="text-gray-800 hover:text-gray-600"
-                      onClick={() => setUserToDelete(null)}
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <p className="text-gray-700 mb-6">
-                    Are you sure you want to remove{' '}
-                    {userToDelete.attributes.email} from this group? This action
-                    cannot be undone.
-                  </p>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => setUserToDelete(null)}
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                      onClick={() => handleRemoveUser(userToDelete)}
-                    >
-                      Remove User
-                    </Button>
-                  </div>
+                  )}
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
 
-          <DialogFooter className="mt-6">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => onOpenChange(false)}>Save Changes</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          {userToDelete && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
+              <div className="bg-gray-400 rounded-lg p-6 shadow-lg w-full max-w-md">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium">Confirm User Removal</h3>
+                  <button
+                    className="text-gray-800 hover:text-gray-600"
+                    onClick={() => setUserToDelete(null)}
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <p className="text-gray-700 mb-6">
+                  Are you sure you want to remove{' '}
+                  {userToDelete.attributes.email} from this group? This action
+                  cannot be undone.
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setUserToDelete(null)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="bg-red-600 hover:bg-red-700 text-white"
+                    onClick={() => handleRemoveUser(userToDelete)}
+                  >
+                    Remove User
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter className="mt-6">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={() => onOpenChange(false)}>Save Changes</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 
