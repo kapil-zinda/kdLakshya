@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -9,39 +9,58 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { makeApiCall } from '@/utils/ApiRequest';
 import { MoreVertical } from 'lucide-react';
 
 import UserGroupModal from './UserGroupModal';
 
-interface Team {
-  id: number;
-  name: string;
-  description: string;
+interface TeamPermission {
+  [email: string]: string; // Key is an email, value is the permission level (e.g., "manage")
 }
 
+type TeamAttributes = {
+  name: string;
+  description: string;
+  created_ts: number;
+  modified_ts: number;
+  is_active: boolean;
+  permission: TeamPermission;
+  key_id: string;
+  org: string;
+  id: string;
+};
+
+type TeamData = {
+  type: string;
+  id: string;
+  attributes: TeamAttributes;
+  links?: {
+    self?: string;
+  };
+};
+
 const TeamsPage: React.FC = () => {
-  const [selectedTeam, setSelectedTeam] = useState<number | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [teams, setTeams] = useState<TeamData[]>([]);
 
-  const teams: Team[] = [
-    {
-      id: 1,
-      name: 'modern history',
-      description: 'can put desc here',
-    },
-    {
-      id: 2,
-      name: 'modern history spectrum',
-      description: 'can put desc here',
-    },
-    {
-      id: 3,
-      name: 'hindi',
-      description: 'can put desc here',
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await makeApiCall({
+          path: `auth/organizations/{org_id}/teams`,
+          method: 'GET',
+        });
+        setTeams(res.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
 
-  const handleOpenModal = (teamId: number) => {
+    fetchData();
+  }, []);
+
+  const handleOpenModal = (teamId: string) => {
     setSelectedTeam(teamId);
     setIsModalOpen(true);
   };
@@ -60,9 +79,9 @@ const TeamsPage: React.FC = () => {
             <div className="flex justify-between items-start">
               <div>
                 <h2 className="text-xl font-semibold text-white mb-2">
-                  {team.name}
+                  {team.attributes.name}
                 </h2>
-                <p className="text-gray-400">{team.description}</p>
+                <p className="text-gray-400">{team.attributes.description}</p>
               </div>
 
               <DropdownMenu>

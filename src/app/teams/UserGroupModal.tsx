@@ -16,12 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Trash2, UserPlus, X } from 'lucide-react';
+import { Check, Trash2, UserPlus, X } from 'lucide-react';
 
 interface User {
   id: number;
   email: string;
   role: 'view' | 'edit' | 'manage';
+}
+
+interface PendingRoleChange {
+  userId: number;
+  newRole: User['role'];
 }
 
 interface UserGroupModalProps {
@@ -34,6 +39,13 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
   onOpenChange,
 }) => {
   const [groupName, setGroupName] = useState<string>('Marketing Team');
+  const [pendingRoleChanges, setPendingRoleChanges] = useState<{
+    [key: number]: PendingRoleChange;
+  }>({});
+  const [successfulChanges, setSuccessfulChanges] = useState<{
+    [key: number]: boolean;
+  }>({});
+  const [newUserRole, setNewUserRole] = useState<User['role']>('view');
   const [users, setUsers] = useState<User[]>([
     { id: 1, email: 'john@example.com', role: 'manage' },
     { id: 2, email: 'sarah@example.com', role: 'edit' },
@@ -52,9 +64,10 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
     if (newUserEmail && !users.find((user) => user.email === newUserEmail)) {
       setUsers([
         ...users,
-        { id: users.length + 1, email: newUserEmail, role: 'view' },
+        { id: users.length + 1, email: newUserEmail, role: newUserRole },
       ]);
       setNewUserEmail('');
+      setNewUserRole('view'); // Reset role to default after adding
     }
   };
 
@@ -63,12 +76,58 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
     setUserToDelete(null);
   };
 
-  const handleRoleChange = (userId: number, newRole: User['role']): void => {
-    setUsers(
-      users.map((user) =>
-        user.id === userId ? { ...user, role: newRole } : user,
-      ),
-    );
+  const initiateRoleChange = (userId: number, newRole: User['role']): void => {
+    setPendingRoleChanges((prev) => ({
+      ...prev,
+      [userId]: { userId, newRole },
+    }));
+  };
+
+  const confirmRoleChange = async (userId: number): Promise<void> => {
+    const pendingChange = pendingRoleChanges[userId];
+    if (!pendingChange) return;
+
+    try {
+      // Simulate API call
+      // await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Update local state after successful API call
+      setUsers(
+        users.map((user) =>
+          user.id === userId ? { ...user, role: pendingChange.newRole } : user,
+        ),
+      );
+
+      // Show success state temporarily
+      setSuccessfulChanges((prev) => ({ ...prev, [userId]: true }));
+
+      // Clear pending change
+      setPendingRoleChanges((prev) => {
+        const newPending = { ...prev };
+        delete newPending[userId];
+        return newPending;
+      });
+
+      // Clear success state after delay
+      setTimeout(() => {
+        setSuccessfulChanges((prev) => {
+          const newSuccessful = { ...prev };
+          delete newSuccessful[userId];
+          return newSuccessful;
+        });
+      }, 2000);
+    } catch (error) {
+      console.error('Error updating role:', error);
+      // Handle error case
+    }
+  };
+
+  const cancelRoleChange = (userId: number): void => {
+    setPendingRoleChanges((prev) => {
+      const newPending = { ...prev };
+      delete newPending[userId];
+      return newPending;
+    });
   };
 
   return (
@@ -95,6 +154,7 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
             </div>
 
             {/* Add New User */}
+            {/* Add New User */}
             <div className="flex gap-2">
               <Input
                 placeholder="Enter email address"
@@ -105,6 +165,19 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                 className="flex-1"
                 type="email"
               />
+              <Select
+                value={newUserRole}
+                onValueChange={(value: User['role']) => setNewUserRole(value)}
+              >
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="view">View</SelectItem>
+                  <SelectItem value="edit">Edit</SelectItem>
+                  <SelectItem value="manage">Manage</SelectItem>
+                </SelectContent>
+              </Select>
               <Button onClick={handleAddUser}>
                 <UserPlus className="w-4 h-4 mr-2" />
                 Add User
@@ -130,7 +203,7 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                       <Select
                         value={user.role}
                         onValueChange={(value: User['role']) =>
-                          handleRoleChange(user.id, value)
+                          initiateRoleChange(user.id, value)
                         }
                       >
                         <SelectTrigger>
@@ -144,14 +217,37 @@ const UserGroupModal: React.FC<UserGroupModalProps> = ({
                       </Select>
                     </div>
                     <div className="col-span-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setUserToDelete(user)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                      {successfulChanges[user.id] ? (
+                        <Check className="w-4 h-4 text-green-500" />
+                      ) : pendingRoleChanges[user.id] ? (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => confirmRoleChange(user.id)}
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 p-0 h-auto"
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => cancelRoleChange(user.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 p-0 h-auto"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setUserToDelete(user)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}

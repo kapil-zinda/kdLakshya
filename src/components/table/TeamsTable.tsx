@@ -34,7 +34,7 @@ import {
 import { MoreHorizontal, Search } from 'lucide-react';
 
 import CreateUserGroupPopUp from '../modal/CreateUserGroupPopUp';
-import DeleteUserGroupPopup from '../modal/DeleteUserGroupPopUp';
+import DeleteUserGroupPopup from '../modal/DeleteUserGroupPopup';
 import EditUserGroupPopup from '../modal/EditUserGroupPopup';
 
 interface TeamPermission {
