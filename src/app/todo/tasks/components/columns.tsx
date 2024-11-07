@@ -1,25 +1,25 @@
-"use client";
+'use client';
 
-import { ColumnDef } from "@tanstack/react-table";
+import { Checkbox } from '@/components/ui/checkbox';
+import { ColumnDef } from '@tanstack/react-table';
 
 // import { priorities, statuses } from "../data/data";
-import { Task } from "../data/schema";
-import { DataTableColumnHeader } from "./data-table-column-header";
-import { DataTableRowActions } from "./data-table-row-actions";
-import { Checkbox } from "@/components/ui/checkbox";
-import { DataTableRowTitle } from "./data-table-row-title";
-import { DataTableRowStatus } from "./data-table-row-status";
-import { DataTableRowPriority } from "./data-table-row-priority";
-import { DataTableRowNeed } from "./data-table-row-need";
+import { Task } from '../data/schema';
+import { DataTableColumnHeader } from './data-table-column-header';
+import { DataTableRowActions } from './data-table-row-actions';
+import { DataTableRowNeed } from './data-table-row-need';
+import { DataTableRowPriority } from './data-table-row-priority';
+import { DataTableRowStatus } from './data-table-row-status';
+import { DataTableRowTitle } from './data-table-row-title';
 
 export const columns: ColumnDef<Task>[] = [
   {
-    id: "select",
+    id: 'select',
     header: ({ table }) => (
       <Checkbox
         checked={
           table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && "indeterminate")
+          (table.getIsSomePageRowsSelected() && 'indeterminate')
         }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label="Select all"
@@ -47,14 +47,14 @@ export const columns: ColumnDef<Task>[] = [
   //   enableHiding: false,
   // },
   {
-    accessorKey: "title",
+    accessorKey: 'title',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Title" />
     ),
-    cell: ({ row }) => <DataTableRowTitle row={row} />,
+    cell: ({ row }) => <DataTableRowTitle row={row.original.name} />,
   },
   {
-    accessorKey: "status",
+    accessorKey: 'status',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
@@ -64,7 +64,7 @@ export const columns: ColumnDef<Task>[] = [
     },
   },
   {
-    accessorKey: "priority",
+    accessorKey: 'priority',
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Priority" />
     ),
@@ -74,9 +74,9 @@ export const columns: ColumnDef<Task>[] = [
     },
   },
   {
-    accessorKey: "need",
+    accessorKey: 'category',
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="need" />
+      <DataTableColumnHeader column={column} title="Category" />
     ),
     cell: ({ row }) => <DataTableRowNeed row={row} />,
     filterFn: (row, id, value) => {
@@ -84,7 +84,7 @@ export const columns: ColumnDef<Task>[] = [
     },
   },
   {
-    id: "actions",
+    id: 'actions',
     cell: ({ row }) => <DataTableRowActions row={row} />,
   },
 ];

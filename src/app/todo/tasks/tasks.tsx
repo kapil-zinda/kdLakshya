@@ -1,15 +1,15 @@
-"use client";
+'use client';
 
-import { useTask } from "@/context/task-context";
-import { DataTable } from "./components/data-table";
-import { columns } from "./components/columns";
+import { useTask } from '@/context/task-context';
+
+import { DataTable } from './components/data-table';
 
 const Tasks = () => {
   const { tasks } = useTask() || [];
 
   return (
     <>
-      <DataTable data={tasks} columns={columns} />
+      <DataTable />
     </>
   );
 };

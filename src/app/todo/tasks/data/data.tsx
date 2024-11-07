@@ -8,85 +8,85 @@ import {
   CrossCircledIcon,
   QuestionMarkCircledIcon,
   StopwatchIcon,
-} from "@radix-ui/react-icons";
+} from '@radix-ui/react-icons';
 
 export const labels = [
   {
-    value: "watch",
-    label: "Watch",
+    value: 'watch',
+    label: 'Watch',
   },
   {
-    value: "analyze",
-    label: "Analyze",
+    value: 'analyze',
+    label: 'Analyze',
   },
   {
-    value: "read",
-    label: "Read",
+    value: 'read',
+    label: 'Read',
   },
   {
-    value: "learn",
-    label: "Learn",
+    value: 'learn',
+    label: 'Learn',
   },
   {
-    value: "talk",
-    label: "Talk",
+    value: 'talk',
+    label: 'Talk',
   },
   {
-    value: "walk",
-    label: "Walk",
+    value: 'walk',
+    label: 'Walk',
   },
 ];
 
 export const statuses = [
   {
-    value: "backlog",
-    label: "Backlog",
+    value: 'backlog',
+    label: 'Backlog',
     icon: QuestionMarkCircledIcon,
   },
   {
-    value: "todo",
-    label: "Todo",
+    value: 'todo',
+    label: 'Todo',
     icon: CircleIcon,
   },
   {
-    value: "in progress",
-    label: "In Progress",
+    value: 'in progress',
+    label: 'In Progress',
     icon: StopwatchIcon,
   },
   {
-    value: "done",
-    label: "Done",
+    value: 'done',
+    label: 'Done',
     icon: CheckCircledIcon,
   },
   {
-    value: "canceled",
-    label: "Canceled",
+    value: 'canceled',
+    label: 'Canceled',
     icon: CrossCircledIcon,
   },
 ];
 
 export const priorities = [
   {
-    label: "Important",
-    value: "important",
+    label: 'Important',
+    value: 'important',
     icon: ArrowUpIcon,
   },
   {
-    label: "Not Important",
-    value: "not-important",
+    label: 'Not Important',
+    value: 'not-important',
     icon: ArrowDownIcon,
   },
 ];
 
-export const needs = [
+export const categories = [
   {
-    label: "Urgent",
-    value: "urgent",
+    label: 'Urgent',
+    value: 'urgent',
     icon: ArrowLeftIcon,
   },
   {
-    label: "Not Urgent",
-    value: "not-urgent",
+    label: 'Not Urgent',
+    value: 'not-urgent',
     icon: ArrowRightIcon,
   },
-]
+];
