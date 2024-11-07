@@ -32,7 +32,7 @@ import { DataTablePagination } from '../components/data-table-pagination';
 import { AddTask } from './add-task';
 import { DataTableColumnHeader } from './data-table-column-header';
 import { DataTableRowActions } from './data-table-row-actions';
-import { DataTableRowNeed } from './data-table-row-need';
+import { DataTableRowCategory } from './data-table-row-category';
 import { DataTableRowPriority } from './data-table-row-priority';
 import { DataTableRowStatus } from './data-table-row-status';
 import { DataTableRowTitle } from './data-table-row-title';
@@ -42,15 +42,16 @@ interface ArchivedTask {
   name: string;
   due_date: string;
 }
+
 interface TodoTask {
   id: number;
   name: string;
-  status: 'todo' | 'in process' | 'done';
-  priority: 'low' | 'medium' | 'high';
-  importance: 'important' | 'not important';
-  due_date: string; // Format: "MM/DD/YY"
-  category: 'exercise' | 'study' | 'food';
-  start_date?: string; // Optional, only present in some tasks
+  status: string;
+  priority: string;
+  importance: string;
+  due_date: string;
+  category: string;
+  start_date?: string;
 }
 
 interface TodoData {
@@ -66,78 +67,6 @@ interface TodoData {
   allowed_importance: string[];
   id: string;
 }
-// interface DataTableProps<TData, TValue> {
-//   columns: ColumnDef<TData, TValue>[];
-//   data: TData[];
-// }
-export const columns: ColumnDef<TodoTask>[] = [
-  {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate')
-        }
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-        className="translate-y-[2px]"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-        className="translate-y-[2px]"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-
-  {
-    accessorKey: 'title',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Title" />
-    ),
-    cell: ({ row }) => <DataTableRowTitle row={row.original.name} />,
-  },
-  {
-    accessorKey: 'status',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
-    cell: ({ row }) => <DataTableRowStatus row={row.original.status} />,
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
-  {
-    accessorKey: 'priority',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Priority" />
-    ),
-    cell: ({ row }) => <DataTableRowPriority row={row.original.priority} />,
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
-  {
-    accessorKey: 'category',
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Category" />
-    ),
-    cell: ({ row }) => <DataTableRowNeed row={row.original.category} />,
-    filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
-    },
-  },
-  {
-    id: 'actions',
-    cell: ({ row }) => <DataTableRowActions row={row} />,
-  },
-];
 
 export function DataTable() {
   const [rowSelection, setRowSelection] = React.useState({});
@@ -147,10 +76,134 @@ export function DataTable() {
     [],
   );
   const [sorting, setSorting] = React.useState<SortingState>([]);
-  const [todoData, setTodoData] = React.useState<TodoData>({});
-  const [datas, setDatas] = React.useState<TodoTask[] | []>(todoData.tasks);
+
+  const initialTodoData: TodoData = {
+    tasks: [],
+    archived: [],
+    note: [],
+    user_id: '',
+    total_tasks_completed: 0,
+    total_tasks: 0,
+    allowed_status: [],
+    allowed_priority: [],
+    allowed_category: [],
+    allowed_importance: [],
+    id: '',
+  };
+
+  const columns: ColumnDef<TodoTask>[] = [
+    {
+      id: 'select',
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && 'indeterminate')
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+          className="translate-y-[2px]"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+          className="translate-y-[2px]"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
+      accessorKey: 'name',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Title" />
+      ),
+      cell: ({ row }) => (
+        <DataTableRowTitle row={row} updateTask={updateTask} />
+      ),
+    },
+    {
+      accessorKey: 'status',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Status" />
+      ),
+      cell: ({ row }) => (
+        <DataTableRowStatus
+          row={row}
+          updateTask={updateTask}
+          allowedStatus={todoData.allowed_status}
+        />
+      ),
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id));
+      },
+    },
+    {
+      accessorKey: 'priority',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Priority" />
+      ),
+      cell: ({ row }) => (
+        <DataTableRowPriority
+          row={row}
+          updateTask={updateTask}
+          allowedPriority={todoData.allowed_priority}
+        />
+      ),
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id));
+      },
+    },
+    {
+      accessorKey: 'category',
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="Category" />
+      ),
+      cell: ({ row }) => (
+        <DataTableRowCategory
+          row={row}
+          updateTask={updateTask}
+          allowedCategory={todoData.allowed_category}
+        />
+      ),
+      filterFn: (row, id, value) => {
+        return value.includes(row.getValue(id));
+      },
+    },
+    {
+      id: 'actions',
+      cell: ({ row }) => (
+        <DataTableRowActions
+          row={row}
+          deleteTask={deleteTask}
+          duplicateTask={duplicateTask}
+          editTask={updateTask}
+        />
+      ),
+    },
+  ];
+
+  const deleteTask = (id: number | string) => {
+    // Logic to delete task
+    console.log('Deleting task with id:', id);
+  };
+
+  const duplicateTask = (task: TodoTask) => {
+    // Logic to duplicate task
+    console.log('Duplicating task:', task);
+  };
+
+  const [todoData, setTodoData] = React.useState<TodoData>({
+    ...initialTodoData,
+  });
+  const [datas, setDatas] = React.useState<TodoTask[]>(todoData.tasks || []);
+  console.log(datas);
+
   const table = useReactTable({
-    datas,
+    data: datas,
     columns,
     state: {
       sorting,
@@ -171,7 +224,6 @@ export function DataTable() {
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
-  const [archivedTasks, setArchivedTasks] = React.useState<ArchivedTask[]>([]);
   const fetchData = async () => {
     try {
       const result = await makeApiCall({
@@ -179,43 +231,74 @@ export function DataTable() {
         method: 'GET',
       });
       setTodoData(result.data.attributes);
-      setArchivedTasks(result.data.attributes?.archived);
+      setDatas(result.data.attributes.tasks); // Ensure datas updates with new fetched tasks
     } catch (error) {
       console.log(error);
     }
   };
+
   React.useEffect(() => {
     fetchData();
   }, []);
-  const handleDeleteArchived = async (id: ArchivedTask['id']) => {
+
+  const updateTask = async (
+    id: number | string,
+    updatedData: Partial<TodoTask>,
+  ) => {
     try {
       const result = await makeApiCall({
+        path: `subject/todo/${id}`,
+        method: 'PATCH',
+        payload: { data: updatedData },
+      });
+
+      // Update the `todoData` and `datas` states to reflect changes
+      setTodoData((prevData) => {
+        const updatedTasks = prevData.tasks.map((task) =>
+          task.id === id ? { ...task, ...updatedData } : task,
+        );
+        return { ...prevData, tasks: updatedTasks };
+      });
+
+      setDatas((prevDatas) =>
+        prevDatas.map((task) =>
+          task.id === id ? { ...task, ...updatedData } : task,
+        ),
+      );
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
+
+  const [archivedTasks, setArchivedTasks] = React.useState<ArchivedTask[]>([]);
+
+  const handleDeleteArchived = async (id: ArchivedTask['id']) => {
+    try {
+      await makeApiCall({
         path: `subject/todo?todo_ids=${id}`,
         method: 'DELETE',
       });
-      console.log(result);
-      setArchivedTasks((prevData: ArchivedTask[]) =>
-        prevData.filter((item: ArchivedTask) => item.id !== id),
-      );
+      setArchivedTasks((prevData) => prevData.filter((item) => item.id !== id));
     } catch (error) {
       console.log(error);
     }
   };
+
   const handleAllClearArchived = async () => {
     try {
-      const result = await makeApiCall({
+      await makeApiCall({
         path: `subject/todo`,
         method: 'DELETE',
       });
-      console.log(result, 'rishbah ');
       fetchData();
     } catch (error) {
       console.log(error);
     }
   };
+
   const handleRestoreArchived = async (id: ArchivedTask['id']) => {
     try {
-      const result = await makeApiCall({
+      await makeApiCall({
         path: `subject/todo`,
         method: 'PATCH',
         payload: {
@@ -227,52 +310,43 @@ export function DataTable() {
           },
         },
       });
-      console.log(result, 'result');
       fetchData();
     } catch (error) {
       console.log(error);
     }
   };
-  {
-    console.log(table, 'hello');
-  }
+
   return (
     <div className="space-y-4">
       <AddTask todoData={todoData} setTodoData={setTodoData} />
-      {/* <DataTableToolbar table={table} /> */}
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead key={header.id} colSpan={header.colSpan}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
-                    </TableHead>
-                  );
-                })}
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} colSpan={header.colSpan}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext(),
+                        )}
+                  </TableHead>
+                ))}
               </TableRow>
             ))}
           </TableHeader>
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                >
+                <TableRow key={row.id}>
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext(),
-                      )}
+                      {flexRender(cell.column.columnDef.cell, {
+                        ...cell.getContext(),
+                        updateTask,
+                      })}
                     </TableCell>
                   ))}
                 </TableRow>

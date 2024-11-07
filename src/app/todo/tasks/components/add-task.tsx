@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -21,7 +21,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/components/ui/use-toast';
-import { useTask } from '@/context/task-context';
 import { makeApiCall } from '@/utils/ApiRequest';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -33,6 +32,17 @@ import dayjs, { Dayjs } from 'dayjs';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
+interface TodoTask {
+  id: number;
+  name: string;
+  status: string;
+  priority: string;
+  importance: string;
+  due_date: string;
+  category: string;
+  start_date?: string;
+}
+
 interface TodoData {
   tasks: TodoTask[];
   archived: TodoTask[];
@@ -40,10 +50,10 @@ interface TodoData {
   user_id: string;
   total_tasks_completed: number;
   total_tasks: number;
-  allowed_status: ('todo' | 'in process' | 'done')[];
-  allowed_priority: ('low' | 'medium' | 'high')[];
-  allowed_category: ('exercise' | 'study' | 'food')[];
-  allowed_importance: ('important' | 'not important')[];
+  allowed_status: string[];
+  allowed_priority: string[];
+  allowed_category: string[];
+  allowed_importance: string[];
   id: string;
 }
 
@@ -65,7 +75,13 @@ const FormSchema = z.object({
   }),
 });
 
-export function AddTask({ todoData, setTodoData }) {
+export function AddTask({
+  todoData,
+  setTodoData,
+}: {
+  todoData: TodoData;
+  setTodoData: Dispatch<SetStateAction<TodoData>>;
+}) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
@@ -77,8 +93,7 @@ export function AddTask({ todoData, setTodoData }) {
     },
   });
 
-  const { addTask } = useTask();
-  const [categoriesLocal, setCategoriesLocal] = useState<[]>(
+  const [categoriesLocal, setCategoriesLocal] = useState<string[]>(
     todoData?.allowed_category || [],
   );
   const [statusList, setStatusList] = useState(todoData?.allowed_status);
@@ -91,7 +106,6 @@ export function AddTask({ todoData, setTodoData }) {
   }, [todoData]);
 
   function onSubmit(data: z.infer<typeof FormSchema>) {
-    addTask(data);
     toast({
       title: 'You submitted the following values:',
       description: (
@@ -243,7 +257,7 @@ export function AddTask({ todoData, setTodoData }) {
   };
 
   // Handler function to update the state when a date is selected
-  const handleDateChange = (newDate) => {
+  const handleDateChange = (newDate: React.SetStateAction<null>) => {
     setSelectedDate(newDate);
   };
 

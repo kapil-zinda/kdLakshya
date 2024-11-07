@@ -23,51 +23,53 @@ interface TodoTask {
 }
 
 interface TodoData {
-  allowed_status: string[];
+  allowed_category: string[];
 }
 
-export function DataTableRowStatus({
+export function DataTableRowCategory({
   row,
   updateTask,
-  allowedStatus,
+  allowedCategory,
 }: {
   row: Row<TodoTask>;
   updateTask: (id: number | string, data: Partial<TodoTask>) => void;
-  allowedStatus: string[]; // Passed from todoData.allowed_status
+  allowedCategory: string[]; // Passed from todoData.allowed_category
 }) {
-  const [editedStatus, setEditedStatus] = useState(
-    row.getValue('status') as string,
+  const [editedCategory, setEditedCategory] = useState(
+    row.getValue('category') as string,
   );
 
-  const handleStatusChange = (newStatus: string) => {
-    setEditedStatus(newStatus);
-    updateTask(row.original.id, { status: newStatus });
+  const handleCategoryChange = (newCategory: string) => {
+    setEditedCategory(newCategory);
+    updateTask(row.original.id, { category: newCategory });
   };
 
-  if (!allowedStatus.length) {
-    return null; // Return null if there are no allowed statuses
+  if (!allowedCategory.length) {
+    return null; // Return null if there are no allowed categories
   }
 
-  const currentStatus = allowedStatus.find((status) => status === editedStatus);
+  const currentCategory = allowedCategory.find(
+    (category) => category === editedCategory,
+  );
 
   return (
     <div className="flex items-center">
       <Select
-        value={editedStatus}
-        onValueChange={handleStatusChange}
-        defaultValue={currentStatus}
+        value={editedCategory}
+        onValueChange={handleCategoryChange}
+        defaultValue={currentCategory}
       >
         <SelectTrigger className="flex w-full items-center gap-2 rounded-md px-3 py-2 outline-none">
-          <SelectValue>{currentStatus || 'Select status'}</SelectValue>
+          <SelectValue>{currentCategory || 'Select category'}</SelectValue>
         </SelectTrigger>
         <SelectContent
           position="popper"
           className="relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md"
         >
-          {allowedStatus.map((status) => (
+          {allowedCategory.map((category) => (
             <SelectItem
-              key={status}
-              value={status}
+              key={category}
+              value={category}
               className="relative flex w-full cursor-default select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
             >
               <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
@@ -75,7 +77,7 @@ export function DataTableRowStatus({
                   <Check className="h-4 w-4" />
                 </SelectItemIndicator>
               </span>
-              <div className="flex gap-2 items-center">{status}</div>
+              <div className="flex gap-2 items-center">{category}</div>
             </SelectItem>
           ))}
         </SelectContent>
