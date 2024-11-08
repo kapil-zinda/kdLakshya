@@ -79,9 +79,11 @@ const FormSchema = z.object({
 export function AddTask({
   todoData,
   setTodoData,
+  setDatas,
 }: {
   todoData: TodoData;
   setTodoData: Dispatch<SetStateAction<TodoData>>;
+  setDatas: Dispatch<SetStateAction<TodoTask[]>>;
 }) {
   const formatDate = (date: Date | null): string => {
     if (!date) return '';
@@ -110,7 +112,6 @@ export function AddTask({
   const [priorityList, setPriorityList] = useState(todoData?.allowed_priority);
   useEffect(() => {
     setCategoriesLocal(todoData?.allowed_category);
-    console.log('todoData?.allowed_category', categoriesLocal);
     setStatusList(todoData?.allowed_status);
     setPriorityList(todoData?.allowed_priority);
   }, [todoData]);
@@ -290,21 +291,20 @@ export function AddTask({
             status: data.status,
             priority: data.priority,
             category: data.category,
+            importance: 'important',
+            start_date: data.label,
           },
         },
       };
-      await makeApiCall({
+      console.log('api call being');
+      const result = await makeApiCall({
         path: 'subject/todo',
         method: 'POST',
         payload: payload,
       });
       console.log(payload, 'payload');
-      setTodoData((prevData) => {
-        const updatedTasks = prevData.tasks.map((task) =>
-          task.id === data.id ? { ...task, ...payload.data.attributes } : task,
-        );
-        return { ...prevData, tasks: updatedTasks };
-      });
+      setTodoData(result.data.attributes);
+      setDatas(result.data.attributes.tasks);
     } catch (error) {
       console.log('Error adding category:', error);
     }
@@ -470,7 +470,7 @@ export function AddTask({
 
         <Button
           type="submit"
-          onClick={() => handleSubmitTask(form.getValues())}
+          // onClick={() => handleSubmitTask(form.getValues())}
         >
           Add Task
         </Button>

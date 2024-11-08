@@ -197,8 +197,27 @@ export function DataTable() {
       // setTodoData((prevData) => prevData.tasks.filter((task) => task.id !== id)); // Update the todoData state
       setTodoData((prevData) => {
         const updatedTasks = prevData.tasks.filter((task) => task.id !== id);
-        return { ...prevData, tasks: updatedTasks };
+        const archivedTask = prevData.tasks.find((task) => task.id === id);
+
+        // Add the task to archived only if it exists
+        const updatedArchived = archivedTask
+          ? [...prevData.archived, archivedTask]
+          : prevData.archived;
+
+        setArchivedTasks(updatedArchived);
+
+        const updatedTotalTasksCompleted = prevData.total_tasks_completed + 1;
+
+        return {
+          ...prevData,
+          tasks: updatedTasks,
+          archived: updatedArchived,
+          total_tasks_completed: updatedTotalTasksCompleted,
+        };
       });
+
+      // Update the tasks state to reflect the current tasks
+      setDatas((prevDatas) => prevDatas.filter((task) => task.id !== id));
       console.log('Task deleted successfully');
     } catch (error) {
       console.log('Error deleting task:', error);
@@ -216,20 +235,19 @@ export function DataTable() {
             status: data.status,
             priority: data.priority,
             category: data.category,
+            importance: 'important',
+            start_date: data.due_date,
           },
         },
       };
-      await makeApiCall({
+      const result = await makeApiCall({
         path: 'subject/todo',
         method: 'POST',
         payload: payload,
       });
-      setTodoData((prevData) => {
-        const updatedTasks = prevData.tasks.map((task) =>
-          task.id === data.id ? { ...task, ...payload.data.attributes } : task,
-        );
-        return { ...prevData, tasks: updatedTasks };
-      });
+
+      setTodoData(result.data.attributes);
+      setDatas(result.data.attributes.tasks);
     } catch (error) {
       console.log('Error adding category:', error);
     }
@@ -271,7 +289,8 @@ export function DataTable() {
         method: 'GET',
       });
       setTodoData(result.data.attributes);
-      setDatas(result.data.attributes.tasks); // Ensure datas updates with new fetched tasks
+      setDatas(result.data.attributes.tasks);
+      setArchivedTasks(result.data.attributes.archived);
     } catch (error) {
       console.log(error);
     }
@@ -286,11 +305,30 @@ export function DataTable() {
     updatedData: Partial<TodoTask>,
   ) => {
     try {
-      const result = await makeApiCall({
+      // Create the complete updated task object
+      const completeUpdatedTask = todoData.tasks.find((task) => task.id === id)
+        ? { ...todoData.tasks.find((task) => task.id === id), ...updatedData }
+        : { ...updatedData };
+
+      delete completeUpdatedTask.id;
+      delete completeUpdatedTask.start_date;
+
+      console.log(completeUpdatedTask);
+
+      // Make API call with the complete updated task, minus `id` and `start_date`
+      await makeApiCall({
         path: `subject/todo/${id}`,
         method: 'PATCH',
-        payload: { data: updatedData },
+        payload: {
+          data: {
+            type: 'todo',
+            attributes: completeUpdatedTask,
+          },
+        },
       });
+
+      console.log(id);
+      console.log(updatedData);
 
       // Update the `todoData` and `datas` states to reflect changes
       setTodoData((prevData) => {
@@ -358,7 +396,11 @@ export function DataTable() {
 
   return (
     <div className="space-y-4">
-      <AddTask todoData={todoData} setTodoData={setTodoData} />
+      <AddTask
+        todoData={todoData}
+        setTodoData={setTodoData}
+        setDatas={setDatas}
+      />
       <div className="rounded-md border">
         <Table>
           <TableHeader>
