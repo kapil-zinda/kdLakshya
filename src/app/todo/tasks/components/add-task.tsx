@@ -148,7 +148,6 @@ export function AddTask({
           },
         },
       });
-      console.log(updatedCategories, 'rohan zidi');
       setCategoriesLocal(updatedCategories);
       setIsAddingCategory(false);
       setNewCategory('');
@@ -276,11 +275,8 @@ export function AddTask({
   // const formatDate = (date: Dayjs | null) => {
   //   return date ? date.format('DD/MM/YYYY') : '';
   // };
-  useEffect(() => {
-    console.log(todoData, 'todoData');
-  }, [todoData]);
+  useEffect(() => {}, [todoData]);
   const handleSubmitTask = async (data: any) => {
-    console.log(data, 'form submited');
     try {
       const payload = {
         data: {
@@ -296,13 +292,11 @@ export function AddTask({
           },
         },
       };
-      console.log('api call being');
       const result = await makeApiCall({
         path: 'subject/todo',
         method: 'POST',
         payload: payload,
       });
-      console.log(payload, 'payload');
       setTodoData(result.data.attributes);
       setDatas(result.data.attributes.tasks);
     } catch (error) {

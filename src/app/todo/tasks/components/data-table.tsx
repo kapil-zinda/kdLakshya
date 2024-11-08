@@ -187,14 +187,11 @@ export function DataTable() {
   ];
 
   const deleteTask = async (id: number | string) => {
-    // Logic to delete task
-    console.log('Deleting task with id:', id);
     try {
       await makeApiCall({
         path: `subject/todo/${id}`,
         method: 'DELETE',
       });
-      // setTodoData((prevData) => prevData.tasks.filter((task) => task.id !== id)); // Update the todoData state
       setTodoData((prevData) => {
         const updatedTasks = prevData.tasks.filter((task) => task.id !== id);
         const archivedTask = prevData.tasks.find((task) => task.id === id);
@@ -218,7 +215,6 @@ export function DataTable() {
 
       // Update the tasks state to reflect the current tasks
       setDatas((prevDatas) => prevDatas.filter((task) => task.id !== id));
-      console.log('Task deleted successfully');
     } catch (error) {
       console.log('Error deleting task:', error);
     }
@@ -251,14 +247,12 @@ export function DataTable() {
     } catch (error) {
       console.log('Error adding category:', error);
     }
-    console.log('Duplicating task:', data);
   };
 
   const [todoData, setTodoData] = React.useState<TodoData>({
     ...initialTodoData,
   });
   const [datas, setDatas] = React.useState<TodoTask[]>(todoData.tasks || []);
-  console.log(datas);
 
   const table = useReactTable({
     data: datas,
@@ -313,8 +307,6 @@ export function DataTable() {
       delete completeUpdatedTask.id;
       delete completeUpdatedTask.start_date;
 
-      console.log(completeUpdatedTask);
-
       // Make API call with the complete updated task, minus `id` and `start_date`
       await makeApiCall({
         path: `subject/todo/${id}`,
@@ -326,9 +318,6 @@ export function DataTable() {
           },
         },
       });
-
-      console.log(id);
-      console.log(updatedData);
 
       // Update the `todoData` and `datas` states to reflect changes
       setTodoData((prevData) => {
