@@ -186,14 +186,54 @@ export function DataTable() {
     },
   ];
 
-  const deleteTask = (id: number | string) => {
+  const deleteTask = async (id: number | string) => {
     // Logic to delete task
     console.log('Deleting task with id:', id);
+    try {
+      await makeApiCall({
+        path: `subject/todo/${id}`,
+        method: 'DELETE',
+      });
+      // setTodoData((prevData) => prevData.tasks.filter((task) => task.id !== id)); // Update the todoData state
+      setTodoData((prevData) => {
+        const updatedTasks = prevData.tasks.filter((task) => task.id !== id);
+        return { ...prevData, tasks: updatedTasks };
+      });
+      console.log('Task deleted successfully');
+    } catch (error) {
+      console.log('Error deleting task:', error);
+    }
   };
 
-  const duplicateTask = (task: TodoTask) => {
-    // Logic to duplicate task
-    console.log('Duplicating task:', task);
+  const duplicateTask = async (data: TodoTask) => {
+    try {
+      const payload = {
+        data: {
+          type: 'todo',
+          attributes: {
+            name: data.name,
+            due_date: data.due_date,
+            status: data.status,
+            priority: data.priority,
+            category: data.category,
+          },
+        },
+      };
+      await makeApiCall({
+        path: 'subject/todo',
+        method: 'POST',
+        payload: payload,
+      });
+      setTodoData((prevData) => {
+        const updatedTasks = prevData.tasks.map((task) =>
+          task.id === data.id ? { ...task, ...payload.data.attributes } : task,
+        );
+        return { ...prevData, tasks: updatedTasks };
+      });
+    } catch (error) {
+      console.log('Error adding category:', error);
+    }
+    console.log('Duplicating task:', data);
   };
 
   const [todoData, setTodoData] = React.useState<TodoData>({

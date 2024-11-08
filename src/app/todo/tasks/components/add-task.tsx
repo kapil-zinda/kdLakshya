@@ -62,8 +62,9 @@ const FormSchema = z.object({
     message: 'Write task title (ex: Geo lecture) ',
   }),
   label: z.string().min(2, {
-    message: 'Select Label (ex: watch)',
+    message: 'Select Due Date (ex: 10/10/2022)',
   }),
+  dueDate: z.string().min(1, 'Please select a date'),
   status: z.string().min(2, {
     message: 'Task Status (ex: todo)',
   }),
@@ -71,7 +72,7 @@ const FormSchema = z.object({
     message: 'Task Priority (ex: important)',
   }),
   category: z.string().min(2, {
-    message: 'Task Need (ex: Urgent)',
+    message: 'Task Category (ex: Study)',
   }),
 });
 
@@ -82,14 +83,23 @@ export function AddTask({
   todoData: TodoData;
   setTodoData: Dispatch<SetStateAction<TodoData>>;
 }) {
+  const formatDate = (date: Date | null): string => {
+    if (!date) return '';
+    return dayjs(date).format('DD/MM/YY');
+  };
+  const parseDate = (dateString: string): Date => {
+    return dayjs(dateString, 'DD/MM/YY').toDate();
+  };
+
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
-      label: '',
+      label: formatDate(new Date()),
       title: '',
       status: '',
       priority: '',
       category: '',
+      dueDate: formatDate(new Date()),
     },
   });
 
@@ -261,15 +271,48 @@ export function AddTask({
     setSelectedDate(newDate);
   };
 
-  const [value, setValue] = React.useState<Dayjs | null>(dayjs('2022-04-17'));
-  const formatDate = (date: Dayjs | null) => {
-    return date ? date.format('DD/MM/YYYY') : '';
+  const [value, setValue] = React.useState<Dayjs | null>(dayjs());
+  // const formatDate = (date: Dayjs | null) => {
+  //   return date ? date.format('DD/MM/YYYY') : '';
+  // };
+  useEffect(() => {
+    console.log(todoData, 'todoData');
+  }, [todoData]);
+  const handleSubmitTask = async (data: any) => {
+    console.log(data, 'form submited');
+    try {
+      const payload = {
+        data: {
+          type: 'todo',
+          attributes: {
+            name: data.title,
+            due_date: data.label,
+            status: data.status,
+            priority: data.priority,
+            category: data.category,
+          },
+        },
+      };
+      await makeApiCall({
+        path: 'subject/todo',
+        method: 'POST',
+        payload: payload,
+      });
+      console.log(payload, 'payload');
+      setTodoData((prevData) => {
+        const updatedTasks = prevData.tasks.map((task) =>
+          task.id === data.id ? { ...task, ...payload.data.attributes } : task,
+        );
+        return { ...prevData, tasks: updatedTasks };
+      });
+    } catch (error) {
+      console.log('Error adding category:', error);
+    }
   };
-
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(handleSubmitTask)}
         className="block p-3 md:flex gap-2 md:gap-10 justify-end items-end"
       >
         <FormField
@@ -349,36 +392,29 @@ export function AddTask({
         />
         <FormField
           control={form.control}
-          name="priority"
+          name="label"
           render={({ field }) => (
             <FormItem>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder={`${formatDate(value)}`} />
+                    {/* <SelectValue placeholder={`${formatDate(value)}`} /> */}
+                    <SelectValue placeholder="Select date">
+                      {value ? formatDate(value) : 'Select date'}
+                    </SelectValue>
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   <LocalizationProvider dateAdapter={AdapterDayjs}>
-                    {/* <DateCalendar
-                  value={selectedDate}
-                  onChange={handleDateChange}
-                   sx={{
-                    backgroundColor: '#292929',
-                    color: 'white', // Changes the text color to white
-                    '.MuiTypography-root': {
-                      color: 'white' // Applies to all typography (text) inside the calendar
-                    },
-                    '.MuiPickersDay-root': {
-                      color: 'white' // Applies to individual day cells
-                    }
-                  }} /> */}
-
                     <DemoContainer components={['DateCalendar']}>
                       <DemoItem label="Controlled calendar">
                         <DateCalendar
                           value={value}
-                          onChange={(newValue) => setValue(newValue)}
+                          // onChange={(newValue) => setValue(newValue)}
+                          onChange={(newValue) => {
+                            setValue(newValue);
+                            field.onChange(formatDate(newValue));
+                          }}
                           sx={{
                             backgroundColor: '#292929',
                             color: 'white', // Changes the text color to white
@@ -432,7 +468,12 @@ export function AddTask({
           )}
         />
 
-        <Button type="submit">Add Task</Button>
+        <Button
+          type="submit"
+          onClick={() => handleSubmitTask(form.getValues())}
+        >
+          Add Task
+        </Button>
       </form>
       {isAddingCategory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
