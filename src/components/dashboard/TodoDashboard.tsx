@@ -2,6 +2,7 @@
 
 import React from 'react';
 
+import { makeApiCall } from '@/utils/ApiRequest';
 import {
   Bar,
   BarChart,
@@ -111,7 +112,109 @@ interface CategoryData {
   value: number;
 }
 
+interface TodoTask {
+  id: number;
+  name: string;
+  status: string;
+  priority: string;
+  importance: string;
+  due_date: string;
+  category: string;
+  start_date?: string;
+}
+
+interface TodoData {
+  tasks: TodoTask[];
+  archived: TodoTask[];
+  note: string[];
+  user_id: string;
+  total_tasks_completed: number;
+  total_tasks: number;
+  allowed_status: string[];
+  allowed_priority: string[];
+  allowed_category: string[];
+  allowed_importance: string[];
+  id: string;
+}
+
 const TodoDashboard: React.FC = () => {
+  const initialTodoData: TodoData = {
+    tasks: [],
+    archived: [],
+    note: [],
+    user_id: '',
+    total_tasks_completed: 0,
+    total_tasks: 0,
+    allowed_status: [],
+    allowed_priority: [],
+    allowed_category: [],
+    allowed_importance: [],
+    id: '',
+  };
+  const [todoData, setTodoData] = React.useState<TodoData>({
+    ...initialTodoData,
+  });
+  const [datas, setDatas] = React.useState<TodoTask[]>(todoData.tasks || []);
+  const fetchData = async () => {
+    try {
+      const result = await makeApiCall({
+        path: `subject/todo`,
+        method: 'GET',
+      });
+      setTodoData(result.data.attributes);
+      setDatas(result.data.attributes.tasks);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchData();
+  }, []);
+
+  const updateTask = async (
+    id: number | string,
+    updatedData: Partial<TodoTask>,
+  ) => {
+    try {
+      // Create the complete updated task object
+      const completeUpdatedTask = todoData.tasks.find((task) => task.id === id)
+        ? { ...todoData.tasks.find((task) => task.id === id), ...updatedData }
+        : { ...updatedData };
+
+      delete completeUpdatedTask.id;
+      delete completeUpdatedTask.start_date;
+
+      // Make API call with the complete updated task, minus `id` and `start_date`
+      await makeApiCall({
+        path: `subject/todo/${id}`,
+        method: 'PATCH',
+        payload: {
+          data: {
+            type: 'todo',
+            attributes: completeUpdatedTask,
+          },
+        },
+      });
+
+      // Update the `todoData` and `datas` states to reflect changes
+      setTodoData((prevData) => {
+        const updatedTasks = prevData.tasks.map((task) =>
+          task.id === id ? { ...task, ...updatedData } : task,
+        );
+        return { ...prevData, tasks: updatedTasks };
+      });
+
+      setDatas((prevDatas) =>
+        prevDatas.map((task) =>
+          task.id === id ? { ...task, ...updatedData } : task,
+        ),
+      );
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
+
   const currentDate = new Date().toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
@@ -142,7 +245,9 @@ const TodoDashboard: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 col-span-1 md:col-span-3 lg:col-span-4">
           <div className="bg-blue-500 p-4 rounded-lg">
             <h2 className="font-bold text-sm md:text-base">TOTAL TASKS</h2>
-            <p className="text-xl md:text-2xl">18</p>
+            <p className="text-xl md:text-2xl">
+              {todoData ? todoData.total_tasks : 0}
+            </p>
           </div>
           <div className="bg-blue-500 p-4 rounded-lg">
             <h2 className="font-bold text-sm md:text-base">
@@ -156,7 +261,9 @@ const TodoDashboard: React.FC = () => {
           </div>
           <div className="bg-blue-500 p-4 rounded-lg">
             <h2 className="font-bold text-sm md:text-base">COMPLETED</h2>
-            <p className="text-xl md:text-2xl">5</p>
+            <p className="text-xl md:text-2xl">
+              {todoData ? todoData.total_tasks_completed : 0}
+            </p>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 col-span-1 md:col-span-4 lg:col-span-4 ">
