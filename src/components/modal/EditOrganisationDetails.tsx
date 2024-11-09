@@ -13,8 +13,24 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import axios from 'axios';
 
-const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
+interface Permission {
+  [key: string]: string;
+}
+interface OverviewData {
+  name?: string;
+  address?: string;
+  description?: string;
+  created_ts?: number;
+  modified_ts?: number;
+  id?: string;
+  is_active?: boolean;
+  key_id?: string;
+  org?: string;
+  owner?: string[];
+  permission?: Permission;
+}
 
+const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialogContent-root': {
     padding: theme.spacing(2),
@@ -25,10 +41,15 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
 }));
 
 export function EditOrganisationDetails({
-  onCloses = {},
-  data = '',
-  orgId = '',
-  setData = {},
+  onCloses,
+  data,
+  orgId,
+  setData,
+}: {
+  onCloses: () => void;
+  data: OverviewData;
+  orgId: string;
+  setData: React.Dispatch<React.SetStateAction<OverviewData>>;
 }) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -106,7 +127,7 @@ export function EditOrganisationDetails({
     <BootstrapDialog
       onClose={handleClose}
       aria-labelledby="customized-dialog-title"
-      open="true"
+      open={true}
     >
       <DialogTitle
         sx={{ m: 0, p: 2, width: 900, background: '#fff0f5' }}
