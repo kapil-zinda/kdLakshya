@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { toast } from '@/components/ui/use-toast';
 import { makeApiCall } from '@/utils/ApiRequest';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -87,9 +86,6 @@ export function AddTask({
     if (!date) return '';
     return dayjs(date).format('DD/MM/YY');
   };
-  const parseDate = (dateString: string): Date => {
-    return dayjs(dateString, 'DD/MM/YY').toDate();
-  };
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
@@ -114,17 +110,6 @@ export function AddTask({
     setPriorityList(todoData?.allowed_priority);
   }, [todoData]);
 
-  function onSubmit(data: z.infer<typeof FormSchema>) {
-    toast({
-      title: 'You submitted the following values:',
-      description: (
-        <pre className="mt-2 w-[340px] rounded-md bg-slate-950 p-4">
-          <code className="text-white">{JSON.stringify(data, null, 2)}</code>
-        </pre>
-      ),
-    });
-  }
-  const [selectedDate, setSelectedDate] = React.useState(null);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [isAddingStatus, setIsAddingStatus] = useState(false);
   const [isAddingPriority, setIsAddingPriority] = useState(false);
@@ -197,7 +182,7 @@ export function AddTask({
       console.log('Error adding priority:', error);
     }
   };
-  const handleDeleteCategory = async (categoryToDelete: any) => {
+  const handleDeleteCategory = async (categoryToDelete: string) => {
     try {
       const updatedCategories = categoriesLocal.filter(
         (category: string) => category !== categoryToDelete,
@@ -219,7 +204,7 @@ export function AddTask({
       console.log('Error deleting category:', error);
     }
   };
-  const handleDeletePriority = async (priorityToDelete: any) => {
+  const handleDeletePriority = async (priorityToDelete: string) => {
     try {
       const updatedPriorities = priorityList.filter(
         (priority: string) => priority !== priorityToDelete,
@@ -241,7 +226,7 @@ export function AddTask({
       console.log('Error deleting priority:', error);
     }
   };
-  const handleDeleteStatus = async (statusToDelete: any) => {
+  const handleDeleteStatus = async (statusToDelete: string) => {
     try {
       const updatedStatus = statusList.filter(
         (status: string) => status !== statusToDelete,
@@ -262,11 +247,6 @@ export function AddTask({
     } catch (error) {
       console.log('Error deleting status:', error);
     }
-  };
-
-  // Handler function to update the state when a date is selected
-  const handleDateChange = (newDate: React.SetStateAction<null>) => {
-    setSelectedDate(newDate);
   };
 
   const [value, setValue] = React.useState<Dayjs | null>(dayjs());
@@ -363,7 +343,7 @@ export function AddTask({
                 </FormControl>
                 <SelectContent>
                   {statusList &&
-                    statusList.map((status: any, index: number) => (
+                    statusList.map((status: string, index: number) => (
                       <SelectItem key={index} value={status}>
                         <div className="flex justify-center items-center gap-3">
                           {status}
@@ -441,7 +421,7 @@ export function AddTask({
                 <SelectContent>
                   <div className="flex flex-col gap-2">
                     {categoriesLocal &&
-                      categoriesLocal.map((category: any, index: number) => (
+                      categoriesLocal.map((category: string, index: number) => (
                         <SelectItem key={index} value={category}>
                           <div className="">{category}</div>
                         </SelectItem>
