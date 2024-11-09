@@ -23,13 +23,6 @@ import StatusList from './StatusTable';
 
 const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', 'red', 'pink'];
 
-interface DataEntry {
-  name: string;
-  uv: number;
-  pv: number;
-  amt: number;
-}
-
 // Define props for custom shapes
 interface TriangleBarProps {
   fill: string;
@@ -38,51 +31,6 @@ interface TriangleBarProps {
   width: number;
   height: number;
 }
-
-const data11: DataEntry[] = [
-  {
-    name: 'Page A',
-    uv: 4000,
-    pv: 2400,
-    amt: 2400,
-  },
-  {
-    name: 'Page B',
-    uv: 3000,
-    pv: 1398,
-    amt: 2210,
-  },
-  {
-    name: 'Page C',
-    uv: 2000,
-    pv: 9800,
-    amt: 2290,
-  },
-  {
-    name: 'Page D',
-    uv: 2780,
-    pv: 3908,
-    amt: 2000,
-  },
-  {
-    name: 'Page E',
-    uv: 1890,
-    pv: 4800,
-    amt: 2181,
-  },
-  {
-    name: 'Page F',
-    uv: 2390,
-    pv: 3800,
-    amt: 2500,
-  },
-  {
-    name: 'Page G',
-    uv: 3490,
-    pv: 4300,
-    amt: 2100,
-  },
-];
 
 const getPath = (
   x: number,
@@ -196,6 +144,21 @@ const TodoDashboard: React.FC = () => {
 
       setStatusData(formattedStatusData);
 
+      const categoryCounts: { [key: string]: number } = {};
+      data.tasks.forEach((task: TodoTask) => {
+        categoryCounts[task.category] =
+          (categoryCounts[task.category] || 0) + 1;
+      });
+
+      const formattedCategoryData = data.allowed_category.map(
+        (category: string) => ({
+          name: category,
+          value: categoryCounts[category] || 0,
+        }),
+      );
+
+      setCategoryData(formattedCategoryData);
+
       console.log(priorityData);
     } catch (error) {
       console.log(error);
@@ -257,6 +220,7 @@ const TodoDashboard: React.FC = () => {
 
   const [priorityData, setPriorityData] = React.useState<PriorityData[]>([]);
   const [statusData, setStatusData] = React.useState<PriorityData[]>([]);
+  const [categoryData, setCategoryData] = React.useState<CategoryData[]>([]);
   const [activePriorityIndex, setActivePriorityIndex] = React.useState<
     number | null
   >(null);
@@ -423,7 +387,7 @@ const TodoDashboard: React.FC = () => {
             <BarChart
               width={500}
               height={300}
-              data={data11}
+              data={categoryData}
               margin={{
                 top: 20,
                 right: 30,
@@ -435,12 +399,12 @@ const TodoDashboard: React.FC = () => {
               <XAxis dataKey="name" />
               <YAxis />
               <Bar
-                dataKey="uv"
+                dataKey="value"
                 fill="#8884d8"
                 shape={(props: any) => <TriangleBar {...props} />} // Pass props to the TriangleBar
                 label={{ position: 'top' }}
               >
-                {data11.map((entry, index) => (
+                {categoryData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={colors[index % colors.length]}
@@ -451,13 +415,6 @@ const TodoDashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* <div className="col-span-1 md:col-span-2 bg-blue-400 p-4 rounded-lg">
-          <h2 className="font-bold mb-2 text-sm md:text-base">NOTES</h2>
-          <ul className="text-sm md:text-base">
-            <li>October 7, 2023: Quarterly business review</li>
-            <li>October 12, 2023: Dentist appointment</li>
-          </ul>
-        </div> */}
         <NotesComponent />
 
         <div className="col-span-1 md:col-span-2 bg-yellow-800 p-4 rounded-lg">
