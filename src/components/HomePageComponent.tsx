@@ -1,19 +1,9 @@
 import React from 'react';
 
-import {
-  ArrowRight,
-  Book,
-  Building2,
-  LineChart,
-  Mail,
-  Package,
-  Phone,
-} from 'lucide-react';
+import { Book, Building2, LineChart, Mail, Package, Phone } from 'lucide-react';
 
-const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
 const AUTH0_Client_Id = process.env.NEXT_PUBLIC_AUTH0_Client_Id || '';
-const AUTH0_Client_Secreate =
-  process.env.NEXT_PUBLIC_AUTH0_Client_Secreat || '';
+process.env.NEXT_PUBLIC_AUTH0_Client_Secreat || '';
 const AUTH0_Domain_Name = process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME || '';
 const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
 
@@ -31,8 +21,9 @@ export default function HomePageComponent() {
       {/* Navigation */}
       <nav className="flex items-center justify-between p-6">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg"></div>
-          <span className="text-xl font-semibold">Finance Pro</span>
+          <a href="#" className="text-xl font-semibold">
+            10k Hours
+          </a>
         </div>
         <div className="hidden md:flex space-x-8">
           <a href="#pricing" className="hover:text-blue-400 px-4 py-2">
@@ -57,18 +48,18 @@ export default function HomePageComponent() {
             JOIN THE FUTURE
           </button> */}
           <h1 className="text-5xl md:text-7xl font-bold leading-tight">
-            Welcome to 10k Hours
-            <br /> Simplify Your Task Managemen
+            Welcome to 10K-Hours
+            <br /> Simplify Your Time Management
           </h1>
           <p className="text-slate-400 text-xl max-w-2xl">
             Easily manage tasks and projects with a customizable dashboard—track
             progress, collaborate, organize notes, and manage files all in one
             place.
           </p>
-          <button className="flex items-center space-x-2 px-6 py-3 bg-blue-600 rounded-full hover:bg-blue-700">
+          {/* <button className="flex items-center space-x-2 px-6 py-3 bg-blue-600 rounded-full hover:bg-blue-700">
             <span>Let&apos;s get started</span>
             <ArrowRight size={20} />
-          </button>
+          </button> */}
         </div>
       </section>
 
@@ -76,7 +67,7 @@ export default function HomePageComponent() {
       <section className="px-6 py-20 ">
         <div className="max-w-6xl mx-auto grid md:grid-cols-1 gap-12 ">
           <div className="space-y-8 ">
-            <div className="space-y-4 bg-blue-950 p-4 rounded-sm">
+            <div className="space-y-4 bg-blue-950 p-4 rounded-lg">
               <LineChart className="w-12 h-12 text-blue-500" />
               <h3 className="text-2xl font-bold">
                 Task Tracking & Visualization
@@ -86,10 +77,10 @@ export default function HomePageComponent() {
                 manage tasks by status, priority, and category. Visualize
                 progress through customizable charts and graphs.
               </p>
-              <button className="flex items-center space-x-2 text-blue-500">
+              {/* <button className="flex items-center space-x-2 text-blue-500">
                 <span>Learn more</span>
                 <ArrowRight size={16} />
-              </button>
+              </button> */}
             </div>
 
             {/* <div className="space-y-4">
@@ -101,7 +92,7 @@ export default function HomePageComponent() {
                 <ArrowRight size={16} />
               </button>
             </div> */}
-            <div className="space-y-4 text-right bg-blue-950 p-4 rounded-sm">
+            <div className="space-y-4 text-right bg-blue-950 p-4 rounded-lg">
               {/* <PiggyBank className="w-12 h-12 text-blue-500 mx-auto md:mr-0" /> */}
               <Book className="w-12 h-12 text-blue-500 mx-auto md:mr-0" />
               <h3 className="text-2xl font-bold">Notes & Files Management</h3>
@@ -110,13 +101,13 @@ export default function HomePageComponent() {
                 your team, so you always have the information you need at your
                 fingertips.
               </p>
-              <button className="w-full flex items-center justify-end space-x-2 text-blue-500 text-right">
+              {/* <button className="w-full flex items-center justify-end space-x-2 text-blue-500 text-right">
                 <span className="text-right">Learn more</span>
                 <ArrowRight size={16} />
-              </button>
+              </button> */}
             </div>
 
-            <div className="space-y-4 bg-blue-950 p-4 rounded-sm">
+            <div className="space-y-4 bg-blue-950 p-4 rounded-lg">
               <Package className="w-12 h-12 text-blue-500" />
               <h3 className="text-2xl font-bold">Collaboration Tools</h3>
               <p className="text-slate-400">
@@ -124,10 +115,10 @@ export default function HomePageComponent() {
                 management. Collaborate efficiently and keep everyone aligned
                 with shared resources.
               </p>
-              <button className="flex items-center space-x-2 text-blue-500 ">
+              {/* <button className="flex items-center space-x-2 text-blue-500 ">
                 <span>Learn more</span>
                 <ArrowRight size={16} />
-              </button>
+              </button> */}
             </div>
           </div>
 
@@ -253,25 +244,25 @@ export default function HomePageComponent() {
       <section className="px-6 py-20 bg-slate-900/50">
         <div className="max-w-6xl mx-auto space-y-8 text-center">
           <h2 className="text-4xl font-bold">
-            Most used financial app
+            A New Era in Task Management
             <br />
-            used by millions of happy users
+            Designed to Simplify and Empower Your Workflow
           </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-6 bg-slate-800/50 rounded-xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* <div className="p-6 bg-slate-800/50 rounded-xl">
               <div className="text-3xl font-bold">150k+</div>
               <div className="text-slate-400">Active Customers</div>
-            </div>
+            </div> */}
             <div className="p-6 bg-slate-800/50 rounded-xl">
-              <div className="text-3xl font-bold">5%+</div>
-              <div className="text-slate-400">Spending reduction</div>
+              <div className="text-3xl font-bold">30%+</div>
+              <div className="text-slate-400">Enhancing productivity</div>
             </div>
             <div className="p-6 bg-slate-800/50 rounded-xl">
               <div className="text-3xl font-bold">20%+</div>
-              <div className="text-slate-400">Increase savings</div>
+              <div className="text-slate-400">Increase efficiency</div>
             </div>
             <div className="p-6 bg-slate-800/50 rounded-xl">
-              <div className="text-3xl font-bold">99k+</div>
+              <div className="text-3xl font-bold">90%+</div>
               <div className="text-slate-400">Positive reviews</div>
             </div>
           </div>
