@@ -4,8 +4,6 @@ import * as React from 'react';
 
 import { usePathname } from 'next/navigation';
 
-import { ChallengeProvider } from '@/context/challenge-context';
-import { TaskProvider } from '@/context/task-context';
 import axios from 'axios';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { type ThemeProviderProps } from 'next-themes/dist/types';
@@ -153,10 +151,7 @@ export function Providers({ children }: ThemeProviderProps) {
       enableSystem
       disableTransitionOnChange
     >
-      <ChallengeProvider>
-        {/* <div onClick={loginHandler}>login</div> */}
-        <TaskProvider>{children}</TaskProvider>
-      </ChallengeProvider>
+      {children}
     </NextThemesProvider>
   );
 }
