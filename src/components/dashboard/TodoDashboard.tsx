@@ -320,7 +320,10 @@ const TodoDashboard: React.FC = () => {
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 col-span-1 md:col-span-4 lg:col-span-4 ">
-          <TaskList />
+          <TaskList
+            datas={datas}
+            allowed_priority={todoData.allowed_priority}
+          />
           <CategoryList />
           <StatusList />
           <div className="col-span-1 space-y-4">
