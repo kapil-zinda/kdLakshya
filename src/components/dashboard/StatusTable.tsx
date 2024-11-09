@@ -8,44 +8,29 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-type Status = 'todo' | 'progress' | 'done' | 'all';
+type Status = 'done' | 'all' | string;
 
-interface Task {
+interface TodoTask {
   id: number;
   name: string;
-  task: string;
-  status: Exclude<Status, 'all'>;
+  status: string;
+  priority: string;
+  importance: string;
+  due_date: string;
+  category: string;
+  start_date?: string;
 }
 
-const StatusList: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, name: 'John', task: 'Review Q3 sales report', status: 'todo' },
-    {
-      id: 2,
-      name: 'Sarah',
-      task: 'Prepare presentation slides',
-      status: 'progress',
-    },
-    { id: 3, name: 'Mike', task: 'Update client database', status: 'done' },
-    { id: 4, name: 'Emma', task: 'Schedule team meeting', status: 'todo' },
-  ]);
+interface StatusListProps {
+  datas: TodoTask[];
+  allowed_status: string[];
+}
 
+const StatusList: React.FC<StatusListProps> = ({ datas, allowed_status }) => {
   const [filter, setFilter] = useState<Status>('all');
 
-  // const handleStatusChange = (taskId: number, newStatus: Exclude<Status, 'all'>) => {
-  //   setTasks(tasks.map(task =>
-  //     task.id === taskId ? { ...task, status: newStatus } : task
-  //   ));
-  // };
-
-  // const priorityColors: Record<Exclude<Status, 'all'>, string> = {
-  //   todo: 'bg-green-200 text-green-800',
-  //   progress: 'bg-yellow-200 text-yellow-800',
-  //   done: 'bg-red-200 text-red-800',
-  // };
-
   const filteredTasks =
-    filter === 'all' ? tasks : tasks.filter((task) => task.status === filter);
+    filter === 'all' ? datas : datas.filter((task) => task.status === filter);
   return (
     <div className="bg-gray-600 p-4 rounded-lg">
       <div className="mb-4 flex">
@@ -58,15 +43,16 @@ const StatusList: React.FC = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
-            <SelectItem value="todo">TODO</SelectItem>
-            <SelectItem value="progress">In progress</SelectItem>
-            <SelectItem value="done">Done</SelectItem>
+            {allowed_status.map((status) => (
+              <SelectItem key={status} value={status}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
       <ul className="space-y-2 text-sm md:text-base">
         {filteredTasks.map((task) => (
-          // style={{background: priorityColors[task.priority]}}
           <li
             key={task.id}
             className="flex items-center justify-between text-white"
@@ -80,7 +66,7 @@ const StatusList: React.FC = () => {
                 background: '#757575',
               }}
             >
-              {task.name}: {task.task}
+              {task.name}: {task.due_date}
             </span>
           </li>
         ))}

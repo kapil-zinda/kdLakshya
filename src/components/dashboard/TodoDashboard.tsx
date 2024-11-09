@@ -324,8 +324,11 @@ const TodoDashboard: React.FC = () => {
             datas={datas}
             allowed_priority={todoData.allowed_priority}
           />
-          <CategoryList />
-          <StatusList />
+          <CategoryList
+            datas={datas}
+            allowed_category={todoData.allowed_category}
+          />
+          <StatusList datas={datas} allowed_status={todoData.allowed_status} />
           <div className="col-span-1 space-y-4">
             <div className="bg-cyan-700 p-4 rounded-lg">
               <h2 className="font-bold mb-2 text-sm md:text-base">
