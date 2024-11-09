@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 import {
   Select,
@@ -24,10 +24,18 @@ interface TodoTask {
 interface StatusListProps {
   datas: TodoTask[];
   allowed_status: string[];
+  setsectedtask: Dispatch<SetStateAction<TodoTask | null>>;
+  seteditmodelopen: Dispatch<SetStateAction<boolean>>;
 }
 
-const StatusList: React.FC<StatusListProps> = ({ datas, allowed_status }) => {
+const StatusList: React.FC<StatusListProps> = ({
+  datas,
+  allowed_status,
+  setsectedtask,
+  seteditmodelopen,
+}) => {
   const [filter, setFilter] = useState<Status>('all');
+  useEffect(() => {}, [datas]);
 
   const filteredTasks =
     filter === 'all' ? datas : datas.filter((task) => task.status === filter);
@@ -55,7 +63,11 @@ const StatusList: React.FC<StatusListProps> = ({ datas, allowed_status }) => {
         {filteredTasks.map((task) => (
           <li
             key={task.id}
-            className="flex items-center justify-between text-white"
+            className="flex items-center justify-between text-white cursor-pointer hover:text-gray-200"
+            onClick={() => {
+              setsectedtask(task);
+              seteditmodelopen(true);
+            }}
           >
             <span
               style={{

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 import {
   Select,
@@ -24,10 +24,18 @@ interface TodoTask {
 interface TaskListProps {
   datas: TodoTask[];
   allowed_priority: string[];
+  setsectedtask: Dispatch<SetStateAction<TodoTask | null>>;
+  seteditmodelopen: Dispatch<SetStateAction<boolean>>;
 }
 
-const TaskList: React.FC<TaskListProps> = ({ datas, allowed_priority }) => {
+const TaskList: React.FC<TaskListProps> = ({
+  datas,
+  allowed_priority,
+  setsectedtask,
+  seteditmodelopen,
+}) => {
   const [filter, setFilter] = useState<Priority>('all');
+  useEffect(() => {}, [datas]);
 
   // Priority-specific colors; other priorities will get default styles.
   const priorityColors: Record<string, string> = {
@@ -63,7 +71,11 @@ const TaskList: React.FC<TaskListProps> = ({ datas, allowed_priority }) => {
         {filteredTasks.map((task) => (
           <li
             key={task.id}
-            className="flex items-center justify-between text-white"
+            className="flex items-center justify-between text-white cursor-pointer hover:text-gray-200"
+            onClick={() => {
+              setsectedtask(task);
+              seteditmodelopen(true);
+            }}
           >
             <span
               className={priorityColors[task.priority] || 'bg-white text-black'}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 import {
   Select,
@@ -24,13 +24,18 @@ interface TodoTask {
 interface CategoryListProps {
   datas: TodoTask[];
   allowed_category: string[];
+  setsectedtask: Dispatch<SetStateAction<TodoTask | null>>;
+  seteditmodelopen: Dispatch<SetStateAction<boolean>>;
 }
 
 const CategoryList: React.FC<CategoryListProps> = ({
   datas,
   allowed_category,
+  setsectedtask,
+  seteditmodelopen,
 }) => {
   const [filter, setFilter] = useState<Category>('all');
+  useEffect(() => {}, [datas]);
 
   const filteredTasks =
     filter === 'all' ? datas : datas.filter((task) => task.category === filter);
@@ -60,7 +65,11 @@ const CategoryList: React.FC<CategoryListProps> = ({
           // style={{background: priorityColors[task.priority]}}
           <li
             key={task.id}
-            className="flex items-center justify-between text-white"
+            className="flex items-center justify-between text-white cursor-pointer hover:text-gray-200"
+            onClick={() => {
+              setsectedtask(task);
+              seteditmodelopen(true);
+            }}
           >
             <span
               style={{
