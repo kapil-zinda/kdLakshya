@@ -199,7 +199,7 @@ const TodoDashboard: React.FC = () => {
 
   React.useEffect(() => {
     fetchData();
-  }, []);
+  });
 
   const updateTask = async (
     id: number | string,
