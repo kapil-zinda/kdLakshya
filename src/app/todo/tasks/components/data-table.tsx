@@ -2,6 +2,7 @@
 
 import * as React from 'react';
 
+import TaskEditModal from '@/components/dashboard/TaskEditModel';
 import ArchivedTasksDrawer from '@/components/todo/ArchivedTasksDrawer';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -180,7 +181,8 @@ export function DataTable() {
           row={row}
           deleteTask={deleteTask}
           duplicateTask={duplicateTask}
-          editTask={updateTask}
+          setsectedtask={setSelectedTask}
+          seteditmodelopen={setIsEditModalOpen}
         />
       ),
     },
@@ -383,6 +385,9 @@ export function DataTable() {
     }
   };
 
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState<boolean>(false);
+  const [selectedTask, setSelectedTask] = React.useState<TodoTask | null>(null);
+
   return (
     <div className="space-y-4">
       <AddTask
@@ -442,6 +447,22 @@ export function DataTable() {
         onDelete={handleDeleteArchived}
         archivedTasks={archivedTasks}
       />
+      {selectedTask && (
+        <TaskEditModal
+          task={selectedTask}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedTask(null);
+          }}
+          onUpdate={updateTask}
+          allowedFields={{
+            allowed_priority: todoData.allowed_priority,
+            allowed_status: todoData.allowed_status,
+            allowed_category: todoData.allowed_category,
+          }}
+        />
+      )}
     </div>
   );
 }

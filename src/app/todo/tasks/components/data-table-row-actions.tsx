@@ -1,5 +1,7 @@
 'use client';
 
+import { Dispatch, SetStateAction } from 'react';
+
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -29,14 +31,16 @@ interface DataTableRowActionsProps<TData> {
   row: Row<TData>; // The row object from the table, representing a task
   deleteTask: (id: number) => void; // Function to delete a task by its id
   duplicateTask: (task: TData) => void; // Function to duplicate a task
-  editTask: (id: number | string, data: Partial<TodoTask>) => void; // Function to edit a task (opens a modal, etc.)
+  setsectedtask: Dispatch<SetStateAction<TodoTask | null>>;
+  seteditmodelopen: Dispatch<SetStateAction<boolean>>;
 }
 
 export function DataTableRowActions<TData extends TodoTask>({
   row,
   deleteTask,
   duplicateTask,
-  editTask,
+  setsectedtask,
+  seteditmodelopen,
 }: DataTableRowActionsProps<TData>) {
   const task = row.original; // Access the row's original data
 
@@ -46,10 +50,6 @@ export function DataTableRowActions<TData extends TodoTask>({
 
   const handleCopy = () => {
     duplicateTask(task); // Call duplicateTask with the task object
-  };
-
-  const handleEdit = () => {
-    editTask(task.id, task); // Call editTask with the task object
   };
 
   return (
@@ -64,7 +64,14 @@ export function DataTableRowActions<TData extends TodoTask>({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[160px]">
-        <DropdownMenuItem onClick={handleEdit}>Edit</DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            setsectedtask(task);
+            seteditmodelopen(true);
+          }}
+        >
+          Edit
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={handleCopy}>Make a copy</DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleDelete}>
