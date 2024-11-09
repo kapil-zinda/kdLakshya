@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 import {
   Select,
@@ -8,49 +8,38 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-type Category = 'physics' | 'maths' | 'chemistery' | 'all';
+type Category = 'all' | string;
 
-interface Task {
+interface TodoTask {
   id: number;
   name: string;
-  task: string;
-  category: Exclude<Category, 'all'>;
+  status: string;
+  priority: string;
+  importance: string;
+  due_date: string;
+  category: string;
+  start_date?: string;
 }
 
-const CategoryList: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, name: 'John', task: 'Review Q3 sales report', category: 'maths' },
-    {
-      id: 2,
-      name: 'Sarah',
-      task: 'Prepare presentation slides',
-      category: 'chemistery',
-    },
-    {
-      id: 3,
-      name: 'Mike',
-      task: 'Update client database',
-      category: 'physics',
-    },
-    { id: 4, name: 'Emma', task: 'Schedule team meeting', category: 'maths' },
-  ]);
+interface CategoryListProps {
+  datas: TodoTask[];
+  allowed_category: string[];
+  setsectedtask: Dispatch<SetStateAction<TodoTask | null>>;
+  seteditmodelopen: Dispatch<SetStateAction<boolean>>;
+}
 
+const CategoryList: React.FC<CategoryListProps> = ({
+  datas,
+  allowed_category,
+  setsectedtask,
+  seteditmodelopen,
+}) => {
   const [filter, setFilter] = useState<Category>('all');
-
-  // const handleCategoryChange = (taskId: number, newCategory: Exclude<Category, 'all'>) => {
-  //   setTasks(tasks.map(task =>
-  //     task.id === taskId ? { ...task, category: newCategory } : task
-  //   ));
-  // };
-
-  // const priorityColors: Record<Exclude<Category, 'all'>, string> = {
-  //   physics: 'bg-green-200 text-green-800',
-  //   maths: 'bg-yellow-200 text-yellow-800',
-  //   chemistery: 'bg-red-200 text-red-800',
-  // };
+  useEffect(() => {}, [datas]);
 
   const filteredTasks =
-    filter === 'all' ? tasks : tasks.filter((task) => task.category === filter);
+    filter === 'all' ? datas : datas.filter((task) => task.category === filter);
+
   return (
     <div className="bg-gray-600 p-4 rounded-lg">
       <div className="mb-4 flex">
@@ -63,9 +52,11 @@ const CategoryList: React.FC = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
-            <SelectItem value="physics">Physics</SelectItem>
-            <SelectItem value="maths">Maths</SelectItem>
-            <SelectItem value="chemistery">Chemistery</SelectItem>
+            {allowed_category.map((category) => (
+              <SelectItem key={category} value={category}>
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -74,7 +65,11 @@ const CategoryList: React.FC = () => {
           // style={{background: priorityColors[task.priority]}}
           <li
             key={task.id}
-            className="flex items-center justify-between text-white"
+            className="flex items-center justify-between text-white cursor-pointer hover:text-gray-200"
+            onClick={() => {
+              setsectedtask(task);
+              seteditmodelopen(true);
+            }}
           >
             <span
               style={{
@@ -85,7 +80,7 @@ const CategoryList: React.FC = () => {
                 background: '#757575',
               }}
             >
-              {task.name}: {task.task}
+              {task.name}: {task.due_date}
             </span>
           </li>
         ))}

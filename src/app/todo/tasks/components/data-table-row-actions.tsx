@@ -1,49 +1,56 @@
-"use client";
+'use client';
 
-import { DotsHorizontalIcon } from "@radix-ui/react-icons";
-import { Row } from "@tanstack/react-table";
+import { Dispatch, SetStateAction } from 'react';
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from '@/components/ui/dropdown-menu';
+import { DotsHorizontalIcon } from '@radix-ui/react-icons';
+import { Row } from '@tanstack/react-table';
 
-import { labels } from "../data/data";
-import { taskSchema } from "../data/schema";
-import { useTask } from "@/context/task-context";
-
-interface DataTableRowActionsProps<TData> {
-  row: Row<TData>;
+// Define the TodoTask interface
+interface TodoTask {
+  id: number;
+  name: string;
+  status: string;
+  priority: string;
+  importance: string;
+  due_date: string;
+  category: string;
+  start_date?: string;
 }
 
-export function DataTableRowActions<TData>({
+// Define the props for DataTableRowActions
+interface DataTableRowActionsProps<TData> {
+  row: Row<TData>; // The row object from the table, representing a task
+  deleteTask: (id: number) => void; // Function to delete a task by its id
+  duplicateTask: (task: TData) => void; // Function to duplicate a task
+  setsectedtask: Dispatch<SetStateAction<TodoTask | null>>;
+  seteditmodelopen: Dispatch<SetStateAction<boolean>>;
+}
+
+export function DataTableRowActions<TData extends TodoTask>({
   row,
+  deleteTask,
+  duplicateTask,
+  setsectedtask,
+  seteditmodelopen,
 }: DataTableRowActionsProps<TData>) {
-  const task = taskSchema.parse(row.original);
-  const { deleteTask, duplicateTask, updateTask } = useTask();
+  const task = row.original; // Access the row's original data
 
   const handleDelete = () => {
-    deleteTask(task.id);
+    deleteTask(task.id); // Call deleteTask with the task id
   };
 
   const handleCopy = () => {
-    duplicateTask(task);
+    duplicateTask(task); // Call duplicateTask with the task object
   };
-
-   const handleDropDown = (selectedLabel: string) => {
-     updateTask(task.id, { label: selectedLabel });
-   };
-
 
   return (
     <DropdownMenu>
@@ -57,25 +64,15 @@ export function DataTableRowActions<TData>({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[160px]">
-        <DropdownMenuItem>Edit</DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            setsectedtask(task);
+            seteditmodelopen(true);
+          }}
+        >
+          Edit
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={handleCopy}>Make a copy</DropdownMenuItem>
-        <DropdownMenuItem>Favorite</DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuSub>
-          <DropdownMenuSubTrigger>Category</DropdownMenuSubTrigger>
-          <DropdownMenuSubContent>
-            <DropdownMenuRadioGroup
-              value={task.title}
-              onValueChange={handleDropDown}
-            >
-              {labels.map((label) => (
-                <DropdownMenuRadioItem key={label.value} value={label.value}>
-                  {label.label}
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuSubContent>
-        </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleDelete}>
           Delete

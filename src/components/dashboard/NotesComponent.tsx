@@ -1,19 +1,43 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
+import { makeApiCall } from '@/utils/ApiRequest';
 import { Edit2 } from 'lucide-react';
 
-const NotesComponent: React.FC = () => {
-  const [notes, setNotes] = useState<string[]>([
-    'October 7, 2023: Quarterly business review',
-    'October 12, 2023: Dentist appointment',
-  ]);
+interface NotesComponentProps {
+  notes: string[];
+}
+
+const NotesComponent: React.FC<NotesComponentProps> = ({ notes }) => {
   const [newNote, setNewNote] = useState<string>('');
+  const [currNotes, setCurrNotes] = useState<string[]>(notes);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  const handleAddNote = (): void => {
+  useEffect(() => {}, [notes]);
+
+  const handleAddNote = async () => {
     if (newNote.trim()) {
-      setNotes([...notes, newNote]);
-      setNewNote(''); // Clear the input after adding
+      try {
+        const updatedNotes = [...currNotes, newNote];
+
+        await makeApiCall({
+          path: 'subject/todo',
+          method: 'PATCH',
+          payload: {
+            data: {
+              type: 'todo',
+              attributes: {
+                note: updatedNotes,
+              },
+            },
+          },
+        });
+
+        setCurrNotes(updatedNotes);
+
+        setNewNote('');
+      } catch (error) {
+        console.log('Error adding notes:', error);
+      }
     }
   };
 
@@ -22,32 +46,57 @@ const NotesComponent: React.FC = () => {
     setNewNote(notes[index]);
   };
 
-  const handleUpdateNote = (): void => {
+  const handleUpdateNote = async () => {
     if (editingIndex !== null) {
       if (newNote.trim()) {
-        const updatedNotes = [...notes];
+        const updatedNotes = [...currNotes];
         updatedNotes[editingIndex] = newNote;
-        setNotes(updatedNotes);
+
+        await makeApiCall({
+          path: 'subject/todo',
+          method: 'PATCH',
+          payload: {
+            data: {
+              type: 'todo',
+              attributes: {
+                note: updatedNotes,
+              },
+            },
+          },
+        });
+
+        setCurrNotes(updatedNotes);
       } else {
         // Remove the note if it's empty
-        const updatedNotes = notes.filter((_, index) => index !== editingIndex);
-        setNotes(updatedNotes);
+        const updatedNotes = currNotes.filter(
+          (_, index) => index !== editingIndex,
+        );
+
+        await makeApiCall({
+          path: 'subject/todo',
+          method: 'PATCH',
+          payload: {
+            data: {
+              type: 'todo',
+              attributes: {
+                note: updatedNotes,
+              },
+            },
+          },
+        });
+
+        setCurrNotes(updatedNotes);
       }
       setNewNote('');
       setEditingIndex(null);
     }
   };
 
-  // const handleDeleteNote = (index: number): void => {
-  //   const updatedNotes = notes.filter((_, i) => i !== index);
-  //   setNotes(updatedNotes);
-  // };
-
   return (
     <div className="col-span-1 md:col-span-2 bg-blue-400 p-4 rounded-lg">
       <h2 className="font-bold mb-2 text-[20px] md:text-[22px]">NOTES</h2>
       <ul className="text-sm md:text-base">
-        {notes.map((note, index) => (
+        {currNotes.map((note, index) => (
           <React.Fragment key={index}>
             <li className="flex items-center justify-between">
               <span>{note}</span>
