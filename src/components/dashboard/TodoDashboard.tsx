@@ -11,6 +11,7 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
@@ -161,8 +162,41 @@ const TodoDashboard: React.FC = () => {
         path: `subject/todo`,
         method: 'GET',
       });
-      setTodoData(result.data.attributes);
-      setDatas(result.data.attributes.tasks);
+      const data = result.data.attributes;
+      setTodoData(data);
+      setDatas(data.tasks);
+
+      const priorityCounts: { [key: string]: number } = {};
+      data.tasks.forEach((task: TodoTask) => {
+        priorityCounts[task.priority] =
+          (priorityCounts[task.priority] || 0) + 1;
+      });
+
+      const formattedPriorityData = data.allowed_priority.map(
+        (priority: string) => ({
+          name: priority,
+          value: priorityCounts[priority] || 0,
+          color:
+            colors[data.allowed_priority.indexOf(priority) % colors.length],
+        }),
+      );
+
+      setPriorityData(formattedPriorityData);
+
+      const statusCounts: { [key: string]: number } = {};
+      data.tasks.forEach((task: TodoTask) => {
+        statusCounts[task.status] = (statusCounts[task.status] || 0) + 1;
+      });
+
+      const formattedStatusData = data.allowed_status.map((status: string) => ({
+        name: status,
+        value: statusCounts[status] || 0,
+        color: colors[data.allowed_status.indexOf(status) % colors.length],
+      }));
+
+      setStatusData(formattedStatusData);
+
+      console.log(priorityData);
     } catch (error) {
       console.log(error);
     }
@@ -221,12 +255,32 @@ const TodoDashboard: React.FC = () => {
     year: 'numeric',
   });
 
-  const priorityData: PriorityData[] = [
-    { name: 'High', value: 4, color: '#ff6b6b' },
-    { name: 'Medium', value: 3, color: '#feca57' },
-    { name: 'Low', value: 2, color: '#48dbfb' },
-    { name: 'None', value: 1, color: '#c8d6e5' },
-  ];
+  const [priorityData, setPriorityData] = React.useState<PriorityData[]>([]);
+  const [statusData, setStatusData] = React.useState<PriorityData[]>([]);
+  const [activePriorityIndex, setActivePriorityIndex] = React.useState<
+    number | null
+  >(null);
+  const [activeStatusIndex, setActiveStatusIndex] = React.useState<
+    number | null
+  >(null);
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div
+          style={{
+            background: '#000',
+            color: '#fff',
+            padding: '10px',
+            borderRadius: '5px',
+          }}
+        >
+          <p>{`${payload[0].name} : ${payload[0].value}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="bg-gray-800  p-4 md:p-6 font-sans rounded-3xl w-[100%]">
@@ -286,11 +340,29 @@ const TodoDashboard: React.FC = () => {
                     outerRadius={80}
                     fill="#8884d8"
                     label
+                    onClick={(index) => setActivePriorityIndex(index)}
                   >
                     {priorityData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                        // Change the background and text color when active
+                        style={{
+                          cursor: 'pointer',
+                          fill:
+                            index === activePriorityIndex
+                              ? '#000'
+                              : entry.color,
+                          color:
+                            index === activePriorityIndex
+                              ? '#fff'
+                              : entry.color,
+                        }}
+                      />
                     ))}
                   </Pie>
+                  {/* Tooltip */}
+                  <Tooltip content={<CustomTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -314,7 +386,7 @@ const TodoDashboard: React.FC = () => {
           <ResponsiveContainer width="100%" height={256}>
             <PieChart>
               <Pie
-                data={priorityData}
+                data={statusData}
                 dataKey="value"
                 nameKey="name"
                 cx="50%"
@@ -322,11 +394,23 @@ const TodoDashboard: React.FC = () => {
                 outerRadius={80}
                 fill="#8884d8"
                 label
+                onClick={(index) => setActiveStatusIndex(index)}
               >
-                {priorityData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                {statusData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.color}
+                    // Change the background and text color when active
+                    style={{
+                      cursor: 'pointer',
+                      fill: index === activeStatusIndex ? '#000' : entry.color,
+                      color: index === activeStatusIndex ? '#fff' : entry.color,
+                    }}
+                  />
                 ))}
               </Pie>
+              {/* Tooltip */}
+              <Tooltip content={<CustomTooltip />} />
             </PieChart>
           </ResponsiveContainer>
         </div>
