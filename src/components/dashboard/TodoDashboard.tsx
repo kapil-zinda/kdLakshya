@@ -188,14 +188,10 @@ const TodoDashboard: React.FC = () => {
 
       const overdueTasks = data.tasks.filter((task: TodoTask) => {
         const dueDate = parseDate(task.due_date);
-        console.log(dueDate, todayNum);
         return dueDate < todayNum;
       });
 
       setOverdueTasksCount(overdueTasks.length);
-
-      console.log(priorityData);
-      console.log(formattedToday);
     } catch (error) {
       console.log(error);
     }

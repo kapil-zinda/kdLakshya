@@ -33,7 +33,6 @@ const NotesComponent: React.FC<NotesComponentProps> = ({ notes }) => {
         });
 
         setCurrNotes(updatedNotes);
-        console.log(updatedNotes);
 
         setNewNote('');
       } catch (error) {
