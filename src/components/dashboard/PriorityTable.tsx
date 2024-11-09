@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 
 import {
   Select,
@@ -8,44 +8,45 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-type Priority = 'low' | 'medium' | 'high' | 'all';
+type Priority = 'low' | 'medium' | 'high' | 'all' | string;
 
-interface Task {
+interface TodoTask {
   id: number;
   name: string;
-  task: string;
-  priority: Exclude<Priority, 'all'>;
+  status: string;
+  priority: string;
+  importance: string;
+  due_date: string;
+  category: string;
+  start_date?: string;
 }
 
-const TaskList: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: 1, name: 'John', task: 'Review Q3 sales report', priority: 'medium' },
-    {
-      id: 2,
-      name: 'Sarah',
-      task: 'Prepare presentation slides',
-      priority: 'high',
-    },
-    { id: 3, name: 'Mike', task: 'Update client database', priority: 'low' },
-    { id: 4, name: 'Emma', task: 'Schedule team meeting', priority: 'medium' },
-  ]);
+interface TaskListProps {
+  datas: TodoTask[];
+  allowed_priority: string[];
+  setsectedtask: Dispatch<SetStateAction<TodoTask | null>>;
+  seteditmodelopen: Dispatch<SetStateAction<boolean>>;
+}
 
+const TaskList: React.FC<TaskListProps> = ({
+  datas,
+  allowed_priority,
+  setsectedtask,
+  seteditmodelopen,
+}) => {
   const [filter, setFilter] = useState<Priority>('all');
+  useEffect(() => {}, [datas]);
 
-  // const handlePriorityChange = (taskId: number, newPriority: Exclude<Priority, 'all'>) => {
-  //   setTasks(tasks.map(task =>
-  //     task.id === taskId ? { ...task, priority: newPriority } : task
-  //   ));
-  // };
-
-  const priorityColors: Record<Exclude<Priority, 'all'>, string> = {
+  // Priority-specific colors; other priorities will get default styles.
+  const priorityColors: Record<string, string> = {
     low: 'bg-green-200 text-green-800',
     medium: 'bg-yellow-200 text-yellow-800',
     high: 'bg-red-200 text-red-800',
   };
 
   const filteredTasks =
-    filter === 'all' ? tasks : tasks.filter((task) => task.priority === filter);
+    filter === 'all' ? datas : datas.filter((task) => task.priority === filter);
+
   return (
     <div className="bg-gray-600 p-4 rounded-lg">
       <div className="mb-4 flex">
@@ -58,21 +59,26 @@ const TaskList: React.FC = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="high">High</SelectItem>
+            {allowed_priority.map((priority) => (
+              <SelectItem key={priority} value={priority}>
+                {priority.charAt(0).toUpperCase() + priority.slice(1)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
       <ul className="space-y-2 text-sm md:text-base">
         {filteredTasks.map((task) => (
-          // style={{background: priorityColors[task.priority]}}
           <li
             key={task.id}
-            className="flex items-center justify-between text-white"
+            className="flex items-center justify-between text-white cursor-pointer hover:text-gray-200"
+            onClick={() => {
+              setsectedtask(task);
+              seteditmodelopen(true);
+            }}
           >
             <span
-              className={priorityColors[task.priority]}
+              className={priorityColors[task.priority] || 'bg-white text-black'}
               style={{
                 width: '100%',
                 borderRadius: '6px',
@@ -80,7 +86,7 @@ const TaskList: React.FC = () => {
                 margin: '3px 0',
               }}
             >
-              {task.name}: {task.task}
+              {task.name}: {task.due_date}
             </span>
           </li>
         ))}

@@ -1,18 +1,36 @@
-import React, { useState, useEffect } from 'react';
-import Button from '@mui/material/Button';
-import { styled } from '@mui/material/styles';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogContent from '@mui/material/DialogContent';
-import DialogActions from '@mui/material/DialogActions';
-import IconButton from '@mui/material/IconButton';
+import React, { useEffect, useState } from 'react';
+
+import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
 import CloseIcon from '@mui/icons-material/Close';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import IconButton from '@mui/material/IconButton';
+import { styled } from '@mui/material/styles';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import axios from 'axios';
-import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
-const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
 
+interface Permission {
+  [key: string]: string;
+}
+interface OverviewData {
+  name?: string;
+  address?: string;
+  description?: string;
+  created_ts?: number;
+  modified_ts?: number;
+  id?: string;
+  is_active?: boolean;
+  key_id?: string;
+  org?: string;
+  owner?: string[];
+  permission?: Permission;
+}
+
+const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
 const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialogContent-root': {
     padding: theme.spacing(2),
@@ -22,20 +40,30 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   },
 }));
 
-export function EditOrganisationDetails({onCloses, data, orgId, setData }) {
+export function EditOrganisationDetails({
+  onCloses,
+  data,
+  orgId,
+  setData,
+}: {
+  onCloses: () => void;
+  data: OverviewData;
+  orgId: string;
+  setData: React.Dispatch<React.SetStateAction<OverviewData>>;
+}) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [nameError, setNameError] = useState(false);
   const [descriptionError, setDescriptionError] = useState(false);
-  const [bearerToken, setBearerToken] = useState(''); 
+  const [bearerToken, setBearerToken] = useState('');
 
   // Populate data when dialog opens
   useEffect(() => {
-    if (data ) {
+    if (data) {
       setName(data.name || ''); // Use data.name instead of user.name
       setDescription(data.description || ''); // Use data.description instead of user.description
     }
-    const token = getItemWithTTL("bearerToken"); 
+    const token = getItemWithTTL('bearerToken');
     setBearerToken(token);
   }, [data]);
 
@@ -45,7 +73,7 @@ export function EditOrganisationDetails({onCloses, data, orgId, setData }) {
     setDescriptionError(false);
   };
 
-  const handleSave = async() => {
+  const handleSave = async () => {
     let isValid = true;
 
     // Validate name
@@ -65,27 +93,26 @@ export function EditOrganisationDetails({onCloses, data, orgId, setData }) {
     }
 
     if (isValid) {
-         
       try {
         const res = await axios.patch(
-            `${BaseURLAuth}/organizations/${orgId}`,
-            {
-              data: {
-                type: "organizations",
-                id: orgId,
-                attributes: {
-                  name: name,
-                  description: description,
-                },
+          `${BaseURLAuth}/organizations/${orgId}`,
+          {
+            data: {
+              type: 'organizations',
+              id: orgId,
+              attributes: {
+                name: name,
+                description: description,
               },
             },
-            {
-              headers: {
-                Authorization: `Bearer ${bearerToken}`,
-                'Content-Type': 'application/vnd.api+json',
-              },
-            }
-          );
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${bearerToken}`,
+              'Content-Type': 'application/vnd.api+json',
+            },
+          },
+        );
         setData(res.data.data.attributes);
       } catch (error) {
         console.log(error);
@@ -100,9 +127,12 @@ export function EditOrganisationDetails({onCloses, data, orgId, setData }) {
     <BootstrapDialog
       onClose={handleClose}
       aria-labelledby="customized-dialog-title"
-      open="true"
+      open={true}
     >
-      <DialogTitle sx={{ m: 0, p: 2, width: 900, background: "#fff0f5" }} id="customized-dialog-title">
+      <DialogTitle
+        sx={{ m: 0, p: 2, width: 900, background: '#fff0f5' }}
+        id="customized-dialog-title"
+      >
         Update Organisation Details
       </DialogTitle>
       <IconButton
@@ -148,7 +178,9 @@ export function EditOrganisationDetails({onCloses, data, orgId, setData }) {
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           error={descriptionError}
-          helperText={descriptionError ? 'Organisation description is required' : ''}
+          helperText={
+            descriptionError ? 'Organisation description is required' : ''
+          }
           required
         />
       </DialogContent>
@@ -156,7 +188,11 @@ export function EditOrganisationDetails({onCloses, data, orgId, setData }) {
         <Button
           onClick={handleSave}
           autoFocus
-          style={{ border: "1px solid #00a2ed", background: "#00a2ed", color: "white" }}
+          style={{
+            border: '1px solid #00a2ed',
+            background: '#00a2ed',
+            color: 'white',
+          }}
         >
           Update Organisation
         </Button>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 
+import { makeApiCall } from '@/utils/ApiRequest';
 import {
   Bar,
   BarChart,
@@ -10,6 +11,7 @@ import {
   Pie,
   PieChart,
   ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
@@ -18,15 +20,9 @@ import CategoryList from './CategoryTable';
 import NotesComponent from './NotesComponent';
 import TaskList from './PriorityTable';
 import StatusList from './StatusTable';
+import TaskEditModal from './TaskEditModel';
 
 const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', 'red', 'pink'];
-
-interface DataEntry {
-  name: string;
-  uv: number;
-  pv: number;
-  amt: number;
-}
 
 // Define props for custom shapes
 interface TriangleBarProps {
@@ -36,51 +32,6 @@ interface TriangleBarProps {
   width: number;
   height: number;
 }
-
-const data11: DataEntry[] = [
-  {
-    name: 'Page A',
-    uv: 4000,
-    pv: 2400,
-    amt: 2400,
-  },
-  {
-    name: 'Page B',
-    uv: 3000,
-    pv: 1398,
-    amt: 2210,
-  },
-  {
-    name: 'Page C',
-    uv: 2000,
-    pv: 9800,
-    amt: 2290,
-  },
-  {
-    name: 'Page D',
-    uv: 2780,
-    pv: 3908,
-    amt: 2000,
-  },
-  {
-    name: 'Page E',
-    uv: 1890,
-    pv: 4800,
-    amt: 2181,
-  },
-  {
-    name: 'Page F',
-    uv: 2390,
-    pv: 3800,
-    amt: 2500,
-  },
-  {
-    name: 'Page G',
-    uv: 3490,
-    pv: 4300,
-    amt: 2100,
-  },
-];
 
 const getPath = (
   x: number,
@@ -111,19 +62,224 @@ interface CategoryData {
   value: number;
 }
 
+interface TodoTask {
+  id: number;
+  name: string;
+  status: string;
+  priority: string;
+  importance: string;
+  due_date: string;
+  category: string;
+  start_date?: string;
+}
+
+interface TodoData {
+  tasks: TodoTask[];
+  archived: TodoTask[];
+  note: string[];
+  user_id: string;
+  total_tasks_completed: number;
+  total_tasks: number;
+  allowed_status: string[];
+  allowed_priority: string[];
+  allowed_category: string[];
+  allowed_importance: string[];
+  id: string;
+}
+
 const TodoDashboard: React.FC = () => {
+  const initialTodoData: TodoData = {
+    tasks: [],
+    archived: [],
+    note: [],
+    user_id: '',
+    total_tasks_completed: 0,
+    total_tasks: 0,
+    allowed_status: [],
+    allowed_priority: [],
+    allowed_category: [],
+    allowed_importance: [],
+    id: '',
+  };
+  const [todoData, setTodoData] = React.useState<TodoData>({
+    ...initialTodoData,
+  });
+  const [datas, setDatas] = React.useState<TodoTask[]>(todoData.tasks || []);
+  const today = new Date();
+  const formattedToday = [
+    String(today.getDate()).padStart(2, '0'), // Day
+    String(today.getMonth() + 1).padStart(2, '0'), // Month (0-based, so add 1)
+    String(today.getFullYear()).slice(-2), // Year (last 2 digits)
+  ].join('/');
+
+  const [todayTasksCount, setTodayTasksCount] = React.useState<number>(0);
+  const [overdueTasksCount, setOverdueTasksCount] = React.useState<number>(0);
+  const [todayTasks, setTodayTasks] = React.useState<TodoTask[] | null>(null);
+
+  const fetchData = async () => {
+    try {
+      const result = await makeApiCall({
+        path: `subject/todo`,
+        method: 'GET',
+      });
+      const data = result.data.attributes;
+      setTodoData(data);
+      setDatas(data.tasks);
+
+      const priorityCounts: { [key: string]: number } = {};
+      data.tasks.forEach((task: TodoTask) => {
+        priorityCounts[task.priority] =
+          (priorityCounts[task.priority] || 0) + 1;
+      });
+
+      const formattedPriorityData = data.allowed_priority.map(
+        (priority: string) => ({
+          name: priority,
+          value: priorityCounts[priority] || 0,
+          color:
+            colors[data.allowed_priority.indexOf(priority) % colors.length],
+        }),
+      );
+
+      setPriorityData(formattedPriorityData);
+
+      const statusCounts: { [key: string]: number } = {};
+      data.tasks.forEach((task: TodoTask) => {
+        statusCounts[task.status] = (statusCounts[task.status] || 0) + 1;
+      });
+
+      const formattedStatusData = data.allowed_status.map((status: string) => ({
+        name: status,
+        value: statusCounts[status] || 0,
+        color: colors[data.allowed_status.indexOf(status) % colors.length],
+      }));
+
+      setStatusData(formattedStatusData);
+
+      const categoryCounts: { [key: string]: number } = {};
+      data.tasks.forEach((task: TodoTask) => {
+        categoryCounts[task.category] =
+          (categoryCounts[task.category] || 0) + 1;
+      });
+
+      const formattedCategoryData = data.allowed_category.map(
+        (category: string) => ({
+          name: category,
+          value: categoryCounts[category] || 0,
+        }),
+      );
+
+      setCategoryData(formattedCategoryData);
+
+      // Count tasks due today
+      const todayTasks = data.tasks.filter(
+        (task: TodoTask) => String(task.due_date) === String(formattedToday),
+      );
+      setTodayTasks(todayTasks);
+      setTodayTasksCount(todayTasks.length);
+
+      const todayNum = new Date();
+      todayNum.setHours(0, 0, 0, 0);
+
+      const parseDate = (dateStr: string): Date => {
+        const [day, month, year] = dateStr.split('/').map(Number);
+        return new Date(2000 + year, month - 1, day);
+      };
+
+      const overdueTasks = data.tasks.filter((task: TodoTask) => {
+        const dueDate = parseDate(task.due_date);
+        return dueDate < todayNum;
+      });
+
+      setOverdueTasksCount(overdueTasks.length);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchData();
+  });
+
+  const updateTask = async (
+    id: number | string,
+    updatedData: Partial<TodoTask>,
+  ) => {
+    try {
+      // Create the complete updated task object
+      const completeUpdatedTask = todoData.tasks.find((task) => task.id === id)
+        ? { ...todoData.tasks.find((task) => task.id === id), ...updatedData }
+        : { ...updatedData };
+
+      delete completeUpdatedTask.id;
+      delete completeUpdatedTask.start_date;
+
+      // Make API call with the complete updated task, minus `id` and `start_date`
+      await makeApiCall({
+        path: `subject/todo/${id}`,
+        method: 'PATCH',
+        payload: {
+          data: {
+            type: 'todo',
+            attributes: completeUpdatedTask,
+          },
+        },
+      });
+
+      // Update the `todoData` and `datas` states to reflect changes
+      setTodoData((prevData) => {
+        const updatedTasks = prevData.tasks.map((task) =>
+          task.id === id ? { ...task, ...updatedData } : task,
+        );
+        return { ...prevData, tasks: updatedTasks };
+      });
+
+      setDatas((prevDatas) =>
+        prevDatas.map((task) =>
+          task.id === id ? { ...task, ...updatedData } : task,
+        ),
+      );
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
+
   const currentDate = new Date().toLocaleDateString('en-US', {
     month: 'long',
     day: 'numeric',
     year: 'numeric',
   });
 
-  const priorityData: PriorityData[] = [
-    { name: 'High', value: 4, color: '#ff6b6b' },
-    { name: 'Medium', value: 3, color: '#feca57' },
-    { name: 'Low', value: 2, color: '#48dbfb' },
-    { name: 'None', value: 1, color: '#c8d6e5' },
-  ];
+  const [priorityData, setPriorityData] = React.useState<PriorityData[]>([]);
+  const [statusData, setStatusData] = React.useState<PriorityData[]>([]);
+  const [categoryData, setCategoryData] = React.useState<CategoryData[]>([]);
+  const [activePriorityIndex, setActivePriorityIndex] = React.useState<
+    number | null
+  >(null);
+  const [activeStatusIndex, setActiveStatusIndex] = React.useState<
+    number | null
+  >(null);
+
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div
+          style={{
+            background: '#000',
+            color: '#fff',
+            padding: '10px',
+            borderRadius: '5px',
+          }}
+        >
+          <p>{`${payload[0].name} : ${payload[0].value}`}</p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState<boolean>(false);
+  const [selectedTask, setSelectedTask] = React.useState<TodoTask | null>(null);
 
   return (
     <div className="bg-gray-800  p-4 md:p-6 font-sans rounded-3xl w-[100%]">
@@ -142,27 +298,46 @@ const TodoDashboard: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 col-span-1 md:col-span-3 lg:col-span-4">
           <div className="bg-blue-500 p-4 rounded-lg">
             <h2 className="font-bold text-sm md:text-base">TOTAL TASKS</h2>
-            <p className="text-xl md:text-2xl">18</p>
+            <p className="text-xl md:text-2xl">
+              {todoData ? todoData.total_tasks : 0}
+            </p>
           </div>
           <div className="bg-blue-500 p-4 rounded-lg">
             <h2 className="font-bold text-sm md:text-base">
               TODAY&apos;S TASKS
             </h2>
-            <p className="text-xl md:text-2xl">3</p>
+            <p className="text-xl md:text-2xl">{todayTasksCount}</p>
           </div>
           <div className="bg-blue-500 p-4 rounded-lg">
             <h2 className="font-bold text-sm md:text-base">OVERDUE TASKS</h2>
-            <p className="text-xl md:text-2xl">1</p>
+            <p className="text-xl md:text-2xl">{overdueTasksCount}</p>
           </div>
           <div className="bg-blue-500 p-4 rounded-lg">
             <h2 className="font-bold text-sm md:text-base">COMPLETED</h2>
-            <p className="text-xl md:text-2xl">5</p>
+            <p className="text-xl md:text-2xl">
+              {todoData ? todoData.total_tasks_completed : 0}
+            </p>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 col-span-1 md:col-span-4 lg:col-span-4 ">
-          <TaskList />
-          <CategoryList />
-          <StatusList />
+          <TaskList
+            datas={datas}
+            allowed_priority={todoData.allowed_priority}
+            setsectedtask={setSelectedTask}
+            seteditmodelopen={setIsEditModalOpen}
+          />
+          <CategoryList
+            datas={datas}
+            allowed_category={todoData.allowed_category}
+            setsectedtask={setSelectedTask}
+            seteditmodelopen={setIsEditModalOpen}
+          />
+          <StatusList
+            datas={datas}
+            allowed_status={todoData.allowed_status}
+            setsectedtask={setSelectedTask}
+            seteditmodelopen={setIsEditModalOpen}
+          />
           <div className="col-span-1 space-y-4">
             <div className="bg-cyan-700 p-4 rounded-lg">
               <h2 className="font-bold mb-2 text-sm md:text-base">
@@ -179,11 +354,29 @@ const TodoDashboard: React.FC = () => {
                     outerRadius={80}
                     fill="#8884d8"
                     label
+                    onClick={(index) => setActivePriorityIndex(index)}
                   >
                     {priorityData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.color}
+                        // Change the background and text color when active
+                        style={{
+                          cursor: 'pointer',
+                          fill:
+                            index === activePriorityIndex
+                              ? '#000'
+                              : entry.color,
+                          color:
+                            index === activePriorityIndex
+                              ? '#fff'
+                              : entry.color,
+                        }}
+                      />
                     ))}
                   </Pie>
+                  {/* Tooltip */}
+                  <Tooltip content={<CustomTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -193,9 +386,22 @@ const TodoDashboard: React.FC = () => {
                 TODAY&apos;S TASKS
               </h2>
               <ul className="list-disc list-inside text-sm md:text-base">
-                <li>Call accountant to clarify tax questions</li>
-                <li>Finish report for team meeting</li>
-                <li>Buy groceries for dinner party</li>
+                {todayTasks ? (
+                  todayTasks.map((task) => (
+                    <li
+                      key={task.id}
+                      onClick={() => {
+                        setSelectedTask(task);
+                        setIsEditModalOpen(true);
+                      }}
+                      className="cursor-pointer hover:text-gray-200"
+                    >
+                      {task.name}
+                    </li>
+                  ))
+                ) : (
+                  <p>No tasks due today</p>
+                )}
               </ul>
             </div>
           </div>
@@ -207,7 +413,7 @@ const TodoDashboard: React.FC = () => {
           <ResponsiveContainer width="100%" height={256}>
             <PieChart>
               <Pie
-                data={priorityData}
+                data={statusData}
                 dataKey="value"
                 nameKey="name"
                 cx="50%"
@@ -215,11 +421,23 @@ const TodoDashboard: React.FC = () => {
                 outerRadius={80}
                 fill="#8884d8"
                 label
+                onClick={(index) => setActiveStatusIndex(index)}
               >
-                {priorityData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
+                {statusData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.color}
+                    // Change the background and text color when active
+                    style={{
+                      cursor: 'pointer',
+                      fill: index === activeStatusIndex ? '#000' : entry.color,
+                      color: index === activeStatusIndex ? '#fff' : entry.color,
+                    }}
+                  />
                 ))}
               </Pie>
+              {/* Tooltip */}
+              <Tooltip content={<CustomTooltip />} />
             </PieChart>
           </ResponsiveContainer>
         </div>
@@ -232,7 +450,7 @@ const TodoDashboard: React.FC = () => {
             <BarChart
               width={500}
               height={300}
-              data={data11}
+              data={categoryData}
               margin={{
                 top: 20,
                 right: 30,
@@ -244,12 +462,12 @@ const TodoDashboard: React.FC = () => {
               <XAxis dataKey="name" />
               <YAxis />
               <Bar
-                dataKey="uv"
+                dataKey="value"
                 fill="#8884d8"
                 shape={(props: any) => <TriangleBar {...props} />} // Pass props to the TriangleBar
                 label={{ position: 'top' }}
               >
-                {data11.map((entry, index) => (
+                {categoryData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={colors[index % colors.length]}
@@ -260,14 +478,7 @@ const TodoDashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* <div className="col-span-1 md:col-span-2 bg-blue-400 p-4 rounded-lg">
-          <h2 className="font-bold mb-2 text-sm md:text-base">NOTES</h2>
-          <ul className="text-sm md:text-base">
-            <li>October 7, 2023: Quarterly business review</li>
-            <li>October 12, 2023: Dentist appointment</li>
-          </ul>
-        </div> */}
-        <NotesComponent />
+        <NotesComponent notes={todoData.note} />
 
         <div className="col-span-1 md:col-span-2 bg-yellow-800 p-4 rounded-lg">
           <div className="bg-yellow-800 p-4 rounded-lg">
@@ -284,6 +495,23 @@ const TodoDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {selectedTask && (
+        <TaskEditModal
+          task={selectedTask}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedTask(null);
+          }}
+          onUpdate={updateTask}
+          allowedFields={{
+            allowed_priority: todoData.allowed_priority,
+            allowed_status: todoData.allowed_status,
+            allowed_category: todoData.allowed_category,
+          }}
+        />
+      )}
     </div>
   );
 };
