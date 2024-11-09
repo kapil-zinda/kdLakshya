@@ -6,10 +6,8 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
-  // FormDescription,
   FormField,
   FormItem,
-  // FormLabel,
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
@@ -394,7 +392,7 @@ export function AddTask({
                   <SelectTrigger>
                     {/* <SelectValue placeholder={`${formatDate(value)}`} /> */}
                     <SelectValue placeholder="Select date">
-                      {value ? formatDate(value) : 'Select date'}
+                      {value ? formatDate(value.toDate()) : 'Select date'}
                     </SelectValue>
                   </SelectTrigger>
                 </FormControl>
