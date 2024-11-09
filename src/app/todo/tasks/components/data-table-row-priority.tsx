@@ -21,10 +21,6 @@ interface TodoTask {
   start_date?: string;
 }
 
-interface TodoData {
-  allowed_priority: string[];
-}
-
 export function DataTableRowPriority({
   row,
   updateTask,

@@ -14,10 +14,6 @@ interface TodoTask {
   start_date?: string;
 }
 
-interface DataTableRowTitleProps {
-  row: Row<TodoTask>;
-}
-
 export function DataTableRowTitle({
   row,
   updateTask,

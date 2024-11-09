@@ -22,10 +22,6 @@ interface TodoTask {
   start_date?: string;
 }
 
-interface TodoData {
-  allowed_status: string[];
-}
-
 export function DataTableRowStatus({
   row,
   updateTask,

@@ -22,10 +22,6 @@ interface TodoTask {
   start_date?: string;
 }
 
-interface TodoData {
-  allowed_category: string[];
-}
-
 export function DataTableRowCategory({
   row,
   updateTask,
