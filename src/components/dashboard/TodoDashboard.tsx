@@ -458,7 +458,7 @@ const TodoDashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        <NotesComponent />
+        <NotesComponent notes={todoData.note} />
 
         <div className="col-span-1 md:col-span-2 bg-yellow-800 p-4 rounded-lg">
           <div className="bg-yellow-800 p-4 rounded-lg">
