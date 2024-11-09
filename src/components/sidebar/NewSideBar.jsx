@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 import { userData } from '@/app/interfaces/userInterface';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
 import FunctionsIcon from '@mui/icons-material/Functions';
 import {
   Book,
@@ -48,7 +49,6 @@ export function NewSideBar({ children }) {
   const handleTabClick = (href) => {
     setActiveTab(href);
   };
-
   const sidebarLinks = [
     { href: '/..', icon: <Home className="h-5 w-5" />, label: 'Dashboard' },
     {
@@ -65,7 +65,13 @@ export function NewSideBar({ children }) {
       label: 'Admin panel',
     },
   ];
-
+  const pathname = usePathname();
+  const bearerToken = getItemWithTTL('bearerToken');
+  if (pathname === '/' && bearerToken === null) {
+    return children;
+  }
+  // return children;
+  console.log('hello', pathname);
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
       <div
