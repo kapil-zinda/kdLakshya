@@ -2,6 +2,8 @@
 
 import * as React from 'react';
 
+import { usePathname } from 'next/navigation';
+
 import { ChallengeProvider } from '@/context/challenge-context';
 import { TaskProvider } from '@/context/task-context';
 import axios from 'axios';
@@ -19,7 +21,7 @@ const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
 
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null);
-
+  const pathname = usePathname();
   const userMeData = async (bearerToken: string) => {
     try {
       const res = await axios.get(
@@ -56,7 +58,7 @@ export function Providers({ children }: ThemeProviderProps) {
     if (typeof window !== 'undefined') {
       const token = getItemWithTTL('bearerToken');
       if (!token) {
-        loginHandler();
+        pathname !== '/' && loginHandler();
       }
       setAccessTkn(token);
       userMeData(token);

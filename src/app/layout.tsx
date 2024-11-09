@@ -42,15 +42,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Providers>
-          <div className="grid min-h-screen w-full ">
-            <div className="flex flex-col">
-              <main className="flex-1 p-4 lg:gap-6 lg:p-6">
+        <div className="grid min-h-screen w-full ">
+          <div className="flex flex-col">
+            <main className="flex-1 p-4 lg:gap-6 lg:p-6">
+              <Providers>
                 <NewSideBar>{children}</NewSideBar>
-              </main>
-            </div>
+                {/* <HomePageComponent /> */}
+                {/* {children} */}
+              </Providers>
+            </main>
           </div>
-        </Providers>
+        </div>
         <Analytics />
         <ToastContainer />
       </body>

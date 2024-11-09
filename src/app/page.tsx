@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from 'react';
 
+import HomePageComponent from '@/components/HomePageComponent';
 import UserCreationModal from '@/components/table';
 import { makeApiCall } from '@/utils/ApiRequest';
+import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
 
 interface TableItem {
   title: string;
@@ -51,14 +53,19 @@ export default function Home() {
     { label: 'Edit', align: 'right' },
   ];
 
+  const bearerToken = getItemWithTTL('bearerToken');
+
   return (
     <>
-      <span className="font-bold text-4xl">Home</span>
-      <UserCreationModal
-        tableData={tableData}
-        setTableData={setTableData}
-        columnHeaders={columnHeaders}
-      />
+      {bearerToken ? (
+        <UserCreationModal
+          tableData={tableData}
+          setTableData={setTableData}
+          columnHeaders={columnHeaders}
+        />
+      ) : (
+        <HomePageComponent />
+      )}
     </>
   );
 }
