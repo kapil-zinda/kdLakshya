@@ -1,11 +1,17 @@
-import React from 'react';
+'use client';
 
+import React, { FormEvent, useRef } from 'react';
+
+import emailjs from '@emailjs/browser';
 import { Book, Building2, LineChart, Mail, Package, Phone } from 'lucide-react';
 
 const AUTH0_Client_Id = process.env.NEXT_PUBLIC_AUTH0_Client_Id || '';
 process.env.NEXT_PUBLIC_AUTH0_Client_Secreat || '';
 const AUTH0_Domain_Name = process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME || '';
 const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
+const EMAILJS_SERVICE = process.env.NEXT_PUBLIC_EMAILJS_SERVICE || '';
+const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || '';
+const EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '';
 
 export default function HomePageComponent() {
   const loginHandler = async () => {
@@ -14,6 +20,28 @@ export default function HomePageComponent() {
       window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${login_redirect}&scope=${encodeURIComponent('openid profile email')}`;
     } catch (error) {
       console.log(error);
+    }
+  };
+  const form = useRef<HTMLFormElement | null>(null);
+
+  const sendEmail = (e: FormEvent) => {
+    e.preventDefault();
+    if (form.current) {
+      emailjs
+        .sendForm(
+          EMAILJS_SERVICE,
+          EMAILJS_TEMPLATE_ID,
+          form.current,
+          EMAILJS_PUBLIC_KEY,
+        )
+        .then(
+          () => {
+            alert('Thank you! Your message has been sent successfully.');
+          },
+          (error) => {
+            console.log('FAILED...', error.text);
+          },
+        );
     }
   };
   return (
@@ -149,11 +177,11 @@ export default function HomePageComponent() {
           <div className="text-center space-y-4">
             {/* <span className="text-sm text-slate-400">FROM OUR BLOG</span> */}
             <h2 className="text-4xl font-bold">
-              Plan that perfectly suits your financial needs
+              Choose the Right Plan for Your Needs
             </h2>
             <p className="text-slate-400">
-              Discover plans tailored to your financial needs. Choose features
-              that align with your financial goals.
+              Our flexible pricing plans cater to both teams and individuals,
+              offering features and support to boost productivity.
             </p>
           </div>
 
@@ -163,40 +191,44 @@ export default function HomePageComponent() {
             <span className="px-4 py-2 bg-blue-600/20 text-blue-400 rounded-full">Save 30%</span>
           </div> */}
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 gap-24">
             {[
               {
-                title: 'Standard',
-                price: '9',
+                title: 'Individual',
+                price: 'Free',
                 features: [
-                  'Budget Tracking',
-                  'Basic Bill Reminders',
-                  'Expense Categorization',
-                  'Email Support',
-                  'Basic Analytics',
+                  'Todo Dashboard',
+                  'Personal Subject Dashboard',
+                  'Time Tracking',
+                  'Personal Notes & Files',
+                  'Visual Analytics',
+                  'group study',
                 ],
-              },
-              {
-                title: 'Plus+',
-                price: '19',
-                features: [
-                  'Advanced Budgeting',
-                  'Bill Pay Reminders',
-                  'Detailed Expense Reports',
-                  'Priority Email Support',
-                  'Advanced Analytics',
-                ],
-              },
-              {
-                title: 'Pro',
-                price: '29',
-                features: [
-                  'Personalized Budgeting',
-                  'Automatic Bill Payments',
-                  'Comprehensive Analysis',
+                NotAddedFeature: [
                   '24/7 Customer Support',
                   'Predictive Analytics',
+                  'Organisation RBAC',
+                  'Team Management',
+                  'Team Chat & threads',
                 ],
+              },
+              {
+                title: 'Organisation',
+                price: '₹ 10 per user',
+                features: [
+                  'Todo Dashboard',
+                  'Personal & Team Subject Dashboard',
+                  'Time Tracking',
+                  'Personal & Team Notes & Files',
+                  'group study',
+                  '24/7 Customer Support',
+                  'Comprehensive Analysis',
+                  'Predictive Analytics',
+                  'Organisation RBAC',
+                  'Team Management',
+                  'Team Chat & threads',
+                ],
+                NotAddedFeature: [],
               },
             ].map((plan) => (
               <div
@@ -205,13 +237,10 @@ export default function HomePageComponent() {
               >
                 <h3 className="text-2xl font-semibold">{plan.title}</h3>
                 <p className="text-slate-400">
-                  Essential finance tools for budgeting and expense tracking.
+                  Task Management Solutions for Productivity and Collaboration
                 </p>
-                <div className="text-3xl font-bold">
-                  ${plan.price}
-                  <span className="text-sm text-slate-400">/month</span>
-                </div>
-                <ul className="space-y-4">
+                <div className="text-3xl font-bold">{plan.price}</div>
+                <ul className="space-y-4 mb-4">
                   {plan.features.map((feature) => (
                     <li key={feature} className="flex items-center space-x-2">
                       <svg
@@ -230,10 +259,42 @@ export default function HomePageComponent() {
                       <span>{feature}</span>
                     </li>
                   ))}
+                  {plan.NotAddedFeature.map((feature) => (
+                    <li key={feature} className="flex items-center space-x-2">
+                      <svg
+                        className="w-5 h-5 text-red-500"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 6l12 12M6 18L18 6"
+                        />
+                      </svg>
+
+                      <span>{feature}</span>
+                    </li>
+                  ))}
                 </ul>
-                <button className="w-full py-3 rounded-lg border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors">
-                  Get Started
-                </button>
+                <a href="#contact" className="py-3 mt-4">
+                  <button
+                    className={`w-full py-3 mt-4 rounded-lg border border-blue-500 text-blue-500 ${plan.title === 'Organisation' ? 'hover:bg-blue-500 hover:text-white ' : ''} transition-colors`}
+                    disabled={plan.title !== 'Organisation'}
+                    style={{
+                      cursor:
+                        plan.title === 'Organisation'
+                          ? 'pointer'
+                          : 'not-allowed',
+                    }}
+                  >
+                    {plan.title === 'Organisation'
+                      ? 'Contact Us'
+                      : 'Coming Soon'}
+                  </button>
+                </a>
               </div>
             ))}
           </div>
@@ -279,48 +340,52 @@ export default function HomePageComponent() {
               </h2>
               <p className="text-slate-400">
                 Connect with us. We value your input. Together, we can create a
-                better financial future. Let&apos;s start today.
+                better future. Let&apos;s start today.
               </p>
-              <div className="space-y-4">
+              <div className="space-y-4 ">
                 <div className="flex items-center space-x-2">
                   <Building2 className="text-blue-500" />
                   <div>
                     <div className="font-semibold">Head Office</div>
-                    <div className="text-slate-400">
-                      5899 Finance Ave Suite 678, NR, Nevada, USA
-                    </div>
+                    <div className="text-slate-400">Delhi, India</div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Phone className="text-blue-500" />
                   <div>
                     <div className="font-semibold">Phone</div>
-                    <div className="text-slate-400">+1 234 567 890</div>
+                    <div className="text-slate-400">+91 8899333457</div>
+                    <div className="text-slate-400">+91 8287233813</div>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Mail className="text-blue-500" />
                   <div>
                     <div className="font-semibold">Email</div>
-                    <div className="text-slate-400">contact@financepro.com</div>
+                    <div className="text-slate-400">
+                      uchhal.official@gmail.com
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            <form className="space-y-4">
+            <form ref={form} onSubmit={sendEmail} className="space-y-4">
               <input
                 type="text"
                 placeholder="Name"
+                name="name"
                 className="w-full p-3 bg-slate-900 rounded-lg"
               />
               <input
                 type="email"
                 placeholder="Email"
+                name="email"
                 className="w-full p-3 bg-slate-900 rounded-lg"
               />
               <textarea
                 placeholder="Message"
                 rows={4}
+                name="message"
                 className="w-full p-3 bg-slate-900 rounded-lg"
               ></textarea>
               <button className="w-full py-3 bg-blue-600 rounded-lg hover:bg-blue-700">
