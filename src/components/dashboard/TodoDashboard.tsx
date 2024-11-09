@@ -112,6 +112,7 @@ const TodoDashboard: React.FC = () => {
   ].join('/');
 
   const [todayTasksCount, setTodayTasksCount] = React.useState<number>(0);
+  const [overdueTasksCount, setOverdueTasksCount] = React.useState<number>(0);
   const [todayTasks, setTodayTasks] = React.useState<TodoTask[] | null>(null);
 
   const fetchData = async () => {
@@ -175,7 +176,22 @@ const TodoDashboard: React.FC = () => {
       );
       setTodayTasks(todayTasks);
       setTodayTasksCount(todayTasks.length);
-      console.log(todayTasks);
+
+      const todayNum = new Date();
+      todayNum.setHours(0, 0, 0, 0);
+
+      const parseDate = (dateStr: string): Date => {
+        const [day, month, year] = dateStr.split('/').map(Number);
+        return new Date(2000 + year, month - 1, day);
+      };
+
+      const overdueTasks = data.tasks.filter((task: TodoTask) => {
+        const dueDate = parseDate(task.due_date);
+        console.log(dueDate, todayNum);
+        return dueDate < todayNum;
+      });
+
+      setOverdueTasksCount(overdueTasks.length);
 
       console.log(priorityData);
       console.log(formattedToday);
@@ -294,7 +310,7 @@ const TodoDashboard: React.FC = () => {
           </div>
           <div className="bg-blue-500 p-4 rounded-lg">
             <h2 className="font-bold text-sm md:text-base">OVERDUE TASKS</h2>
-            <p className="text-xl md:text-2xl">1</p>
+            <p className="text-xl md:text-2xl">{overdueTasksCount}</p>
           </div>
           <div className="bg-blue-500 p-4 rounded-lg">
             <h2 className="font-bold text-sm md:text-base">COMPLETED</h2>
