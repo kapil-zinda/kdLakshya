@@ -104,6 +104,16 @@ const TodoDashboard: React.FC = () => {
     ...initialTodoData,
   });
   const [datas, setDatas] = React.useState<TodoTask[]>(todoData.tasks || []);
+  const today = new Date();
+  const formattedToday = [
+    String(today.getDate()).padStart(2, '0'), // Day
+    String(today.getMonth() + 1).padStart(2, '0'), // Month (0-based, so add 1)
+    String(today.getFullYear()).slice(-2), // Year (last 2 digits)
+  ].join('/');
+
+  const [todayTasksCount, setTodayTasksCount] = React.useState<number>(0);
+  const [todayTasks, setTodayTasks] = React.useState<TodoTask[] | null>(null);
+
   const fetchData = async () => {
     try {
       const result = await makeApiCall({
@@ -159,7 +169,16 @@ const TodoDashboard: React.FC = () => {
 
       setCategoryData(formattedCategoryData);
 
+      // Count tasks due today
+      const todayTasks = data.tasks.filter(
+        (task: TodoTask) => String(task.due_date) === String(formattedToday),
+      );
+      setTodayTasks(todayTasks);
+      setTodayTasksCount(todayTasks.length);
+      console.log(todayTasks);
+
       console.log(priorityData);
+      console.log(formattedToday);
     } catch (error) {
       console.log(error);
     }
@@ -271,7 +290,7 @@ const TodoDashboard: React.FC = () => {
             <h2 className="font-bold text-sm md:text-base">
               TODAY&apos;S TASKS
             </h2>
-            <p className="text-xl md:text-2xl">3</p>
+            <p className="text-xl md:text-2xl">{todayTasksCount}</p>
           </div>
           <div className="bg-blue-500 p-4 rounded-lg">
             <h2 className="font-bold text-sm md:text-base">OVERDUE TASKS</h2>
@@ -336,9 +355,11 @@ const TodoDashboard: React.FC = () => {
                 TODAY&apos;S TASKS
               </h2>
               <ul className="list-disc list-inside text-sm md:text-base">
-                <li>Call accountant to clarify tax questions</li>
-                <li>Finish report for team meeting</li>
-                <li>Buy groceries for dinner party</li>
+                {todayTasks ? (
+                  todayTasks.map((task) => <li key={task.id}>{task.name}</li>)
+                ) : (
+                  <p>No tasks due today</p>
+                )}
               </ul>
             </div>
           </div>
