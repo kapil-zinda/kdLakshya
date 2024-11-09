@@ -2,50 +2,23 @@
 
 import { useEffect, useState } from 'react';
 
+import { useParams } from 'next/navigation';
+
 import SubjectCard from '@/components/cards/subjectCard';
 import { makeApiCall } from '@/utils/ApiRequest';
 
-interface InnerSubject {
-  name: string;
-  id: string;
-}
-
-interface SubjectAttributes {
-  name: string;
-  parent: string;
-  completed_page: number;
-  total_page: number;
-  inner_subject: InnerSubject[];
-  page_array: number[];
-  page_dates: string[][];
-  root: string;
-  id: string;
-}
-
-interface SubjectData {
-  type: string;
-  id: string;
-  attributes: SubjectAttributes;
-  links: {
-    self?: string;
-  };
-}
-
-export default function SubjectPage() {
-  const [subject_data, setSubjectData] = useState<SubjectData[]>([]);
-  const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
-
-  const [subjectName, setSubjectName] = useState<string>('');
+export default function TeamPage() {
+  const params = useParams();
+  const team_id = String(params?.team_id);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const result = await makeApiCall({
-          path: `subject/subject?source={user_key_id}`,
+          path: `subject/subject?source=team-${team_id}`,
           method: 'GET',
         });
         setSubjectData(result.data);
-        console.log(result.data);
       } catch (error) {
         console.log(error);
       }
@@ -53,19 +26,24 @@ export default function SubjectPage() {
     fetchData();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [subject_data, setSubjectData] = useState<any>([]);
+  const [popAddSubject, setPopAddSubject] = useState<boolean>(false);
+
+  const [subjectName, setSubjectName] = useState<string>('');
+  const handleChange = (e: any) => {
     const { value } = e.target;
     setSubjectName(value);
   };
-
-  const handleAddSubject = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleAddSubject = async (event: React.FormEvent) => {
     event.preventDefault();
-    const Payload = {
+
+    const payload = {
       data: {
         type: 'subject',
         attributes: {
           name: subjectName,
-          parent: '{user_key_id}',
+          parent: `team-${team_id}`,
+          description: '--',
         },
       },
     };
@@ -74,11 +52,11 @@ export default function SubjectPage() {
       const result = await makeApiCall({
         path: `subject/subject`,
         method: 'POST',
-        payload: Payload,
+        payload: payload,
       });
 
       // Update subject data with the new subject
-      setSubjectData((prevData) => [...prevData, result.data]);
+      setSubjectData((prevData: any) => [...prevData, result.data]);
 
       // Clear the input field after adding the subject
       setSubjectName('');
@@ -87,7 +65,6 @@ export default function SubjectPage() {
       console.error('Error adding subject:', error);
     }
   };
-
   return (
     <>
       <div className="mb-8">
@@ -101,7 +78,7 @@ export default function SubjectPage() {
           <div className="p-4 border-2 rounded-lg ">
             {subject_data.length ? (
               subject_data &&
-              subject_data.map((subject_dd, index: number) => {
+              subject_data.map((subject_dd: any, index: number) => {
                 return (
                   <div key={index}>
                     <SubjectCard

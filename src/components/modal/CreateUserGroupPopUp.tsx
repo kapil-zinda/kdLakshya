@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+import { makeApiCall } from '@/utils/ApiRequest';
 import CloseIcon from '@mui/icons-material/Close';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -20,7 +21,38 @@ const BootstrapDialog = styled(Dialog)(({ theme }) => ({
   },
 }));
 
-export default function CreateUserGroupPopUp() {
+interface TeamPermission {
+  [email: string]: string; // Key is an email, value is the permission level (e.g., "manage")
+}
+
+type TeamAttributes = {
+  name: string;
+  description: string;
+  created_ts: number;
+  modified_ts: number;
+  is_active: boolean;
+  permission: TeamPermission;
+  key_id: string;
+  org: string;
+  id: string;
+};
+
+type TeamData = {
+  type: string;
+  id: string;
+  attributes: TeamAttributes;
+  links?: {
+    self?: string;
+  };
+};
+
+interface CreateUserGroupPopUpProps {
+  setTeamDatas: React.Dispatch<React.SetStateAction<TeamData[]>>;
+}
+
+export default function CreateUserGroupPopUp({
+  setTeamDatas,
+}: CreateUserGroupPopUpProps) {
   const [open, setOpen] = useState(false);
   const [groupName, setGroupName] = useState('');
   const [groupDescription, setGroupDescription] = useState('');
@@ -40,7 +72,7 @@ export default function CreateUserGroupPopUp() {
     setDescriptionError(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     let isValid = true;
 
     // Check if group name is empty
@@ -61,10 +93,27 @@ export default function CreateUserGroupPopUp() {
 
     // If both inputs are valid, proceed to save
     if (isValid) {
-      // const userData = {
-      //   groupName,
-      //   groupDescription,
-      // };
+      const teamData = {
+        name: groupName,
+        description: groupDescription,
+      };
+
+      try {
+        const result = await makeApiCall({
+          path: `auth/organizations/{org_id}/teams`,
+          method: 'POST',
+          payload: {
+            data: {
+              type: 'users',
+              attributes: teamData,
+            },
+          },
+        });
+        const updatedTeam = result.data;
+        setTeamDatas((prevData) => [...prevData, updatedTeam]);
+      } catch (error) {
+        console.log(error);
+      }
 
       // Close the modal after saving
       handleClose();
