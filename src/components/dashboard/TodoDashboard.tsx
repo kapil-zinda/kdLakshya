@@ -20,6 +20,7 @@ import CategoryList from './CategoryTable';
 import NotesComponent from './NotesComponent';
 import TaskList from './PriorityTable';
 import StatusList from './StatusTable';
+import TaskEditModal from './TaskEditModel';
 
 const colors = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', 'red', 'pink'];
 
@@ -281,6 +282,9 @@ const TodoDashboard: React.FC = () => {
     return null;
   };
 
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState<boolean>(false);
+  const [selectedTask, setSelectedTask] = React.useState<TodoTask | null>(null);
+
   return (
     <div className="bg-gray-800  p-4 md:p-6 font-sans rounded-3xl w-[100%]">
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -378,7 +382,18 @@ const TodoDashboard: React.FC = () => {
               </h2>
               <ul className="list-disc list-inside text-sm md:text-base">
                 {todayTasks ? (
-                  todayTasks.map((task) => <li key={task.id}>{task.name}</li>)
+                  todayTasks.map((task) => (
+                    <li
+                      key={task.id}
+                      onClick={() => {
+                        setSelectedTask(task);
+                        setIsEditModalOpen(true);
+                      }}
+                      className="cursor-pointer hover:text-gray-200"
+                    >
+                      {task.name}
+                    </li>
+                  ))
                 ) : (
                   <p>No tasks due today</p>
                 )}
@@ -475,6 +490,23 @@ const TodoDashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {selectedTask && (
+        <TaskEditModal
+          task={selectedTask}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setSelectedTask(null);
+          }}
+          onUpdate={updateTask}
+          allowedFields={{
+            allowed_priority: todoData.allowed_priority,
+            allowed_status: todoData.allowed_status,
+            allowed_category: todoData.allowed_category,
+          }}
+        />
+      )}
     </div>
   );
 };
