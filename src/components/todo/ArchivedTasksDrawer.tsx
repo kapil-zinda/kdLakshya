@@ -47,7 +47,6 @@ const ArchivedTasksDrawer: React.FC<ArchivedTasksDrawerProps> = ({
   onDelete,
   onClearAll,
 }) => {
-  console.log(archivedTasks, 'archivedTasks');
   return (
     <Sheet>
       <SheetTrigger asChild>
