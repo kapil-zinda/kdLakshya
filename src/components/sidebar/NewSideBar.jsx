@@ -36,10 +36,16 @@ export function NewSideBar({ children }) {
   const [userDatas, setUserDatas] = useState(userData);
   const [isHovered, setIsHovered] = useState(false);
   const [activeTab, setActiveTab] = useState('/');
+  const [isClient, setIsClient] = useState(false);
+  const pathname = usePathname();
+  const bearerToken = getItemWithTTL('bearerToken');
 
   useEffect(() => {
+    setIsClient(true);
     setUserDatas(userData);
-  }, [userData]);
+  }, []);
+
+  if (!isClient) return <div>Loading...</div>;
 
   const logoutHandler = async () => {
     localStorage.removeItem('bearerToken');
@@ -57,21 +63,23 @@ export function NewSideBar({ children }) {
       label: 'Subject',
     },
     { href: '/todo', icon: <Package className="h-5 w-5" />, label: 'TODO' },
-    { href: '/teams', icon: <Users className="h-5 w-5" />, label: 'Teams' },
+    userData.allowedTeams.length > 0
+      ? { href: '/teams', icon: <Users className="h-5 w-5" />, label: 'Teams' }
+      : undefined,
     { href: '/notes', icon: <Book className="h-5 w-5" />, label: 'Notes' },
-    {
-      href: '/admin',
-      icon: <LineChart className="h-5 w-5" />,
-      label: 'Admin panel',
-    },
-  ];
-  const pathname = usePathname();
-  const bearerToken = getItemWithTTL('bearerToken');
+    'org' in userData.permission
+      ? {
+          href: '/admin',
+          icon: <LineChart className="h-5 w-5" />,
+          label: 'Admin panel',
+        }
+      : undefined,
+  ].filter(Boolean);
+
   if (pathname === '/' && bearerToken === null) {
     return children;
   }
-  // return children;
-  console.log('hello', pathname);
+
   return (
     <div className="grid min-h-screen w-full md:grid-cols-[auto_1fr] lg:grid-cols-[auto_1fr]">
       <div
@@ -156,9 +164,9 @@ export function NewSideBar({ children }) {
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
-        <main className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
+        <div className="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6">
           {children}
-        </main>
+        </div>
       </div>
     </div>
   );
