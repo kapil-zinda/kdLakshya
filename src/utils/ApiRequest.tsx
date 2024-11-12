@@ -1,3 +1,5 @@
+'use client';
+
 import { userData } from '@/app/interfaces/userInterface';
 import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
 import axios from 'axios';
