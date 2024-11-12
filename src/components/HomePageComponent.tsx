@@ -96,6 +96,12 @@ export default function HomePageComponent() {
           },
         },
       });
+
+      try {
+        window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${login_redirect}&scope=${encodeURIComponent('openid profile email')}`;
+      } catch (error) {
+        console.log(error);
+      }
     } catch (error) {
       console.log(error);
     }
