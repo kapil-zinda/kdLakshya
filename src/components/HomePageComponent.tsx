@@ -1,7 +1,8 @@
 'use client';
 
-import React, { FormEvent, useRef } from 'react';
+import React, { FormEvent, useRef, useState } from 'react';
 
+import { makeApiCall } from '@/utils/ApiRequest';
 import emailjs from '@emailjs/browser';
 import { Book, Building2, LineChart, Mail, Package, Phone } from 'lucide-react';
 
@@ -14,6 +15,17 @@ const EMAILJS_PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY || '';
 const EMAILJS_TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID || '';
 
 export default function HomePageComponent() {
+  const [showSignupModal, setShowSignupModal] = useState(false);
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [firstNameError, setFirstNameError] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [lastNameError, setLastNameError] = useState('');
+  const [password, setPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
   const loginHandler = async () => {
     console.log('hello');
     try {
@@ -22,6 +34,77 @@ export default function HomePageComponent() {
       console.log(error);
     }
   };
+
+  const handleSignup = async () => {
+    // Validate password requirements
+    const passwordRegex =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,20}$/;
+    const emailRegex = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/;
+    if (!emailRegex.test(email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+    setEmailError('');
+
+    if (firstName.trim() === '') {
+      setFirstNameError('First name is required');
+      return;
+    } else {
+      setFirstNameError('');
+    }
+    if (lastName.trim() === '') {
+      setLastNameError('Last name is required');
+      return;
+    } else {
+      setLastNameError('');
+    }
+
+    if (!passwordRegex.test(password)) {
+      console.log('Password did not pass validation:', password);
+
+      let errorMessage =
+        'Password must be between 8 and 20 characters, and contain:';
+      if (!/(?=.*[a-z])/.test(password)) errorMessage += ' a lowercase letter,';
+      if (!/(?=.*[A-Z])/.test(password))
+        errorMessage += ' an uppercase letter,';
+      if (!/(?=.*\d)/.test(password)) errorMessage += ' a number,';
+      if (!/(?=.*[@$!%*#?&])/.test(password))
+        errorMessage += ' a special character,';
+      if (password.length < 8 || password.length > 20)
+        errorMessage += ' and be between 8 and 20 characters long.';
+
+      setPasswordError(errorMessage.trim().replace(/,$/, '.'));
+      return;
+    }
+    setPasswordError('');
+
+    const userData = {
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      temporary_password: password,
+    };
+    console.log(userData);
+    try {
+      await makeApiCall({
+        path: `auth/users`,
+        method: 'PUT',
+        payload: {
+          data: {
+            type: 'users',
+            attributes: userData,
+          },
+        },
+      });
+    } catch (error) {
+      console.log(error);
+    }
+
+    // Handle signup logic here
+    console.log('Signed up:', { email, firstName, lastName, password });
+    setShowSignupModal(false);
+  };
+
   const form = useRef<HTMLFormElement | null>(null);
 
   const sendEmail = (e: FormEvent) => {
@@ -279,20 +362,21 @@ export default function HomePageComponent() {
                     </li>
                   ))}
                 </ul>
-                <a href="#contact" className="py-3 mt-4">
+                <a href="#" className="py-3 mt-4">
                   <button
-                    className={`w-full py-3 mt-4 rounded-lg border border-blue-500 text-blue-500 ${plan.title === 'Organisation' ? 'hover:bg-blue-500 hover:text-white ' : ''} transition-colors`}
-                    disabled={plan.title !== 'Organisation'}
+                    className={`w-full py-3 mt-4 rounded-lg border border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white transition-colors`}
+                    onClick={() => {
+                      if (plan.title === 'Individual') {
+                        setShowSignupModal(true);
+                      } else {
+                        console.log('Contact us for Organisation plan');
+                      }
+                    }}
                     style={{
-                      cursor:
-                        plan.title === 'Organisation'
-                          ? 'pointer'
-                          : 'not-allowed',
+                      cursor: 'pointer',
                     }}
                   >
-                    {plan.title === 'Organisation'
-                      ? 'Contact Us'
-                      : 'Coming Soon'}
+                    {plan.title === 'Organisation' ? 'Contact Us' : 'Start Now'}
                   </button>
                 </a>
               </div>
@@ -398,6 +482,99 @@ export default function HomePageComponent() {
           </div>
         </div>
       </section>
+      {showSignupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-slate-800 rounded-2xl p-8 w-full max-w-md space-y-4">
+            <h2 className="text-3xl font-bold">Sign Up</h2>
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              pattern="^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$"
+              title="Please enter a valid email address (e.g., example@example.com)"
+              className={`w-full p-3 bg-slate-900 rounded-lg ${
+                emailError ? 'border-red-500' : ''
+              }`}
+            />
+            {emailError && (
+              <div className="text-red-500 text-sm">{emailError}</div>
+            )}
+            <input
+              type="text"
+              placeholder="First Name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              className={`w-full p-3 bg-slate-900 rounded-lg ${
+                firstNameError ? 'border-red-500' : ''
+              }`}
+            />
+            {firstNameError && (
+              <div className="text-red-500 text-sm">{firstNameError}</div>
+            )}
+            <input
+              type="text"
+              placeholder="Last Name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              className={`w-full p-3 bg-slate-900 rounded-lg ${
+                firstNameError ? 'border-red-500' : ''
+              }`}
+            />
+            {lastNameError && (
+              <div className="text-red-500 text-sm">{lastNameError}</div>
+            )}
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className={`w-full p-3 bg-slate-900 rounded-lg ${
+                  passwordError ? 'border-red-500' : ''
+                }`}
+              />
+              <button
+                type="button"
+                className="absolute top-1/2 right-3 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            {passwordError && (
+              <div className="text-red-500 text-sm">{passwordError}</div>
+            )}
+            <div className="flex justify-between">
+              <button
+                className="px-4 py-2 bg-blue-600 rounded-lg hover:bg-blue-700"
+                onClick={handleSignup}
+              >
+                Sign Up
+              </button>
+              <button
+                className="px-4 py-2 bg-slate-800 rounded-lg hover:bg-slate-700"
+                onClick={() => setShowSignupModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+            <p className="text-sm text-slate-400 text-center">
+              Already have an account?{' '}
+              <button
+                className="text-blue-500 hover:underline"
+                onClick={loginHandler}
+              >
+                Sign In
+              </button>
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
