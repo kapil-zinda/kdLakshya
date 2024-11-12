@@ -30,6 +30,7 @@ interface ColumnHeader {
 
 export default function Home() {
   const [tableData, setTableData] = useState<TimeTableRecord | null>(null);
+  const bearerToken = getItemWithTTL('bearerToken');
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -43,8 +44,8 @@ export default function Home() {
       }
     };
 
-    fetchData();
-  }, []);
+    bearerToken && fetchData();
+  }, [bearerToken]);
   const columnHeaders: ColumnHeader[] = [
     { label: 'Subject', align: 'left' },
     { label: 'Start Time', align: 'left' },
@@ -52,8 +53,6 @@ export default function Home() {
     { label: 'Description', align: 'left' },
     { label: 'Edit', align: 'right' },
   ];
-
-  const bearerToken = getItemWithTTL('bearerToken');
 
   return (
     <>
