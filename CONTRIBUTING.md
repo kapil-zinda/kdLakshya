@@ -1,43 +1,85 @@
 # Contributing to 10k-Hours
 
-Thanks for checking out 10k-Hours! We'd love for you to contribute. Whether you're a first-time open source contributor or an experienced developer, there are ways you can help make 10k-Hours great!
+Thanks for your interest in contributing to 10k-Hours! Whether you're a first-time open source contributor or an experienced developer, your help is valuable. Here’s a guide to get you started.
+
+## How to Contribute
+
+There are a few ways you can contribute to the 10k-Hours project:
+
+- **Reporting bugs** and **suggesting features** on our [issues page](https://github.com/kapil-zinda/kdLakshya/issues).
+- **Contributing code** to address accepted issues.
+- **Improving documentation** to help others use the project more effectively.
+
+### Getting Started
+
+To start contributing code, you'll want to fork the repository, create a branch, and submit a pull request (PR). Here's a quick guide:
+
+1. **Fork and Clone the Repository**
+
+   ```bash
+   git clone https://github.com/kapil-zinda/kdLakshya.git
+   cd kdLakshya
+   npm install
+   npm run dev      # to run the web version locally
+   ```
+
+2. **Create a New Branch from Master**
+   All new branches should be created from the `master` branch. Do not create branches from other branches. Your branch name should follow one of these conventions based on the purpose of the branch:
+
+   - **Features**: `ftr/branch_name`
+   - **Bugs**: `bug/branch_name`
+   - **Fixes**: `fix/branch_name`
+
+   For example:
+
+   ```bash
+   git checkout master
+   git checkout -b ftr/new-feature
+   ```
+
+3. **Write Meaningful Commits**
+   Clear, descriptive commit messages make it easier for others to understand what each change does. Use the imperative mood (e.g., “Add feature X” or “Fix bug Y”).
+
+4. **Submit Pull Requests (PR)**
+   - **Staging PR**: First, submit a PR from your feature branch to the `staging` branch. This will allow testing and validation before it goes to production.
+   - **Master PR**: After testing is completed on `staging`, submit a PR from your branch to `master`. This merge will trigger the code to be tested on production.
 
 ## Contributing Code
 
-One of the best ways is to grab a bug report or feature suggestion that has been marked `accepted` and dig in. Please be wary of working on issues not marked as accepted. Just because someone has created an issue doesn't mean we'll accept a pull request for it. See [Where to Contribute](#where-to-contribute) below for more information.
+One of the best ways to start contributing code is to address issues marked with the `accepted` label. **Please do not work on issues without this label**, as we may not accept PRs for those issues.
 
-### Pull requests
+### Pull Requests
 
-When you create a pull request you waive any patent or copyright claims you might have to the code you're contributing. (For example, you can't submit a PR and then sue 10k-Hours for using your code.)
+When you create a pull request, you waive any patent or copyright claims to the code you're contributing. You cannot submit a PR and later take legal action against 10k-Hours for using your code.
+
+### Code Review Process
+
+Your PR will go through a review process to ensure it meets the project’s standards. Please be receptive to feedback, as it helps maintain code quality and ensure alignment with project goals.
 
 ## Filing Issues
 
-If you have a bug to report or a feature to suggest, you may do so on our [issues page](https://github.com/kapil-zinda/kdLakshya/issues). Please carefully follow all instructions in the template for the given type of issue you're reporting.
+To report bugs or suggest features, please follow these steps:
 
-We also ask that you search for existing issues, including closed ones! We're in the process of migrating. If someone has already reported a bug or requested the feature you have in mind, vote for it at the top.
+1. **Check Existing Issues**: Before filing a new issue, please check the [issues page](https://github.com/kapil-zinda/kdLakshya/issues) to avoid duplicates.
+2. **Follow the Template**: When creating an issue, please fill out the template completely.
+3. **Reproduce the Issue**: For bugs, make sure you are running the latest version of 10k-Hours and provide steps to reproduce the issue. Without sufficient detail, we may close the issue without further comment.
 
-For bugs, please verify that you're running the latest version of 10k-Hours. If you file an issue without providing detail, we may close it without comment.
+## Building and Running from Source
 
-## Build and Run From Source
-
-If you want to understand how 10k-Hours works or want to debug an issue, you'll want to get the source, build it, and run it locally.
-
-### Installing Prerequisites
-
-You'll need git, a recent version of Node.JS (currently v16.X is recommended), npm.
+If you’re interested in understanding how 10k-Hours works or debugging an issue, you can build and run the app locally. Prerequisites include `git`, `Node.js` (v16.X recommended), and `npm`.
 
 ```bash
 git clone https://github.com/kapil-zinda/kdLakshya.git
 cd kdLakshya
 npm install
-npm run dev      # to run web version
+npm run dev
 ```
 
 ## Where to Contribute
 
-Check out our [issues page](https://github.com/kapil-zinda/kdLakshya/issues) for all potential areas for contributions.
+Visit our [issues page](https://github.com/kapil-zinda/kdLakshya/issues) to find areas where contributions are needed.
 
-Note that just because a topic exists does not mean we will accept a contribution to the app. There are several reasons we may not accepts a pull requests, like:
+Please note that even if an issue exists, it does not guarantee that a contribution for that issue will be accepted. Reasons include:
 
 - **Maintainability** - We're extremely wary of adding options and preferences for niche behaviors. Our general rule is that the code complexity of adding a preference isn't worth it unless the user base is fairly evenly divided about the desired behavior.
 
