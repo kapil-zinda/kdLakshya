@@ -2,6 +2,8 @@
 
 import React from 'react';
 
+import { useRouter } from 'next/navigation';
+
 import { makeApiCall } from '@/utils/ApiRequest';
 import {
   Bar,
@@ -115,91 +117,97 @@ const TodoDashboard: React.FC = () => {
   const [todayTasksCount, setTodayTasksCount] = React.useState<number>(0);
   const [overdueTasksCount, setOverdueTasksCount] = React.useState<number>(0);
   const [todayTasks, setTodayTasks] = React.useState<TodoTask[] | null>(null);
-
-  const fetchData = async () => {
-    try {
-      const result = await makeApiCall({
-        path: `subject/todo`,
-        method: 'GET',
-      });
-      const data = result.data.attributes;
-      setTodoData(data);
-      setDatas(data.tasks);
-
-      const priorityCounts: { [key: string]: number } = {};
-      data.tasks.forEach((task: TodoTask) => {
-        priorityCounts[task.priority] =
-          (priorityCounts[task.priority] || 0) + 1;
-      });
-
-      const formattedPriorityData = data.allowed_priority.map(
-        (priority: string) => ({
-          name: priority,
-          value: priorityCounts[priority] || 0,
-          color:
-            colors[data.allowed_priority.indexOf(priority) % colors.length],
-        }),
-      );
-
-      setPriorityData(formattedPriorityData);
-
-      const statusCounts: { [key: string]: number } = {};
-      data.tasks.forEach((task: TodoTask) => {
-        statusCounts[task.status] = (statusCounts[task.status] || 0) + 1;
-      });
-
-      const formattedStatusData = data.allowed_status.map((status: string) => ({
-        name: status,
-        value: statusCounts[status] || 0,
-        color: colors[data.allowed_status.indexOf(status) % colors.length],
-      }));
-
-      setStatusData(formattedStatusData);
-
-      const categoryCounts: { [key: string]: number } = {};
-      data.tasks.forEach((task: TodoTask) => {
-        categoryCounts[task.category] =
-          (categoryCounts[task.category] || 0) + 1;
-      });
-
-      const formattedCategoryData = data.allowed_category.map(
-        (category: string) => ({
-          name: category,
-          value: categoryCounts[category] || 0,
-        }),
-      );
-
-      setCategoryData(formattedCategoryData);
-
-      // Count tasks due today
-      const todayTasks = data.tasks.filter(
-        (task: TodoTask) => String(task.due_date) === String(formattedToday),
-      );
-      setTodayTasks(todayTasks);
-      setTodayTasksCount(todayTasks.length);
-
-      const todayNum = new Date();
-      todayNum.setHours(0, 0, 0, 0);
-
-      const parseDate = (dateStr: string): Date => {
-        const [day, month, year] = dateStr.split('/').map(Number);
-        return new Date(2000 + year, month - 1, day);
-      };
-
-      const overdueTasks = data.tasks.filter((task: TodoTask) => {
-        const dueDate = parseDate(task.due_date);
-        return dueDate < todayNum;
-      });
-
-      setOverdueTasksCount(overdueTasks.length);
-    } catch (error) {
-      console.log(error);
-    }
+  const router = useRouter();
+  const openCreatePage = async () => {
+    router.push(`/todo/tasks/`);
   };
 
   React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const result = await makeApiCall({
+          path: `subject/todo`,
+          method: 'GET',
+        });
+        const data = result.data.attributes;
+        setTodoData(data);
+        setDatas(data.tasks);
+
+        const priorityCounts: { [key: string]: number } = {};
+        data.tasks.forEach((task: TodoTask) => {
+          priorityCounts[task.priority] =
+            (priorityCounts[task.priority] || 0) + 1;
+        });
+
+        const formattedPriorityData = data.allowed_priority.map(
+          (priority: string) => ({
+            name: priority,
+            value: priorityCounts[priority] || 0,
+            color:
+              colors[data.allowed_priority.indexOf(priority) % colors.length],
+          }),
+        );
+
+        setPriorityData(formattedPriorityData);
+
+        const statusCounts: { [key: string]: number } = {};
+        data.tasks.forEach((task: TodoTask) => {
+          statusCounts[task.status] = (statusCounts[task.status] || 0) + 1;
+        });
+
+        const formattedStatusData = data.allowed_status.map(
+          (status: string) => ({
+            name: status,
+            value: statusCounts[status] || 0,
+            color: colors[data.allowed_status.indexOf(status) % colors.length],
+          }),
+        );
+
+        setStatusData(formattedStatusData);
+
+        const categoryCounts: { [key: string]: number } = {};
+        data.tasks.forEach((task: TodoTask) => {
+          categoryCounts[task.category] =
+            (categoryCounts[task.category] || 0) + 1;
+        });
+
+        const formattedCategoryData = data.allowed_category.map(
+          (category: string) => ({
+            name: category,
+            value: categoryCounts[category] || 0,
+          }),
+        );
+
+        setCategoryData(formattedCategoryData);
+
+        // Count tasks due today
+        const todayTasks = data.tasks.filter(
+          (task: TodoTask) => String(task.due_date) === String(formattedToday),
+        );
+        setTodayTasks(todayTasks);
+        setTodayTasksCount(todayTasks.length);
+
+        const todayNum = new Date();
+        todayNum.setHours(0, 0, 0, 0);
+
+        const parseDate = (dateStr: string): Date => {
+          const [day, month, year] = dateStr.split('/').map(Number);
+          return new Date(2000 + year, month - 1, day);
+        };
+
+        const overdueTasks = data.tasks.filter((task: TodoTask) => {
+          const dueDate = parseDate(task.due_date);
+          return dueDate < todayNum;
+        });
+
+        setOverdueTasksCount(overdueTasks.length);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
     fetchData();
-  });
+  }, []);
 
   const updateTask = async (
     id: number | string,
@@ -485,7 +493,10 @@ const TodoDashboard: React.FC = () => {
             <h2 className="font-bold mb-2 text-sm md:text-base">
               CREATE TASK / MOTIVATION QUOTE
             </h2>
-            <button className="bg-green-500 text-white font-bold py-2 px-4 rounded mb-4">
+            <button
+              className="bg-green-500 text-white font-bold py-2 px-4 rounded mb-4"
+              onClick={() => openCreatePage}
+            >
               Create New Task
             </button>
             <p className="italic text-sm md:text-base">
