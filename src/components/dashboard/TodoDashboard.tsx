@@ -107,6 +107,9 @@ const TodoDashboard: React.FC = () => {
     ...initialTodoData,
   });
   const [datas, setDatas] = React.useState<TodoTask[]>(todoData.tasks || []);
+  const [todoNotes, setTodoNotes] = React.useState<string[]>(
+    todoData.note || [],
+  );
   const today = new Date();
   const formattedToday = [
     String(today.getDate()).padStart(2, '0'), // Day
@@ -132,6 +135,7 @@ const TodoDashboard: React.FC = () => {
         const data = result.data.attributes;
         setTodoData(data);
         setDatas(data.tasks);
+        setTodoNotes(data.note);
 
         const priorityCounts: { [key: string]: number } = {};
         data.tasks.forEach((task: TodoTask) => {
@@ -486,7 +490,7 @@ const TodoDashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        <NotesComponent notes={todoData.note} />
+        <NotesComponent notes={todoNotes} />
 
         <div className="col-span-1 md:col-span-2 bg-yellow-800 p-4 rounded-lg">
           <div className="bg-yellow-800 p-4 rounded-lg">
@@ -495,7 +499,7 @@ const TodoDashboard: React.FC = () => {
             </h2>
             <button
               className="bg-green-500 text-white font-bold py-2 px-4 rounded mb-4"
-              onClick={() => openCreatePage}
+              onClick={() => openCreatePage()}
             >
               Create New Task
             </button>
