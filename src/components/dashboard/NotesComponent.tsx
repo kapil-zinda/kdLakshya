@@ -15,8 +15,6 @@ const NotesComponent: React.FC<NotesComponentProps> = ({ notes }) => {
   useEffect(() => {
     setCurrNotes(notes);
   }, [notes]);
-  console.log(notes);
-  console.log(currNotes);
 
   const handleAddNote = async () => {
     if (newNote.trim()) {
