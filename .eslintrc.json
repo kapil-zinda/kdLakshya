@@ -20,5 +20,6 @@
     "@typescript-eslint/no-explicit-any": "warn", // Disable no-explicit-any rule
     "react-hooks/rules-of-hooks": "warn", // Ensure hooks are used properly
     "react-hooks/exhaustive-deps": "warn" // Warn for missing dependencies in hooks
-  }
+  },
+  "ignorePatterns": ["*.md"]
 }

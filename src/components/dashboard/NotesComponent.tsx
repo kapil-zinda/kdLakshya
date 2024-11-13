@@ -9,10 +9,12 @@ interface NotesComponentProps {
 
 const NotesComponent: React.FC<NotesComponentProps> = ({ notes }) => {
   const [newNote, setNewNote] = useState<string>('');
-  const [currNotes, setCurrNotes] = useState<string[]>(notes);
+  const [currNotes, setCurrNotes] = useState<string[]>([]);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
-  useEffect(() => {}, [notes]);
+  useEffect(() => {
+    setCurrNotes(notes);
+  }, [notes]);
 
   const handleAddNote = async () => {
     if (newNote.trim()) {
