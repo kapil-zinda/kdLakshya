@@ -1,7 +1,5 @@
 'use server';
 
-import { log } from 'console';
-
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 
 export async function onFilesUpload(
@@ -18,9 +16,6 @@ export async function onFilesUpload(
       );
     }
 
-    log('AWS Region:', region);
-    log('AWS Bucket Name:', bucketName);
-
     const client = new S3Client({ region });
 
     // Get the file from the formData
@@ -35,14 +30,11 @@ export async function onFilesUpload(
       throw new Error('S3 key (file path) is required');
     }
 
-    log('File received:', file.name);
-    log('S3 Key:', s3key);
-
     // Convert the file to a Buffer (S3 expects file data in a specific format)
     const fileArrayBuffer = await file.arrayBuffer();
     const fileBuffer = Buffer.from(fileArrayBuffer);
 
-    log('File size (bytes):', fileBuffer.byteLength);
+    console.log('File size (bytes):', fileBuffer.byteLength);
 
     // Prepare the parameters for the S3 PutObject command
     const params = {
@@ -52,18 +44,14 @@ export async function onFilesUpload(
       ContentType: file.type, // Set content type based on the uploaded file
     };
 
-    // Upload the file directly to S3
-    log('Sending file to S3...');
     const command = new PutObjectCommand(params);
     const response = await client.send(command);
 
-    log('S3 upload response:', response);
-
     if (response.$metadata.httpStatusCode === 200) {
-      log('File uploaded successfully to S3.');
+      console.log('File uploaded successfully to S3.');
       return `File uploaded to S3 at ${s3key}`;
     } else {
-      log('Failed to upload file to S3.');
+      console.log('Failed to upload file to S3.');
       return null;
     }
   } catch (err) {
