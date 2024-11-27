@@ -492,8 +492,8 @@ const NotesTable: React.FC<NotesTableProps> = ({ parentPath }) => {
     // Prepare an array to store file upload promises
     const uploadPromises = Array.from(uploadedFiles).map(async (file) => {
       const formData = new FormData();
-      formData.append('file', file);
-      formData.append('s3key', `user-2/${parentPath}${file.name}`);
+      await formData.append('file', file);
+      await formData.append('s3key', `user-2/${parentPath}${file.name}`);
 
       try {
         await onFilesUpload(formData); // Call the server-side function to upload the file
