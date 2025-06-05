@@ -68,6 +68,11 @@ export function NewSideBar({ children }) {
       : undefined,
     { href: '/notes', icon: <Book className="h-5 w-5" />, label: 'Notes' },
     {
+      href: '/student',
+      icon: <Book className="h-5 w-5" />,
+      label: 'Student Dashboard',
+    },
+    {
       href: '/teacher',
       icon: <Users className="h-5 w-5" />,
       label: 'Teacher Dashboard',
