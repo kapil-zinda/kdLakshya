@@ -452,35 +452,35 @@ const StudentFees: React.FC = () => {
       {/* Print-only content */}
       <div className="print-only">
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold text-black">
-            SHREE LAHARI SINGH MEMO. INTER COLLEGE GHANGHAULI, ALIGARH
+          <h1 className="text-2xl font-bold text-white">
+            SHREE LAHARI SINGH MEMO INTER COLLEGE GHANGHAULI, ALIGARH
           </h1>
-          <p className="text-black">Phone No. 9897470696</p>
-          <h2 className="text-xl font-bold mt-4 text-black">
+          <p className="text-white">Phone No. 9897470696</p>
+          <h2 className="text-xl font-bold mt-4 text-white">
             Fee Statement - {feeData.academicYear}
           </h2>
         </div>
 
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
-            <p className="text-black">
+            <p className="text-white">
               <strong>Name:</strong> Rahul Kumar
             </p>
-            <p className="text-black">
+            <p className="text-white">
               <strong>{"Father's Name:"}</strong> Nanak Chand
             </p>
-            <p className="text-black">
+            <p className="text-white">
               <strong>Class:</strong> 11
             </p>
           </div>
           <div>
-            <p className="text-black">
+            <p className="text-white">
               <strong>Roll No:</strong> 2211136
             </p>
-            <p className="text-black">
+            <p className="text-white">
               <strong>S.R.No.:</strong> 2316
             </p>
-            <p className="text-black">
+            <p className="text-white">
               <strong>Academic Year:</strong> {feeData.academicYear}
             </p>
           </div>
