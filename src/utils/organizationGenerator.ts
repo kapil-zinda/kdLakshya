@@ -179,6 +179,103 @@ export function generateOrganizationConfig(
         { label: 'Industry Partners', value: '50+', icon: '🤝' },
       ],
     },
+    university: {
+      tagline: 'Excellence in Higher Education',
+      description:
+        'A distinguished university dedicated to advanced learning, research, and intellectual growth.',
+      programs: {
+        title: 'Our Academic Programs',
+        items: [
+          {
+            name: 'Undergraduate Programs',
+            description:
+              'Comprehensive degree programs for bachelor-level education.',
+            image: '/images/undergraduate.jpg',
+            link: '/programs/undergraduate',
+            features: [
+              'Liberal arts education',
+              'Research opportunities',
+              'Faculty mentorship',
+              'Campus life',
+            ],
+          },
+          {
+            name: 'Graduate Programs',
+            description:
+              'Advanced degree programs for specialized knowledge and research.',
+            image: '/images/graduate.jpg',
+            link: '/programs/graduate',
+            features: [
+              'Research focus',
+              'Expert supervision',
+              'Thesis projects',
+              'Academic excellence',
+            ],
+          },
+          {
+            name: 'Doctoral Programs',
+            description:
+              'PhD programs for cutting-edge research and scholarly pursuits.',
+            image: '/images/doctoral.jpg',
+            link: '/programs/doctoral',
+            features: [
+              'Original research',
+              'Publication opportunities',
+              'Conference presentations',
+              'Academic careers',
+            ],
+          },
+        ],
+      },
+      stats: [
+        { label: 'Students', value: '15,000+', icon: '👥' },
+        { label: 'Faculty', value: '800+', icon: '👨‍🏫' },
+        { label: 'Research Centers', value: '50+', icon: '🔬' },
+        { label: 'Alumni Network', value: '100,000+', icon: '🎓' },
+      ],
+    },
+    organization: {
+      tagline: 'Excellence in Service',
+      description:
+        'A premier organization committed to delivering exceptional services and making a positive impact.',
+      programs: {
+        title: 'Our Services',
+        items: [
+          {
+            name: 'Consulting Services',
+            description:
+              'Expert consulting solutions tailored to your specific needs.',
+            image: '/images/consulting.jpg',
+            link: '/services/consulting',
+            features: [
+              'Expert guidance',
+              'Custom solutions',
+              'Strategic planning',
+              'Result-oriented',
+            ],
+          },
+          {
+            name: 'Training Programs',
+            description:
+              'Professional development and skill enhancement programs.',
+            image: '/images/training.jpg',
+            link: '/services/training',
+            features: [
+              'Skill development',
+              'Professional growth',
+              'Certification',
+              'Industry standards',
+            ],
+          },
+        ],
+      },
+      stats: [
+        { label: 'Clients Served', value: '1,000+', icon: '👥' },
+        { label: 'Team Members', value: '200+', icon: '👨‍💼' },
+        { label: 'Success Rate', value: '98%+', icon: '🏆' },
+        { label: 'Years in Business', value: '15+', icon: '🏢' },
+      ],
+    },
   };
 
   const typeDefaults =
