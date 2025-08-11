@@ -1,15 +1,18 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+
+import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
 import styled from '@emotion/styled';
 import { Button } from '@mui/material';
 import axios from 'axios';
 import { PenIcon, User2Icon } from 'lucide-react';
-import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
-import {EditOrganisationDetails} from "../modal/EditOrganisationDetails"
+
+import { EditOrganisationDetails } from '../modal/EditOrganisationDetails';
+
 const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
 type OverviewProps = {
-	orgId: string;
+  orgId: string;
   privillege: string;
 };
 const Card = styled.div`
@@ -93,7 +96,6 @@ interface OverviewData {
   permission?: Permission;
 }
 
-
 interface UserListProps {
   permission: Permission;
 }
@@ -109,7 +111,8 @@ export const UserList: React.FC<UserListProps> = ({ permission }) => {
             </UserAvatar>
             <UserInfo>
               <div>{role}</div> {/* Displaying the role (value) */}
-              <div style={{ fontSize: '12px' }}>{email}</div> {/* Displaying the email (key) */}
+              <div style={{ fontSize: '12px' }}>{email}</div>{' '}
+              {/* Displaying the email (key) */}
             </UserInfo>
           </UserCard>
         );
@@ -118,9 +121,8 @@ export const UserList: React.FC<UserListProps> = ({ permission }) => {
   );
 };
 
-
-const Overview: React.FC<OverviewProps> = ({orgId, privillege}) => {
-  const [showModal, setShowModal] = useState(false)
+const Overview: React.FC<OverviewProps> = ({ orgId, privillege }) => {
+  const [showModal, setShowModal] = useState(false);
   const [overviewData, setOverviewData] = useState<OverviewData>({});
   // const bearerData = localStorage.getItem('bearerToken');
   // let jsonBearer: { value?: string } | null = null;
@@ -134,13 +136,13 @@ const Overview: React.FC<OverviewProps> = ({orgId, privillege}) => {
   //     console.error('Error parsing JSON:', error);
   //   }
   // }
-  const bearerToken = getItemWithTTL("bearerToken")
+  const bearerToken = getItemWithTTL('bearerToken');
   const onClose = () => {
     setShowModal(false);
-  }
-  const handleClicked = function (){
+  };
+  const handleClicked = function () {
     setShowModal(true);
-  }
+  };
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -178,9 +180,16 @@ const Overview: React.FC<OverviewProps> = ({orgId, privillege}) => {
         >
           Organisation Management Dashboard
         </h1>
-       {privillege == "head" && <Button variant="outlined" style={{ marginBottom: '1rem' }} onClick={handleClicked}>
-          <PenIcon style={{ marginRight: '8px', width: '15px' }} /> Edit Details
-        </Button>}
+        {privillege == 'head' && (
+          <Button
+            variant="outlined"
+            style={{ marginBottom: '1rem' }}
+            onClick={handleClicked}
+          >
+            <PenIcon style={{ marginRight: '8px', width: '15px' }} /> Edit
+            Details
+          </Button>
+        )}
       </div>
       {overviewData.name ? (
         <Card>
@@ -220,12 +229,21 @@ const Overview: React.FC<OverviewProps> = ({orgId, privillege}) => {
           <div style={{ fontSize: '18px', margin: '5px 1rem' }}>
             Organisation Admins
           </div>
-          {overviewData?.permission && <UserList permission={overviewData.permission} />}
+          {overviewData?.permission && (
+            <UserList permission={overviewData.permission} />
+          )}
         </Card>
       ) : (
         <div>Loading...</div>
       )}
-      {showModal && <EditOrganisationDetails  onCloses={onClose} data={overviewData} orgId={orgId} setData={setOverviewData} />}
+      {showModal && (
+        <EditOrganisationDetails
+          onCloses={onClose}
+          data={overviewData}
+          orgId={orgId}
+          setData={setOverviewData}
+        />
+      )}
     </>
   );
 };
