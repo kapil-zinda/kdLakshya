@@ -262,9 +262,11 @@ export default function ContactPage() {
                           value={formData.name}
                           onChange={handleChange}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-colors"
-                          style={{
-                            focusRingColor: `${demoOrganizationData.branding.primaryColor}30`,
-                          }}
+                          style={
+                            {
+                              '--tw-ring-color': `${demoOrganizationData.branding.primaryColor}30`,
+                            } as React.CSSProperties
+                          }
                         />
                       </div>
                       <div>

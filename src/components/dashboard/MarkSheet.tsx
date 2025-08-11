@@ -150,9 +150,9 @@ const MarkSheet: React.FC = () => {
 
   const calculateTotal = (studentMarks: {
     [subjectId: string]: number | null;
-  }) => {
+  }): number => {
     return Object.values(studentMarks).reduce(
-      (sum, mark) => sum + (mark || 0),
+      (sum: number, mark) => sum + (mark || 0),
       0,
     );
   };
