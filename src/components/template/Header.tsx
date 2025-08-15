@@ -4,7 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { OrganizationConfig } from '@/types/organization';
-import { BookOpen, ChevronDown, GraduationCap, Menu, X } from 'lucide-react';
+import {
+  BookOpen,
+  ChevronDown,
+  GraduationCap,
+  Menu,
+  Settings,
+  X,
+} from 'lucide-react';
 
 interface HeaderProps {
   organization: OrganizationConfig;
@@ -41,9 +48,13 @@ export function Header({ organization }: HeaderProps) {
     window.location.href = href;
   };
 
-  const handleRoleSelection = (role: 'student' | 'teacher') => {
-    window.location.href =
-      role === 'student' ? '/template/student' : '/template/teacher';
+  const handleRoleSelection = (role: 'student' | 'teacher' | 'admin') => {
+    if (role === 'admin') {
+      window.location.href = '/admin-portal/login';
+    } else {
+      window.location.href =
+        role === 'student' ? '/template/student' : '/template/teacher';
+    }
     setIsDropdownOpen(false);
   };
 
@@ -163,6 +174,16 @@ export function Header({ organization }: HeaderProps) {
                   />
                   As a Teacher
                 </button>
+                <button
+                  onClick={() => handleRoleSelection('admin')}
+                  className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-center text-gray-700 hover:text-gray-900"
+                >
+                  <Settings
+                    className="h-4 w-4 mr-2"
+                    style={{ color: '#6366f1' }}
+                  />
+                  As an Admin
+                </button>
               </div>
             )}
           </div>
@@ -247,6 +268,21 @@ export function Header({ organization }: HeaderProps) {
                     >
                       <BookOpen className="h-4 w-4 mr-2" />
                       Sign in as Teacher
+                    </Button>
+                    <Button
+                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white flex items-center justify-center"
+                      style={{
+                        backgroundColor: '#6366f1',
+                        borderColor: '#6366f1',
+                        color: 'white',
+                      }}
+                      onClick={() => {
+                        handleRoleSelection('admin');
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Sign in as Admin
                     </Button>
                   </div>
                 </li>
