@@ -133,6 +133,7 @@ export default function ClassManagement() {
     subjects: [] as ExamSubject[],
     instructions: '',
     type: 'Unit Test' as 'Unit Test' | 'Mid Term' | 'Final' | 'Assignment',
+    room: '',
   });
   const [tempExamSubject, setTempExamSubject] = useState({
     subjectId: '',
@@ -943,6 +944,11 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!selectedClass) {
+      alert('No class selected');
+      return;
+    }
+
     const newSubject: Subject = {
       id: (currentSubjects.length + 1).toString(),
       name: subjectFormData.name,
@@ -984,6 +990,11 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!selectedClass) {
+      alert('No class selected');
+      return;
+    }
+
     const newExam: Exam = {
       id: (currentExams.length + 1).toString(),
       name: examFormData.name,
@@ -1011,6 +1022,7 @@ export default function ClassManagement() {
       subjects: [],
       instructions: '',
       type: 'Unit Test',
+      room: '',
     });
     setTempExamSubject({
       subjectId: '',
@@ -1081,38 +1093,57 @@ export default function ClassManagement() {
       return;
     }
 
-    const timeSlot = timeSlots.find((t) => t.id === selectedSlot.timeSlotId);
+    const timeSlot = currentTimeSlots.find(
+      (t) => t.id === selectedSlot.timeSlotId,
+    );
     if (!timeSlot) return;
 
-    const existingSlot = timetable.find(
+    const existingSlot = currentTimetable.find(
       (slot) =>
         slot.day === selectedSlot.day && slot.period === selectedSlot.period,
     );
 
     const newSlot: TimetableSlot = {
-      id: existingSlot ? existingSlot.id : (timetable.length + 1).toString(),
+      id: existingSlot
+        ? existingSlot.id
+        : (currentTimetable.length + 1).toString(),
       day: selectedSlot.day,
       period: selectedSlot.period,
       startTime: timeSlot.startTime,
       endTime: timeSlot.endTime,
       subjectId: slotFormData.subjectId,
-      subjectName: subjects.find((s) => s.id === slotFormData.subjectId)?.name,
+      subjectName: currentSubjects.find((s) => s.id === slotFormData.subjectId)
+        ?.name,
       teacherId:
         slotFormData.teacherId ||
-        subjects.find((s) => s.id === slotFormData.subjectId)?.teacherId,
+        currentSubjects.find((s) => s.id === slotFormData.subjectId)?.teacherId,
       teacherName: slotFormData.teacherId
         ? teachers.find((t) => t.id === slotFormData.teacherId)?.name
-        : subjects.find((s) => s.id === slotFormData.subjectId)?.teacherName,
+        : currentSubjects.find((s) => s.id === slotFormData.subjectId)
+            ?.teacherName,
       room: slotFormData.room || selectedClass?.room,
     };
 
-    if (existingSlot) {
-      setTimetable((prev) =>
-        prev.map((slot) => (slot.id === existingSlot.id ? newSlot : slot)),
-      );
-    } else {
-      setTimetable((prev) => [...prev, newSlot]);
-    }
+    if (!selectedClass) return;
+
+    const updatedTimetable = existingSlot
+      ? currentTimetable.map((slot) =>
+          slot.id === existingSlot.id ? newSlot : slot,
+        )
+      : [...currentTimetable, newSlot];
+
+    const updatedClass = {
+      ...selectedClass,
+      data: {
+        ...selectedClass.data,
+        timetable: updatedTimetable,
+      },
+    };
+
+    setClasses((prev) =>
+      prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
+    );
+    setSelectedClass(updatedClass);
 
     setShowTimetableModal(false);
     setSelectedSlot(null);
@@ -1127,6 +1158,11 @@ export default function ClassManagement() {
       !timeSlotFormData.endTime
     ) {
       alert('Please fill in all time slot fields');
+      return;
+    }
+
+    if (!selectedClass) {
+      alert('No class selected');
       return;
     }
 
