@@ -112,5 +112,6 @@ export interface OrganizationConfig {
     keywords: string[];
     language: string;
     timezone: string;
+    affiliatedCode?: string;
   };
 }

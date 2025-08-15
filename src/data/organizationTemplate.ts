@@ -199,5 +199,6 @@ export const demoOrganizationData: OrganizationConfig = {
     ],
     language: 'en',
     timezone: 'Asia/Kolkata',
+    affiliatedCode: 'CBSE12345',
   },
 };

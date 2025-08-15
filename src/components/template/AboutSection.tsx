@@ -2,6 +2,8 @@
 
 import { OrganizationConfig } from '@/types/organization';
 
+import { NotificationPanel } from './NotificationPanel';
+
 interface AboutSectionProps {
   data: OrganizationConfig['about'];
   branding: OrganizationConfig['branding'];
@@ -9,9 +11,40 @@ interface AboutSectionProps {
 }
 
 export function AboutSection({ data, branding }: AboutSectionProps) {
+  const sampleNotifications = [
+    {
+      id: '1',
+      title: 'Admission Open for Academic Year 2024-25',
+      date: '15 Jan 2024',
+      isNew: true,
+    },
+    {
+      id: '2',
+      title: 'Annual Sports Day - Registration Started',
+      date: '10 Jan 2024',
+      isNew: true,
+    },
+    {
+      id: '3',
+      title: 'Parent-Teacher Meeting Schedule Released',
+      date: '08 Jan 2024',
+    },
+    {
+      id: '4',
+      title: 'Winter Break Holiday Notice',
+      date: '20 Dec 2023',
+    },
+    {
+      id: '5',
+      title: 'Science Exhibition 2024 - Call for Projects',
+      date: '15 Dec 2023',
+    },
+  ];
+
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-white">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
+        {/* Title Section */}
         <div className="text-center mb-12 sm:mb-16 lg:mb-20">
           <h2
             className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-light mb-4 sm:mb-6 tracking-tight"
@@ -23,12 +56,49 @@ export function AboutSection({ data, branding }: AboutSectionProps) {
             className="w-16 sm:w-20 h-1 mx-auto mb-6 sm:mb-8 rounded-full"
             style={{ backgroundColor: branding.accentColor }}
           ></div>
-          <p
-            className="text-base sm:text-lg md:text-xl lg:text-2xl max-w-sm sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto leading-relaxed font-light px-4 sm:px-0"
-            style={{ color: '#6b7280' }}
-          >
-            {data.content}
-          </p>
+        </div>
+
+        {/* Two Column Layout: Notifications + School Info */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 sm:mb-16 lg:mb-20">
+          {/* Notifications Panel - Left Side on Desktop */}
+          <div className="lg:col-span-1 order-2 lg:order-1">
+            <NotificationPanel
+              notifications={sampleNotifications}
+              title="Latest Updates"
+              primaryColor={branding.primaryColor}
+              accentColor={branding.accentColor}
+            />
+          </div>
+
+          {/* School Information - Right Side on Desktop */}
+          <div className="lg:col-span-2 order-1 lg:order-2">
+            <div className="bg-gray-50 rounded-lg p-6 sm:p-8 h-full">
+              <h3
+                className="text-xl sm:text-2xl lg:text-3xl font-medium mb-4 sm:mb-6"
+                style={{ color: branding.primaryColor }}
+              >
+                About Our School
+              </h3>
+              <div className="prose prose-gray max-w-none">
+                <p
+                  className="text-base sm:text-lg leading-relaxed mb-4"
+                  style={{ color: '#6b7280' }}
+                >
+                  Amity Global School Noida is a premier educational institution
+                  that has been at the forefront of quality education for over
+                  two decades. We are committed to providing a nurturing
+                  environment where students can excel academically while
+                  developing their character and leadership skills.
+                </p>
+                <p
+                  className="text-base sm:text-lg leading-relaxed mb-4"
+                  style={{ color: '#6b7280' }}
+                >
+                  {data.content}
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 lg:gap-12 mb-12 sm:mb-16 lg:mb-20">

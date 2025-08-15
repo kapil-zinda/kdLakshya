@@ -6,6 +6,7 @@ import { AboutSection } from './AboutSection';
 import { Footer } from './Footer';
 import { Header } from './Header';
 import { HeroSection } from './HeroSection';
+import { NotificationBanner } from './NotificationBanner';
 import { StatsSection } from './StatsSection';
 
 interface OrganizationTemplateProps {
@@ -130,6 +131,12 @@ export function OrganizationTemplate({
 
         <main>
           <HeroSection data={data.hero} branding={data.branding} />
+          <NotificationBanner
+            message="🎓 New admission process has started! Apply now for the upcoming academic year. Contact us for more details."
+            backgroundColor={data.branding.primaryColor}
+            textColor="#ffffff"
+            speed={30}
+          />
           <AboutSection
             data={data.about}
             branding={data.branding}

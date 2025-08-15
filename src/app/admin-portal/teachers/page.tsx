@@ -1,0 +1,1581 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+interface Teacher {
+  id: string;
+  name: string;
+  employeeId: string;
+  role: 'Teacher' | 'Faculty' | 'Staff';
+  department: string;
+  email: string;
+  phone: string;
+  address: string;
+  dateOfJoining: string;
+  qualification: string;
+  experience: number;
+  salary: number;
+  gender: 'Male' | 'Female';
+  dateOfBirth: string;
+  emergencyContact: string;
+  photo: string;
+  status: 'Active' | 'Inactive' | 'On Leave';
+  isClassTeacher: boolean;
+  assignedClass?: string;
+  assignedSection?: string;
+}
+
+export default function TeacherManagement() {
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [selectedRole, setSelectedRole] = useState('All');
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
+  const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<Teacher>>({});
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addFormData, setAddFormData] = useState<Partial<Teacher>>({
+    role: 'Teacher',
+    status: 'Active',
+    isClassTeacher: false,
+    experience: 0,
+    salary: 0,
+  });
+  const router = useRouter();
+
+  const roles = ['All', 'Teacher', 'Faculty', 'Staff'];
+  const departments = [
+    'Mathematics',
+    'Science',
+    'English',
+    'Hindi',
+    'Social Studies',
+    'Computer Science',
+    'Physical Education',
+    'Arts',
+    'Music',
+    'Administration',
+    'Library',
+    'Laboratory',
+    'Maintenance',
+  ];
+  const classes = [
+    'Nursery',
+    'LKG',
+    'UKG',
+    'Class 1',
+    'Class 2',
+    'Class 3',
+    'Class 4',
+    'Class 5',
+    'Class 6',
+    'Class 7',
+    'Class 8',
+    'Class 9',
+    'Class 10',
+    'Class 11',
+    'Class 12',
+  ];
+
+  useEffect(() => {
+    const authData = localStorage.getItem('adminAuth');
+    if (!authData) {
+      router.push('/admin-portal/login');
+      return;
+    }
+
+    // Load sample teacher data
+    const sampleTeachers: Teacher[] = [
+      {
+        id: '1',
+        name: 'Dr. Rajesh Kumar',
+        employeeId: 'EMP001',
+        role: 'Faculty',
+        department: 'Mathematics',
+        email: 'rajesh.kumar@school.edu',
+        phone: '9876543210',
+        address: '123, Teachers Colony, Delhi',
+        dateOfJoining: '2015-06-01',
+        qualification: 'M.Sc, Ph.D in Mathematics',
+        experience: 15,
+        salary: 75000,
+        gender: 'Male',
+        dateOfBirth: '1980-03-15',
+        emergencyContact: '9876543211',
+        photo:
+          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        status: 'Active',
+        isClassTeacher: true,
+        assignedClass: 'Class 10',
+        assignedSection: 'A',
+      },
+      {
+        id: '2',
+        name: 'Mrs. Priya Sharma',
+        employeeId: 'EMP002',
+        role: 'Teacher',
+        department: 'English',
+        email: 'priya.sharma@school.edu',
+        phone: '9876543212',
+        address: '456, Green Park, Mumbai',
+        dateOfJoining: '2018-04-15',
+        qualification: 'M.A in English Literature',
+        experience: 8,
+        salary: 55000,
+        gender: 'Female',
+        dateOfBirth: '1985-07-20',
+        emergencyContact: '9876543213',
+        photo:
+          'https://images.unsplash.com/photo-1494790108755-2616b612b37c?w=150&h=150&fit=crop&crop=face',
+        status: 'Active',
+        isClassTeacher: true,
+        assignedClass: 'Class 9',
+        assignedSection: 'B',
+      },
+      {
+        id: '3',
+        name: 'Mr. Amit Patel',
+        employeeId: 'EMP003',
+        role: 'Teacher',
+        department: 'Science',
+        email: 'amit.patel@school.edu',
+        phone: '9876543214',
+        address: '789, Science City, Ahmedabad',
+        dateOfJoining: '2020-07-01',
+        qualification: 'M.Sc in Physics',
+        experience: 5,
+        salary: 50000,
+        gender: 'Male',
+        dateOfBirth: '1988-11-10',
+        emergencyContact: '9876543215',
+        photo:
+          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+        status: 'Active',
+        isClassTeacher: false,
+      },
+      {
+        id: '4',
+        name: 'Ms. Kavita Singh',
+        employeeId: 'EMP004',
+        role: 'Staff',
+        department: 'Library',
+        email: 'kavita.singh@school.edu',
+        phone: '9876543216',
+        address: '321, Library Lane, Jaipur',
+        dateOfJoining: '2019-08-20',
+        qualification: 'B.Lib.Sc',
+        experience: 6,
+        salary: 35000,
+        gender: 'Female',
+        dateOfBirth: '1987-05-25',
+        emergencyContact: '9876543217',
+        photo:
+          'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+        status: 'Active',
+        isClassTeacher: false,
+      },
+      {
+        id: '5',
+        name: 'Mr. Suresh Gupta',
+        employeeId: 'EMP005',
+        role: 'Staff',
+        department: 'Administration',
+        email: 'suresh.gupta@school.edu',
+        phone: '9876543218',
+        address: '654, Admin Block, Lucknow',
+        dateOfJoining: '2017-01-10',
+        qualification: 'B.Com',
+        experience: 12,
+        salary: 40000,
+        gender: 'Male',
+        dateOfBirth: '1975-09-12',
+        emergencyContact: '9876543219',
+        photo:
+          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face',
+        status: 'Active',
+        isClassTeacher: false,
+      },
+    ];
+
+    setTeachers(sampleTeachers);
+    setLoading(false);
+  }, [router]);
+
+  const filteredTeachers = teachers.filter((teacher) => {
+    const roleMatch = selectedRole === 'All' || teacher.role === selectedRole;
+    const searchMatch =
+      teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      teacher.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      teacher.department.toLowerCase().includes(searchTerm.toLowerCase());
+    return roleMatch && searchMatch;
+  });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Active':
+        return 'bg-green-100 text-green-800';
+      case 'Inactive':
+        return 'bg-red-100 text-red-800';
+      case 'On Leave':
+        return 'bg-yellow-100 text-yellow-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'Faculty':
+        return 'bg-purple-100 text-purple-800';
+      case 'Teacher':
+        return 'bg-blue-100 text-blue-800';
+      case 'Staff':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleEditTeacher = (teacher: Teacher) => {
+    setEditingTeacher(teacher);
+    setEditFormData({ ...teacher });
+    setSelectedTeacher(null);
+  };
+
+  const handleSaveTeacher = () => {
+    if (!editingTeacher || !editFormData.id) return;
+
+    setTeachers((prev) =>
+      prev.map((teacher) =>
+        teacher.id === editFormData.id
+          ? ({ ...teacher, ...editFormData } as Teacher)
+          : teacher,
+      ),
+    );
+
+    setEditingTeacher(null);
+    setEditFormData({});
+    alert('Teacher details updated successfully!');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTeacher(null);
+    setEditFormData({});
+  };
+
+  const updateFormField = (field: string, value: any) => {
+    setEditFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const updateAddFormField = (field: string, value: any) => {
+    setAddFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const handleAddTeacher = () => {
+    if (!addFormData.name || !addFormData.employeeId || !addFormData.role) {
+      alert('Please fill in required fields: Name, Employee ID, and Role');
+      return;
+    }
+
+    const newTeacher: Teacher = {
+      id: (teachers.length + 1).toString(),
+      name: addFormData.name || '',
+      employeeId: addFormData.employeeId || '',
+      role: addFormData.role || 'Teacher',
+      department: addFormData.department || '',
+      email: addFormData.email || '',
+      phone: addFormData.phone || '',
+      address: addFormData.address || '',
+      dateOfJoining:
+        addFormData.dateOfJoining || new Date().toISOString().split('T')[0],
+      qualification: addFormData.qualification || '',
+      experience: addFormData.experience || 0,
+      salary: addFormData.salary || 0,
+      gender: addFormData.gender || 'Male',
+      dateOfBirth: addFormData.dateOfBirth || '',
+      emergencyContact: addFormData.emergencyContact || '',
+      photo:
+        addFormData.photo ||
+        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+      status: 'Active',
+      isClassTeacher: addFormData.isClassTeacher || false,
+      assignedClass: addFormData.assignedClass,
+      assignedSection: addFormData.assignedSection,
+    };
+
+    setTeachers((prev) => [...prev, newTeacher]);
+    setShowAddModal(false);
+    setAddFormData({
+      role: 'Teacher',
+      status: 'Active',
+      isClassTeacher: false,
+      experience: 0,
+      salary: 0,
+    });
+    alert('Teacher added successfully!');
+  };
+
+  const handleCancelAdd = () => {
+    setShowAddModal(false);
+    setAddFormData({
+      role: 'Teacher',
+      status: 'Active',
+      isClassTeacher: false,
+      experience: 0,
+      salary: 0,
+    });
+  };
+
+  const toggleClassTeacher = (
+    teacherId: string,
+    isClassTeacher: boolean,
+    assignedClass?: string,
+    assignedSection?: string,
+  ) => {
+    setTeachers((prev) =>
+      prev.map((teacher) => {
+        if (teacher.id === teacherId) {
+          return {
+            ...teacher,
+            isClassTeacher,
+            assignedClass: isClassTeacher ? assignedClass : undefined,
+            assignedSection: isClassTeacher ? assignedSection : undefined,
+          };
+        }
+        return teacher;
+      }),
+    );
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center">
+              <Link
+                href="/admin-portal/dashboard"
+                className="text-gray-500 hover:text-gray-700 mr-4"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+              </Link>
+              <h1 className="text-xl font-semibold text-gray-900">
+                Teacher Management
+              </h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                  />
+                </svg>
+                Add Teacher/Staff
+              </button>
+              <div className="text-sm text-gray-500">
+                Total: {filteredTeachers.length}
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        {/* Filters */}
+        <div className="mb-6 space-y-4">
+          {/* Role Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Role
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {roles.map((role) => (
+                <button
+                  key={role}
+                  onClick={() => setSelectedRole(role)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    selectedRole === role
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Search Teachers
+            </label>
+            <input
+              type="text"
+              placeholder="Search by name, employee ID, or department..."
+              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Teachers Table */}
+        <div className="bg-white shadow-sm rounded-lg border border-gray-200">
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Teacher/Staff
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role & Department
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Contact
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Experience
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Class Teacher
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredTeachers.map((teacher) => (
+                  <tr key={teacher.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <img
+                          src={teacher.photo}
+                          alt={teacher.name}
+                          className="w-10 h-10 rounded-full object-cover mr-3"
+                        />
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {teacher.name}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            ID: {teacher.employeeId}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <span
+                          className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(teacher.role)}`}
+                        >
+                          {teacher.role}
+                        </span>
+                        <div className="text-sm text-gray-900 mt-1">
+                          {teacher.department}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {teacher.phone}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {teacher.email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">
+                        {teacher.experience} years
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {teacher.qualification}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {teacher.isClassTeacher ? (
+                        <div>
+                          <div className="text-sm font-medium text-green-900">
+                            Yes
+                          </div>
+                          <div className="text-sm text-green-600">
+                            {teacher.assignedClass}-{teacher.assignedSection}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500">No</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span
+                        className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(teacher.status)}`}
+                      >
+                        {teacher.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <button
+                        onClick={() => setSelectedTeacher(teacher)}
+                        className="text-indigo-600 hover:text-indigo-900 mr-3"
+                      >
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleEditTeacher(teacher)}
+                        className="text-green-600 hover:text-green-900"
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {filteredTeachers.length === 0 && (
+          <div className="text-center py-12">
+            <svg
+              className="w-16 h-16 mx-auto text-gray-400 mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1}
+                d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+              />
+            </svg>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No teachers found
+            </h3>
+            <p className="text-gray-600">
+              Try adjusting your filters or search terms.
+            </p>
+          </div>
+        )}
+
+        {/* View Teacher Modal */}
+        {selectedTeacher && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center">
+                  <img
+                    src={selectedTeacher.photo}
+                    alt={selectedTeacher.name}
+                    className="w-16 h-16 rounded-full object-cover mr-4"
+                  />
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      {selectedTeacher.name}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {selectedTeacher.role} | {selectedTeacher.employeeId}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setSelectedTeacher(null)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Personal Information */}
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                        Personal Information
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">
+                              Date of Birth
+                            </label>
+                            <p className="text-sm text-gray-900">
+                              {selectedTeacher.dateOfBirth}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">
+                              Gender
+                            </label>
+                            <p className="text-sm text-gray-900">
+                              {selectedTeacher.gender}
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">
+                            Address
+                          </label>
+                          <p className="text-sm text-gray-900">
+                            {selectedTeacher.address}
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">
+                              Phone
+                            </label>
+                            <p className="text-sm text-gray-900">
+                              {selectedTeacher.phone}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">
+                              Emergency Contact
+                            </label>
+                            <p className="text-sm text-gray-900">
+                              {selectedTeacher.emergencyContact}
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">
+                            Email
+                          </label>
+                          <p className="text-sm text-gray-900">
+                            {selectedTeacher.email}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Professional Information */}
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                        Professional Information
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">
+                              Department
+                            </label>
+                            <p className="text-sm text-gray-900">
+                              {selectedTeacher.department}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">
+                              Experience
+                            </label>
+                            <p className="text-sm text-gray-900">
+                              {selectedTeacher.experience} years
+                            </p>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">
+                            Qualification
+                          </label>
+                          <p className="text-sm text-gray-900">
+                            {selectedTeacher.qualification}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">
+                            Date of Joining
+                          </label>
+                          <p className="text-sm text-gray-900">
+                            {selectedTeacher.dateOfJoining}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">
+                            Salary
+                          </label>
+                          <p className="text-sm text-gray-900">
+                            ₹{selectedTeacher.salary.toLocaleString()}
+                          </p>
+                        </div>
+                        {selectedTeacher.isClassTeacher && (
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">
+                              Class Teacher
+                            </label>
+                            <p className="text-sm text-green-900 font-medium">
+                              {selectedTeacher.assignedClass}-
+                              {selectedTeacher.assignedSection}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button
+                  onClick={() => setSelectedTeacher(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => handleEditTeacher(selectedTeacher)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+                >
+                  Edit Teacher
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Teacher Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+              {/* Add Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-gray-900">
+                    Add New Teacher/Staff
+                  </h3>
+                  <p className="text-sm text-gray-500">
+                    Fill in the details below
+                  </p>
+                </div>
+                <button
+                  onClick={handleCancelAdd}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Add Form Content */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Personal Information */}
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                        Personal Information
+                      </h4>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={addFormData.name || ''}
+                              onChange={(e) =>
+                                updateAddFormField('name', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter full name"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Employee ID{' '}
+                              <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={addFormData.employeeId || ''}
+                              onChange={(e) =>
+                                updateAddFormField('employeeId', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="EMP001"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Role <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={addFormData.role || 'Teacher'}
+                              onChange={(e) =>
+                                updateAddFormField('role', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="Teacher">Teacher</option>
+                              <option value="Faculty">Faculty</option>
+                              <option value="Staff">Staff</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Department
+                            </label>
+                            <select
+                              value={addFormData.department || ''}
+                              onChange={(e) =>
+                                updateAddFormField('department', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="">
+                                Select Department (Optional)
+                              </option>
+                              {departments.map((dept) => (
+                                <option key={dept} value={dept}>
+                                  {dept}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Date of Birth
+                            </label>
+                            <input
+                              type="date"
+                              value={addFormData.dateOfBirth || ''}
+                              onChange={(e) =>
+                                updateAddFormField(
+                                  'dateOfBirth',
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Gender
+                            </label>
+                            <select
+                              value={addFormData.gender || 'Male'}
+                              onChange={(e) =>
+                                updateAddFormField('gender', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="Male">Male</option>
+                              <option value="Female">Female</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Address
+                          </label>
+                          <textarea
+                            value={addFormData.address || ''}
+                            onChange={(e) =>
+                              updateAddFormField('address', e.target.value)
+                            }
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter address"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Professional Information */}
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                        Professional & Contact Details
+                      </h4>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Phone
+                            </label>
+                            <input
+                              type="tel"
+                              value={addFormData.phone || ''}
+                              onChange={(e) =>
+                                updateAddFormField('phone', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter phone number"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Emergency Contact
+                            </label>
+                            <input
+                              type="tel"
+                              value={addFormData.emergencyContact || ''}
+                              onChange={(e) =>
+                                updateAddFormField(
+                                  'emergencyContact',
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Emergency contact number"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Email
+                          </label>
+                          <input
+                            type="email"
+                            value={addFormData.email || ''}
+                            onChange={(e) =>
+                              updateAddFormField('email', e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter email address"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Qualification
+                          </label>
+                          <input
+                            type="text"
+                            value={addFormData.qualification || ''}
+                            onChange={(e) =>
+                              updateAddFormField(
+                                'qualification',
+                                e.target.value,
+                              )
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Educational qualification"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Experience (Years)
+                            </label>
+                            <input
+                              type="number"
+                              value={addFormData.experience || ''}
+                              onChange={(e) =>
+                                updateAddFormField(
+                                  'experience',
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="0"
+                              min="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Date of Joining
+                            </label>
+                            <input
+                              type="date"
+                              value={addFormData.dateOfJoining || ''}
+                              onChange={(e) =>
+                                updateAddFormField(
+                                  'dateOfJoining',
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Salary
+                          </label>
+                          <input
+                            type="number"
+                            value={addFormData.salary || ''}
+                            onChange={(e) =>
+                              updateAddFormField(
+                                'salary',
+                                parseInt(e.target.value) || 0,
+                              )
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Monthly salary"
+                            min="0"
+                          />
+                        </div>
+
+                        {/* Class Teacher Assignment */}
+                        {(addFormData.role === 'Teacher' ||
+                          addFormData.role === 'Faculty') && (
+                          <div className="border-t pt-4">
+                            <div className="flex items-center mb-3">
+                              <input
+                                type="checkbox"
+                                checked={addFormData.isClassTeacher || false}
+                                onChange={(e) =>
+                                  updateAddFormField(
+                                    'isClassTeacher',
+                                    e.target.checked,
+                                  )
+                                }
+                                className="mr-2"
+                              />
+                              <label className="text-sm font-medium text-gray-700">
+                                Assign as Class Teacher
+                              </label>
+                            </div>
+                            {addFormData.isClassTeacher && (
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Class
+                                  </label>
+                                  <select
+                                    value={addFormData.assignedClass || ''}
+                                    onChange={(e) =>
+                                      updateAddFormField(
+                                        'assignedClass',
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                  >
+                                    <option value="">Select Class</option>
+                                    {classes.map((cls) => (
+                                      <option key={cls} value={cls}>
+                                        {cls}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Section
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={addFormData.assignedSection || ''}
+                                    onChange={(e) =>
+                                      updateAddFormField(
+                                        'assignedSection',
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="A"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Add Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button
+                  onClick={handleCancelAdd}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddTeacher}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+                >
+                  Add Teacher/Staff
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Teacher Modal */}
+        {editingTeacher && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+              {/* Edit Modal Header */}
+              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                <div className="flex items-center">
+                  <img
+                    src={editFormData.photo || editingTeacher.photo}
+                    alt={editFormData.name || editingTeacher.name}
+                    className="w-16 h-16 rounded-full object-cover mr-4"
+                  />
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      Edit Teacher Details
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {editFormData.name || editingTeacher.name}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCancelEdit}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Edit Form Content */}
+              <div className="p-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Personal Information */}
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                        Personal Information
+                      </h4>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Name
+                            </label>
+                            <input
+                              type="text"
+                              value={editFormData.name || ''}
+                              onChange={(e) =>
+                                updateFormField('name', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Employee ID
+                            </label>
+                            <input
+                              type="text"
+                              value={editFormData.employeeId || ''}
+                              onChange={(e) =>
+                                updateFormField('employeeId', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Role
+                            </label>
+                            <select
+                              value={editFormData.role || ''}
+                              onChange={(e) =>
+                                updateFormField('role', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="Teacher">Teacher</option>
+                              <option value="Faculty">Faculty</option>
+                              <option value="Staff">Staff</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Department
+                            </label>
+                            <select
+                              value={editFormData.department || ''}
+                              onChange={(e) =>
+                                updateFormField('department', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="">No Department</option>
+                              {departments.map((dept) => (
+                                <option key={dept} value={dept}>
+                                  {dept}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Date of Birth
+                            </label>
+                            <input
+                              type="date"
+                              value={editFormData.dateOfBirth || ''}
+                              onChange={(e) =>
+                                updateFormField('dateOfBirth', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Gender
+                            </label>
+                            <select
+                              value={editFormData.gender || ''}
+                              onChange={(e) =>
+                                updateFormField('gender', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="Male">Male</option>
+                              <option value="Female">Female</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Status
+                            </label>
+                            <select
+                              value={editFormData.status || ''}
+                              onChange={(e) =>
+                                updateFormField('status', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="Active">Active</option>
+                              <option value="Inactive">Inactive</option>
+                              <option value="On Leave">On Leave</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Date of Joining
+                            </label>
+                            <input
+                              type="date"
+                              value={editFormData.dateOfJoining || ''}
+                              onChange={(e) =>
+                                updateFormField('dateOfJoining', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Address
+                          </label>
+                          <textarea
+                            value={editFormData.address || ''}
+                            onChange={(e) =>
+                              updateFormField('address', e.target.value)
+                            }
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Professional & Contact Information */}
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                        Professional & Contact Details
+                      </h4>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Phone
+                            </label>
+                            <input
+                              type="tel"
+                              value={editFormData.phone || ''}
+                              onChange={(e) =>
+                                updateFormField('phone', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Emergency Contact
+                            </label>
+                            <input
+                              type="tel"
+                              value={editFormData.emergencyContact || ''}
+                              onChange={(e) =>
+                                updateFormField(
+                                  'emergencyContact',
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Email
+                          </label>
+                          <input
+                            type="email"
+                            value={editFormData.email || ''}
+                            onChange={(e) =>
+                              updateFormField('email', e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Qualification
+                          </label>
+                          <input
+                            type="text"
+                            value={editFormData.qualification || ''}
+                            onChange={(e) =>
+                              updateFormField('qualification', e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Experience (Years)
+                            </label>
+                            <input
+                              type="number"
+                              value={editFormData.experience || ''}
+                              onChange={(e) =>
+                                updateFormField(
+                                  'experience',
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              min="0"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Salary
+                            </label>
+                            <input
+                              type="number"
+                              value={editFormData.salary || ''}
+                              onChange={(e) =>
+                                updateFormField(
+                                  'salary',
+                                  parseInt(e.target.value) || 0,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              min="0"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Photo URL
+                          </label>
+                          <input
+                            type="url"
+                            value={editFormData.photo || ''}
+                            onChange={(e) =>
+                              updateFormField('photo', e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="https://example.com/photo.jpg"
+                          />
+                        </div>
+
+                        {/* Class Teacher Assignment */}
+                        {(editFormData.role === 'Teacher' ||
+                          editFormData.role === 'Faculty') && (
+                          <div className="border-t pt-4">
+                            <div className="flex items-center mb-3">
+                              <input
+                                type="checkbox"
+                                checked={editFormData.isClassTeacher || false}
+                                onChange={(e) =>
+                                  updateFormField(
+                                    'isClassTeacher',
+                                    e.target.checked,
+                                  )
+                                }
+                                className="mr-2"
+                              />
+                              <label className="text-sm font-medium text-gray-700">
+                                Assign as Class Teacher
+                              </label>
+                            </div>
+                            {editFormData.isClassTeacher && (
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Class
+                                  </label>
+                                  <select
+                                    value={editFormData.assignedClass || ''}
+                                    onChange={(e) =>
+                                      updateFormField(
+                                        'assignedClass',
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                  >
+                                    <option value="">Select Class</option>
+                                    {classes.map((cls) => (
+                                      <option key={cls} value={cls}>
+                                        {cls}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                <div>
+                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Section
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={editFormData.assignedSection || ''}
+                                    onChange={(e) =>
+                                      updateFormField(
+                                        'assignedSection',
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                    placeholder="A"
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Edit Modal Footer */}
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button
+                  onClick={handleCancelEdit}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveTeacher}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
