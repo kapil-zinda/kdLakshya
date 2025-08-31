@@ -1,17 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { OrganizationConfig } from '@/types/organization';
-import {
-  BookOpen,
-  ChevronDown,
-  GraduationCap,
-  Menu,
-  Settings,
-  X,
-} from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 
 interface HeaderProps {
   organization: OrganizationConfig;
@@ -27,35 +20,22 @@ const navigationItems = [
 
 export function Header({ organization }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsDropdownOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleNavigation = (href: string) => {
     window.location.href = href;
   };
 
-  const handleRoleSelection = (role: 'student' | 'teacher' | 'admin') => {
-    if (role === 'admin') {
-      window.location.href = '/admin-portal/login';
-    } else {
-      window.location.href =
-        role === 'student' ? '/template/student' : '/template/teacher';
+  const handleAuthLogin = () => {
+    const AUTH0_Client_Id = process.env.NEXT_PUBLIC_AUTH0_Client_Id || '';
+    const AUTH0_Domain_Name = process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME || '';
+    const login_redirect =
+      process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
+
+    try {
+      window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${login_redirect}&scope=${encodeURIComponent('openid profile email')}`;
+    } catch (error) {
+      console.error('Login redirect error:', error);
     }
-    setIsDropdownOpen(false);
   };
 
   return (
@@ -134,58 +114,19 @@ export function Header({ organization }: HeaderProps) {
             </ul>
           </nav>
 
-          {/* Sign In Dropdown */}
-          <div className="hidden md:block relative" ref={dropdownRef}>
+          {/* Sign In Button */}
+          <div className="hidden md:block">
             <Button
-              className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white flex items-center"
+              className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white"
               style={{
                 backgroundColor: organization.branding.primaryColor,
                 borderColor: organization.branding.primaryColor,
                 color: 'white',
               }}
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              onClick={handleAuthLogin}
             >
               Sign in
-              <ChevronDown
-                className={`h-4 w-4 ml-1 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
-              />
             </Button>
-
-            {/* Dropdown Menu */}
-            {isDropdownOpen && (
-              <div className="absolute top-full right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50">
-                <button
-                  onClick={() => handleRoleSelection('student')}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-center text-gray-700 hover:text-gray-900"
-                >
-                  <GraduationCap
-                    className="h-4 w-4 mr-2"
-                    style={{ color: organization.branding.primaryColor }}
-                  />
-                  As a Student
-                </button>
-                <button
-                  onClick={() => handleRoleSelection('teacher')}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-center text-gray-700 hover:text-gray-900"
-                >
-                  <BookOpen
-                    className="h-4 w-4 mr-2"
-                    style={{ color: organization.branding.secondaryColor }}
-                  />
-                  As a Teacher
-                </button>
-                <button
-                  onClick={() => handleRoleSelection('admin')}
-                  className="w-full px-4 py-2 text-left hover:bg-gray-50 transition-colors flex items-center text-gray-700 hover:text-gray-900"
-                >
-                  <Settings
-                    className="h-4 w-4 mr-2"
-                    style={{ color: '#6366f1' }}
-                  />
-                  As an Admin
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -238,53 +179,20 @@ export function Header({ organization }: HeaderProps) {
                   </li>
                 ))}
                 <li className="pt-3 sm:pt-4 px-2 sm:px-0">
-                  <div className="space-y-2">
-                    <Button
-                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white flex items-center justify-center"
-                      style={{
-                        backgroundColor: organization.branding.primaryColor,
-                        borderColor: organization.branding.primaryColor,
-                        color: 'white',
-                      }}
-                      onClick={() => {
-                        handleRoleSelection('student');
-                        setIsMenuOpen(false);
-                      }}
-                    >
-                      <GraduationCap className="h-4 w-4 mr-2" />
-                      Sign in as Student
-                    </Button>
-                    <Button
-                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white flex items-center justify-center"
-                      style={{
-                        backgroundColor: organization.branding.secondaryColor,
-                        borderColor: organization.branding.secondaryColor,
-                        color: 'white',
-                      }}
-                      onClick={() => {
-                        handleRoleSelection('teacher');
-                        setIsMenuOpen(false);
-                      }}
-                    >
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      Sign in as Teacher
-                    </Button>
-                    <Button
-                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white flex items-center justify-center"
-                      style={{
-                        backgroundColor: '#6366f1',
-                        borderColor: '#6366f1',
-                        color: 'white',
-                      }}
-                      onClick={() => {
-                        handleRoleSelection('admin');
-                        setIsMenuOpen(false);
-                      }}
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Sign in as Admin
-                    </Button>
-                  </div>
+                  <Button
+                    className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white"
+                    style={{
+                      backgroundColor: organization.branding.primaryColor,
+                      borderColor: organization.branding.primaryColor,
+                      color: 'white',
+                    }}
+                    onClick={() => {
+                      handleAuthLogin();
+                      setIsMenuOpen(false);
+                    }}
+                  >
+                    Sign in
+                  </Button>
                 </li>
               </ul>
             </nav>

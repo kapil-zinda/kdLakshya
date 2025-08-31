@@ -12,8 +12,8 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname();
 
   // Check if current path is admin portal
-  const isAdminRoute = pathname.startsWith('/admin-portal');
-  const isTemplateRoute = pathname.startsWith('/template');
+  const isAdminRoute = pathname?.startsWith('/admin-portal');
+  const isTemplateRoute = pathname?.startsWith('/template');
 
   // For admin portal and template routes, render children directly without sidebar
   if (isAdminRoute || isTemplateRoute) {
