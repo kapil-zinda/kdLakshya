@@ -104,12 +104,12 @@ export const collegeConfigs: CollegeConfig[] = [
       stats: {
         title: 'Our Achievements',
         items: [
-          { label: 'Students Enrolled', value: '850+', icon: '👥' },
-          { label: 'Dedicated Teachers', value: '45+', icon: '👨‍🏫' },
-          { label: 'Years of Service', value: '14+', icon: '🏆' },
-          { label: 'Alumni Success', value: '1,200+', icon: '🎓' },
-          { label: 'Academic Awards', value: '65+', icon: '🥇' },
-          { label: 'Sports Achievements', value: '35+', icon: '🏅' },
+          { label: 'Students Enrolled', value: '850+', icon: '' },
+          { label: 'Dedicated Teachers', value: '45+', icon: '' },
+          { label: 'Years of Service', value: '14+', icon: '' },
+          { label: 'Alumni Success', value: '1,200+', icon: '' },
+          { label: 'Academic Awards', value: '65+', icon: '' },
+          { label: 'Sports Achievements', value: '35+', icon: '' },
         ],
       },
 
@@ -289,12 +289,12 @@ export const collegeConfigs: CollegeConfig[] = [
       stats: {
         title: 'Our Achievements',
         items: [
-          { label: 'Students Enrolled', value: '2,500+', icon: '👥' },
-          { label: 'Expert Faculty', value: '180+', icon: '👨‍🏫' },
-          { label: 'Years of Excellence', value: '19+', icon: '🏆' },
-          { label: 'Alumni Network', value: '5,000+', icon: '🎓' },
-          { label: 'Academic Awards', value: '150+', icon: '🥇' },
-          { label: 'Sports Championships', value: '75+', icon: '🏅' },
+          { label: 'Students Enrolled', value: '2,500+', icon: '' },
+          { label: 'Expert Faculty', value: '180+', icon: '' },
+          { label: 'Years of Excellence', value: '19+', icon: '' },
+          { label: 'Alumni Network', value: '5,000+', icon: '' },
+          { label: 'Academic Awards', value: '150+', icon: '' },
+          { label: 'Sports Championships', value: '75+', icon: '' },
         ],
       },
 

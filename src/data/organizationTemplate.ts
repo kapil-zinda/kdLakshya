@@ -109,12 +109,12 @@ export const demoOrganizationData: OrganizationConfig = {
   stats: {
     title: 'Our Achievements',
     items: [
-      { label: 'Students Enrolled', value: '2,500+', icon: '👥' },
-      { label: 'Expert Faculty', value: '180+', icon: '👨‍🏫' },
-      { label: 'Years of Excellence', value: '18+', icon: '🏆' },
-      { label: 'Alumni Network', value: '5,000+', icon: '🎓' },
-      { label: 'Academic Awards', value: '150+', icon: '🥇' },
-      { label: 'Sports Championships', value: '75+', icon: '🏅' },
+      { label: 'Students Enrolled', value: '2,500+', icon: '' },
+      { label: 'Expert Faculty', value: '180+', icon: '' },
+      { label: 'Years of Excellence', value: '18+', icon: '' },
+      { label: 'Alumni Network', value: '5,000+', icon: '' },
+      { label: 'Academic Awards', value: '150+', icon: '' },
+      { label: 'Sports Championships', value: '75+', icon: '' },
     ],
   },
 
