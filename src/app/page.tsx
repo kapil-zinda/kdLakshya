@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 
 import { OrganizationTemplate } from '@/components/template/OrganizationTemplate';
+import { getConfigBySubdomain } from '@/data/collegeConfigs';
 import { demoOrganizationData } from '@/data/organizationTemplate';
 import { OrganizationConfig } from '@/types/organization';
+import { getSubdomain, isValidSubdomain } from '@/utils/subdomainUtils';
 
 interface SchoolSettings {
   name: string;
@@ -45,7 +47,18 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load settings from localStorage
+    // Check for subdomain-based configuration first
+    const subdomain = getSubdomain();
+    if (subdomain && isValidSubdomain(subdomain)) {
+      const subdomainConfig = getConfigBySubdomain(subdomain);
+      if (subdomainConfig) {
+        setOrganizationData(subdomainConfig);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Fall back to localStorage settings
     const savedSettings = localStorage.getItem('schoolSettings');
     if (savedSettings) {
       try {
