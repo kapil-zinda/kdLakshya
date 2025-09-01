@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 interface NotificationItem {
   id: string;
   title: string;
-  date: string;
   isNew?: boolean;
   link?: string;
 }
@@ -69,20 +68,6 @@ export function NotificationPanel({
                         {notification.title}
                       </h4>
                     </div>
-                    <p className="text-xs text-gray-500 flex items-center">
-                      <svg
-                        className="w-3 h-3 mr-1"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      {notification.date}
-                    </p>
                   </div>
                   <svg
                     className="w-4 h-4 text-gray-400 ml-2 flex-shrink-0"
@@ -105,7 +90,7 @@ export function NotificationPanel({
       {/* View All Button */}
       <div className="p-3 border-t border-gray-200 bg-gray-50 rounded-b-lg">
         <button
-          onClick={() => router.push('/template/notifications')}
+          onClick={() => router.push('/notifications')}
           className="w-full text-sm font-medium py-2 px-4 rounded-md transition-colors duration-200 hover:shadow-md"
           style={{
             backgroundColor: accentColor,
@@ -154,9 +139,6 @@ export function NotificationPanel({
               <h4 className="font-semibold text-gray-900 mb-2">
                 {selectedNotification.title}
               </h4>
-              <p className="text-sm text-gray-600 mb-3">
-                {selectedNotification.date}
-              </p>
               <div className="text-sm text-gray-700">
                 This is a detailed view of the notification. You can add more
                 content here based on your requirements.

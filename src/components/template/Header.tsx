@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 
+import { usePathname } from 'next/navigation';
+
 import { Button } from '@/components/ui/button';
 import { OrganizationConfig } from '@/types/organization';
 import { Menu, X } from 'lucide-react';
@@ -11,15 +13,16 @@ interface HeaderProps {
 }
 
 const navigationItems = [
-  { label: 'Home', href: '/template', action: null },
-  { label: 'About', href: '/template/about', action: null },
-  { label: 'Faculties', href: '/template/faculties', action: null },
-  { label: 'Gallery', href: '/template/gallery', action: null },
-  { label: 'Contact', href: '/template/contact', action: null },
+  { label: 'Home', href: '/', action: null },
+  { label: 'About', href: '/about', action: null },
+  { label: 'Faculties', href: '/faculties', action: null },
+  { label: 'Gallery', href: '/gallery', action: null },
+  { label: 'Contact', href: '/contact', action: null },
 ];
 
 export function Header({ organization }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const handleNavigation = (href: string) => {
     window.location.href = href;
@@ -93,24 +96,44 @@ export function Header({ organization }: HeaderProps) {
           {/* Desktop Navigation */}
           <nav className="hidden lg:block">
             <ul className="flex items-center space-x-4 lg:space-x-6 xl:space-x-8">
-              {navigationItems.map((item) => (
-                <li key={item.href}>
-                  <button
-                    onClick={() => handleNavigation(item.href)}
-                    className="font-medium transition-all duration-200 hover:scale-105 cursor-pointer"
-                    style={{ color: '#374151' }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color =
-                        organization.branding.primaryColor;
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = '#374151';
-                    }}
-                  >
-                    {item.label}
-                  </button>
-                </li>
-              ))}
+              {navigationItems.map((item) => {
+                const isActive = pathname === item.href;
+                return (
+                  <li key={item.href}>
+                    <button
+                      onClick={() => handleNavigation(item.href)}
+                      className={`font-medium transition-all duration-200 hover:scale-105 cursor-pointer px-2 py-1 rounded-md ${
+                        isActive ? 'border-b-2' : ''
+                      }`}
+                      style={{
+                        color: isActive
+                          ? organization.branding.primaryColor
+                          : '#374151',
+                        borderBottomColor: isActive
+                          ? organization.branding.primaryColor
+                          : 'transparent',
+                        backgroundColor: isActive
+                          ? `${organization.branding.primaryColor}10`
+                          : 'transparent',
+                        fontWeight: isActive ? '600' : '500',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.color =
+                            organization.branding.primaryColor;
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.color = '#374151';
+                        }
+                      }}
+                    >
+                      {item.label}
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </nav>
 
@@ -157,27 +180,44 @@ export function Header({ organization }: HeaderProps) {
           >
             <nav className="py-3 sm:py-4">
               <ul className="space-y-3 sm:space-y-4 px-2 sm:px-0">
-                {navigationItems.map((item) => (
-                  <li key={item.href}>
-                    <button
-                      onClick={() => {
-                        handleNavigation(item.href);
-                        setIsMenuOpen(false);
-                      }}
-                      className="block py-2 sm:py-3 px-2 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg hover:bg-gray-50 w-full text-left"
-                      style={{ color: '#374151' }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.color =
-                          organization.branding.primaryColor;
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.color = '#374151';
-                      }}
-                    >
-                      {item.label}
-                    </button>
-                  </li>
-                ))}
+                {navigationItems.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <li key={item.href}>
+                      <button
+                        onClick={() => {
+                          handleNavigation(item.href);
+                          setIsMenuOpen(false);
+                        }}
+                        className={`block py-2 sm:py-3 px-2 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg hover:bg-gray-50 w-full text-left ${
+                          isActive ? 'bg-gray-100' : ''
+                        }`}
+                        style={{
+                          color: isActive
+                            ? organization.branding.primaryColor
+                            : '#374151',
+                          backgroundColor: isActive
+                            ? `${organization.branding.primaryColor}15`
+                            : 'transparent',
+                          fontWeight: isActive ? '600' : '500',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.color =
+                              organization.branding.primaryColor;
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!isActive) {
+                            e.currentTarget.style.color = '#374151';
+                          }
+                        }}
+                      >
+                        {item.label}
+                      </button>
+                    </li>
+                  );
+                })}
                 <li className="pt-3 sm:pt-4 px-2 sm:px-0">
                   <Button
                     className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white"

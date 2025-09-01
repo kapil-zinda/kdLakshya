@@ -2,8 +2,6 @@
 
 import { usePathname } from 'next/navigation';
 
-import { NewSideBar } from '@/components/sidebar/NewSideBar';
-
 interface ConditionalLayoutProps {
   children: React.ReactNode;
 }
@@ -11,24 +9,34 @@ interface ConditionalLayoutProps {
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname();
 
-  // Check if current path is admin portal
+  // Check if current path should render without sidebar
   const isAdminRoute = pathname?.startsWith('/admin-portal');
   const isTemplateRoute = pathname?.startsWith('/template');
   const isRootRoute = pathname === '/';
+  const isAboutRoute = pathname === '/about';
+  const isFacultiesRoute = pathname === '/faculties';
+  const isGalleryRoute = pathname === '/gallery';
+  const isContactRoute = pathname === '/contact';
+  const isNotificationsRoute = pathname === '/notifications';
+  const isStudentRoute = pathname === '/student';
+  const isTeacherRoute = pathname === '/teacher';
 
-  // For admin portal, template routes, and root route, render children directly without sidebar
-  if (isAdminRoute || isTemplateRoute || isRootRoute) {
+  // For admin portal, template routes, main site routes, student and teacher routes, render children directly
+  if (
+    isAdminRoute ||
+    isTemplateRoute ||
+    isRootRoute ||
+    isAboutRoute ||
+    isFacultiesRoute ||
+    isGalleryRoute ||
+    isContactRoute ||
+    isNotificationsRoute ||
+    isStudentRoute ||
+    isTeacherRoute
+  ) {
     return <>{children}</>;
   }
 
-  // For other routes, render with sidebar
-  return (
-    <div className="grid min-h-screen w-full">
-      <div className="flex flex-col">
-        <main className="flex-1 p-4 lg:gap-6 lg:p-6">
-          <NewSideBar>{children}</NewSideBar>
-        </main>
-      </div>
-    </div>
-  );
+  // For other routes, render children directly
+  return <>{children}</>;
 }
