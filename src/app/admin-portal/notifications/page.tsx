@@ -10,7 +10,6 @@ interface Notification {
   title: string;
   content: string;
   category: 'admission' | 'event' | 'academic' | 'general';
-  date: string;
   isNew: boolean;
   isActive: boolean;
 }
@@ -50,7 +49,6 @@ export default function NotificationManagement() {
         content:
           'We are pleased to announce that admissions are now open for the Academic Year 2024-25. Parents and students can apply online through our admission portal.',
         category: 'admission',
-        date: '2024-01-15',
         isNew: true,
         isActive: true,
       },
@@ -60,7 +58,6 @@ export default function NotificationManagement() {
         content:
           'The Annual Sports Day 2024 registration is now open for all students. Various competitions including athletics, swimming, basketball, and football are available.',
         category: 'event',
-        date: '2024-01-10',
         isNew: true,
         isActive: true,
       },
@@ -70,7 +67,6 @@ export default function NotificationManagement() {
         content:
           'The schedule for Parent-Teacher meetings has been released. Meetings will be conducted from 20th to 25th January 2024.',
         category: 'academic',
-        date: '2024-01-08',
         isNew: false,
         isActive: true,
       },
@@ -89,7 +85,6 @@ export default function NotificationManagement() {
             ? {
                 ...notif,
                 ...formData,
-                date: new Date().toISOString().split('T')[0],
               }
             : notif,
         ),
@@ -99,7 +94,6 @@ export default function NotificationManagement() {
       const newNotification: Notification = {
         id: Date.now().toString(),
         ...formData,
-        date: new Date().toISOString().split('T')[0],
       };
       setNotifications((prev) => [newNotification, ...prev]);
     }
@@ -379,9 +373,6 @@ export default function NotificationManagement() {
                       }`}
                     >
                       {notification.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                    <span className="text-sm text-gray-500 ml-3">
-                      {notification.date}
                     </span>
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">

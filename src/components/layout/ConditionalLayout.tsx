@@ -13,14 +13,24 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const isAdminRoute = pathname?.startsWith('/admin-portal');
   const isTemplateRoute = pathname?.startsWith('/template');
   const isRootRoute = pathname === '/';
+  const isAboutRoute = pathname === '/about';
+  const isFacultiesRoute = pathname === '/faculties';
+  const isGalleryRoute = pathname === '/gallery';
+  const isContactRoute = pathname === '/contact';
+  const isNotificationsRoute = pathname === '/notifications';
   const isStudentRoute = pathname === '/student';
   const isTeacherRoute = pathname === '/teacher';
 
-  // For admin portal, template routes, root route, student and teacher routes, render children directly without sidebar
+  // For admin portal, template routes, main site routes, student and teacher routes, render children directly
   if (
     isAdminRoute ||
     isTemplateRoute ||
     isRootRoute ||
+    isAboutRoute ||
+    isFacultiesRoute ||
+    isGalleryRoute ||
+    isContactRoute ||
+    isNotificationsRoute ||
     isStudentRoute ||
     isTeacherRoute
   ) {
