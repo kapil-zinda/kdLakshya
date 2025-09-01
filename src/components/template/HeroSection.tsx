@@ -46,7 +46,7 @@ export function HeroSection({ data, branding }: HeroSectionProps) {
             <Button
               variant="outline"
               size="lg"
-              className="w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8 lg:px-10 py-3 sm:py-4 border-white/30 text-black hover:bg-white/10 backdrop-blur-sm font-medium rounded-full transition-all duration-300"
+              className="w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8 lg:px-10 py-3 sm:py-4 border-white/30 text-white hover:bg-white hover:text-gray-900 backdrop-blur-sm font-medium rounded-full transition-all duration-300"
               onClick={() =>
                 data.ctaButtons.secondary?.link &&
                 window.open(data.ctaButtons.secondary.link, '_self')
