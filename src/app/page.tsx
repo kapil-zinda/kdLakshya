@@ -2,70 +2,181 @@
 
 import { useEffect, useState } from 'react';
 
-import HomePageComponent from '@/components/HomePageComponent';
-import UserCreationModal from '@/components/table';
-import { makeApiCall } from '@/utils/ApiRequest';
-import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
+import { OrganizationTemplate } from '@/components/template/OrganizationTemplate';
+import { getConfigBySubdomain } from '@/data/collegeConfigs';
+import { demoOrganizationData } from '@/data/organizationTemplate';
+import { OrganizationConfig } from '@/types/organization';
+import { getSubdomain, isValidSubdomain } from '@/utils/subdomainUtils';
 
-interface TableItem {
-  title: string;
-  start: string;
-  end: string;
-  note: string;
-}
-
-interface TimeTableRecord {
-  date: string;
-  id: string;
-  is_finished: boolean;
-  table_item: TableItem[];
-  total_min: number;
-  user_id: string;
-}
-
-interface ColumnHeader {
-  label: string;
-  align: 'left' | 'right' | 'center';
+interface SchoolSettings {
+  name: string;
+  buildingNumber: string;
+  town: string;
+  district: string;
+  pincode: string;
+  phone: string;
+  email: string;
+  affiliatedCode: string;
+  establishedYear: string;
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  logo: string;
+  aboutTitle: string;
+  aboutContent: string;
+  mission: string;
+  vision: string;
+  values: string[];
+  heroTitle: string;
+  heroSubtitle: string;
+  heroDescription: string;
+  heroImage: string;
+  totalStudents: number;
+  totalTeachers: number;
+  totalStaff: number;
+  experienceYears: number;
+  facebookUrl: string;
+  twitterUrl: string;
+  instagramUrl: string;
+  youtubeUrl: string;
 }
 
 export default function Home() {
-  const [tableData, setTableData] = useState<TimeTableRecord | null>(null);
-  const bearerToken = getItemWithTTL('bearerToken');
+  const [organizationData, setOrganizationData] =
+    useState<OrganizationConfig>(demoOrganizationData);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await makeApiCall({
-          path: `subject/time-table`,
-          method: 'GET',
-        });
-        setTableData(result.data.attributes);
-      } catch (error) {
-        console.log(error);
+    // Check for subdomain-based configuration first
+    const subdomain = getSubdomain();
+    if (subdomain && isValidSubdomain(subdomain)) {
+      const subdomainConfig = getConfigBySubdomain(subdomain);
+      if (subdomainConfig) {
+        setOrganizationData(subdomainConfig);
+        setLoading(false);
+        return;
       }
-    };
+    }
 
-    bearerToken && fetchData();
-  }, [bearerToken]);
-  const columnHeaders: ColumnHeader[] = [
-    { label: 'Subject', align: 'left' },
-    { label: 'Start Time', align: 'left' },
-    { label: 'End Time', align: 'left' },
-    { label: 'Description', align: 'left' },
-    { label: 'Edit', align: 'right' },
-  ];
+    // Fall back to localStorage settings
+    const savedSettings = localStorage.getItem('schoolSettings');
+    if (savedSettings) {
+      try {
+        const settings: SchoolSettings = JSON.parse(savedSettings);
 
-  return (
-    <>
-      {bearerToken ? (
-        <UserCreationModal
-          tableData={tableData}
-          setTableData={setTableData}
-          columnHeaders={columnHeaders}
-        />
-      ) : (
-        <HomePageComponent />
-      )}
-      {/* <ContactUs /> */}
-    </>
-  );
+        // Create updated organization data with dynamic settings
+        const updatedData: OrganizationConfig = {
+          ...demoOrganizationData,
+          name: settings.name,
+          founded:
+            parseInt(settings.establishedYear) || demoOrganizationData.founded,
+
+          contact: {
+            ...demoOrganizationData.contact,
+            email: settings.email,
+            phone: settings.phone,
+            address: {
+              ...demoOrganizationData.contact.address,
+              street:
+                settings.buildingNumber ||
+                demoOrganizationData.contact.address.street,
+              city: settings.town || demoOrganizationData.contact.address.city,
+              state:
+                settings.district || demoOrganizationData.contact.address.state,
+              zipCode:
+                settings.pincode ||
+                demoOrganizationData.contact.address.zipCode,
+            },
+          },
+
+          branding: {
+            ...demoOrganizationData.branding,
+            logo: settings.logo || demoOrganizationData.branding.logo,
+            primaryColor: settings.primaryColor,
+            secondaryColor: settings.secondaryColor,
+            accentColor: settings.accentColor,
+          },
+
+          hero: {
+            ...demoOrganizationData.hero,
+            title: settings.heroTitle,
+            subtitle: settings.heroSubtitle,
+            backgroundImage:
+              settings.heroImage || demoOrganizationData.hero.backgroundImage,
+          },
+
+          about: {
+            ...demoOrganizationData.about,
+            title: settings.aboutTitle,
+            content: settings.aboutContent,
+            mission: settings.mission,
+            vision: settings.vision,
+            values: settings.values.filter((value) => value.trim() !== ''),
+          },
+
+          stats: {
+            ...demoOrganizationData.stats,
+            items: [
+              {
+                label: 'Students Enrolled',
+                value: `${settings.totalStudents.toLocaleString()}+`,
+                icon: '👥',
+              },
+              {
+                label: 'Expert Faculty',
+                value: `${settings.totalTeachers}+`,
+                icon: '👨‍🏫',
+              },
+              {
+                label: 'Years of Excellence',
+                value: `${settings.experienceYears}+`,
+                icon: '🏆',
+              },
+              {
+                label: 'Total Staff',
+                value: `${settings.totalStaff}+`,
+                icon: '👨‍💼',
+              },
+              { label: 'Academic Awards', value: '150+', icon: '🥇' },
+              { label: 'Sports Championships', value: '75+', icon: '🏅' },
+            ],
+          },
+
+          social: {
+            facebook:
+              settings.facebookUrl || demoOrganizationData.social.facebook,
+            twitter: settings.twitterUrl || demoOrganizationData.social.twitter,
+            instagram:
+              settings.instagramUrl || demoOrganizationData.social.instagram,
+            linkedin: demoOrganizationData.social.linkedin,
+            youtube: settings.youtubeUrl || demoOrganizationData.social.youtube,
+          },
+
+          siteConfig: {
+            ...demoOrganizationData.siteConfig,
+            domain: demoOrganizationData.siteConfig.domain,
+            title: `${settings.name} - Excellence in Education`,
+            metaDescription: `${settings.aboutContent}`,
+            affiliatedCode: settings.affiliatedCode,
+          },
+        };
+
+        setOrganizationData(updatedData);
+      } catch (error) {
+        console.error('Error parsing school settings:', error);
+        // Fall back to demo data if settings are invalid
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  return <OrganizationTemplate data={organizationData} />;
 }

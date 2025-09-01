@@ -19,37 +19,63 @@ const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
 
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null);
+  const [isClient, setIsClient] = React.useState(false);
   const pathname = usePathname();
+
+  React.useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const userMeData = async (bearerToken: string) => {
     if (!bearerToken) return;
 
     try {
-      const res = await axios.get(
-        `${BaseURLAuth}/users/me?include=permission`,
-        {
-          headers: {
-            Authorization: `Bearer ${bearerToken}`,
-            'Content-Type': 'application/vnd.api+json',
-          },
-          withCredentials: true,
+      const res = await axios.get(`/api/users/me`, {
+        headers: {
+          Authorization: `Bearer ${bearerToken}`,
+          'Content-Type': 'application/json',
         },
-      );
-      const response = res.data.data;
+      });
+
+      const userData = res.data;
+
       await updateUserData({
-        userId: response.id,
-        keyId: 'user-' + response.attributes.user_id,
-        orgKeyId: 'org-' + response.attributes.org,
-        orgId: response.attributes.org,
-        userEmail: response.attributes.email,
-        firstName: response.attributes.first_name,
-        lastName: response.attributes.last_name,
-        permission: response.user_permissions,
-        allowedTeams: Object.keys(response.user_permissions)
+        userId: userData.id,
+        keyId: 'user-' + userData.id,
+        orgKeyId: 'org-' + userData.orgId,
+        orgId: userData.orgId,
+        userEmail: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        permission: userData.permissions,
+        allowedTeams: Object.keys(userData.permissions || {})
           .filter((key) => key.startsWith('team-'))
           .map((key) => key.match(/team-(\d+)/)?.[1])
           .filter(Boolean) as string[],
       });
+
+      // Role-based redirection logic
+      // if (
+      //   pathname &&
+      //   (pathname === '/template' || pathname.startsWith('/template'))
+      // ) {
+      //   const role = userData.role;
+
+      //   switch (role) {
+      //     case 'admin':
+      //       window.location.href = '/admin';
+      //       break;
+      //     case 'teacher':
+      //       window.location.href = '/teacher';
+      //       break;
+      //     case 'student':
+      //       window.location.href = '/student';
+      //       break;
+      //     default:
+      //       // If role is not recognized, redirect to student dashboard
+      //       window.location.href = '/student';
+      //   }
+      // }
     } catch (error) {
       console.error('Error fetching user data:', error);
       // If we get a 401 or 403, the token is invalid
@@ -59,7 +85,13 @@ export function Providers({ children }: ThemeProviderProps) {
       ) {
         localStorage.removeItem('bearerToken');
         setAccessTkn(null);
-        pathname !== '/' && loginHandler();
+        if (
+          pathname &&
+          pathname !== '/template' &&
+          !pathname.startsWith('/template/')
+        ) {
+          loginHandler();
+        }
       }
     }
   };
@@ -118,7 +150,13 @@ export function Providers({ children }: ThemeProviderProps) {
       await userMeData(token);
     } catch (error) {
       console.error('Error fetching auth token:', error);
-      pathname !== '/' && loginHandler();
+      if (
+        pathname &&
+        pathname !== '/template' &&
+        !pathname.startsWith('/template/')
+      ) {
+        loginHandler();
+      }
     }
   };
 
@@ -131,29 +169,29 @@ export function Providers({ children }: ThemeProviderProps) {
   };
 
   // Initialize auth state
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const token = getItemWithTTL('bearerToken');
-      if (token) {
-        setAccessTkn(token);
-        userMeData(token);
-      } else if (pathname !== '/') {
-        loginHandler();
-      }
-    }
-  }, [pathname]);
+  // React.useEffect(() => {
+  //   if (typeof window !== 'undefined') {
+  //     const token = getItemWithTTL('bearerToken');
+  //     if (token) {
+  //       setAccessTkn(token);
+  //       userMeData(token);
+  //     } else if (pathname && pathname !== '/template' && !pathname.startsWith('/template/')) {
+  //       loginHandler();
+  //     }
+  //   }
+  // }, [pathname]);
 
   // Handle auth code from URL
-  React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const parsedAuthCode = urlParams.get('code');
+  // React.useEffect(() => {
+  //   if (typeof window !== 'undefined') {
+  //     const urlParams = new URLSearchParams(window.location.search);
+  //     const parsedAuthCode = urlParams.get('code');
 
-      if (parsedAuthCode && !accessTkn) {
-        fetchAuthToken(parsedAuthCode);
-      }
-    }
-  }, [accessTkn]);
+  //     if (parsedAuthCode && !accessTkn) {
+  //       fetchAuthToken(parsedAuthCode);
+  //     }
+  //   }
+  // }, [accessTkn]);
 
   return (
     <NextThemesProvider
