@@ -34,8 +34,8 @@ export const demoOrganizationData: OrganizationConfig = {
     backgroundImage:
       'https://images.unsplash.com/photo-1523050854058-8df90110c9d1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80',
     ctaButtons: {
-      primary: { text: 'Apply for Admissions', link: '/admissions' },
-      secondary: { text: 'Virtual Tour', link: '/tour' },
+      primary: { text: 'Virtual Tour', link: '/tour' },
+      secondary: { text: 'Apply for Admissions', link: '/admissions' },
     },
   },
 
