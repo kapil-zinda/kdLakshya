@@ -36,7 +36,7 @@ export default function AdminLogin() {
           }),
         );
 
-        router.push('/admin-portal/dashboard');
+        router.push('/dashboard');
       } else {
         setError('Invalid email or password');
       }

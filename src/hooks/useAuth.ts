@@ -42,19 +42,7 @@ export function useAuth() {
   };
 
   const redirectBasedOnRole = (role: string) => {
-    switch (role) {
-      case 'admin':
-        router.push('/admin-portal/dashboard');
-        break;
-      case 'teacher':
-        router.push('/teacher-dashboard');
-        break;
-      case 'student':
-        router.push('/student-dashboard');
-        break;
-      default:
-        router.push('/student-dashboard');
-    }
+    router.push('/dashboard');
   };
 
   const login = () => {
