@@ -12,14 +12,14 @@ import { updateUserData } from './interfaces/userInterface';
 
 const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
 const AUTH0_Client_Id = process.env.NEXT_PUBLIC_AUTH0_Client_Id || '';
-const AUTH0_Client_Secreate =
-  process.env.NEXT_PUBLIC_AUTH0_Client_Secreat || '';
+const AUTH0_Client_Secret = process.env.NEXT_PUBLIC_AUTH0_Client_Secret || '';
 const AUTH0_Domain_Name = process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME || '';
 const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
 
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null);
   const [isClient, setIsClient] = React.useState(false);
+  const [isProcessingCode, setIsProcessingCode] = React.useState(false);
   const pathname = usePathname();
 
   React.useEffect(() => {
@@ -55,27 +55,27 @@ export function Providers({ children }: ThemeProviderProps) {
       });
 
       // Role-based redirection logic
-      // if (
-      //   pathname &&
-      //   (pathname === '/template' || pathname.startsWith('/template'))
-      // ) {
-      //   const role = userData.role;
+      if (
+        pathname &&
+        (pathname === '/template' || pathname.startsWith('/template'))
+      ) {
+        const role = userData.role;
 
-      //   switch (role) {
-      //     case 'admin':
-      //       window.location.href = '/admin';
-      //       break;
-      //     case 'teacher':
-      //       window.location.href = '/teacher';
-      //       break;
-      //     case 'student':
-      //       window.location.href = '/student';
-      //       break;
-      //     default:
-      //       // If role is not recognized, redirect to student dashboard
-      //       window.location.href = '/student';
-      //   }
-      // }
+        switch (role) {
+          case 'admin':
+            window.location.href = '/admin-portal/dashboard';
+            break;
+          case 'teacher':
+            window.location.href = '/teacher-dashboard';
+            break;
+          case 'student':
+            window.location.href = '/student-dashboard';
+            break;
+          default:
+            // If role is not recognized, redirect to student dashboard
+            window.location.href = '/student-dashboard';
+        }
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
       // If we get a 401 or 403, the token is invalid
@@ -127,13 +127,25 @@ export function Providers({ children }: ThemeProviderProps) {
   };
 
   const fetchAuthToken = async (code: string) => {
+    if (isProcessingCode) return;
+    setIsProcessingCode(true);
+
+    console.log('Processing auth code:', code);
+    console.log('Auth0 Config:', {
+      AUTH0_Client_Id,
+      AUTH0_Domain_Name,
+      login_redirect,
+    });
+
     try {
       const data = new URLSearchParams();
       data.append('grant_type', 'authorization_code');
       data.append('client_id', AUTH0_Client_Id);
-      data.append('client_secret', AUTH0_Client_Secreate);
+      data.append('client_secret', AUTH0_Client_Secret);
       data.append('code', code);
       data.append('redirect_uri', login_redirect);
+
+      console.log('Token request data:', Object.fromEntries(data));
 
       const response = await axios({
         method: 'post',
@@ -144,12 +156,22 @@ export function Providers({ children }: ThemeProviderProps) {
         data: data,
       });
 
+      console.log('Token response:', response.data);
       const token = response.data.access_token;
       setAccessTkn(token);
       setItemWithTTL('bearerToken', token, 23);
+
+      // Mark code as processed in localStorage to prevent reprocessing
+      localStorage.setItem('authCodeProcessed', 'true');
+
       await userMeData(token);
     } catch (error) {
       console.error('Error fetching auth token:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('Response data:', error.response?.data);
+        console.error('Response status:', error.response?.status);
+      }
+      localStorage.setItem('authCodeProcessed', 'true');
       if (
         pathname &&
         pathname !== '/template' &&
@@ -157,11 +179,15 @@ export function Providers({ children }: ThemeProviderProps) {
       ) {
         loginHandler();
       }
+    } finally {
+      setIsProcessingCode(false);
     }
   };
 
   const loginHandler = () => {
     try {
+      // Clear any previous auth processing flags
+      localStorage.removeItem('authCodeProcessed');
       window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${login_redirect}&scope=${encodeURIComponent('openid profile email')}`;
     } catch (error) {
       console.error('Login redirect error:', error);
@@ -169,29 +195,37 @@ export function Providers({ children }: ThemeProviderProps) {
   };
 
   // Initialize auth state
-  // React.useEffect(() => {
-  //   if (typeof window !== 'undefined') {
-  //     const token = getItemWithTTL('bearerToken');
-  //     if (token) {
-  //       setAccessTkn(token);
-  //       userMeData(token);
-  //     } else if (pathname && pathname !== '/template' && !pathname.startsWith('/template/')) {
-  //       loginHandler();
-  //     }
-  //   }
-  // }, [pathname]);
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = getItemWithTTL('bearerToken');
+      if (token) {
+        setAccessTkn(token);
+        userMeData(token);
+      }
+    }
+  }, [pathname]);
 
   // Handle auth code from URL
-  // React.useEffect(() => {
-  //   if (typeof window !== 'undefined') {
-  //     const urlParams = new URLSearchParams(window.location.search);
-  //     const parsedAuthCode = urlParams.get('code');
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && !isProcessingCode) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const parsedAuthCode = urlParams.get('code');
+      const codeProcessed = localStorage.getItem('authCodeProcessed');
 
-  //     if (parsedAuthCode && !accessTkn) {
-  //       fetchAuthToken(parsedAuthCode);
-  //     }
-  //   }
-  // }, [accessTkn]);
+      if (
+        parsedAuthCode &&
+        !accessTkn &&
+        !localStorage.getItem('bearerToken') &&
+        !codeProcessed
+      ) {
+        // Clear the code from URL immediately to prevent reprocessing
+        const newUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+
+        fetchAuthToken(parsedAuthCode);
+      }
+    }
+  }, []);
 
   return (
     <NextThemesProvider
