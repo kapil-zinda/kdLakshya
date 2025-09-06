@@ -16,7 +16,7 @@ interface DashboardWrapperProps {
 export function DashboardWrapper({
   children,
   allowedRoles = ['admin', 'teacher', 'student'],
-  redirectTo = '/template',
+  redirectTo = '/',
 }: DashboardWrapperProps) {
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -64,8 +64,12 @@ export function DashboardWrapper({
 
         // Check if user has required role
         if (!allowedRoles.includes(data.role)) {
-          // Redirect to dashboard
-          router.push('/dashboard');
+          // Redirect based on user role
+          if (data.role === 'admin') {
+            router.push('/admin-portal/dashboard');
+          } else {
+            router.push('/dashboard');
+          }
           return;
         }
 

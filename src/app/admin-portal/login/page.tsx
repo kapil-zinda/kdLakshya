@@ -189,10 +189,10 @@ export default function AdminLogin() {
 
         <div className="text-center">
           <Link
-            href="/template"
+            href="/"
             className="text-indigo-600 hover:text-indigo-500 text-sm"
           >
-            ← Back to Website
+            ← Back to Home
           </Link>
         </div>
       </div>

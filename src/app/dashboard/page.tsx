@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import StudentDashboard from '@/components/dashboard/StudentDashboard';
 import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
@@ -26,7 +28,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <DashboardWrapper redirectTo="/template">
+    <DashboardWrapper redirectTo="/">
       {(userData) => renderDashboardContent(userData)}
     </DashboardWrapper>
   );
@@ -335,7 +337,7 @@ function AdminDashboardContent({ userData }: { userData: any }) {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {dashboardCards.map((card, index) => (
-            <a key={index} href={card.href} className="group">
+            <Link key={index} href={card.href} className="group">
               <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group-hover:scale-105">
                 <div
                   className={`h-32 bg-gradient-to-br ${card.color} p-6 flex items-center justify-center`}
@@ -369,7 +371,7 @@ function AdminDashboardContent({ userData }: { userData: any }) {
                   </div>
                 </div>
               </div>
-            </a>
+            </Link>
           ))}
         </div>
       </main>
