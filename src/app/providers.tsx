@@ -53,29 +53,6 @@ export function Providers({ children }: ThemeProviderProps) {
           .map((key) => key.match(/team-(\d+)/)?.[1])
           .filter(Boolean) as string[],
       });
-
-      // Role-based redirection logic
-      if (
-        pathname &&
-        (pathname === '/template' || pathname.startsWith('/template'))
-      ) {
-        const role = userData.role;
-
-        switch (role) {
-          case 'admin':
-            window.location.href = '/admin-portal/dashboard';
-            break;
-          case 'teacher':
-            window.location.href = '/teacher-dashboard';
-            break;
-          case 'student':
-            window.location.href = '/student-dashboard';
-            break;
-          default:
-            // If role is not recognized, redirect to student dashboard
-            window.location.href = '/student-dashboard';
-        }
-      }
     } catch (error) {
       console.error('Error fetching user data:', error);
       // If we get a 401 or 403, the token is invalid
@@ -85,13 +62,7 @@ export function Providers({ children }: ThemeProviderProps) {
       ) {
         localStorage.removeItem('bearerToken');
         setAccessTkn(null);
-        if (
-          pathname &&
-          pathname !== '/template' &&
-          !pathname.startsWith('/template/')
-        ) {
-          loginHandler();
-        }
+        loginHandler();
       }
     }
   };
@@ -172,13 +143,7 @@ export function Providers({ children }: ThemeProviderProps) {
         console.error('Response status:', error.response?.status);
       }
       localStorage.setItem('authCodeProcessed', 'true');
-      if (
-        pathname &&
-        pathname !== '/template' &&
-        !pathname.startsWith('/template/')
-      ) {
-        loginHandler();
-      }
+      loginHandler();
     } finally {
       setIsProcessingCode(false);
     }
@@ -200,10 +165,13 @@ export function Providers({ children }: ThemeProviderProps) {
       const token = getItemWithTTL('bearerToken');
       if (token) {
         setAccessTkn(token);
-        userMeData(token);
+        // Only call userMeData if not on dashboard page (DashboardWrapper handles it)
+        if (pathname !== '/dashboard') {
+          userMeData(token);
+        }
       }
     }
-  }, [pathname]);
+  }, []);
 
   // Handle auth code from URL
   React.useEffect(() => {

@@ -58,26 +58,10 @@ export function AuthHandler() {
           .filter(Boolean) as string[],
       });
 
-      // Redirect based on role
-      redirectBasedOnRole(userData.role);
+      // Redirect to dashboard
+      router.push('/dashboard');
     } catch (error) {
       console.error('Error during login flow:', error);
-    }
-  };
-
-  const redirectBasedOnRole = (role: string) => {
-    switch (role) {
-      case 'admin':
-        router.push('/admin-portal/dashboard');
-        break;
-      case 'teacher':
-        router.push('/teacher-dashboard');
-        break;
-      case 'student':
-        router.push('/student-dashboard');
-        break;
-      default:
-        router.push('/student-dashboard');
     }
   };
 

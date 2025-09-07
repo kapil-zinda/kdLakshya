@@ -53,20 +53,8 @@ export function ProtectedRoute({
 
         // Check if user has required role
         if (!allowedRoles.includes(userData.role)) {
-          // Redirect based on their actual role
-          switch (userData.role) {
-            case 'admin':
-              router.push('/admin-portal/dashboard');
-              break;
-            case 'teacher':
-              router.push('/teacher-dashboard');
-              break;
-            case 'student':
-              router.push('/student-dashboard');
-              break;
-            default:
-              router.push(redirectTo);
-          }
+          // Redirect to dashboard
+          router.push('/dashboard');
           return;
         }
 

@@ -16,7 +16,7 @@ interface DashboardWrapperProps {
 export function DashboardWrapper({
   children,
   allowedRoles = ['admin', 'teacher', 'student'],
-  redirectTo = '/template',
+  redirectTo = '/',
 }: DashboardWrapperProps) {
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -64,19 +64,11 @@ export function DashboardWrapper({
 
         // Check if user has required role
         if (!allowedRoles.includes(data.role)) {
-          // Redirect based on their actual role
-          switch (data.role) {
-            case 'admin':
-              router.push('/admin-portal/dashboard');
-              break;
-            case 'teacher':
-              router.push('/teacher-dashboard');
-              break;
-            case 'student':
-              router.push('/student-dashboard');
-              break;
-            default:
-              router.push(redirectTo);
+          // Redirect based on user role
+          if (data.role === 'admin') {
+            router.push('/admin-portal/dashboard');
+          } else {
+            router.push('/dashboard');
           }
           return;
         }
@@ -90,8 +82,11 @@ export function DashboardWrapper({
       }
     };
 
-    checkAuth();
-  }, [router, allowedRoles, redirectTo]);
+    // Only run auth check once when component mounts
+    if (isLoading) {
+      checkAuth();
+    }
+  }, []);
 
   if (isLoading) {
     return (
