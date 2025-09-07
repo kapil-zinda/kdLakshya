@@ -89,7 +89,9 @@ export function Header({ organization }: HeaderProps) {
     const encoder = new TextEncoder();
     const data = encoder.encode(codeVerifier);
     const digest = await crypto.subtle.digest('SHA-256', data);
-    const base64String = btoa(String.fromCharCode(...new Uint8Array(digest)));
+    const base64String = btoa(
+      String.fromCharCode.apply(null, Array.from(new Uint8Array(digest))),
+    );
     const codeChallenge = base64String
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
