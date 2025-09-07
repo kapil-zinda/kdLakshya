@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { useRouter, useSearchParams } from 'next/navigation';
+
 import { OrganizationTemplate } from '@/components/template/OrganizationTemplate';
 import { getConfigBySubdomain } from '@/data/collegeConfigs';
 import { demoOrganizationData } from '@/data/organizationTemplate';
@@ -45,8 +47,45 @@ export default function Home() {
   const [organizationData, setOrganizationData] =
     useState<OrganizationConfig>(demoOrganizationData);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const handleAuth0Callback = () => {
+    try {
+      // Check for token in URL hash (implicit flow)
+      const hash = window.location.hash.substring(1);
+      const hashParams = new URLSearchParams(hash);
+      const accessToken = hashParams.get('access_token');
+
+      if (accessToken) {
+        // Store token in localStorage with TTL
+        localStorage.setItem(
+          'bearerToken',
+          JSON.stringify({
+            value: accessToken,
+            expiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+          }),
+        );
+
+        // Clean URL and redirect to dashboard
+        window.history.replaceState({}, '', '/');
+        router.push('/dashboard');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Auth callback error:', error);
+      window.history.replaceState({}, '', '/');
+      return false;
+    }
+  };
 
   useEffect(() => {
+    // Check if this is an Auth0 callback with token in hash
+    if (window.location.hash.includes('access_token')) {
+      handleAuth0Callback();
+      return;
+    }
     // Check for subdomain-based configuration first
     const subdomain = getSubdomain();
     if (subdomain && isValidSubdomain(subdomain)) {

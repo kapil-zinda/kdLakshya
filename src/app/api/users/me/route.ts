@@ -14,21 +14,6 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-
-    // Handle admin demo token
-    if (token.startsWith('admin-token-')) {
-      return NextResponse.json({
-        id: 'admin-1',
-        email: 'admin@school.com',
-        firstName: 'Admin',
-        lastName: 'User',
-        role: 'admin',
-        permissions: { org: true, admin: true },
-        orgId: 'demo-org',
-      });
-    }
-
-    // Handle Auth0 tokens
     const response = await fetch(`${BaseURLAuth}/users/me?include=permission`, {
       method: 'GET',
       headers: {

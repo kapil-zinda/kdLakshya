@@ -76,9 +76,43 @@ export function Header({ organization }: HeaderProps) {
     window.location.href = href;
   };
 
-  const handleAuthLogin = () => {
-    // Use Auth0's built-in login route instead of manual construction
-    window.location.href = '/api/auth/login';
+  const generateCodeChallenge = async () => {
+    // Generate code verifier
+    const codeVerifier =
+      Math.random().toString(36).substring(2, 15) +
+      Math.random().toString(36).substring(2, 15);
+
+    // Store code verifier for later use
+    localStorage.setItem('codeVerifier', codeVerifier);
+
+    // Create code challenge
+    const encoder = new TextEncoder();
+    const data = encoder.encode(codeVerifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    const base64String = btoa(
+      String.fromCharCode.apply(null, Array.from(new Uint8Array(digest))),
+    );
+    const codeChallenge = base64String
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=/g, '');
+
+    return codeChallenge;
+  };
+
+  const handleAuthLogin = async () => {
+    // Use Authorization Code flow with PKCE
+    const auth0Domain = 'dev-p3hppyisuuaems5y.us.auth0.com';
+    const clientId = 'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL';
+    const redirectUri = encodeURIComponent('http://localhost:3000');
+    const scope = encodeURIComponent('openid profile email');
+    const state = Math.random().toString(36).substring(2, 15);
+    const codeChallenge = await generateCodeChallenge();
+
+    // Store state for verification
+    localStorage.setItem('authState', state);
+
+    window.location.href = `https://${auth0Domain}/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
   };
 
   const handleLogout = () => {
