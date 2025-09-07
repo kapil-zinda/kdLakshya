@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { usePathname } from 'next/navigation';
 
@@ -22,22 +22,81 @@ const navigationItems = [
 
 export function Header({ organization }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    // Check authentication status
+    const checkAuth = () => {
+      const getItemWithTTL = (key: string) => {
+        const itemStr = localStorage.getItem(key);
+        if (!itemStr) return null;
+
+        try {
+          const item = JSON.parse(itemStr);
+          // Check if it's in TTL format
+          if (item.value && item.expiry) {
+            const now = new Date().getTime();
+            if (now > item.expiry) {
+              localStorage.removeItem(key);
+              return null;
+            }
+            return item.value;
+          }
+          // If not in TTL format, return the raw value
+          return item;
+        } catch (e) {
+          // If it's not JSON, it might be a plain string token
+          return itemStr;
+        }
+      };
+
+      const token = getItemWithTTL('bearerToken');
+      const adminAuth = localStorage.getItem('adminAuth');
+      const hasAuthSession = document.cookie.includes('appSession');
+
+      console.log('Auth check:', {
+        token: !!token,
+        adminAuth: !!adminAuth,
+        hasAuthSession,
+      });
+      setIsAuthenticated(!!(token || adminAuth || hasAuthSession));
+    };
+
+    checkAuth();
+    // Check auth status when localStorage changes
+    window.addEventListener('storage', checkAuth);
+
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+    };
+  }, []);
 
   const handleNavigation = (href: string) => {
     window.location.href = href;
   };
 
   const handleAuthLogin = () => {
-    const AUTH0_Client_Id = process.env.NEXT_PUBLIC_AUTH0_Client_Id || '';
-    const AUTH0_Domain_Name = process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME || '';
-    const login_redirect =
-      process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
+    // Use Auth0's built-in login route instead of manual construction
+    window.location.href = '/api/auth/login';
+  };
 
-    try {
-      window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${login_redirect}&scope=${encodeURIComponent('openid profile email')}`;
-    } catch (error) {
-      console.error('Login redirect error:', error);
+  const handleLogout = () => {
+    // Clear all authentication data
+    localStorage.removeItem('bearerToken');
+    localStorage.removeItem('adminAuth');
+
+    // Check if user was using Auth0
+    const authSession = document.cookie.includes('appSession');
+
+    if (authSession) {
+      // Redirect to Auth0 logout
+      window.location.href = '/api/auth/logout';
+    } else {
+      // Simple redirect for admin login
+      window.location.href = '/';
+      // Force re-check of auth status
+      setIsAuthenticated(false);
     }
   };
 
@@ -137,19 +196,46 @@ export function Header({ organization }: HeaderProps) {
             </ul>
           </nav>
 
-          {/* Sign In Button */}
+          {/* Auth Buttons */}
           <div className="hidden md:block">
-            <Button
-              className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white"
-              style={{
-                backgroundColor: organization.branding.primaryColor,
-                borderColor: organization.branding.primaryColor,
-                color: 'white',
-              }}
-              onClick={handleAuthLogin}
-            >
-              Sign in
-            </Button>
+            {isAuthenticated ? (
+              <div className="flex items-center space-x-3">
+                <Button
+                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105"
+                  variant="outline"
+                  style={{
+                    borderColor: organization.branding.primaryColor,
+                    color: organization.branding.primaryColor,
+                  }}
+                  onClick={() => handleNavigation('/dashboard')}
+                >
+                  Dashboard
+                </Button>
+                <Button
+                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white"
+                  style={{
+                    backgroundColor: '#ef4444',
+                    borderColor: '#ef4444',
+                    color: 'white',
+                  }}
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
+              </div>
+            ) : (
+              <Button
+                className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white"
+                style={{
+                  backgroundColor: organization.branding.primaryColor,
+                  borderColor: organization.branding.primaryColor,
+                  color: 'white',
+                }}
+                onClick={handleAuthLogin}
+              >
+                Sign in
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -219,20 +305,53 @@ export function Header({ organization }: HeaderProps) {
                   );
                 })}
                 <li className="pt-3 sm:pt-4 px-2 sm:px-0">
-                  <Button
-                    className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white"
-                    style={{
-                      backgroundColor: organization.branding.primaryColor,
-                      borderColor: organization.branding.primaryColor,
-                      color: 'white',
-                    }}
-                    onClick={() => {
-                      handleAuthLogin();
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    Sign in
-                  </Button>
+                  {isAuthenticated ? (
+                    <div className="space-y-3">
+                      <Button
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm"
+                        variant="outline"
+                        style={{
+                          borderColor: organization.branding.primaryColor,
+                          color: organization.branding.primaryColor,
+                        }}
+                        onClick={() => {
+                          handleNavigation('/dashboard');
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        Dashboard
+                      </Button>
+                      <Button
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white"
+                        style={{
+                          backgroundColor: '#ef4444',
+                          borderColor: '#ef4444',
+                          color: 'white',
+                        }}
+                        onClick={() => {
+                          handleLogout();
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        Logout
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white"
+                      style={{
+                        backgroundColor: organization.branding.primaryColor,
+                        borderColor: organization.branding.primaryColor,
+                        color: 'white',
+                      }}
+                      onClick={() => {
+                        handleAuthLogin();
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      Sign in
+                    </Button>
+                  )}
                 </li>
               </ul>
             </nav>

@@ -37,8 +37,20 @@ export default function DashboardPage() {
 // Admin Dashboard Content Component
 function AdminDashboardContent({ userData }: { userData: any }) {
   const handleLogout = () => {
+    // Clear all authentication data
     localStorage.removeItem('bearerToken');
-    window.location.href = '/';
+    localStorage.removeItem('adminAuth');
+
+    // Check if user was using Auth0
+    const authSession = document.cookie.includes('appSession');
+
+    if (authSession) {
+      // Redirect to Auth0 logout
+      window.location.href = '/api/auth/logout';
+    } else {
+      // Simple redirect for admin login
+      window.location.href = '/';
+    }
   };
 
   const dashboardCards = [
