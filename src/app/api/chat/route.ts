@@ -2,12 +2,31 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import Groq from 'groq-sdk';
 
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
+let groq: Groq | null = null;
+
+const initializeGroq = () => {
+  if (!groq && process.env.GROQ_API_KEY) {
+    groq = new Groq({
+      apiKey: process.env.GROQ_API_KEY,
+    });
+  }
+  return groq;
+};
 
 export async function POST(request: NextRequest) {
   try {
+    // Initialize Groq client
+    const groqClient = initializeGroq();
+
+    if (!groqClient) {
+      return NextResponse.json(
+        {
+          error:
+            'Chat service is not configured. Please contact administrator.',
+        },
+        { status: 503 },
+      );
+    }
     const { message, contextData, history } = await request.json();
 
     if (!message || typeof message !== 'string') {
@@ -102,7 +121,7 @@ Guidelines:
     });
 
     // Call Groq API
-    const chatCompletion = await groq.chat.completions.create({
+    const chatCompletion = await groqClient.chat.completions.create({
       messages: messages,
       model: 'meta-llama/llama-4-maverick-17b-128e-instruct', // You can also use 'llama2-70b-4096' or other available models
       temperature: 0.7,
