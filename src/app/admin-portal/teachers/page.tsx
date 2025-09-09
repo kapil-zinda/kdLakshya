@@ -81,9 +81,22 @@ export default function TeacherManagement() {
   ];
 
   useEffect(() => {
-    const authData = localStorage.getItem('adminAuth');
-    if (!authData) {
-      router.push('/admin-portal/login');
+    const tokenStr = localStorage.getItem('bearerToken');
+    if (!tokenStr) {
+      router.push('/');
+      return;
+    }
+    try {
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        router.push('/');
+        return;
+      }
+    } catch (e) {
+      localStorage.removeItem('bearerToken');
+      router.push('/');
       return;
     }
 
@@ -372,7 +385,7 @@ export default function TeacherManagement() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link
-                href="/admin-portal/dashboard"
+                href="/dashboard"
                 className="text-gray-500 hover:text-gray-700 mr-4"
               >
                 <svg

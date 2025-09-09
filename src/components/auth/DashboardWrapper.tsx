@@ -64,12 +64,8 @@ export function DashboardWrapper({
 
         // Check if user has required role
         if (!allowedRoles.includes(data.role)) {
-          // Redirect based on user role
-          if (data.role === 'admin') {
-            router.push('/admin-portal/dashboard');
-          } else {
-            router.push('/dashboard');
-          }
+          // Only redirect if explicitly not allowed - remove admin portal redirect
+          router.push(redirectTo);
           return;
         }
 
@@ -89,7 +85,7 @@ export function DashboardWrapper({
             localStorage.removeItem('bearerToken');
             sessionStorage.removeItem('authCodeProcessed');
             router.push(redirectTo);
-          } else if (error.response?.status >= 500) {
+          } else if (error.response?.status && error.response.status >= 500) {
             // Server error - could be expired token causing backend issues
             console.error('Server error - checking if token is expired');
             // Check token validity

@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -14,30 +12,28 @@ interface AdminUser {
 }
 
 export default function AdminDashboard() {
-  const [adminUser, setAdminUser] = useState<AdminUser | null>(null);
+  return (
+    <DashboardWrapper allowedRoles={['admin']} redirectTo="/">
+      {(userData) => <AdminDashboardContent userData={userData} />}
+    </DashboardWrapper>
+  );
+}
+
+function AdminDashboardContent({ userData }: { userData: any }) {
   const router = useRouter();
 
-  useEffect(() => {
-    const authData = localStorage.getItem('adminAuth');
-    if (authData) {
-      setAdminUser(JSON.parse(authData));
-    } else {
-      router.push('/admin-portal/login');
-    }
-  }, [router]);
-
   const handleLogout = () => {
+    // Clear all authentication data
+    localStorage.removeItem('bearerToken');
     localStorage.removeItem('adminAuth');
-    router.push('/admin-portal/login');
-  };
+    localStorage.removeItem('authState');
+    localStorage.removeItem('codeVerifier');
+    sessionStorage.removeItem('authCodeProcessed');
+    sessionStorage.removeItem('isAuthCallback');
 
-  if (!adminUser) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    );
-  }
+    // Simple redirect to homepage
+    window.location.href = '/';
+  };
 
   const dashboardCards = [
     {
@@ -254,7 +250,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className="text-sm text-gray-500">
-                    Welcome, {adminUser.email}
+                    Welcome, {userData.firstName} {userData.lastName}
                   </div>
                   <button
                     onClick={handleLogout}

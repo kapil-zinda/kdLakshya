@@ -10,7 +10,6 @@ import { type ThemeProviderProps } from 'next-themes/dist/types';
 
 import { updateUserData } from './interfaces/userInterface';
 
-const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
 const AUTH0_Client_Id = process.env.NEXT_PUBLIC_AUTH0_Client_Id || '';
 const AUTH0_Client_Secret = process.env.NEXT_PUBLIC_AUTH0_Client_Secret || '';
 const AUTH0_Domain_Name = process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME || '';
@@ -18,13 +17,8 @@ const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
 
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null);
-  const [isClient, setIsClient] = React.useState(false);
   const [isProcessingCode, setIsProcessingCode] = React.useState(false);
   const pathname = usePathname();
-
-  React.useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const userMeData = async (bearerToken: string) => {
     if (!bearerToken) return;
@@ -39,7 +33,7 @@ export function Providers({ children }: ThemeProviderProps) {
 
       const userData = res.data;
 
-      await updateUserData({
+      updateUserData({
         userId: userData.id,
         keyId: 'user-' + userData.id,
         orgKeyId: 'org-' + userData.orgId,
