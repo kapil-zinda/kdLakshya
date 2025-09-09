@@ -69,12 +69,15 @@ export function DashboardWrapper({
 
             // Create mock student user data for dashboard
             const mockStudentUserData: UserData = {
-              id: studentData.username,
-              name: studentData.username,
-              email: `${studentData.username}@student.edu`,
-              role: 'student',
-              username: studentData.username,
-              userType: 'student',
+              userId: studentData.username,
+              keyId: `student_${studentData.username}`,
+              orgKeyId: 'student_org',
+              orgId: 'student_organization',
+              userEmail: `${studentData.username}@student.edu`,
+              firstName: studentData.username,
+              lastName: '',
+              permission: { role: 'student' },
+              allowedTeams: ['students'],
             };
 
             // Check if user has required role
