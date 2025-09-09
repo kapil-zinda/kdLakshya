@@ -47,13 +47,62 @@ export function DashboardWrapper({
         };
 
         const token = getItemWithTTL('bearerToken');
+        const studentAuth = localStorage.getItem('studentAuth');
 
+        // Handle student authentication
+        if (studentAuth && !token) {
+          try {
+            const studentData = JSON.parse(studentAuth);
+
+            // Check if student auth is still valid (24 hours)
+            const loginTime = new Date(studentData.loginTime);
+            const now = new Date();
+            const hoursDiff =
+              (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
+
+            if (hoursDiff > 24) {
+              // Student session expired
+              localStorage.removeItem('studentAuth');
+              router.push(redirectTo);
+              return;
+            }
+
+            // Create mock student user data for dashboard
+            const mockStudentUserData: UserData = {
+              userId: studentData.username,
+              keyId: `student_${studentData.username}`,
+              orgKeyId: 'student_org',
+              orgId: 'student_organization',
+              userEmail: `${studentData.username}@student.edu`,
+              firstName: studentData.username,
+              lastName: '',
+              permission: { role: 'student' },
+              allowedTeams: ['students'],
+            };
+
+            // Check if user has required role
+            if (!allowedRoles.includes('student')) {
+              router.push(redirectTo);
+              return;
+            }
+
+            setUserData(mockStudentUserData);
+            return;
+          } catch (error) {
+            console.error('Invalid student auth data:', error);
+            localStorage.removeItem('studentAuth');
+            router.push(redirectTo);
+            return;
+          }
+        }
+
+        // Handle Auth0 token authentication
         if (!token) {
           router.push(redirectTo);
           return;
         }
 
-        // Fetch user data
+        // Fetch user data from API
         const response = await axios.get('/api/users/me', {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -83,6 +132,7 @@ export function DashboardWrapper({
               'Auth error - token likely expired, clearing auth data',
             );
             localStorage.removeItem('bearerToken');
+            localStorage.removeItem('studentAuth');
             sessionStorage.removeItem('authCodeProcessed');
             router.push(redirectTo);
           } else if (error.response?.status && error.response.status >= 500) {
@@ -97,6 +147,7 @@ export function DashboardWrapper({
                 if (now > tokenItem.expiry) {
                   console.log('Token expired, clearing auth data');
                   localStorage.removeItem('bearerToken');
+                  localStorage.removeItem('studentAuth');
                   sessionStorage.removeItem('authCodeProcessed');
                   router.push(redirectTo);
                 } else {
@@ -106,6 +157,7 @@ export function DashboardWrapper({
               } catch (e) {
                 console.log('Error parsing token, clearing auth data');
                 localStorage.removeItem('bearerToken');
+                localStorage.removeItem('studentAuth');
                 sessionStorage.removeItem('authCodeProcessed');
                 router.push(redirectTo);
               }
@@ -115,12 +167,14 @@ export function DashboardWrapper({
           } else {
             // Other errors - clear auth and redirect
             localStorage.removeItem('bearerToken');
+            localStorage.removeItem('studentAuth');
             sessionStorage.removeItem('authCodeProcessed');
             router.push(redirectTo);
           }
         } else {
           // Network or other error
           localStorage.removeItem('bearerToken');
+          localStorage.removeItem('studentAuth');
           sessionStorage.removeItem('authCodeProcessed');
           router.push(redirectTo);
         }

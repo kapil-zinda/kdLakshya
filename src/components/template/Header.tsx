@@ -53,14 +53,18 @@ export function Header({ organization }: HeaderProps) {
 
       const token = getItemWithTTL('bearerToken');
       const adminAuth = localStorage.getItem('adminAuth');
+      const studentAuth = localStorage.getItem('studentAuth');
       const hasAuthSession = document.cookie.includes('appSession');
 
       console.log('Auth check:', {
         token: !!token,
         adminAuth: !!adminAuth,
+        studentAuth: !!studentAuth,
         hasAuthSession,
       });
-      setIsAuthenticated(!!(token || adminAuth || hasAuthSession));
+      setIsAuthenticated(
+        !!(token || adminAuth || studentAuth || hasAuthSession),
+      );
     };
 
     checkAuth();
@@ -76,49 +80,16 @@ export function Header({ organization }: HeaderProps) {
     window.location.href = href;
   };
 
-  const generateCodeChallenge = async () => {
-    // Generate code verifier
-    const codeVerifier =
-      Math.random().toString(36).substring(2, 15) +
-      Math.random().toString(36).substring(2, 15);
-
-    // Store code verifier for later use
-    localStorage.setItem('codeVerifier', codeVerifier);
-
-    // Create code challenge
-    const encoder = new TextEncoder();
-    const data = encoder.encode(codeVerifier);
-    const digest = await crypto.subtle.digest('SHA-256', data);
-    const base64String = btoa(
-      String.fromCharCode.apply(null, Array.from(new Uint8Array(digest))),
-    );
-    const codeChallenge = base64String
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-
-    return codeChallenge;
-  };
-
   const handleAuthLogin = () => {
-    // Clear any previous auth data
-    localStorage.removeItem('bearerToken');
-    sessionStorage.removeItem('authCodeProcessed');
-
-    // Use the same auth flow as providers.tsx
-    const AUTH0_Domain_Name = 'dev-p3hppyisuuaems5y.us.auth0.com';
-    const AUTH0_Client_Id = 'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL';
-    const login_redirect =
-      process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL ||
-      'http://localhost:3000/';
-
-    window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${encodeURIComponent(login_redirect)}&scope=${encodeURIComponent('openid profile email')}`;
+    // Redirect to the new dual login page
+    window.location.href = '/login';
   };
 
   const handleLogout = () => {
-    // Clear all authentication data
+    // Clear all authentication data (including student auth)
     localStorage.removeItem('bearerToken');
     localStorage.removeItem('adminAuth');
+    localStorage.removeItem('studentAuth');
     localStorage.removeItem('authState');
     localStorage.removeItem('codeVerifier');
     sessionStorage.removeItem('authCodeProcessed');
