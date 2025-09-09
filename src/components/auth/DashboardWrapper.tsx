@@ -64,19 +64,66 @@ export function DashboardWrapper({
 
         // Check if user has required role
         if (!allowedRoles.includes(data.role)) {
-          // Redirect based on user role
-          if (data.role === 'admin') {
-            router.push('/admin-portal/dashboard');
-          } else {
-            router.push('/dashboard');
-          }
+          // Only redirect if explicitly not allowed - remove admin portal redirect
+          router.push(redirectTo);
           return;
         }
 
         setUserData(data);
       } catch (error) {
         console.error('Auth check failed:', error);
-        router.push(redirectTo);
+        // Check if it's a network/server error vs auth error
+        if (axios.isAxiosError(error)) {
+          if (
+            error.response?.status === 401 ||
+            error.response?.status === 403
+          ) {
+            // Auth error - likely expired token, clear and redirect to login
+            console.log(
+              'Auth error - token likely expired, clearing auth data',
+            );
+            localStorage.removeItem('bearerToken');
+            sessionStorage.removeItem('authCodeProcessed');
+            router.push(redirectTo);
+          } else if (error.response?.status && error.response.status >= 500) {
+            // Server error - could be expired token causing backend issues
+            console.error('Server error - checking if token is expired');
+            // Check token validity
+            const tokenStr = localStorage.getItem('bearerToken');
+            if (tokenStr) {
+              try {
+                const tokenItem = JSON.parse(tokenStr);
+                const now = new Date().getTime();
+                if (now > tokenItem.expiry) {
+                  console.log('Token expired, clearing auth data');
+                  localStorage.removeItem('bearerToken');
+                  sessionStorage.removeItem('authCodeProcessed');
+                  router.push(redirectTo);
+                } else {
+                  // Token valid but server error - redirect to home but keep token
+                  router.push('/');
+                }
+              } catch (e) {
+                console.log('Error parsing token, clearing auth data');
+                localStorage.removeItem('bearerToken');
+                sessionStorage.removeItem('authCodeProcessed');
+                router.push(redirectTo);
+              }
+            } else {
+              router.push(redirectTo);
+            }
+          } else {
+            // Other errors - clear auth and redirect
+            localStorage.removeItem('bearerToken');
+            sessionStorage.removeItem('authCodeProcessed');
+            router.push(redirectTo);
+          }
+        } else {
+          // Network or other error
+          localStorage.removeItem('bearerToken');
+          sessionStorage.removeItem('authCodeProcessed');
+          router.push(redirectTo);
+        }
       } finally {
         setIsLoading(false);
       }

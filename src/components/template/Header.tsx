@@ -100,38 +100,33 @@ export function Header({ organization }: HeaderProps) {
     return codeChallenge;
   };
 
-  const handleAuthLogin = async () => {
-    // Use Authorization Code flow with PKCE
-    const auth0Domain = 'dev-p3hppyisuuaems5y.us.auth0.com';
-    const clientId = 'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL';
-    const redirectUri = encodeURIComponent('http://localhost:3000');
-    const scope = encodeURIComponent('openid profile email');
-    const state = Math.random().toString(36).substring(2, 15);
-    const codeChallenge = await generateCodeChallenge();
+  const handleAuthLogin = () => {
+    // Clear any previous auth data
+    localStorage.removeItem('bearerToken');
+    sessionStorage.removeItem('authCodeProcessed');
 
-    // Store state for verification
-    localStorage.setItem('authState', state);
+    // Use the same auth flow as providers.tsx
+    const AUTH0_Domain_Name = 'dev-p3hppyisuuaems5y.us.auth0.com';
+    const AUTH0_Client_Id = 'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL';
+    const login_redirect = 'http://localhost:3000/';
 
-    window.location.href = `https://${auth0Domain}/authorize?response_type=code&client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=${state}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+    window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${encodeURIComponent(login_redirect)}&scope=${encodeURIComponent('openid profile email')}`;
   };
 
   const handleLogout = () => {
     // Clear all authentication data
     localStorage.removeItem('bearerToken');
     localStorage.removeItem('adminAuth');
+    localStorage.removeItem('authState');
+    localStorage.removeItem('codeVerifier');
+    sessionStorage.removeItem('authCodeProcessed');
+    sessionStorage.removeItem('isAuthCallback');
 
-    // Check if user was using Auth0
-    const authSession = document.cookie.includes('appSession');
+    // Force re-check of auth status
+    setIsAuthenticated(false);
 
-    if (authSession) {
-      // Redirect to Auth0 logout
-      window.location.href = '/api/auth/logout';
-    } else {
-      // Simple redirect for admin login
-      window.location.href = '/';
-      // Force re-check of auth status
-      setIsAuthenticated(false);
-    }
+    // Simple redirect to homepage
+    window.location.href = '/';
   };
 
   return (

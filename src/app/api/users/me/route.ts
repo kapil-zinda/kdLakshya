@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('Authorization');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.log('Missing or invalid auth header:', authHeader);
       return NextResponse.json(
         { error: 'Missing or invalid authorization header' },
         { status: 401 },
@@ -14,6 +15,12 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
+    console.log(
+      'Making request to:',
+      `${BaseURLAuth}/users/me?include=permission`,
+    );
+    console.log('Using token:', token.substring(0, 10) + '...');
+
     const response = await fetch(`${BaseURLAuth}/users/me?include=permission`, {
       method: 'GET',
       headers: {
@@ -22,8 +29,12 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    console.log('Backend response status:', response.status);
+
     if (!response.ok) {
-      throw new Error(`Backend API error: ${response.status}`);
+      const errorText = await response.text();
+      console.log('Backend error response:', errorText);
+      throw new Error(`Backend API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
