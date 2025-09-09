@@ -40,17 +40,13 @@ function AdminDashboardContent({ userData }: { userData: any }) {
     // Clear all authentication data
     localStorage.removeItem('bearerToken');
     localStorage.removeItem('adminAuth');
+    localStorage.removeItem('authState');
+    localStorage.removeItem('codeVerifier');
+    sessionStorage.removeItem('authCodeProcessed');
+    sessionStorage.removeItem('isAuthCallback');
 
-    // Check if user was using Auth0
-    const authSession = document.cookie.includes('appSession');
-
-    if (authSession) {
-      // Redirect to Auth0 logout
-      window.location.href = '/api/auth/logout';
-    } else {
-      // Simple redirect for admin login
-      window.location.href = '/';
-    }
+    // Simple redirect to homepage
+    window.location.href = '/';
   };
 
   const dashboardCards = [

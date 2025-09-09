@@ -51,7 +51,12 @@ export function useAuth() {
 
   const logout = () => {
     setUserData(null);
-    window.location.href = '/api/auth/logout';
+    localStorage.removeItem('bearerToken');
+    localStorage.removeItem('authState');
+    localStorage.removeItem('codeVerifier');
+    sessionStorage.removeItem('authCodeProcessed');
+    sessionStorage.removeItem('isAuthCallback');
+    window.location.href = '/';
   };
 
   return {
