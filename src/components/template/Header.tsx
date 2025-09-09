@@ -108,7 +108,9 @@ export function Header({ organization }: HeaderProps) {
     // Use the same auth flow as providers.tsx
     const AUTH0_Domain_Name = 'dev-p3hppyisuuaems5y.us.auth0.com';
     const AUTH0_Client_Id = 'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL';
-    const login_redirect = 'http://localhost:3000/';
+    const login_redirect =
+      process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL ||
+      'http://localhost:3000/';
 
     window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${encodeURIComponent(login_redirect)}&scope=${encodeURIComponent('openid profile email')}`;
   };
