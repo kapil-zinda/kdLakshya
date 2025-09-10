@@ -5,6 +5,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { ApiService } from '@/services/api';
+import { getSubdomain } from '@/utils/subdomainUtils';
+
 interface Notification {
   id: string;
   title: string;
@@ -16,6 +19,7 @@ interface Notification {
 
 export default function NotificationManagement() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingNotification, setEditingNotification] =
     useState<Notification | null>(null);
@@ -33,6 +37,40 @@ export default function NotificationManagement() {
     isActive: true,
   });
   const router = useRouter();
+
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const subdomain = getSubdomain();
+
+      // First get organization ID
+      const orgResponse = await ApiService.getOrganization(subdomain || 'sls');
+      const orgId = orgResponse.data.id;
+
+      // Then get news/notifications
+      const newsResponse = await ApiService.getNews(orgId);
+
+      // Transform API data to notification format
+      const apiNotifications: Notification[] = newsResponse.data.map(
+        (newsItem) => ({
+          id: newsItem.id,
+          title: newsItem.attributes.title,
+          content: newsItem.attributes.content,
+          category: 'general' as const, // Map to existing categories based on your needs
+          isNew: true, // You can determine this based on publishedAt date
+          isActive: true, // Assume active if in API
+        }),
+      );
+
+      setNotifications(apiNotifications);
+    } catch (error) {
+      console.error('Failed to load notifications from API:', error);
+      // Keep empty array if API fails - no static fallback
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const tokenStr = localStorage.getItem('bearerToken');
@@ -52,37 +90,8 @@ export default function NotificationManagement() {
       return;
     }
 
-    // Load sample notifications (in production, fetch from API)
-    const sampleNotifications: Notification[] = [
-      {
-        id: '1',
-        title: 'Admission Open for Academic Year 2024-25',
-        content:
-          'We are pleased to announce that admissions are now open for the Academic Year 2024-25. Parents and students can apply online through our admission portal.',
-        category: 'admission',
-        isNew: true,
-        isActive: true,
-      },
-      {
-        id: '2',
-        title: 'Annual Sports Day - Registration Started',
-        content:
-          'The Annual Sports Day 2024 registration is now open for all students. Various competitions including athletics, swimming, basketball, and football are available.',
-        category: 'event',
-        isNew: true,
-        isActive: true,
-      },
-      {
-        id: '3',
-        title: 'Parent-Teacher Meeting Schedule Released',
-        content:
-          'The schedule for Parent-Teacher meetings has been released. Meetings will be conducted from 20th to 25th January 2024.',
-        category: 'academic',
-        isNew: false,
-        isActive: true,
-      },
-    ];
-    setNotifications(sampleNotifications);
+    // Load notifications from API
+    loadNotifications();
   }, [router]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -355,140 +364,154 @@ export default function NotificationManagement() {
           </div>
         )}
 
-        {/* Notifications List */}
-        <div className="space-y-4">
-          {notifications.map((notification) => (
-            <div
-              key={notification.id}
-              className={`bg-white rounded-lg shadow-sm border p-6 ${!notification.isActive ? 'opacity-60' : ''}`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center mb-2">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium mr-3 ${getCategoryColor(notification.category)}`}
-                    >
-                      {notification.category.charAt(0).toUpperCase() +
-                        notification.category.slice(1)}
-                    </span>
-                    {notification.isNew && (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-3">
-                        New
-                      </span>
-                    )}
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        notification.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {notification.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {notification.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm">
-                    {notification.content}
-                  </p>
-                </div>
-                <div className="flex items-center space-x-2 ml-4">
-                  <button
-                    onClick={() => toggleActive(notification.id)}
-                    className={`p-2 rounded-md ${
-                      notification.isActive
-                        ? 'text-green-600 hover:bg-green-50'
-                        : 'text-gray-400 hover:bg-gray-50'
-                    }`}
-                    title={notification.isActive ? 'Deactivate' : 'Activate'}
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleEdit(notification)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-md"
-                    title="Edit"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
-                  </button>
-                  <button
-                    onClick={() => handleDelete(notification.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-md"
-                    title="Delete"
-                  >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+              <p className="text-gray-600">Loading notifications from API...</p>
             </div>
-          ))}
-        </div>
-
-        {notifications.length === 0 && (
-          <div className="text-center py-12">
-            <svg
-              className="w-16 h-16 mx-auto text-gray-400 mb-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1}
-                d="M15 17h5l-5 5v-5zm-5-8h5m-5-4h5m-1 8h-4m4-4h-4m-2-4v16l8-8-8-8z"
-              />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No notifications yet
-            </h3>
-            <p className="text-gray-600 mb-4">
-              Create your first notification to get started.
-            </p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-            >
-              Create Notification
-            </button>
           </div>
+        ) : (
+          <>
+            {/* Notifications List */}
+            <div className="space-y-4">
+              {notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`bg-white rounded-lg shadow-sm border p-6 ${!notification.isActive ? 'opacity-60' : ''}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center mb-2">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium mr-3 ${getCategoryColor(notification.category)}`}
+                        >
+                          {notification.category.charAt(0).toUpperCase() +
+                            notification.category.slice(1)}
+                        </span>
+                        {notification.isNew && (
+                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 mr-3">
+                            New
+                          </span>
+                        )}
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            notification.isActive
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
+                          {notification.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {notification.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        {notification.content}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2 ml-4">
+                      <button
+                        onClick={() => toggleActive(notification.id)}
+                        className={`p-2 rounded-md ${
+                          notification.isActive
+                            ? 'text-green-600 hover:bg-green-50'
+                            : 'text-gray-400 hover:bg-gray-50'
+                        }`}
+                        title={
+                          notification.isActive ? 'Deactivate' : 'Activate'
+                        }
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleEdit(notification)}
+                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-md"
+                        title="Edit"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(notification.id)}
+                        className="p-2 text-red-600 hover:bg-red-50 rounded-md"
+                        title="Delete"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {notifications.length === 0 && (
+              <div className="text-center py-12">
+                <svg
+                  className="w-16 h-16 mx-auto text-gray-400 mb-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1}
+                    d="M15 17h5l-5 5v-5zm-5-8h5m-5-4h5m-1 8h-4m4-4h-4m-2-4v16l8-8-8-8z"
+                  />
+                </svg>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No notifications from API
+                </h3>
+                <p className="text-gray-600 mb-4">
+                  No notifications found in the API endpoint.
+                </p>
+                <button
+                  onClick={() => setShowForm(true)}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  Create Notification
+                </button>
+              </div>
+            )}
+          </>
         )}
       </main>
     </div>

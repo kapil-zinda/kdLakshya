@@ -74,6 +74,7 @@ export default function AboutPage() {
             data={demoOrganizationData.about}
             branding={demoOrganizationData.branding}
             organizationName={demoOrganizationData.name}
+            news={demoOrganizationData.news}
           />
 
           {/* Additional About Content */}

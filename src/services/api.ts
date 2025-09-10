@@ -85,6 +85,149 @@ export interface SiteConfigResponse {
   };
 }
 
+export interface HeroResponse {
+  data: {
+    type: 'hero';
+    id: string;
+    attributes: {
+      id: string;
+      orgId: string;
+      headline: string;
+      subheadline: string;
+      ctaText: string;
+      ctaLink: string;
+      image: string;
+      createdAt: number;
+      updatedAt: number;
+      created_by: string;
+      created_by_email: string;
+    };
+    links: {
+      self: string;
+    };
+  };
+}
+
+export interface AboutResponse {
+  data: {
+    type: 'about';
+    id: string;
+    attributes: {
+      id: string;
+      orgId: string;
+      title: string;
+      content: string;
+      mission: string;
+      vision: string;
+      values: string[];
+      images: string[];
+      social: {
+        facebook: string;
+        twitter: string;
+        instagram: string;
+        linkedin: string;
+        youtube: string;
+      };
+      createdAt: number;
+      updatedAt: number;
+      created_by: string;
+      created_by_email: string;
+    };
+    links: {
+      self: string;
+    };
+  };
+}
+
+export interface BrandingResponse {
+  data: {
+    type: 'branding';
+    id: string;
+    attributes: {
+      id: string;
+      orgId: string;
+      logo: string;
+      favicon: string;
+      banner: string;
+      watermark: string;
+      createdAt: number;
+      updatedAt: number;
+      created_by: string;
+      created_by_email: string;
+    };
+    links: {
+      self: string;
+    };
+  };
+}
+
+export interface ProgramsResponse {
+  data: Array<{
+    type: 'programs';
+    id: string;
+    attributes: {
+      id: string;
+      orgId: string;
+      title: string;
+      description: string;
+      duration: string;
+      eligibility: string;
+      image: string;
+      createdAt: number;
+      updatedAt: number;
+      created_by: string;
+      created_by_email: string;
+    };
+    links: {
+      self: string;
+    };
+  }>;
+}
+
+export interface StatsResponse {
+  data: Array<{
+    type: 'stats';
+    id: string;
+    attributes: {
+      id: string;
+      orgId: string;
+      label: string;
+      value: string;
+      icon: string;
+      createdAt: number;
+      updatedAt: number;
+      created_by: string;
+      created_by_email: string;
+      updated_by: string;
+    };
+    links: {
+      self: string;
+    };
+  }>;
+}
+
+export interface NewsResponse {
+  data: Array<{
+    type: 'news';
+    id: string;
+    attributes: {
+      id: string;
+      orgId: string;
+      title: string;
+      content: string;
+      image: string;
+      publishedAt: number;
+      createdAt: number;
+      updatedAt: number;
+      created_by: string;
+      created_by_email: string;
+    };
+    links: {
+      self: string;
+    };
+  }>;
+}
+
 export interface SubdomainResponse {
   subdomain: string;
   config: {
@@ -307,6 +450,72 @@ export class ApiService {
     }
   }
 
+  // Get hero section data by organization ID
+  static async getHero(orgId: string): Promise<HeroResponse> {
+    try {
+      const response = await externalApi.get(`/${orgId}/hero`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching hero data:', error);
+      throw new Error('Failed to fetch hero section data');
+    }
+  }
+
+  // Get about section data by organization ID
+  static async getAbout(orgId: string): Promise<AboutResponse> {
+    try {
+      const response = await externalApi.get(`/${orgId}/about`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching about data:', error);
+      throw new Error('Failed to fetch about section data');
+    }
+  }
+
+  // Get branding data by organization ID
+  static async getBranding(orgId: string): Promise<BrandingResponse> {
+    try {
+      const response = await externalApi.get(`/${orgId}/branding`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching branding data:', error);
+      throw new Error('Failed to fetch branding data');
+    }
+  }
+
+  // Get programs data by organization ID
+  static async getPrograms(orgId: string): Promise<ProgramsResponse> {
+    try {
+      const response = await externalApi.get(`/${orgId}/programs`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching programs data:', error);
+      throw new Error('Failed to fetch programs data');
+    }
+  }
+
+  // Get stats data by organization ID
+  static async getStats(orgId: string): Promise<StatsResponse> {
+    try {
+      const response = await externalApi.get(`/${orgId}/stats`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching stats data:', error);
+      throw new Error('Failed to fetch stats data');
+    }
+  }
+
+  // Get news/notifications data by organization ID
+  static async getNews(orgId: string): Promise<NewsResponse> {
+    try {
+      const response = await externalApi.get(`/${orgId}/news`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching news data:', error);
+      throw new Error('Failed to fetch news/notifications data');
+    }
+  }
+
   // Additional method to get user data (using the real API structure)
   static async getUserMe(token: string): Promise<RealUserResponse> {
     try {
@@ -328,6 +537,13 @@ export class ApiService {
     content: ContentResponse;
     products: Product[];
     userInfo: UserInfoResponse;
+    hero?: HeroResponse;
+    about?: AboutResponse;
+    siteConfig?: SiteConfigResponse;
+    branding?: BrandingResponse;
+    programs?: ProgramsResponse;
+    stats?: StatsResponse;
+    news?: NewsResponse;
   }> {
     try {
       // Determine subdomain from parameter, URL, or default
@@ -348,19 +564,56 @@ export class ApiService {
 
       // Step 1: Get subdomain data first
       const subdomainData = await this.getSubdomain(targetSubdomain);
+      const orgId = subdomainData.config.organizationId;
 
-      // Step 2-4: Get remaining data in parallel (they can run concurrently)
-      const [contentData, productsData, userInfoData] = await Promise.all([
+      // Step 2: Get remaining data in parallel (they can run concurrently)
+      const [
+        contentData,
+        productsData,
+        userInfoData,
+        heroData,
+        aboutData,
+        siteConfigData,
+        brandingData,
+        programsData,
+        statsData,
+        newsData,
+      ] = await Promise.allSettled([
         this.getContent(),
         this.getProducts(),
         this.getUserInfo(subdomainData.subdomain),
+        orgId ? this.getHero(orgId) : Promise.reject('No org ID'),
+        orgId ? this.getAbout(orgId) : Promise.reject('No org ID'),
+        orgId ? this.getSiteConfig(orgId) : Promise.reject('No org ID'),
+        orgId ? this.getBranding(orgId) : Promise.reject('No org ID'),
+        orgId ? this.getPrograms(orgId) : Promise.reject('No org ID'),
+        orgId ? this.getStats(orgId) : Promise.reject('No org ID'),
+        orgId ? this.getNews(orgId) : Promise.reject('No org ID'),
       ]);
 
       return {
         subdomain: subdomainData,
-        content: contentData,
-        products: productsData,
-        userInfo: userInfoData,
+        content:
+          contentData.status === 'fulfilled'
+            ? contentData.value
+            : ({} as ContentResponse),
+        products: productsData.status === 'fulfilled' ? productsData.value : [],
+        userInfo:
+          userInfoData.status === 'fulfilled'
+            ? userInfoData.value
+            : { users: 0, active: false },
+        hero: heroData.status === 'fulfilled' ? heroData.value : undefined,
+        about: aboutData.status === 'fulfilled' ? aboutData.value : undefined,
+        siteConfig:
+          siteConfigData.status === 'fulfilled'
+            ? siteConfigData.value
+            : undefined,
+        branding:
+          brandingData.status === 'fulfilled' ? brandingData.value : undefined,
+        programs:
+          programsData.status === 'fulfilled' ? programsData.value : undefined,
+        stats: statsData.status === 'fulfilled' ? statsData.value : undefined,
+        news: newsData.status === 'fulfilled' ? newsData.value : undefined,
       };
     } catch (error) {
       console.error('Error fetching all API data:', error);
@@ -375,8 +628,27 @@ export const transformApiDataToOrganizationConfig = (apiData: {
   content: ContentResponse;
   products: Product[];
   userInfo: UserInfoResponse;
+  hero?: HeroResponse;
+  about?: AboutResponse;
+  siteConfig?: SiteConfigResponse;
+  branding?: BrandingResponse;
+  programs?: ProgramsResponse;
+  stats?: StatsResponse;
+  news?: NewsResponse;
 }) => {
-  const { subdomain, content, products, userInfo } = apiData;
+  const {
+    subdomain,
+    content,
+    products,
+    userInfo,
+    hero,
+    about,
+    siteConfig,
+    branding,
+    programs,
+    stats,
+    news,
+  } = apiData;
 
   // Transform the API data into OrganizationConfig format
   return {
@@ -417,10 +689,8 @@ export const transformApiDataToOrganizationConfig = (apiData: {
     },
 
     branding: {
-      logo:
-        content.sections.find((s) => s.type === 'branding')?.data?.logo ||
-        '/images/logo.png',
-      favicon: '/favicon.ico',
+      logo: branding?.data.attributes.logo || '/images/logo.png',
+      favicon: branding?.data.attributes.favicon || '/favicon.ico',
       primaryColor: subdomain.config.primaryColor || '#059669',
       secondaryColor: subdomain.config.secondaryColor || '#10B981',
       accentColor: subdomain.config.accentColor || '#F59E0B',
@@ -428,40 +698,41 @@ export const transformApiDataToOrganizationConfig = (apiData: {
 
     hero: {
       title:
-        content.sections.find((s) => s.type === 'hero')?.title || content.title,
-      subtitle:
-        content.sections.find((s) => s.type === 'hero')?.content ||
-        'Welcome to our institution',
+        hero?.data.attributes.headline ||
+        content.title ||
+        'Welcome to Our Institution',
+      subtitle: hero?.data.attributes.subheadline || 'Excellence in Education',
       backgroundImage:
+        hero?.data.attributes.image ||
+        branding?.data.attributes.banner ||
         content.banner ||
         'https://images.unsplash.com/photo-1523050854058-8df90110c9d1',
       ctaButtons: {
-        primary: { text: 'Apply for Admissions', link: '/admissions' },
+        primary: {
+          text: hero?.data.attributes.ctaText || 'Apply for Admissions',
+          link: hero?.data.attributes.ctaLink || '/admissions',
+        },
         secondary: { text: 'Virtual Tour', link: '/tour' },
       },
     },
 
     about: {
-      title:
-        content.sections.find((s) => s.type === 'about')?.title || 'About Us',
+      title: about?.data.attributes.title || 'About Us',
       content:
-        content.sections.find((s) => s.type === 'about')?.content ||
+        about?.data.attributes.content ||
         'We are committed to excellence in education.',
       mission:
-        content.sections.find((s) => s.type === 'mission')?.content ||
-        'To provide quality education.',
+        about?.data.attributes.mission || 'To provide quality education.',
       vision:
-        content.sections.find((s) => s.type === 'vision')?.content ||
+        about?.data.attributes.vision ||
         'To be a leading educational institution.',
-      values: content.sections.find((s) => s.type === 'values')?.data
-        ?.values || [
+      values: about?.data.attributes.values || [
         'Academic excellence',
         'Character building',
         'Innovation in learning',
       ],
-      images: [
-        content.sections.find((s) => s.type === 'about')?.image ||
-          '/images/about-1.jpg',
+      images: about?.data.attributes.images || [
+        '/images/about-1.jpg',
         '/images/about-2.jpg',
         '/images/about-3.jpg',
       ],
@@ -469,27 +740,44 @@ export const transformApiDataToOrganizationConfig = (apiData: {
 
     programs: {
       title: 'Our Programs',
-      items: products.map((product) => ({
-        name: product.name,
-        description: product.description || 'Educational program',
-        image: product.image || '/images/program.jpg',
-        link: `/programs/${product.id}`,
-        features: [
-          'Quality Education',
-          'Expert Faculty',
-          'Modern Facilities',
-          'Holistic Development',
-        ],
-      })),
+      items:
+        programs?.data.map((program) => ({
+          name: program.attributes.title,
+          description: program.attributes.description,
+          image: program.attributes.image || '/images/program.jpg',
+          link: `/programs/${program.id}`,
+          features: [
+            `Duration: ${program.attributes.duration}`,
+            `Eligibility: ${program.attributes.eligibility}`,
+            'Quality Education',
+            'Expert Faculty',
+          ],
+        })) ||
+        products.map((product) => ({
+          name: product.name,
+          description: product.description || 'Educational program',
+          image: product.image || '/images/program.jpg',
+          link: `/programs/${product.id}`,
+          features: [
+            'Quality Education',
+            'Expert Faculty',
+            'Modern Facilities',
+            'Holistic Development',
+          ],
+        })),
     },
 
     stats: {
       title: 'Our Achievements',
-      items: [
+      items: stats?.data.map((stat) => ({
+        label: stat.attributes.label,
+        value: stat.attributes.value,
+        icon: stat.attributes.icon,
+      })) || [
         { label: 'Active Users', value: `${userInfo.users}+`, icon: '👥' },
         {
-          label: 'Products/Services',
-          value: `${products.length}+`,
+          label: 'Programs/Services',
+          value: `${programs?.data.length || products.length}+`,
           icon: '📚',
         },
         { label: 'Years of Service', value: '10+', icon: '🏆' },
@@ -516,43 +804,48 @@ export const transformApiDataToOrganizationConfig = (apiData: {
 
     news: {
       title: 'Latest Updates',
-      items: content.sections
-        .filter((s) => s.type === 'news')
-        .map((news) => ({
-          title: news.title,
-          excerpt: news.content,
-          date: new Date().toISOString().split('T')[0],
-          image: news.image || '/images/news.jpg',
-          link: `/news/${news.id}`,
-        }))
-        .slice(0, 3),
+      items:
+        news?.data
+          .map((newsItem) => ({
+            title: newsItem.attributes.title,
+            excerpt: newsItem.attributes.content,
+            date: new Date(newsItem.attributes.publishedAt * 1000)
+              .toISOString()
+              .split('T')[0],
+            image: newsItem.attributes.image || '/images/news.jpg',
+            link: `/news/${newsItem.id}`,
+          }))
+          .slice(0, 5) || [],
     },
 
     social: {
-      facebook:
-        content.sections.find((s) => s.type === 'social')?.data?.facebook || '',
-      twitter:
-        content.sections.find((s) => s.type === 'social')?.data?.twitter || '',
-      instagram:
-        content.sections.find((s) => s.type === 'social')?.data?.instagram ||
-        '',
-      linkedin:
-        content.sections.find((s) => s.type === 'social')?.data?.linkedin || '',
-      youtube:
-        content.sections.find((s) => s.type === 'social')?.data?.youtube || '',
+      facebook: about?.data.attributes.social.facebook || '',
+      twitter: about?.data.attributes.social.twitter || '',
+      instagram: about?.data.attributes.social.instagram || '',
+      linkedin: about?.data.attributes.social.linkedin || '',
+      youtube: about?.data.attributes.social.youtube || '',
     },
 
     siteConfig: {
-      domain: `${subdomain.subdomain}.example.com`,
-      title: `${content.title} - Excellence in Education`,
+      domain:
+        siteConfig?.data.attributes.customDomain ||
+        `${subdomain.subdomain}.example.com`,
+      title:
+        siteConfig?.data.attributes.seo.title ||
+        `${content.title} - Excellence in Education`,
       metaDescription:
-        content.sections.find((s) => s.type === 'description')?.content ||
+        siteConfig?.data.attributes.seo.description ||
         'Premier educational institution',
-      keywords: ['education', 'school', 'learning', subdomain.subdomain],
+      keywords: siteConfig?.data.attributes.seo.keywords || [
+        'education',
+        'school',
+        'learning',
+        subdomain.subdomain,
+      ],
       language: subdomain.config.language || 'en',
       timezone: 'Asia/Kolkata',
       affiliatedCode:
-        content.sections.find((s) => s.type === 'affiliation')?.data?.code ||
+        content.sections?.find((s) => s.type === 'affiliation')?.data?.code ||
         'EDU123',
     },
   };

@@ -8,38 +8,19 @@ interface AboutSectionProps {
   data: OrganizationConfig['about'];
   branding: OrganizationConfig['branding'];
   organizationName: string;
+  news: OrganizationConfig['news'];
 }
 
-export function AboutSection({ data, branding }: AboutSectionProps) {
-  const sampleNotifications = [
-    {
-      id: '1',
-      title: 'Admission Open for Academic Year 2024-25',
-      date: '15 Jan 2024',
-      isNew: true,
-    },
-    {
-      id: '2',
-      title: 'Annual Sports Day - Registration Started',
-      date: '10 Jan 2024',
-      isNew: true,
-    },
-    {
-      id: '3',
-      title: 'Parent-Teacher Meeting Schedule Released',
-      date: '08 Jan 2024',
-    },
-    {
-      id: '4',
-      title: 'Winter Break Holiday Notice',
-      date: '20 Dec 2023',
-    },
-    {
-      id: '5',
-      title: 'Science Exhibition 2024 - Call for Projects',
-      date: '15 Dec 2023',
-    },
-  ];
+export function AboutSection({ data, branding, news }: AboutSectionProps) {
+  // Transform news data to notification format for the NotificationPanel
+  const notifications = news.items
+    .map((item, index) => ({
+      id: String(index + 1),
+      title: item.title,
+      date: item.date,
+      isNew: index < 2, // Mark first 2 as new
+    }))
+    .slice(0, 5); // Show max 5 notifications
 
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-white">
@@ -63,8 +44,8 @@ export function AboutSection({ data, branding }: AboutSectionProps) {
           {/* Notifications Panel - Left Side on Desktop */}
           <div className="lg:col-span-1 order-2 lg:order-1">
             <NotificationPanel
-              notifications={sampleNotifications}
-              title="Latest Updates"
+              notifications={notifications}
+              title={news.title || 'Latest Updates'}
               primaryColor={branding.primaryColor}
               accentColor={branding.accentColor}
             />
@@ -80,16 +61,6 @@ export function AboutSection({ data, branding }: AboutSectionProps) {
                 About Our School
               </h3>
               <div className="prose prose-gray max-w-none">
-                <p
-                  className="text-base sm:text-lg leading-relaxed mb-4"
-                  style={{ color: '#6b7280' }}
-                >
-                  Amity Global School Noida is a premier educational institution
-                  that has been at the forefront of quality education for over
-                  two decades. We are committed to providing a nurturing
-                  environment where students can excel academically while
-                  developing their character and leadership skills.
-                </p>
                 <p
                   className="text-base sm:text-lg leading-relaxed mb-4"
                   style={{ color: '#6b7280' }}

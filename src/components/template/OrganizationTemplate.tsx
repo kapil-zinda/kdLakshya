@@ -141,6 +141,7 @@ export function OrganizationTemplate({
             data={data.about}
             branding={data.branding}
             organizationName={data.name}
+            news={data.news}
           />
           <StatsSection data={data.stats} branding={data.branding} />
 
