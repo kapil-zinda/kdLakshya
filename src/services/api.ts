@@ -11,23 +11,11 @@ const API_CONFIG = {
     typeof window !== 'undefined'
       ? window.location.origin
       : 'http://localhost:3000',
-  // Flag to use external API for content endpoints (set to false to use local mock)
-  USE_EXTERNAL_FOR_CONTENT:
-    process.env.NEXT_PUBLIC_USE_EXTERNAL_CONTENT === 'true',
 };
 
 // External API instance (for real endpoints like users/me)
 const externalApi = axios.create({
   baseURL: API_CONFIG.EXTERNAL_API,
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Local API instance (for mock content endpoints)
-const localApi = axios.create({
-  baseURL: API_CONFIG.LOCAL_API,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -364,64 +352,32 @@ export class ApiService {
         });
       }
 
-      // Fallback to local mock API
-      console.log('Falling back to local mock API for subdomain data');
-      try {
-        const fallbackResponse = await localApi.get('/api/subdomain');
-        console.log('Local API fallback successful:', fallbackResponse.data);
-        return fallbackResponse.data;
-      } catch (fallbackError) {
-        console.error('Fallback API also failed:', fallbackError);
-        throw new Error(
-          'Failed to fetch subdomain configuration from both external and local APIs',
-        );
-      }
+      throw new Error(
+        'Failed to fetch subdomain configuration from external API',
+      );
     }
   }
 
-  // Step 2: Get landing page content
+  // Step 2: Get landing page content (removed - use external API only)
   static async getContent(): Promise<ContentResponse> {
-    try {
-      const api = API_CONFIG.USE_EXTERNAL_FOR_CONTENT ? externalApi : localApi;
-      const endpoint = API_CONFIG.USE_EXTERNAL_FOR_CONTENT
-        ? '/content'
-        : '/api/content';
-      const response = await api.get(endpoint);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching content data:', error);
-      throw new Error('Failed to fetch content data');
-    }
+    // Content API has been removed - return empty content structure
+    return {
+      title: 'Educational Institution',
+      banner: 'https://images.unsplash.com/photo-1523050854058-8df90110c9d1',
+      sections: [],
+    };
   }
 
-  // Step 3: Get products/services
+  // Step 3: Get products/services (removed - use external API only)
   static async getProducts(): Promise<Product[]> {
-    try {
-      const api = API_CONFIG.USE_EXTERNAL_FOR_CONTENT ? externalApi : localApi;
-      const endpoint = API_CONFIG.USE_EXTERNAL_FOR_CONTENT
-        ? '/products'
-        : '/api/products';
-      const response = await api.get(endpoint);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching products data:', error);
-      throw new Error('Failed to fetch products data');
-    }
+    // Products API has been removed - return empty array
+    return [];
   }
 
-  // Step 4: Get user info with subdomain
+  // Step 4: Get user info with subdomain (removed - use external API only)
   static async getUserInfo(subdomain: string): Promise<UserInfoResponse> {
-    try {
-      const api = API_CONFIG.USE_EXTERNAL_FOR_CONTENT ? externalApi : localApi;
-      const endpoint = API_CONFIG.USE_EXTERNAL_FOR_CONTENT
-        ? '/user-info'
-        : '/api/user-info';
-      const response = await api.post(endpoint, { subdomain });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching user info:', error);
-      throw new Error('Failed to fetch user information');
-    }
+    // User info API has been removed - return default values
+    return { users: 0, active: false };
   }
 
   // Get organization data by subdomain
@@ -663,28 +619,14 @@ export const transformApiDataToOrganizationConfig = (apiData: {
     founded: new Date().getFullYear() - 10, // Default to 10 years ago
 
     contact: {
-      email:
-        content.sections.find((s) => s.type === 'contact')?.data?.email ||
-        'info@school.edu',
-      phone:
-        content.sections.find((s) => s.type === 'contact')?.data?.phone ||
-        '+91-000-000-0000',
+      email: subdomain.config.contact?.email || 'info@school.edu',
+      phone: subdomain.config.contact?.phone || '+91-000-000-0000',
       address: {
-        street:
-          content.sections.find((s) => s.type === 'contact')?.data?.address
-            ?.street || 'School Street',
-        city:
-          content.sections.find((s) => s.type === 'contact')?.data?.address
-            ?.city || 'City',
-        state:
-          content.sections.find((s) => s.type === 'contact')?.data?.address
-            ?.state || 'State',
-        country:
-          content.sections.find((s) => s.type === 'contact')?.data?.address
-            ?.country || 'India',
-        zipCode:
-          content.sections.find((s) => s.type === 'contact')?.data?.address
-            ?.zipCode || '000000',
+        street: subdomain.config.contact?.address || 'Organization Address',
+        city: 'City',
+        state: 'State',
+        country: 'India',
+        zipCode: '000000',
       },
     },
 

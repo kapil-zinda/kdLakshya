@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
-import { demoOrganizationData } from '@/data/organizationTemplate';
+import {
+  ApiService,
+  transformApiDataToOrganizationConfig,
+} from '@/services/api';
+import { OrganizationConfig } from '@/types/organization';
+import { getSubdomain } from '@/utils/subdomainUtils';
 
 const galleryImages = [
   {
@@ -75,8 +80,55 @@ const categories = [
 ];
 
 export default function GalleryPage() {
+  const [organizationData, setOrganizationData] =
+    useState<OrganizationConfig | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedImage, setSelectedImage] = useState<any>(null);
+
+  useEffect(() => {
+    const loadDataFromAPI = async () => {
+      try {
+        setLoading(true);
+        const subdomain = getSubdomain();
+        const apiData = await ApiService.fetchAllData(subdomain || 'sls');
+        const transformedData = transformApiDataToOrganizationConfig(apiData);
+        setOrganizationData(transformedData);
+      } catch (error) {
+        console.error('Failed to load API data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDataFromAPI();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p className="text-gray-600">Loading gallery...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!organizationData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            No Data Available
+          </h1>
+          <p className="text-gray-600">
+            Unable to load organization data from API
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const filteredImages =
     selectedCategory === 'All'
@@ -87,9 +139,9 @@ export default function GalleryPage() {
     <div className="min-h-screen bg-white text-gray-900">
       <style jsx global>{`
         :root {
-          --primary-color: ${demoOrganizationData.branding.primaryColor};
-          --secondary-color: ${demoOrganizationData.branding.secondaryColor};
-          --accent-color: ${demoOrganizationData.branding.accentColor};
+          --primary-color: ${organizationData.branding.primaryColor};
+          --secondary-color: ${organizationData.branding.secondaryColor};
+          --accent-color: ${organizationData.branding.accentColor};
         }
 
         .template-container * {
@@ -127,7 +179,7 @@ export default function GalleryPage() {
       `}</style>
 
       <div className="template-container">
-        <Header organization={demoOrganizationData} />
+        <Header organization={organizationData} />
 
         <main className="pt-8">
           {/* Page Header */}
@@ -136,14 +188,14 @@ export default function GalleryPage() {
               <div className="text-center mb-12">
                 <h1
                   className="text-3xl md:text-4xl lg:text-5xl font-light mb-6"
-                  style={{ color: demoOrganizationData.branding.primaryColor }}
+                  style={{ color: organizationData.branding.primaryColor }}
                 >
                   Gallery
                 </h1>
                 <div
                   className="w-20 h-1 mx-auto mb-8 rounded-full"
                   style={{
-                    backgroundColor: demoOrganizationData.branding.accentColor,
+                    backgroundColor: organizationData.branding.accentColor,
                   }}
                 ></div>
                 <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -166,7 +218,7 @@ export default function GalleryPage() {
                     style={{
                       backgroundColor:
                         selectedCategory === category
-                          ? demoOrganizationData.branding.primaryColor
+                          ? organizationData.branding.primaryColor
                           : undefined,
                     }}
                   >
@@ -215,7 +267,7 @@ export default function GalleryPage() {
           </section>
         </main>
 
-        <Footer organization={demoOrganizationData} />
+        <Footer organization={organizationData} />
 
         {/* Image Modal */}
         {selectedImage && (

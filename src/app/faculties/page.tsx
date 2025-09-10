@@ -1,10 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
-import { demoOrganizationData } from '@/data/organizationTemplate';
+import {
+  ApiService,
+  transformApiDataToOrganizationConfig,
+} from '@/services/api';
+import { OrganizationConfig } from '@/types/organization';
+import { getSubdomain } from '@/utils/subdomainUtils';
 import { Award, BookOpen, GraduationCap, Mail, Phone } from 'lucide-react';
 
 const facultyMembers = [
@@ -133,8 +138,55 @@ const departments = [
 ];
 
 export default function FacultiesPage() {
+  const [organizationData, setOrganizationData] =
+    useState<OrganizationConfig | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedDepartment, setSelectedDepartment] = useState('All');
   const [selectedFaculty, setSelectedFaculty] = useState<any>(null);
+
+  useEffect(() => {
+    const loadDataFromAPI = async () => {
+      try {
+        setLoading(true);
+        const subdomain = getSubdomain();
+        const apiData = await ApiService.fetchAllData(subdomain || 'sls');
+        const transformedData = transformApiDataToOrganizationConfig(apiData);
+        setOrganizationData(transformedData);
+      } catch (error) {
+        console.error('Failed to load API data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDataFromAPI();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p className="text-gray-600">Loading faculty information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!organizationData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            No Data Available
+          </h1>
+          <p className="text-gray-600">
+            Unable to load organization data from API
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const filteredFaculty =
     selectedDepartment === 'All'
@@ -147,9 +199,9 @@ export default function FacultiesPage() {
     <div className="min-h-screen bg-white text-gray-900">
       <style jsx global>{`
         :root {
-          --primary-color: ${demoOrganizationData.branding.primaryColor};
-          --secondary-color: ${demoOrganizationData.branding.secondaryColor};
-          --accent-color: ${demoOrganizationData.branding.accentColor};
+          --primary-color: ${organizationData.branding.primaryColor};
+          --secondary-color: ${organizationData.branding.secondaryColor};
+          --accent-color: ${organizationData.branding.accentColor};
         }
 
         .template-container * {
@@ -187,7 +239,7 @@ export default function FacultiesPage() {
       `}</style>
 
       <div className="template-container">
-        <Header organization={demoOrganizationData} />
+        <Header organization={organizationData} />
 
         <main className="pt-8">
           {/* Page Header */}
@@ -196,14 +248,14 @@ export default function FacultiesPage() {
               <div className="text-center mb-12">
                 <h1
                   className="text-3xl md:text-4xl lg:text-5xl font-light mb-6"
-                  style={{ color: demoOrganizationData.branding.primaryColor }}
+                  style={{ color: organizationData.branding.primaryColor }}
                 >
                   Our Faculties
                 </h1>
                 <div
                   className="w-20 h-1 mx-auto mb-8 rounded-full"
                   style={{
-                    backgroundColor: demoOrganizationData.branding.accentColor,
+                    backgroundColor: organizationData.branding.accentColor,
                   }}
                 ></div>
                 <p className="text-lg text-gray-600 max-w-2xl mx-auto">
@@ -226,7 +278,7 @@ export default function FacultiesPage() {
                     style={{
                       backgroundColor:
                         selectedDepartment === department
-                          ? demoOrganizationData.branding.primaryColor
+                          ? organizationData.branding.primaryColor
                           : undefined,
                     }}
                   >
@@ -269,13 +321,13 @@ export default function FacultiesPage() {
                         <div
                           className="w-10 h-10 rounded-full flex items-center justify-center mr-3"
                           style={{
-                            backgroundColor: `${demoOrganizationData.branding.primaryColor}10`,
+                            backgroundColor: `${organizationData.branding.primaryColor}10`,
                           }}
                         >
                           <GraduationCap
                             className="h-5 w-5"
                             style={{
-                              color: demoOrganizationData.branding.primaryColor,
+                              color: organizationData.branding.primaryColor,
                             }}
                           />
                         </div>
@@ -317,8 +369,8 @@ export default function FacultiesPage() {
                         <button
                           className="text-sm font-medium px-4 py-1 rounded-full transition-colors"
                           style={{
-                            color: demoOrganizationData.branding.primaryColor,
-                            backgroundColor: `${demoOrganizationData.branding.primaryColor}10`,
+                            color: organizationData.branding.primaryColor,
+                            backgroundColor: `${organizationData.branding.primaryColor}10`,
                           }}
                         >
                           View Profile
@@ -341,7 +393,7 @@ export default function FacultiesPage() {
           </section>
         </main>
 
-        <Footer organization={demoOrganizationData} />
+        <Footer organization={organizationData} />
 
         {/* Faculty Detail Modal */}
         {selectedFaculty && (
@@ -386,7 +438,7 @@ export default function FacultiesPage() {
                     <h3
                       className="text-lg font-semibold mb-3 flex items-center"
                       style={{
-                        color: demoOrganizationData.branding.primaryColor,
+                        color: organizationData.branding.primaryColor,
                       }}
                     >
                       <BookOpen className="h-5 w-5 mr-2" />
@@ -401,7 +453,7 @@ export default function FacultiesPage() {
                     <h3
                       className="text-lg font-semibold mb-3 flex items-center"
                       style={{
-                        color: demoOrganizationData.branding.primaryColor,
+                        color: organizationData.branding.primaryColor,
                       }}
                     >
                       <GraduationCap className="h-5 w-5 mr-2" />
@@ -415,7 +467,7 @@ export default function FacultiesPage() {
                               className="w-2 h-2 rounded-full mt-2 mr-3 flex-shrink-0"
                               style={{
                                 backgroundColor:
-                                  demoOrganizationData.branding.accentColor,
+                                  organizationData.branding.accentColor,
                               }}
                             ></span>
                             <span className="text-gray-600">{qual}</span>
@@ -429,7 +481,7 @@ export default function FacultiesPage() {
                     <h3
                       className="text-lg font-semibold mb-3 flex items-center"
                       style={{
-                        color: demoOrganizationData.branding.primaryColor,
+                        color: organizationData.branding.primaryColor,
                       }}
                     >
                       <Award className="h-5 w-5 mr-2" />
@@ -442,8 +494,8 @@ export default function FacultiesPage() {
                             key={index}
                             className="px-3 py-1 rounded-full text-sm font-medium"
                             style={{
-                              backgroundColor: `${demoOrganizationData.branding.primaryColor}10`,
-                              color: demoOrganizationData.branding.primaryColor,
+                              backgroundColor: `${organizationData.branding.primaryColor}10`,
+                              color: organizationData.branding.primaryColor,
                             }}
                           >
                             {specialty}
@@ -458,8 +510,8 @@ export default function FacultiesPage() {
                       href={`mailto:${selectedFaculty.email}`}
                       className="flex items-center px-4 py-2 rounded-full transition-colors"
                       style={{
-                        backgroundColor: `${demoOrganizationData.branding.primaryColor}10`,
-                        color: demoOrganizationData.branding.primaryColor,
+                        backgroundColor: `${organizationData.branding.primaryColor}10`,
+                        color: organizationData.branding.primaryColor,
                       }}
                     >
                       <Mail className="h-4 w-4 mr-2" />
@@ -469,8 +521,8 @@ export default function FacultiesPage() {
                       href={`tel:${selectedFaculty.phone}`}
                       className="flex items-center px-4 py-2 rounded-full transition-colors"
                       style={{
-                        backgroundColor: `${demoOrganizationData.branding.secondaryColor}10`,
-                        color: demoOrganizationData.branding.secondaryColor,
+                        backgroundColor: `${organizationData.branding.secondaryColor}10`,
+                        color: organizationData.branding.secondaryColor,
                       }}
                     >
                       <Phone className="h-4 w-4 mr-2" />
