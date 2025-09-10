@@ -7,6 +7,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { OrganizationTemplate } from '@/components/template/OrganizationTemplate';
 import { getConfigBySubdomain } from '@/data/collegeConfigs';
 import { demoOrganizationData } from '@/data/organizationTemplate';
+import {
+  ApiService,
+  transformApiDataToOrganizationConfig,
+} from '@/services/api';
 import { OrganizationConfig } from '@/types/organization';
 import { getSubdomain, isValidSubdomain } from '@/utils/subdomainUtils';
 
@@ -47,6 +51,7 @@ export default function Home() {
   const [organizationData, setOrganizationData] =
     useState<OrganizationConfig>(demoOrganizationData);
   const [loading, setLoading] = useState(true);
+  const [useApiData, setUseApiData] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -80,23 +85,51 @@ export default function Home() {
     }
   };
 
-  useEffect(() => {
-    // Check if this is an Auth0 callback with token in hash
-    if (window.location.hash.includes('access_token')) {
-      handleAuth0Callback();
-      return;
+  const loadDataFromAPI = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching data from APIs...');
+
+      // Get current subdomain from URL or fallback methods
+      const subdomain = getSubdomain();
+      console.log('Detected subdomain:', subdomain);
+
+      // Fetch all API data in sequence
+      const apiData = await ApiService.fetchAllData(subdomain);
+      console.log('API Data received:', apiData);
+
+      // Transform API data to OrganizationConfig format
+      const transformedData = transformApiDataToOrganizationConfig(apiData);
+      console.log('Transformed data:', transformedData);
+
+      setOrganizationData(transformedData);
+      setUseApiData(true);
+    } catch (error) {
+      console.error('Failed to load API data:', error);
+      console.log('Falling back to existing configuration methods...');
+
+      // Fall back to existing logic if API fails
+      loadFallbackData();
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const loadFallbackData = () => {
     // Check for subdomain-based configuration first
     const subdomain = getSubdomain();
     if (subdomain && isValidSubdomain(subdomain)) {
       const subdomainConfig = getConfigBySubdomain(subdomain);
       if (subdomainConfig) {
         setOrganizationData(subdomainConfig);
-        setLoading(false);
         return;
       }
     }
 
+    loadLocalStorageData();
+  };
+
+  const loadLocalStorageData = () => {
     // Fall back to localStorage settings
     const savedSettings = localStorage.getItem('schoolSettings');
     if (savedSettings) {
@@ -206,16 +239,39 @@ export default function Home() {
         // Fall back to demo data if settings are invalid
       }
     }
-    setLoading(false);
+  };
+
+  useEffect(() => {
+    // Check if this is an Auth0 callback with token in hash
+    if (window.location.hash.includes('access_token')) {
+      handleAuth0Callback();
+      return;
+    }
+
+    // Try to load data from API first
+    loadDataFromAPI();
   }, []);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p className="text-gray-600">Loading data from APIs...</p>
+        </div>
       </div>
     );
   }
 
-  return <OrganizationTemplate data={organizationData} />;
+  return (
+    <>
+      {/* Debug indicator to show data source */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed top-0 right-0 z-50 bg-blue-500 text-white px-3 py-1 text-xs">
+          {useApiData ? 'API Data' : 'Fallback Data'}
+        </div>
+      )}
+      <OrganizationTemplate data={organizationData} />
+    </>
+  );
 }
