@@ -395,6 +395,80 @@ export class ApiService {
     }
   }
 
+  // Helper method to get current organization ID from subdomain with sessionStorage caching
+  static async getCurrentOrgId(): Promise<string> {
+    try {
+      // Check if we already have the org ID cached in sessionStorage
+      if (typeof window !== 'undefined') {
+        const cachedOrgId = sessionStorage.getItem('currentOrgId');
+        if (cachedOrgId) {
+          console.log(
+            'Using cached organization ID from sessionStorage:',
+            cachedOrgId,
+          );
+          return cachedOrgId;
+        }
+      }
+
+      // Get subdomain from current URL
+      let subdomain = '';
+
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        console.log('Current hostname:', hostname);
+
+        // Handle localhost development - default to 'sls' for testing
+        if (
+          hostname === 'localhost' ||
+          hostname.startsWith('localhost:') ||
+          hostname === '127.0.0.1'
+        ) {
+          subdomain = 'sls'; // Default subdomain for localhost development
+          console.log(
+            'Development mode detected, using default subdomain:',
+            subdomain,
+          );
+        } else {
+          // Extract subdomain from production URL (e.g., 'sls' from 'sls.uchhal.in')
+          const parts = hostname.split('.');
+          if (parts.length > 2) {
+            subdomain = parts[0];
+          }
+        }
+      }
+
+      if (!subdomain) {
+        throw new Error(
+          `No subdomain found in URL. Hostname: ${typeof window !== 'undefined' ? window.location.hostname : 'server-side'}`,
+        );
+      }
+
+      console.log('Using subdomain:', subdomain);
+
+      // Use existing getSubdomain method which returns config with organizationId
+      const subdomainData = await this.getSubdomain(subdomain);
+      const orgId = subdomainData.config.organizationId;
+
+      if (!orgId) {
+        throw new Error('Organization ID not found in subdomain config');
+      }
+
+      // Cache the organization ID in sessionStorage for future use
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('currentOrgId', orgId);
+        console.log('Cached organization ID in sessionStorage:', orgId);
+      }
+
+      console.log('Got organization ID:', orgId);
+      return orgId;
+    } catch (error) {
+      console.error('Error getting current organization ID:', error);
+      throw new Error(
+        `Failed to get current organization ID: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    }
+  }
+
   // Get site configuration by organization ID
   static async getSiteConfig(orgId: string): Promise<SiteConfigResponse> {
     try {
@@ -425,6 +499,65 @@ export class ApiService {
     } catch (error) {
       console.error('Error fetching about data:', error);
       throw new Error('Failed to fetch about section data');
+    }
+  }
+
+  // Update about section data by organization ID
+  static async updateAbout(
+    orgId: string,
+    aboutData: {
+      title: string;
+      content: string;
+      mission: string;
+      vision: string;
+      values: string[];
+      images?: string[];
+      social?: {
+        facebook?: string;
+        twitter?: string;
+        instagram?: string;
+        linkedin?: string;
+        youtube?: string;
+      };
+    },
+  ): Promise<AboutResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'about',
+          attributes: aboutData,
+        },
+      };
+
+      console.log(`Making PUT request to: /${orgId}/about`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.put(`/${orgId}/about`, requestBody, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/vnd.api+json',
+        },
+      });
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating about data:', error);
+      throw new Error('Failed to update about section data');
     }
   }
 
