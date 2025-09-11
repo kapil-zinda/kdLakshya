@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { UserData } from '@/app/interfaces/userInterface';
-import axios from 'axios';
+import { useUserData } from '@/hooks/useUserData';
 
 interface DashboardWrapperProps {
   children: (userData: UserData) => React.ReactNode;
@@ -19,55 +19,28 @@ export function DashboardWrapper({
   redirectTo = '/',
 }: DashboardWrapperProps) {
   const router = useRouter();
+  const { userData: cachedUserData, isLoading } = useUserData();
   const [userData, setUserData] = useState<UserData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuth = () => {
       try {
-        // Get token from localStorage with TTL check
-        const getItemWithTTL = (key: string) => {
-          const itemStr = localStorage.getItem(key);
-          if (!itemStr) return null;
-
-          try {
-            const item = JSON.parse(itemStr);
-            const now = new Date().getTime();
-
-            if (now > item.expiry) {
-              localStorage.removeItem(key);
-              return null;
-            }
-
-            return item.value;
-          } catch (e) {
-            localStorage.removeItem(key);
-            return null;
-          }
-        };
-
-        const token = getItemWithTTL('bearerToken');
+        // Check student authentication first (legacy support)
         const studentAuth = localStorage.getItem('studentAuth');
-
-        // Handle student authentication
-        if (studentAuth && !token) {
+        if (studentAuth && !cachedUserData) {
           try {
             const studentData = JSON.parse(studentAuth);
-
-            // Check if student auth is still valid (24 hours)
             const loginTime = new Date(studentData.loginTime);
             const now = new Date();
             const hoursDiff =
               (now.getTime() - loginTime.getTime()) / (1000 * 60 * 60);
 
             if (hoursDiff > 24) {
-              // Student session expired
               localStorage.removeItem('studentAuth');
               router.push(redirectTo);
               return;
             }
 
-            // Create mock student user data for dashboard
             const mockStudentUserData: UserData = {
               userId: studentData.username,
               keyId: `student_${studentData.username}`,
@@ -80,7 +53,6 @@ export function DashboardWrapper({
               allowedTeams: ['students'],
             };
 
-            // Check if user has required role
             if (!allowedRoles.includes('student')) {
               router.push(redirectTo);
               return;
@@ -96,98 +68,46 @@ export function DashboardWrapper({
           }
         }
 
-        // Handle Auth0 token authentication
-        if (!token) {
-          router.push(redirectTo);
+        // Use cached user data from the new system
+        if (cachedUserData) {
+          // Check if user has required role
+          if (!allowedRoles.includes(cachedUserData.role)) {
+            router.push(redirectTo);
+            return;
+          }
+
+          // Convert cached user data to the expected UserData format
+          const convertedUserData: UserData = {
+            userId: cachedUserData.id,
+            keyId: 'user-' + cachedUserData.id,
+            orgKeyId: 'org-' + cachedUserData.orgId,
+            orgId: cachedUserData.orgId,
+            userEmail: cachedUserData.email,
+            firstName: cachedUserData.firstName,
+            lastName: cachedUserData.lastName,
+            permission: cachedUserData.permissions,
+            allowedTeams: Object.keys(cachedUserData.permissions || {})
+              .filter((key) => key.startsWith('team-'))
+              .map((key) => key.match(/team-(\d+)/)?.[1])
+              .filter(Boolean) as string[],
+          };
+
+          setUserData(convertedUserData);
           return;
         }
 
-        // Fetch user data from API
-        const response = await axios.get('/api/users/me', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        const data = response.data;
-
-        // Check if user has required role
-        if (!allowedRoles.includes(data.role)) {
-          // Only redirect if explicitly not allowed - remove admin portal redirect
+        // No cached data and not loading - redirect to login
+        if (!isLoading) {
           router.push(redirectTo);
-          return;
         }
-
-        setUserData(data);
       } catch (error) {
         console.error('Auth check failed:', error);
-        // Check if it's a network/server error vs auth error
-        if (axios.isAxiosError(error)) {
-          if (
-            error.response?.status === 401 ||
-            error.response?.status === 403
-          ) {
-            // Auth error - likely expired token, clear and redirect to login
-            console.log(
-              'Auth error - token likely expired, clearing auth data',
-            );
-            localStorage.removeItem('bearerToken');
-            localStorage.removeItem('studentAuth');
-            sessionStorage.removeItem('authCodeProcessed');
-            router.push(redirectTo);
-          } else if (error.response?.status && error.response.status >= 500) {
-            // Server error - could be expired token causing backend issues
-            console.error('Server error - checking if token is expired');
-            // Check token validity
-            const tokenStr = localStorage.getItem('bearerToken');
-            if (tokenStr) {
-              try {
-                const tokenItem = JSON.parse(tokenStr);
-                const now = new Date().getTime();
-                if (now > tokenItem.expiry) {
-                  console.log('Token expired, clearing auth data');
-                  localStorage.removeItem('bearerToken');
-                  localStorage.removeItem('studentAuth');
-                  sessionStorage.removeItem('authCodeProcessed');
-                  router.push(redirectTo);
-                } else {
-                  // Token valid but server error - redirect to home but keep token
-                  router.push('/');
-                }
-              } catch (e) {
-                console.log('Error parsing token, clearing auth data');
-                localStorage.removeItem('bearerToken');
-                localStorage.removeItem('studentAuth');
-                sessionStorage.removeItem('authCodeProcessed');
-                router.push(redirectTo);
-              }
-            } else {
-              router.push(redirectTo);
-            }
-          } else {
-            // Other errors - clear auth and redirect
-            localStorage.removeItem('bearerToken');
-            localStorage.removeItem('studentAuth');
-            sessionStorage.removeItem('authCodeProcessed');
-            router.push(redirectTo);
-          }
-        } else {
-          // Network or other error
-          localStorage.removeItem('bearerToken');
-          localStorage.removeItem('studentAuth');
-          sessionStorage.removeItem('authCodeProcessed');
-          router.push(redirectTo);
-        }
-      } finally {
-        setIsLoading(false);
+        router.push(redirectTo);
       }
     };
 
-    // Only run auth check once when component mounts
-    if (isLoading) {
-      checkAuth();
-    }
-  }, []);
+    checkAuth();
+  }, [cachedUserData, isLoading, allowedRoles, redirectTo, router]);
 
   if (isLoading) {
     return (
