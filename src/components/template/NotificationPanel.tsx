@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 interface NotificationItem {
   id: string;
   title: string;
+  content: string;
   isNew?: boolean;
   link?: string;
 }
@@ -140,8 +141,7 @@ export function NotificationPanel({
                 {selectedNotification.title}
               </h4>
               <div className="text-sm text-gray-700">
-                This is a detailed view of the notification. You can add more
-                content here based on your requirements.
+                {selectedNotification.content}
               </div>
             </div>
           </div>

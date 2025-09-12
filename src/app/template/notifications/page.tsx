@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { ApiService } from '@/services/api';
-import { getSubdomain } from '@/utils/subdomainUtils';
 
 interface NotificationItem {
   id: string;
@@ -27,11 +26,9 @@ export default function NotificationsPage() {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const subdomain = getSubdomain();
 
-      // First get organization ID
-      const orgResponse = await ApiService.getOrganization(subdomain || 'sls');
-      const orgId = orgResponse.data.id;
+      // Get organization ID using the cached method
+      const orgId = await ApiService.getCurrentOrgId();
 
       // Then get news/notifications
       const newsResponse = await ApiService.getNews(orgId);

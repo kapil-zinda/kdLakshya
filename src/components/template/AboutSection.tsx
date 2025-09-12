@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
+import { ApiService } from '@/services/api';
 import { OrganizationConfig } from '@/types/organization';
 
 import { NotificationPanel } from './NotificationPanel';
@@ -12,15 +15,57 @@ interface AboutSectionProps {
 }
 
 export function AboutSection({ data, branding, news }: AboutSectionProps) {
-  // Transform news data to notification format for the NotificationPanel
-  const notifications = news.items
-    .map((item, index) => ({
-      id: String(index + 1),
-      title: item.title,
-      date: item.date,
-      isNew: index < 2, // Mark first 2 as new
-    }))
-    .slice(0, 5); // Show max 5 notifications
+  const [notifications, setNotifications] = useState<
+    Array<{
+      id: string;
+      title: string;
+      content: string;
+      isNew?: boolean;
+    }>
+  >([]);
+  const [loading, setLoading] = useState(false);
+
+  // Load real notifications from API
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const orgId = await ApiService.getCurrentOrgId();
+      const newsResponse = await ApiService.getNews(orgId);
+
+      // Transform API data to notification format
+      const apiNotifications = newsResponse.data
+        .map((newsItem) => ({
+          id: newsItem.id,
+          title: newsItem.attributes.title,
+          content: newsItem.attributes.content,
+          isNew:
+            new Date().getTime() - newsItem.attributes.publishedAt * 1000 <
+            7 * 24 * 60 * 60 * 1000, // New if published within 7 days
+        }))
+        .slice(0, 5); // Show max 5 notifications
+
+      setNotifications(apiNotifications);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+      // Fallback to hardcoded data if API fails
+      const fallbackNotifications = news.items
+        .map((item, index) => ({
+          id: String(index + 1),
+          title: item.title,
+          content:
+            'This is a detailed view of the notification. You can add more content here based on your requirements.',
+          isNew: index < 2,
+        }))
+        .slice(0, 5);
+      setNotifications(fallbackNotifications);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
 
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-white">
@@ -43,12 +88,30 @@ export function AboutSection({ data, branding, news }: AboutSectionProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 sm:mb-16 lg:mb-20">
           {/* Notifications Panel - Left Side on Desktop */}
           <div className="lg:col-span-1 order-2 lg:order-1">
-            <NotificationPanel
-              notifications={notifications}
-              title={news.title || 'Latest Updates'}
-              primaryColor={branding.primaryColor}
-              accentColor={branding.accentColor}
-            />
+            {loading ? (
+              <div className="bg-white rounded-lg shadow-lg border border-gray-200 h-fit">
+                <div
+                  className="px-4 py-3 rounded-t-lg border-b border-gray-200"
+                  style={{ backgroundColor: branding.primaryColor }}
+                >
+                  <h3 className="text-white font-semibold text-lg flex items-center">
+                    <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
+                    {news.title || 'Latest Updates'}
+                  </h3>
+                </div>
+                <div className="p-4 text-center text-gray-500">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-300 mx-auto mb-2"></div>
+                  Loading notifications...
+                </div>
+              </div>
+            ) : (
+              <NotificationPanel
+                notifications={notifications}
+                title={news.title || 'Latest Updates'}
+                primaryColor={branding.primaryColor}
+                accentColor={branding.accentColor}
+              />
+            )}
           </div>
 
           {/* School Information - Right Side on Desktop */}
