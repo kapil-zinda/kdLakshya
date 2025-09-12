@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import Link from 'next/link';
+
+import { ApiService } from '@/services/api';
 
 interface NotificationItem {
   id: string;
@@ -13,70 +15,50 @@ interface NotificationItem {
 }
 
 export default function NotificationsPage() {
+  const [allNotifications, setAllNotifications] = useState<NotificationItem[]>(
+    [],
+  );
+  const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedNotification, setSelectedNotification] =
     useState<NotificationItem | null>(null);
 
-  const allNotifications: NotificationItem[] = [
-    {
-      id: '1',
-      title: 'Admission Open for Academic Year 2024-25',
-      isNew: true,
-      category: 'admission',
-      content:
-        'We are pleased to announce that admissions are now open for the Academic Year 2024-25. Parents and students can apply online through our admission portal. The last date for submission is 28th February 2024.',
-    },
-    {
-      id: '2',
-      title: 'Annual Sports Day - Registration Started',
-      isNew: true,
-      category: 'event',
-      content:
-        'The Annual Sports Day 2024 registration is now open for all students. Various competitions including athletics, swimming, basketball, and football are available. Register before 25th January 2024.',
-    },
-    {
-      id: '3',
-      title: 'Parent-Teacher Meeting Schedule Released',
-      category: 'academic',
-      content:
-        "The schedule for Parent-Teacher meetings has been released. Meetings will be conducted from 20th to 25th January 2024. Please check your ward's class schedule on the student portal.",
-    },
-    {
-      id: '4',
-      title: 'Winter Break Holiday Notice',
-      category: 'general',
-      content:
-        'School will remain closed for Winter Break from 25th December 2023 to 5th January 2024. Classes will resume on 8th January 2024. Have a wonderful holiday!',
-    },
-    {
-      id: '5',
-      title: 'Science Exhibition 2024 - Call for Projects',
-      category: 'academic',
-      content:
-        'Students are invited to participate in the Annual Science Exhibition 2024. Submit your innovative science projects by 30th January 2024. Prizes will be awarded to outstanding projects.',
-    },
-    {
-      id: '6',
-      title: 'New Library Books Collection',
-      category: 'general',
-      content:
-        'New collection of books has been added to the school library including fiction, non-fiction, and reference books. Students can issue these books starting from 15th December 2023.',
-    },
-    {
-      id: '7',
-      title: 'Cultural Fest - Dance & Music Competition',
-      category: 'event',
-      content:
-        'Annual Cultural Fest will feature Dance and Music competitions. Students from all grades can participate. Registration forms are available at the school office.',
-    },
-    {
-      id: '8',
-      title: 'Mid-Term Examination Schedule',
-      category: 'academic',
-      content:
-        'Mid-term examinations will be conducted from 15th to 22nd December 2023. Exam schedule and syllabus details are available on the school website.',
-    },
-  ];
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+
+      // Get organization ID using the cached method
+      const orgId = await ApiService.getCurrentOrgId();
+
+      // Then get news/notifications
+      const newsResponse = await ApiService.getNews(orgId);
+
+      // Transform API data to notification format
+      const apiNotifications: NotificationItem[] = newsResponse.data.map(
+        (newsItem) => ({
+          id: newsItem.id,
+          title: newsItem.attributes.title,
+          content: newsItem.attributes.content,
+          category: 'general' as const, // Default category - you can enhance this mapping
+          isNew:
+            new Date().getTime() - newsItem.attributes.publishedAt * 1000 <
+            7 * 24 * 60 * 60 * 1000, // New if published within 7 days
+        }),
+      );
+
+      setAllNotifications(apiNotifications);
+    } catch (error) {
+      console.error('Failed to load notifications from API:', error);
+      // Keep empty array if API fails - no static fallback
+      setAllNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
 
   const categories = [
     { key: 'all', label: 'All Notifications' },
@@ -107,10 +89,7 @@ export default function NotificationsPage() {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center mb-4">
-            <Link
-              href="/template"
-              className="text-blue-600 hover:text-blue-800 mr-4"
-            >
+            <Link href="/" className="text-blue-600 hover:text-blue-800 mr-4">
               <svg
                 className="w-6 h-6"
                 fill="none"
@@ -153,75 +132,88 @@ export default function NotificationsPage() {
           </div>
         </div>
 
-        {/* Notifications List */}
-        <div className="space-y-4">
-          {filteredNotifications.map((notification) => (
-            <div
-              key={notification.id}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setSelectedNotification(notification)}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center mb-2">
-                    {notification.isNew && (
-                      <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-3 animate-pulse"></span>
-                    )}
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium mr-3 ${getCategoryColor(notification.category)}`}
-                    >
-                      {notification.category.charAt(0).toUpperCase() +
-                        notification.category.slice(1)}
-                    </span>
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {notification.title}
-                  </h3>
-                  <p className="text-gray-600 text-sm line-clamp-2">
-                    {notification.content}
-                  </p>
-                </div>
-                <svg
-                  className="w-5 h-5 text-gray-400 ml-4 flex-shrink-0"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </div>
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p className="text-gray-600">Loading notifications from API...</p>
             </div>
-          ))}
-        </div>
-
-        {/* Empty State */}
-        {filteredNotifications.length === 0 && (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <svg
-                className="w-16 h-16 mx-auto"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M15 17h5l-5 5v-5zm-5-8h5m-5-4h5m-1 8h-4m4-4h-4m-2-4v16l8-8-8-8z"
-                />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No notifications found
-            </h3>
-            <p className="text-gray-600">
-              No notifications available for the selected category.
-            </p>
           </div>
+        ) : (
+          <>
+            {/* Notifications List */}
+            <div className="space-y-4">
+              {filteredNotifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => setSelectedNotification(notification)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center mb-2">
+                        {notification.isNew && (
+                          <span className="inline-block w-2 h-2 bg-red-500 rounded-full mr-3 animate-pulse"></span>
+                        )}
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs font-medium mr-3 ${getCategoryColor(notification.category)}`}
+                        >
+                          {notification.category.charAt(0).toUpperCase() +
+                            notification.category.slice(1)}
+                        </span>
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {notification.title}
+                      </h3>
+                      <p className="text-gray-600 text-sm line-clamp-2">
+                        {notification.content}
+                      </p>
+                    </div>
+                    <svg
+                      className="w-5 h-5 text-gray-400 ml-4 flex-shrink-0"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {filteredNotifications.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-gray-400 mb-4">
+                  <svg
+                    className="w-16 h-16 mx-auto"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1}
+                      d="M15 17h5l-5 5v-5zm-5-8h5m-5-4h5m-1 8h-4m4-4h-4m-2-4v16l8-8-8-8z"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  No notifications found
+                </h3>
+                <p className="text-gray-600">
+                  No notifications available from the API for the selected
+                  category.
+                </p>
+              </div>
+            )}
+          </>
         )}
 
         {/* Modal for notification details */}

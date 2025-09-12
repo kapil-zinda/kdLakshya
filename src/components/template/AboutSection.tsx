@@ -1,5 +1,8 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
+import { ApiService } from '@/services/api';
 import { OrganizationConfig } from '@/types/organization';
 
 import { NotificationPanel } from './NotificationPanel';
@@ -8,38 +11,61 @@ interface AboutSectionProps {
   data: OrganizationConfig['about'];
   branding: OrganizationConfig['branding'];
   organizationName: string;
+  news: OrganizationConfig['news'];
 }
 
-export function AboutSection({ data, branding }: AboutSectionProps) {
-  const sampleNotifications = [
-    {
-      id: '1',
-      title: 'Admission Open for Academic Year 2024-25',
-      date: '15 Jan 2024',
-      isNew: true,
-    },
-    {
-      id: '2',
-      title: 'Annual Sports Day - Registration Started',
-      date: '10 Jan 2024',
-      isNew: true,
-    },
-    {
-      id: '3',
-      title: 'Parent-Teacher Meeting Schedule Released',
-      date: '08 Jan 2024',
-    },
-    {
-      id: '4',
-      title: 'Winter Break Holiday Notice',
-      date: '20 Dec 2023',
-    },
-    {
-      id: '5',
-      title: 'Science Exhibition 2024 - Call for Projects',
-      date: '15 Dec 2023',
-    },
-  ];
+export function AboutSection({ data, branding, news }: AboutSectionProps) {
+  const [notifications, setNotifications] = useState<
+    Array<{
+      id: string;
+      title: string;
+      content: string;
+      isNew?: boolean;
+    }>
+  >([]);
+  const [loading, setLoading] = useState(false);
+
+  // Load real notifications from API
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const orgId = await ApiService.getCurrentOrgId();
+      const newsResponse = await ApiService.getNews(orgId);
+
+      // Transform API data to notification format
+      const apiNotifications = newsResponse.data
+        .map((newsItem) => ({
+          id: newsItem.id,
+          title: newsItem.attributes.title,
+          content: newsItem.attributes.content,
+          isNew:
+            new Date().getTime() - newsItem.attributes.publishedAt * 1000 <
+            7 * 24 * 60 * 60 * 1000, // New if published within 7 days
+        }))
+        .slice(0, 5); // Show max 5 notifications
+
+      setNotifications(apiNotifications);
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+      // Fallback to hardcoded data if API fails
+      const fallbackNotifications = news.items
+        .map((item, index) => ({
+          id: String(index + 1),
+          title: item.title,
+          content:
+            'This is a detailed view of the notification. You can add more content here based on your requirements.',
+          isNew: index < 2,
+        }))
+        .slice(0, 5);
+      setNotifications(fallbackNotifications);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
 
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-white">
@@ -62,12 +88,30 @@ export function AboutSection({ data, branding }: AboutSectionProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 sm:mb-16 lg:mb-20">
           {/* Notifications Panel - Left Side on Desktop */}
           <div className="lg:col-span-1 order-2 lg:order-1">
-            <NotificationPanel
-              notifications={sampleNotifications}
-              title="Latest Updates"
-              primaryColor={branding.primaryColor}
-              accentColor={branding.accentColor}
-            />
+            {loading ? (
+              <div className="bg-white rounded-lg shadow-lg border border-gray-200 h-fit">
+                <div
+                  className="px-4 py-3 rounded-t-lg border-b border-gray-200"
+                  style={{ backgroundColor: branding.primaryColor }}
+                >
+                  <h3 className="text-white font-semibold text-lg flex items-center">
+                    <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
+                    {news.title || 'Latest Updates'}
+                  </h3>
+                </div>
+                <div className="p-4 text-center text-gray-500">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-300 mx-auto mb-2"></div>
+                  Loading notifications...
+                </div>
+              </div>
+            ) : (
+              <NotificationPanel
+                notifications={notifications}
+                title={news.title || 'Latest Updates'}
+                primaryColor={branding.primaryColor}
+                accentColor={branding.accentColor}
+              />
+            )}
           </div>
 
           {/* School Information - Right Side on Desktop */}
@@ -80,16 +124,6 @@ export function AboutSection({ data, branding }: AboutSectionProps) {
                 About Our School
               </h3>
               <div className="prose prose-gray max-w-none">
-                <p
-                  className="text-base sm:text-lg leading-relaxed mb-4"
-                  style={{ color: '#6b7280' }}
-                >
-                  Amity Global School Noida is a premier educational institution
-                  that has been at the forefront of quality education for over
-                  two decades. We are committed to providing a nurturing
-                  environment where students can excel academically while
-                  developing their character and leadership skills.
-                </p>
                 <p
                   className="text-base sm:text-lg leading-relaxed mb-4"
                   style={{ color: '#6b7280' }}

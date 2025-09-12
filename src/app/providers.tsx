@@ -24,25 +24,30 @@ export function Providers({ children }: ThemeProviderProps) {
     if (!bearerToken) return;
 
     try {
-      const res = await axios.get(`/api/users/me`, {
-        headers: {
-          Authorization: `Bearer ${bearerToken}`,
-          'Content-Type': 'application/json',
+      const res = await axios.get(
+        `https://apis.testkdlakshya.uchhal.in/auth/users/me?include=permission`,
+        {
+          headers: {
+            Authorization: `Bearer ${bearerToken}`,
+            'Content-Type': 'application/json',
+          },
         },
-      });
+      );
 
-      const userData = res.data;
+      const userData = res.data.data; // Extract from nested structure
+      const attributes = userData.attributes;
+      const permissions = res.data.data.user_permissions || {};
 
       updateUserData({
-        userId: userData.id,
-        keyId: 'user-' + userData.id,
-        orgKeyId: 'org-' + userData.orgId,
-        orgId: userData.orgId,
-        userEmail: userData.email,
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        permission: userData.permissions,
-        allowedTeams: Object.keys(userData.permissions || {})
+        userId: attributes.user_id,
+        keyId: 'user-' + attributes.user_id,
+        orgKeyId: 'org-' + attributes.org,
+        orgId: attributes.org,
+        userEmail: attributes.email,
+        firstName: attributes.first_name,
+        lastName: attributes.last_name,
+        permission: permissions,
+        allowedTeams: Object.keys(permissions || {})
           .filter((key) => key.startsWith('team-'))
           .map((key) => key.match(/team-(\d+)/)?.[1])
           .filter(Boolean) as string[],

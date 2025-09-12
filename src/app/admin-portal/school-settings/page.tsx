@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { ApiService } from '@/services/api';
+
 interface SchoolSettings {
   // Basic Information
   name: string;
@@ -29,6 +31,7 @@ interface SchoolSettings {
   mission: string;
   vision: string;
   values: string[];
+  aboutImages: string[];
 
   // Hero Section
   heroTitle: string;
@@ -40,6 +43,7 @@ interface SchoolSettings {
   facebookUrl: string;
   twitterUrl: string;
   instagramUrl: string;
+  linkedinUrl: string;
   youtubeUrl: string;
 }
 
@@ -77,6 +81,10 @@ export default function SchoolSettings() {
       'Community Service',
       'Lifelong Learning',
     ],
+    aboutImages: [
+      'https://images.unsplash.com/photo-1523050854058-8df90110c9d1?w=400&h=300&fit=crop',
+      'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&h=300&fit=crop',
+    ],
 
     // Hero Section
     heroTitle: 'Welcome to Excellence',
@@ -90,11 +98,14 @@ export default function SchoolSettings() {
     facebookUrl: 'https://facebook.com/shreelaharischool',
     twitterUrl: 'https://twitter.com/shreelaharischool',
     instagramUrl: 'https://instagram.com/shreelaharischool',
+    linkedinUrl: 'https://linkedin.com/company/shreelaharischool',
     youtubeUrl: 'https://youtube.com/shreelaharischool',
   });
 
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('basic');
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -122,27 +133,205 @@ export default function SchoolSettings() {
     if (savedSettings) {
       setSettings(JSON.parse(savedSettings));
     }
+
+    // Load data from all APIs
+    loadAboutSection();
+    loadHeroSection();
+    loadBrandingSection();
   }, [router]);
+
+  const loadAboutSection = async () => {
+    try {
+      const orgId = await ApiService.getCurrentOrgId();
+      const response = await ApiService.getAbout(orgId);
+      const aboutData = response.data.attributes;
+
+      // Update settings with API data
+      setSettings((prev) => ({
+        ...prev,
+        aboutTitle: aboutData.title,
+        aboutContent: aboutData.content,
+        mission: aboutData.mission,
+        vision: aboutData.vision,
+        values: aboutData.values,
+        aboutImages: aboutData.images || [],
+        facebookUrl: aboutData.social?.facebook || '',
+        twitterUrl: aboutData.social?.twitter || '',
+        instagramUrl: aboutData.social?.instagram || '',
+        linkedinUrl: aboutData.social?.linkedin || '',
+        youtubeUrl: aboutData.social?.youtube || '',
+      }));
+    } catch (error) {
+      console.error('Failed to load about section:', error);
+      // Don't show error for 404 (no about section exists yet) or expected "about section data" errors
+      if (
+        error instanceof Error &&
+        !error.message.includes('Failed to fetch about section data') &&
+        !error.message.includes('404')
+      ) {
+        // Show specific error for organization ID issues
+        if (error.message.includes('Failed to get current organization ID')) {
+          setError(
+            'Unable to determine organization. Please check your URL or try refreshing the page.',
+          );
+        } else {
+          setError('Failed to load about section data. Please try again.');
+        }
+      }
+    }
+  };
+
+  const loadHeroSection = async () => {
+    try {
+      const orgId = await ApiService.getCurrentOrgId();
+      const response = await ApiService.getHero(orgId);
+      const heroData = response.data.attributes;
+
+      // Update settings with API data
+      setSettings((prev) => ({
+        ...prev,
+        heroTitle: heroData.headline,
+        heroSubtitle: heroData.subheadline,
+        heroDescription: heroData.ctaText, // Map ctaText to description
+        heroImage: heroData.image,
+      }));
+    } catch (error) {
+      console.error('Failed to load hero section:', error);
+      // Don't show error for 404 (no hero section exists yet)
+      if (
+        error instanceof Error &&
+        !error.message.includes('Failed to fetch hero section data') &&
+        !error.message.includes('404')
+      ) {
+        console.log('Hero section not found, using defaults');
+      }
+    }
+  };
+
+  const loadBrandingSection = async () => {
+    try {
+      const orgId = await ApiService.getCurrentOrgId();
+      const response = await ApiService.getBranding(orgId);
+      const brandingData = response.data.attributes;
+
+      // Update settings with API data
+      setSettings((prev) => ({
+        ...prev,
+        logo: brandingData.logo,
+        // Add other branding fields when available
+      }));
+    } catch (error) {
+      console.error('Failed to load branding section:', error);
+      // Don't show error for 404 (no branding section exists yet)
+      if (
+        error instanceof Error &&
+        !error.message.includes('Failed to fetch branding data') &&
+        !error.message.includes('404')
+      ) {
+        console.log('Branding section not found, using defaults');
+      }
+    }
+  };
 
   const handleSave = async () => {
     setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
     try {
-      // Save to localStorage (in production, save to database)
+      const orgId = await ApiService.getCurrentOrgId();
+
+      // Call different APIs based on the active tab
+      switch (activeTab) {
+        case 'basic':
+          // For basic info, we'll save to localStorage for now (no specific API endpoint provided)
+          localStorage.setItem('schoolSettings', JSON.stringify(settings));
+          setSuccessMessage('Basic information saved successfully!');
+          break;
+
+        case 'branding':
+          // Save branding data to API
+          const brandingData = {
+            logo: settings.logo,
+            // Add other branding fields when they're added to settings interface
+          };
+          await ApiService.updateBranding(orgId, brandingData);
+          setSuccessMessage('Branding settings saved successfully!');
+          break;
+
+        case 'content':
+          // Save about section to API
+          const aboutData = {
+            title: settings.aboutTitle,
+            content: settings.aboutContent,
+            mission: settings.mission,
+            vision: settings.vision,
+            values: settings.values,
+            images: settings.aboutImages,
+            social: {
+              facebook: settings.facebookUrl,
+              twitter: settings.twitterUrl,
+              instagram: settings.instagramUrl,
+              linkedin: settings.linkedinUrl,
+              youtube: settings.youtubeUrl,
+            },
+          };
+          await ApiService.updateAbout(orgId, aboutData);
+          setSuccessMessage('About section saved successfully!');
+          break;
+
+        case 'hero':
+          // Save hero section to API
+          const heroData = {
+            headline: settings.heroTitle,
+            subheadline: settings.heroSubtitle,
+            ctaText: 'Learn More', // Default CTA text
+            ctaLink: '/about', // Default CTA link
+            image: settings.heroImage,
+          };
+          await ApiService.updateHero(orgId, heroData);
+          setSuccessMessage('Hero section saved successfully!');
+          break;
+
+        case 'social':
+          // Save social media links as part of about section
+          const socialData = {
+            title: settings.aboutTitle,
+            content: settings.aboutContent,
+            mission: settings.mission,
+            vision: settings.vision,
+            values: settings.values,
+            images: settings.aboutImages,
+            social: {
+              facebook: settings.facebookUrl,
+              twitter: settings.twitterUrl,
+              instagram: settings.instagramUrl,
+              linkedin: settings.linkedinUrl,
+              youtube: settings.youtubeUrl,
+            },
+          };
+          await ApiService.updateAbout(orgId, socialData);
+          setSuccessMessage('Social media links saved successfully!');
+          break;
+
+        default:
+          throw new Error('Unknown tab selected');
+      }
+
+      // Save all settings to localStorage for local state management
       localStorage.setItem('schoolSettings', JSON.stringify(settings));
 
-      // Show success message
-      alert(
-        'School settings saved successfully! The changes will be reflected on the website.',
-      );
-
-      // Optional: Trigger a page refresh to see changes immediately
-      if (typeof window !== 'undefined') {
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-      }
+      // Clear success message after 5 seconds
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
     } catch (error) {
-      alert('Error saving settings. Please try again.');
+      console.error('Error saving settings:', error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Error saving settings. Please try again.',
+      );
     } finally {
       setLoading(false);
     }
@@ -297,6 +486,51 @@ export default function SchoolSettings() {
 
           {/* Content */}
           <div className="lg:col-span-3">
+            {/* Error/Success Messages */}
+            {error && (
+              <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                <div className="flex">
+                  <svg
+                    className="w-5 h-5 mr-2 mt-0.5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <div>
+                    <p className="font-medium">Error</p>
+                    <p className="text-sm">{error}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+                <div className="flex">
+                  <svg
+                    className="w-5 h-5 mr-2 mt-0.5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <div>
+                    <p className="font-medium">Success</p>
+                    <p className="text-sm">{successMessage}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="bg-white rounded-lg shadow-sm p-6">
               {/* Basic Information Tab */}
               {activeTab === 'basic' && (
@@ -671,6 +905,85 @@ export default function SchoolSettings() {
                       + Add Value
                     </button>
                   </div>
+
+                  {/* About Images */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      About Section Images
+                    </label>
+                    {settings.aboutImages.map((image, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center space-x-2 mb-2"
+                      >
+                        <input
+                          type="url"
+                          value={image}
+                          onChange={(e) =>
+                            updateValueAtIndex(
+                              'aboutImages',
+                              index,
+                              e.target.value,
+                            )
+                          }
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="https://example.com/image.jpg"
+                        />
+                        <button
+                          onClick={() => removeValue('aboutImages', index)}
+                          className="text-red-500 hover:text-red-700 p-2"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => addValue('aboutImages')}
+                      className="mt-2 text-indigo-600 hover:text-indigo-500 text-sm font-medium"
+                    >
+                      + Add Image
+                    </button>
+
+                    {/* Image Preview */}
+                    {settings.aboutImages.length > 0 && (
+                      <div className="mt-4">
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                          Image Preview
+                        </h4>
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                          {settings.aboutImages.map(
+                            (image, index) =>
+                              image && (
+                                <div key={index} className="relative">
+                                  <img
+                                    src={image}
+                                    alt={`About image ${index + 1}`}
+                                    className="w-full h-24 object-cover rounded-md"
+                                    onError={(e) => {
+                                      (
+                                        e.target as HTMLImageElement
+                                      ).style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              ),
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -798,6 +1111,21 @@ export default function SchoolSettings() {
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                         placeholder="https://instagram.com/yourschool"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        LinkedIn URL
+                      </label>
+                      <input
+                        type="url"
+                        value={settings.linkedinUrl}
+                        onChange={(e) =>
+                          updateSetting('linkedinUrl', e.target.value)
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="https://linkedin.com/company/yourschool"
                       />
                     </div>
 

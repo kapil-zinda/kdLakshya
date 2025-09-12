@@ -1,11 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-
 import { useRouter } from 'next/navigation';
 
+import { useUserData } from '@/hooks/useUserData';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import axios from 'axios';
 
 export interface UserData {
   id: string;
@@ -18,30 +16,25 @@ export interface UserData {
 }
 
 export function useAuth() {
-  const { user, error, isLoading } = useUser();
+  const { user, error, isLoading: authLoading } = useUser();
+  const {
+    userData: cachedUserData,
+    isLoading: dataLoading,
+    clearUserData,
+    refreshUserData,
+  } = useUserData();
   const router = useRouter();
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [isLoadingUserData, setIsLoadingUserData] = useState(false);
 
-  const fetchUserData = async (accessToken: string) => {
-    setIsLoadingUserData(true);
+  const fetchUserData = async () => {
     try {
-      const response = await axios.get('/api/users/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
-      setUserData(response.data);
-      return response.data;
+      return await refreshUserData();
     } catch (error) {
       console.error('Error fetching user data:', error);
       return null;
-    } finally {
-      setIsLoadingUserData(false);
     }
   };
 
-  const redirectBasedOnRole = (role: string) => {
+  const redirectBasedOnRole = () => {
     router.push('/dashboard');
   };
 
@@ -50,24 +43,39 @@ export function useAuth() {
   };
 
   const logout = () => {
-    setUserData(null);
+    clearUserData();
     localStorage.removeItem('bearerToken');
     localStorage.removeItem('authState');
     localStorage.removeItem('codeVerifier');
+    localStorage.removeItem('studentAuth');
     sessionStorage.removeItem('authCodeProcessed');
     sessionStorage.removeItem('isAuthCallback');
+    sessionStorage.removeItem('userData');
     window.location.href = '/';
   };
+
+  // Convert cached user data to the expected format
+  const userData = cachedUserData
+    ? {
+        id: cachedUserData.id,
+        email: cachedUserData.email,
+        firstName: cachedUserData.firstName,
+        lastName: cachedUserData.lastName,
+        role: cachedUserData.role,
+        permissions: cachedUserData.permissions,
+        orgId: cachedUserData.orgId,
+      }
+    : null;
 
   return {
     user,
     userData,
-    isLoading: isLoading || isLoadingUserData,
+    isLoading: authLoading || dataLoading,
     error,
     login,
     logout,
     fetchUserData,
     redirectBasedOnRole,
-    isAuthenticated: !!user,
+    isAuthenticated: !!user && !!cachedUserData,
   };
 }

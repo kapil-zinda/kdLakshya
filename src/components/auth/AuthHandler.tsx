@@ -5,20 +5,21 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { updateUserData } from '@/app/interfaces/userInterface';
+import { useUserData } from '@/hooks/useUserData';
 import { useUser } from '@auth0/nextjs-auth0/client';
-import axios from 'axios';
 
 export function AuthHandler() {
   const { user, isLoading } = useUser();
+  const { fetchUserDataFromBackend } = useUserData();
   const router = useRouter();
-  const [hasRedirected, setHasRedirected] = useState(false);
+  const [hasProcessed, setHasProcessed] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && user && !hasRedirected) {
+    if (!isLoading && user && !hasProcessed) {
       handleUserLogin();
-      setHasRedirected(true);
+      setHasProcessed(true);
     }
-  }, [user, isLoading, hasRedirected]);
+  }, [user, isLoading, hasProcessed]);
 
   const handleUserLogin = async () => {
     if (!user?.sub) return;
@@ -33,17 +34,11 @@ export function AuthHandler() {
         return;
       }
 
-      // Fetch user data from your API
-      const response = await axios.get('/api/users/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      // Fetch user data directly from backend and cache it
+      const userData = await fetchUserDataFromBackend(accessToken);
 
-      const userData = response.data;
-
-      // Update user data in your system
-      await updateUserData({
+      // Update the legacy user data interface for backward compatibility
+      updateUserData({
         userId: userData.id,
         keyId: 'user-' + userData.id,
         orgKeyId: 'org-' + userData.orgId,
@@ -58,10 +53,12 @@ export function AuthHandler() {
           .filter(Boolean) as string[],
       });
 
-      // Redirect to dashboard
+      // Navigate to dashboard without page refresh
       router.push('/dashboard');
     } catch (error) {
       console.error('Error during login flow:', error);
+      // On error, still try to redirect to dashboard to avoid stuck state
+      router.push('/dashboard');
     }
   };
 
