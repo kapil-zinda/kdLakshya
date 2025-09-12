@@ -5,25 +5,32 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { ApiService } from '@/services/api';
+
 interface Teacher {
   id: string;
   name: string;
-  employeeId: string;
-  role: 'Teacher' | 'Faculty' | 'Staff';
-  department: string;
+  designation: string;
+  bio: string;
+  photo: string;
+  subjects: string[];
   email: string;
   phone: string;
-  address: string;
-  dateOfJoining: string;
-  qualification: string;
-  experience: number;
-  salary: number;
-  gender: 'Male' | 'Female';
-  dateOfBirth: string;
-  emergencyContact: string;
-  photo: string;
-  status: 'Active' | 'Inactive' | 'On Leave';
-  isClassTeacher: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+  // Legacy fields for backward compatibility
+  employeeId?: string;
+  role?: 'Teacher' | 'Faculty' | 'Staff';
+  department?: string;
+  address?: string;
+  dateOfJoining?: string;
+  qualification?: string;
+  experience?: number;
+  gender?: 'Male' | 'Female';
+  dateOfBirth?: string;
+  emergencyContact?: string;
+  status?: 'Active' | 'Inactive' | 'On Leave';
+  isClassTeacher?: boolean;
   assignedClass?: string;
   assignedSection?: string;
 }
@@ -38,13 +45,120 @@ export default function TeacherManagement() {
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addFormData, setAddFormData] = useState<Partial<Teacher>>({
-    role: 'Teacher',
-    status: 'Active',
-    isClassTeacher: false,
-    experience: 0,
-    salary: 0,
+    name: '',
+    designation: '',
+    bio: '',
+    photo: '',
+    subjects: [],
+    email: '',
+    phone: '',
   });
   const router = useRouter();
+
+  // Load faculty data from API
+  const loadFaculty = async () => {
+    try {
+      setLoading(true);
+      const orgId = await ApiService.getCurrentOrgId();
+      const facultyResponse = await ApiService.getFaculty(orgId);
+
+      // Transform API data to teacher format
+      const apiTeachers: Teacher[] = facultyResponse.data.map((faculty) => ({
+        id: faculty.id,
+        name: faculty.attributes.name,
+        designation: faculty.attributes.designation,
+        bio: faculty.attributes.bio,
+        photo: faculty.attributes.photo,
+        subjects: faculty.attributes.subjects,
+        email: faculty.attributes.email,
+        phone: faculty.attributes.phone,
+        createdAt: faculty.attributes.createdAt,
+        updatedAt: faculty.attributes.updatedAt,
+        // Default values for legacy fields
+        role: 'Faculty',
+        status: 'Active',
+        isClassTeacher: false,
+      }));
+
+      setTeachers(apiTeachers);
+    } catch (error) {
+      console.error('Failed to load faculty:', error);
+      // Keep empty array if API fails
+      setTeachers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add new faculty member
+  const handleAddFaculty = async () => {
+    try {
+      if (
+        !addFormData.name ||
+        !addFormData.designation ||
+        !addFormData.email ||
+        !addFormData.phone
+      ) {
+        alert('Please fill in all required fields');
+        return;
+      }
+
+      setLoading(true);
+      const orgId = await ApiService.getCurrentOrgId();
+
+      const facultyData = {
+        name: addFormData.name!,
+        designation: addFormData.designation!,
+        bio: addFormData.bio || '',
+        photo:
+          addFormData.photo ||
+          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        subjects: addFormData.subjects || [],
+        email: addFormData.email!,
+        phone: addFormData.phone!,
+      };
+
+      const response = await ApiService.createFaculty(orgId, facultyData);
+
+      // Add new faculty to local state
+      const newTeacher: Teacher = {
+        id: response.data.id,
+        name: response.data.attributes.name,
+        designation: response.data.attributes.designation,
+        bio: response.data.attributes.bio,
+        photo: response.data.attributes.photo,
+        subjects: response.data.attributes.subjects,
+        email: response.data.attributes.email,
+        phone: response.data.attributes.phone,
+        createdAt: response.data.attributes.createdAt,
+        updatedAt: response.data.attributes.updatedAt,
+        role: 'Faculty',
+        status: 'Active',
+        isClassTeacher: false,
+      };
+
+      setTeachers((prev) => [newTeacher, ...prev]);
+      setShowAddModal(false);
+
+      // Reset form
+      setAddFormData({
+        name: '',
+        designation: '',
+        bio: '',
+        photo: '',
+        subjects: [],
+        email: '',
+        phone: '',
+      });
+
+      alert('Faculty member added successfully!');
+    } catch (error) {
+      console.error('Error adding faculty:', error);
+      alert('Failed to add faculty member. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const roles = ['All', 'Teacher', 'Faculty', 'Staff'];
   const departments = [
@@ -100,129 +214,20 @@ export default function TeacherManagement() {
       return;
     }
 
-    // Load sample teacher data
-    const sampleTeachers: Teacher[] = [
-      {
-        id: '1',
-        name: 'Dr. Rajesh Kumar',
-        employeeId: 'EMP001',
-        role: 'Faculty',
-        department: 'Mathematics',
-        email: 'rajesh.kumar@school.edu',
-        phone: '9876543210',
-        address: '123, Teachers Colony, Delhi',
-        dateOfJoining: '2015-06-01',
-        qualification: 'M.Sc, Ph.D in Mathematics',
-        experience: 15,
-        salary: 75000,
-        gender: 'Male',
-        dateOfBirth: '1980-03-15',
-        emergencyContact: '9876543211',
-        photo:
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-        status: 'Active',
-        isClassTeacher: true,
-        assignedClass: 'Class 10',
-        assignedSection: 'A',
-      },
-      {
-        id: '2',
-        name: 'Mrs. Priya Sharma',
-        employeeId: 'EMP002',
-        role: 'Teacher',
-        department: 'English',
-        email: 'priya.sharma@school.edu',
-        phone: '9876543212',
-        address: '456, Green Park, Mumbai',
-        dateOfJoining: '2018-04-15',
-        qualification: 'M.A in English Literature',
-        experience: 8,
-        salary: 55000,
-        gender: 'Female',
-        dateOfBirth: '1985-07-20',
-        emergencyContact: '9876543213',
-        photo:
-          'https://images.unsplash.com/photo-1494790108755-2616b612b37c?w=150&h=150&fit=crop&crop=face',
-        status: 'Active',
-        isClassTeacher: true,
-        assignedClass: 'Class 9',
-        assignedSection: 'B',
-      },
-      {
-        id: '3',
-        name: 'Mr. Amit Patel',
-        employeeId: 'EMP003',
-        role: 'Teacher',
-        department: 'Science',
-        email: 'amit.patel@school.edu',
-        phone: '9876543214',
-        address: '789, Science City, Ahmedabad',
-        dateOfJoining: '2020-07-01',
-        qualification: 'M.Sc in Physics',
-        experience: 5,
-        salary: 50000,
-        gender: 'Male',
-        dateOfBirth: '1988-11-10',
-        emergencyContact: '9876543215',
-        photo:
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-        status: 'Active',
-        isClassTeacher: false,
-      },
-      {
-        id: '4',
-        name: 'Ms. Kavita Singh',
-        employeeId: 'EMP004',
-        role: 'Staff',
-        department: 'Library',
-        email: 'kavita.singh@school.edu',
-        phone: '9876543216',
-        address: '321, Library Lane, Jaipur',
-        dateOfJoining: '2019-08-20',
-        qualification: 'B.Lib.Sc',
-        experience: 6,
-        salary: 35000,
-        gender: 'Female',
-        dateOfBirth: '1987-05-25',
-        emergencyContact: '9876543217',
-        photo:
-          'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-        status: 'Active',
-        isClassTeacher: false,
-      },
-      {
-        id: '5',
-        name: 'Mr. Suresh Gupta',
-        employeeId: 'EMP005',
-        role: 'Staff',
-        department: 'Administration',
-        email: 'suresh.gupta@school.edu',
-        phone: '9876543218',
-        address: '654, Admin Block, Lucknow',
-        dateOfJoining: '2017-01-10',
-        qualification: 'B.Com',
-        experience: 12,
-        salary: 40000,
-        gender: 'Male',
-        dateOfBirth: '1975-09-12',
-        emergencyContact: '9876543219',
-        photo:
-          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face',
-        status: 'Active',
-        isClassTeacher: false,
-      },
-    ];
-
-    setTeachers(sampleTeachers);
-    setLoading(false);
+    // Load faculty data from API
+    loadFaculty();
   }, [router]);
 
   const filteredTeachers = teachers.filter((teacher) => {
     const roleMatch = selectedRole === 'All' || teacher.role === selectedRole;
     const searchMatch =
       teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      teacher.department.toLowerCase().includes(searchTerm.toLowerCase());
+      (teacher.employeeId &&
+        teacher.employeeId.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (teacher.department &&
+        teacher.department.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (teacher.designation &&
+        teacher.designation.toLowerCase().includes(searchTerm.toLowerCase()));
     return roleMatch && searchMatch;
   });
 
@@ -294,79 +299,21 @@ export default function TeacherManagement() {
   };
 
   const handleAddTeacher = () => {
-    if (!addFormData.name || !addFormData.employeeId || !addFormData.role) {
-      alert('Please fill in required fields: Name, Employee ID, and Role');
-      return;
-    }
-
-    const newTeacher: Teacher = {
-      id: (teachers.length + 1).toString(),
-      name: addFormData.name || '',
-      employeeId: addFormData.employeeId || '',
-      role: addFormData.role || 'Teacher',
-      department: addFormData.department || '',
-      email: addFormData.email || '',
-      phone: addFormData.phone || '',
-      address: addFormData.address || '',
-      dateOfJoining:
-        addFormData.dateOfJoining || new Date().toISOString().split('T')[0],
-      qualification: addFormData.qualification || '',
-      experience: addFormData.experience || 0,
-      salary: addFormData.salary || 0,
-      gender: addFormData.gender || 'Male',
-      dateOfBirth: addFormData.dateOfBirth || '',
-      emergencyContact: addFormData.emergencyContact || '',
-      photo:
-        addFormData.photo ||
-        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-      status: 'Active',
-      isClassTeacher: addFormData.isClassTeacher || false,
-      assignedClass: addFormData.assignedClass,
-      assignedSection: addFormData.assignedSection,
-    };
-
-    setTeachers((prev) => [...prev, newTeacher]);
-    setShowAddModal(false);
-    setAddFormData({
-      role: 'Teacher',
-      status: 'Active',
-      isClassTeacher: false,
-      experience: 0,
-      salary: 0,
-    });
-    alert('Teacher added successfully!');
+    // Use the new API-integrated function
+    handleAddFaculty();
   };
 
   const handleCancelAdd = () => {
     setShowAddModal(false);
     setAddFormData({
-      role: 'Teacher',
-      status: 'Active',
-      isClassTeacher: false,
-      experience: 0,
-      salary: 0,
+      name: '',
+      designation: '',
+      bio: '',
+      photo: '',
+      subjects: [],
+      email: '',
+      phone: '',
     });
-  };
-
-  const toggleClassTeacher = (
-    teacherId: string,
-    isClassTeacher: boolean,
-    assignedClass?: string,
-    assignedSection?: string,
-  ) => {
-    setTeachers((prev) =>
-      prev.map((teacher) => {
-        if (teacher.id === teacherId) {
-          return {
-            ...teacher,
-            isClassTeacher,
-            assignedClass: isClassTeacher ? assignedClass : undefined,
-            assignedSection: isClassTeacher ? assignedSection : undefined,
-          };
-        }
-        return teacher;
-      }),
-    );
   };
 
   if (loading) {
@@ -484,16 +431,13 @@ export default function TeacherManagement() {
                     Teacher/Staff
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Role & Department
+                    Role
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Contact
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Experience
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Class Teacher
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Status
@@ -518,7 +462,9 @@ export default function TeacherManagement() {
                             {teacher.name}
                           </div>
                           <div className="text-sm text-gray-500">
-                            ID: {teacher.employeeId}
+                            {teacher.employeeId
+                              ? `ID: ${teacher.employeeId}`
+                              : teacher.designation}
                           </div>
                         </div>
                       </div>
@@ -526,13 +472,10 @@ export default function TeacherManagement() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <span
-                          className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(teacher.role)}`}
+                          className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(teacher.role || 'Faculty')}`}
                         >
-                          {teacher.role}
+                          {teacher.role || 'Faculty'}
                         </span>
-                        <div className="text-sm text-gray-900 mt-1">
-                          {teacher.department}
-                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -545,31 +488,19 @@ export default function TeacherManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {teacher.experience} years
+                        {teacher.experience
+                          ? `${teacher.experience} years`
+                          : 'N/A'}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {teacher.qualification}
+                        {teacher.qualification || 'Not specified'}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {teacher.isClassTeacher ? (
-                        <div>
-                          <div className="text-sm font-medium text-green-900">
-                            Yes
-                          </div>
-                          <div className="text-sm text-green-600">
-                            {teacher.assignedClass}-{teacher.assignedSection}
-                          </div>
-                        </div>
-                      ) : (
-                        <span className="text-sm text-gray-500">No</span>
-                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
-                        className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(teacher.status)}`}
+                        className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(teacher.status || 'Active')}`}
                       >
-                        {teacher.status}
+                        {teacher.status || 'Active'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -765,14 +696,6 @@ export default function TeacherManagement() {
                             {selectedTeacher.dateOfJoining}
                           </p>
                         </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-500">
-                            Salary
-                          </label>
-                          <p className="text-sm text-gray-900">
-                            ₹{selectedTeacher.salary.toLocaleString()}
-                          </p>
-                        </div>
                         {selectedTeacher.isClassTeacher && (
                           <div>
                             <label className="text-sm font-medium text-gray-500">
@@ -870,17 +793,20 @@ export default function TeacherManagement() {
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Employee ID{' '}
+                              Designation{' '}
                               <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
-                              value={addFormData.employeeId || ''}
+                              value={addFormData.designation || ''}
                               onChange={(e) =>
-                                updateAddFormField('employeeId', e.target.value)
+                                updateAddFormField(
+                                  'designation',
+                                  e.target.value,
+                                )
                               }
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="EMP001"
+                              placeholder="e.g. Senior Teacher, Math Teacher"
                             />
                           </div>
                         </div>
@@ -955,6 +881,42 @@ export default function TeacherManagement() {
                               <option value="Female">Female</option>
                             </select>
                           </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Bio
+                          </label>
+                          <textarea
+                            value={addFormData.bio || ''}
+                            onChange={(e) =>
+                              updateAddFormField('bio', e.target.value)
+                            }
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Brief description about the faculty member"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Subjects (comma separated)
+                          </label>
+                          <input
+                            type="text"
+                            value={
+                              Array.isArray(addFormData.subjects)
+                                ? addFormData.subjects.join(', ')
+                                : addFormData.subjects || ''
+                            }
+                            onChange={(e) => {
+                              const subjectsArray = e.target.value
+                                .split(',')
+                                .map((s) => s.trim())
+                                .filter((s) => s);
+                              updateAddFormField('subjects', subjectsArray);
+                            }}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Math, Science, English"
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1080,24 +1042,6 @@ export default function TeacherManagement() {
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             />
                           </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Salary
-                          </label>
-                          <input
-                            type="number"
-                            value={addFormData.salary || ''}
-                            onChange={(e) =>
-                              updateAddFormField(
-                                'salary',
-                                parseInt(e.target.value) || 0,
-                              )
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Monthly salary"
-                            min="0"
-                          />
                         </div>
 
                         {/* Class Teacher Assignment */}
@@ -1459,23 +1403,6 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateFormField(
                                   'experience',
-                                  parseInt(e.target.value) || 0,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              min="0"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Salary
-                            </label>
-                            <input
-                              type="number"
-                              value={editFormData.salary || ''}
-                              onChange={(e) =>
-                                updateFormField(
-                                  'salary',
                                   parseInt(e.target.value) || 0,
                                 )
                               }

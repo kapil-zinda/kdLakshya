@@ -140,6 +140,56 @@ interface NewsListResponse {
   }[];
 }
 
+interface FacultyResponse {
+  data: {
+    type: 'faculty';
+    id: string;
+    attributes: {
+      id: string;
+      orgId: string;
+      name: string;
+      designation: string;
+      bio: string;
+      photo: string;
+      subjects: string[];
+      email: string;
+      phone: string;
+      createdAt: number;
+      updatedAt: number;
+      created_by: string;
+      created_by_email: string;
+    };
+    links: {
+      self: string;
+    };
+  };
+}
+
+interface FacultyListResponse {
+  data: {
+    type: 'faculty';
+    id: string;
+    attributes: {
+      id: string;
+      orgId: string;
+      name: string;
+      designation: string;
+      bio: string;
+      photo: string;
+      subjects: string[];
+      email: string;
+      phone: string;
+      createdAt: number;
+      updatedAt: number;
+      created_by: string;
+      created_by_email: string;
+    };
+    links: {
+      self: string;
+    };
+  }[];
+}
+
 export interface AboutResponse {
   data: {
     type: 'about';
@@ -872,6 +922,74 @@ export class ApiService {
     } catch (error) {
       console.error('Error deleting news:', error);
       throw new Error('Failed to delete news item');
+    }
+  }
+
+  // Get all faculty members by organization ID
+  static async getFaculty(orgId: string): Promise<FacultyListResponse> {
+    try {
+      const response = await externalApi.get(`/${orgId}/faculty`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching faculty data:', error);
+      throw new Error('Failed to fetch faculty data');
+    }
+  }
+
+  // Create new faculty member
+  static async createFaculty(
+    orgId: string,
+    facultyData: {
+      name: string;
+      designation: string;
+      bio: string;
+      photo: string;
+      subjects: string[];
+      email: string;
+      phone: string;
+    },
+  ): Promise<FacultyResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'faculty',
+          attributes: facultyData,
+        },
+      };
+
+      console.log(`Making POST request to: /${orgId}/faculty`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.post(
+        `/${orgId}/faculty`,
+        requestBody,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating faculty:', error);
+      throw new Error('Failed to create faculty member');
     }
   }
 
