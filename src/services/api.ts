@@ -96,6 +96,50 @@ export interface HeroResponse {
   };
 }
 
+interface SingleNewsResponse {
+  data: {
+    type: 'news';
+    id: string;
+    attributes: {
+      id: string;
+      orgId: string;
+      title: string;
+      content: string;
+      image: string;
+      publishedAt: number;
+      createdAt: number;
+      updatedAt: number;
+      created_by: string;
+      created_by_email: string;
+    };
+    links: {
+      self: string;
+    };
+  };
+}
+
+interface NewsListResponse {
+  data: {
+    type: 'news';
+    id: string;
+    attributes: {
+      id: string;
+      orgId: string;
+      title: string;
+      content: string;
+      image: string;
+      publishedAt: number;
+      createdAt: number;
+      updatedAt: number;
+      created_by: string;
+      created_by_email: string;
+    };
+    links: {
+      self: string;
+    };
+  }[];
+}
+
 export interface AboutResponse {
   data: {
     type: 'about';
@@ -677,6 +721,160 @@ export class ApiService {
     }
   }
 
+  // Create news item
+  static async createNews(
+    orgId: string,
+    newsData: {
+      title: string;
+      content: string;
+      image: string;
+      publishedAt?: number;
+    },
+  ): Promise<SingleNewsResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'news',
+          attributes: {
+            ...newsData,
+            publishedAt: newsData.publishedAt || Math.floor(Date.now() / 1000),
+          },
+        },
+      };
+
+      console.log(`Making POST request to: /${orgId}/news`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.post(`/${orgId}/news`, requestBody, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/vnd.api+json',
+        },
+      });
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating news:', error);
+      throw new Error('Failed to create news item');
+    }
+  }
+
+  // Get single news item
+  static async getNewsItem(
+    orgId: string,
+    newsId: string,
+  ): Promise<SingleNewsResponse> {
+    try {
+      const response = await externalApi.get(`/${orgId}/news/${newsId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching news item:', error);
+      throw new Error('Failed to fetch news item');
+    }
+  }
+
+  // Update news item
+  static async updateNews(
+    orgId: string,
+    newsId: string,
+    newsData: {
+      title: string;
+      content: string;
+      image: string;
+      publishedAt?: number;
+    },
+  ): Promise<SingleNewsResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'news',
+          attributes: newsData,
+        },
+      };
+
+      console.log(`Making PUT request to: /${orgId}/news/${newsId}`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.put(
+        `/${orgId}/news/${newsId}`,
+        requestBody,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating news:', error);
+      throw new Error('Failed to update news item');
+    }
+  }
+
+  // Delete news item
+  static async deleteNews(orgId: string, newsId: string): Promise<void> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      console.log(`Making DELETE request to: /${orgId}/news/${newsId}`);
+
+      await externalApi.delete(`/${orgId}/news/${newsId}`, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+        },
+      });
+
+      console.log('News item deleted successfully');
+    } catch (error) {
+      console.error('Error deleting news:', error);
+      throw new Error('Failed to delete news item');
+    }
+  }
+
   // Get programs data by organization ID
   static async getPrograms(orgId: string): Promise<ProgramsResponse> {
     try {
@@ -700,7 +898,7 @@ export class ApiService {
   }
 
   // Get news/notifications data by organization ID
-  static async getNews(orgId: string): Promise<NewsResponse> {
+  static async getNews(orgId: string): Promise<NewsListResponse> {
     try {
       const response = await externalApi.get(`/${orgId}/news`);
       return response.data;

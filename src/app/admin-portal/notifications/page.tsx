@@ -6,15 +6,16 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { ApiService } from '@/services/api';
-import { getSubdomain } from '@/utils/subdomainUtils';
 
 interface Notification {
   id: string;
   title: string;
   content: string;
+  image?: string;
   category: 'admission' | 'event' | 'academic' | 'general';
   isNew: boolean;
   isActive: boolean;
+  publishedAt?: number;
 }
 
 export default function NotificationManagement() {
@@ -26,12 +27,14 @@ export default function NotificationManagement() {
   const [formData, setFormData] = useState<{
     title: string;
     content: string;
+    image: string;
     category: 'admission' | 'event' | 'academic' | 'general';
     isNew: boolean;
     isActive: boolean;
   }>({
     title: '',
     content: '',
+    image: '',
     category: 'general',
     isNew: true,
     isActive: true,
@@ -41,13 +44,11 @@ export default function NotificationManagement() {
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const subdomain = getSubdomain();
 
-      // First get organization ID
-      const orgResponse = await ApiService.getOrganization(subdomain || 'sls');
-      const orgId = orgResponse.data.id;
+      // Get organization ID using the cached method
+      const orgId = await ApiService.getCurrentOrgId();
 
-      // Then get news/notifications
+      // Get news/notifications
       const newsResponse = await ApiService.getNews(orgId);
 
       // Transform API data to notification format
@@ -56,9 +57,11 @@ export default function NotificationManagement() {
           id: newsItem.id,
           title: newsItem.attributes.title,
           content: newsItem.attributes.content,
+          image: newsItem.attributes.image,
           category: 'general' as const, // Map to existing categories based on your needs
           isNew: true, // You can determine this based on publishedAt date
           isActive: true, // Assume active if in API
+          publishedAt: newsItem.attributes.publishedAt,
         }),
       );
 
@@ -94,37 +97,70 @@ export default function NotificationManagement() {
     loadNotifications();
   }, [router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
-    if (editingNotification) {
-      // Update existing notification
-      setNotifications((prev) =>
-        prev.map((notif) =>
-          notif.id === editingNotification.id
-            ? {
-                ...notif,
-                ...formData,
-              }
-            : notif,
-        ),
-      );
-    } else {
-      // Create new notification
-      const newNotification: Notification = {
-        id: Date.now().toString(),
-        ...formData,
-      };
-      setNotifications((prev) => [newNotification, ...prev]);
+    try {
+      const orgId = await ApiService.getCurrentOrgId();
+
+      if (editingNotification) {
+        // Update existing notification
+        await ApiService.updateNews(orgId, editingNotification.id, {
+          title: formData.title,
+          content: formData.content,
+          image: formData.image,
+          publishedAt: Math.floor(Date.now() / 1000),
+        });
+
+        // Update local state
+        setNotifications((prev) =>
+          prev.map((notif) =>
+            notif.id === editingNotification.id
+              ? {
+                  ...notif,
+                  ...formData,
+                }
+              : notif,
+          ),
+        );
+      } else {
+        // Create new notification
+        const response = await ApiService.createNews(orgId, {
+          title: formData.title,
+          content: formData.content,
+          image: formData.image,
+          publishedAt: Math.floor(Date.now() / 1000),
+        });
+
+        const newNotification: Notification = {
+          id: response.data.id,
+          title: response.data.attributes.title,
+          content: response.data.attributes.content,
+          image: response.data.attributes.image,
+          category: formData.category,
+          isNew: formData.isNew,
+          isActive: formData.isActive,
+          publishedAt: response.data.attributes.publishedAt,
+        };
+
+        setNotifications((prev) => [newNotification, ...prev]);
+      }
+
+      resetForm();
+    } catch (error) {
+      console.error('Error saving notification:', error);
+      alert('Failed to save notification. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    resetForm();
   };
 
   const resetForm = () => {
     setFormData({
       title: '',
       content: '',
+      image: '',
       category: 'general',
       isNew: true,
       isActive: true,
@@ -138,6 +174,7 @@ export default function NotificationManagement() {
     setFormData({
       title: notification.title,
       content: notification.content,
+      image: notification.image || '',
       category: notification.category,
       isNew: notification.isNew,
       isActive: notification.isActive,
@@ -145,9 +182,16 @@ export default function NotificationManagement() {
     setShowForm(true);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this notification?')) {
-      setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+      try {
+        const orgId = await ApiService.getCurrentOrgId();
+        await ApiService.deleteNews(orgId, id);
+        setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+      } catch (error) {
+        console.error('Error deleting notification:', error);
+        alert('Failed to delete notification. Please try again.');
+      }
     }
   };
 
@@ -286,6 +330,23 @@ export default function NotificationManagement() {
                         content: e.target.value,
                       }))
                     }
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Image URL
+                  </label>
+                  <input
+                    type="url"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    value={formData.image}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        image: e.target.value,
+                      }))
+                    }
+                    placeholder="https://example.com/image.jpg"
                   />
                 </div>
                 <div>
