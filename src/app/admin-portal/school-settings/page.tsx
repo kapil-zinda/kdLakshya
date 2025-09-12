@@ -134,8 +134,10 @@ export default function SchoolSettings() {
       setSettings(JSON.parse(savedSettings));
     }
 
-    // Load about section from API
+    // Load data from all APIs
     loadAboutSection();
+    loadHeroSection();
+    loadBrandingSection();
   }, [router]);
 
   const loadAboutSection = async () => {
@@ -179,38 +181,145 @@ export default function SchoolSettings() {
     }
   };
 
+  const loadHeroSection = async () => {
+    try {
+      const orgId = await ApiService.getCurrentOrgId();
+      const response = await ApiService.getHero(orgId);
+      const heroData = response.data.attributes;
+
+      // Update settings with API data
+      setSettings((prev) => ({
+        ...prev,
+        heroTitle: heroData.headline,
+        heroSubtitle: heroData.subheadline,
+        heroDescription: heroData.ctaText, // Map ctaText to description
+        heroImage: heroData.image,
+      }));
+    } catch (error) {
+      console.error('Failed to load hero section:', error);
+      // Don't show error for 404 (no hero section exists yet)
+      if (
+        error instanceof Error &&
+        !error.message.includes('Failed to fetch hero section data') &&
+        !error.message.includes('404')
+      ) {
+        console.log('Hero section not found, using defaults');
+      }
+    }
+  };
+
+  const loadBrandingSection = async () => {
+    try {
+      const orgId = await ApiService.getCurrentOrgId();
+      const response = await ApiService.getBranding(orgId);
+      const brandingData = response.data.attributes;
+
+      // Update settings with API data
+      setSettings((prev) => ({
+        ...prev,
+        logo: brandingData.logo,
+        // Add other branding fields when available
+      }));
+    } catch (error) {
+      console.error('Failed to load branding section:', error);
+      // Don't show error for 404 (no branding section exists yet)
+      if (
+        error instanceof Error &&
+        !error.message.includes('Failed to fetch branding data') &&
+        !error.message.includes('404')
+      ) {
+        console.log('Branding section not found, using defaults');
+      }
+    }
+  };
+
   const handleSave = async () => {
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
 
     try {
-      // Save about section to API
-      const aboutData = {
-        title: settings.aboutTitle,
-        content: settings.aboutContent,
-        mission: settings.mission,
-        vision: settings.vision,
-        values: settings.values,
-        images: settings.aboutImages,
-        social: {
-          facebook: settings.facebookUrl,
-          twitter: settings.twitterUrl,
-          instagram: settings.instagramUrl,
-          linkedin: settings.linkedinUrl,
-          youtube: settings.youtubeUrl,
-        },
-      };
-
       const orgId = await ApiService.getCurrentOrgId();
-      await ApiService.updateAbout(orgId, aboutData);
 
-      // Save all settings to localStorage for other sections
+      // Call different APIs based on the active tab
+      switch (activeTab) {
+        case 'basic':
+          // For basic info, we'll save to localStorage for now (no specific API endpoint provided)
+          localStorage.setItem('schoolSettings', JSON.stringify(settings));
+          setSuccessMessage('Basic information saved successfully!');
+          break;
+
+        case 'branding':
+          // Save branding data to API
+          const brandingData = {
+            logo: settings.logo,
+            // Add other branding fields when they're added to settings interface
+          };
+          await ApiService.updateBranding(orgId, brandingData);
+          setSuccessMessage('Branding settings saved successfully!');
+          break;
+
+        case 'content':
+          // Save about section to API
+          const aboutData = {
+            title: settings.aboutTitle,
+            content: settings.aboutContent,
+            mission: settings.mission,
+            vision: settings.vision,
+            values: settings.values,
+            images: settings.aboutImages,
+            social: {
+              facebook: settings.facebookUrl,
+              twitter: settings.twitterUrl,
+              instagram: settings.instagramUrl,
+              linkedin: settings.linkedinUrl,
+              youtube: settings.youtubeUrl,
+            },
+          };
+          await ApiService.updateAbout(orgId, aboutData);
+          setSuccessMessage('About section saved successfully!');
+          break;
+
+        case 'hero':
+          // Save hero section to API
+          const heroData = {
+            headline: settings.heroTitle,
+            subheadline: settings.heroSubtitle,
+            ctaText: 'Learn More', // Default CTA text
+            ctaLink: '/about', // Default CTA link
+            image: settings.heroImage,
+          };
+          await ApiService.updateHero(orgId, heroData);
+          setSuccessMessage('Hero section saved successfully!');
+          break;
+
+        case 'social':
+          // Save social media links as part of about section
+          const socialData = {
+            title: settings.aboutTitle,
+            content: settings.aboutContent,
+            mission: settings.mission,
+            vision: settings.vision,
+            values: settings.values,
+            images: settings.aboutImages,
+            social: {
+              facebook: settings.facebookUrl,
+              twitter: settings.twitterUrl,
+              instagram: settings.instagramUrl,
+              linkedin: settings.linkedinUrl,
+              youtube: settings.youtubeUrl,
+            },
+          };
+          await ApiService.updateAbout(orgId, socialData);
+          setSuccessMessage('Social media links saved successfully!');
+          break;
+
+        default:
+          throw new Error('Unknown tab selected');
+      }
+
+      // Save all settings to localStorage for local state management
       localStorage.setItem('schoolSettings', JSON.stringify(settings));
-
-      setSuccessMessage(
-        'School settings saved successfully! The changes will be reflected on the website.',
-      );
 
       // Clear success message after 5 seconds
       setTimeout(() => {

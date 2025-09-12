@@ -480,17 +480,6 @@ export class ApiService {
     }
   }
 
-  // Get hero section data by organization ID
-  static async getHero(orgId: string): Promise<HeroResponse> {
-    try {
-      const response = await externalApi.get(`/${orgId}/hero`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching hero data:', error);
-      throw new Error('Failed to fetch hero section data');
-    }
-  }
-
   // Get about section data by organization ID
   static async getAbout(orgId: string): Promise<AboutResponse> {
     try {
@@ -561,6 +550,68 @@ export class ApiService {
     }
   }
 
+  // Get hero section data by organization ID
+  static async getHero(orgId: string): Promise<HeroResponse> {
+    try {
+      const response = await externalApi.get(`/${orgId}/hero`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching hero data:', error);
+      throw new Error('Failed to fetch hero section data');
+    }
+  }
+
+  // Update hero section data by organization ID
+  static async updateHero(
+    orgId: string,
+    heroData: {
+      headline: string;
+      subheadline: string;
+      ctaText: string;
+      ctaLink: string;
+      image: string;
+    },
+  ): Promise<HeroResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'hero',
+          attributes: heroData,
+        },
+      };
+
+      console.log(`Making PUT request to: /${orgId}/hero`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.put(`/${orgId}/hero`, requestBody, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/vnd.api+json',
+        },
+      });
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating hero data:', error);
+      throw new Error('Failed to update hero section data');
+    }
+  }
+
   // Get branding data by organization ID
   static async getBranding(orgId: string): Promise<BrandingResponse> {
     try {
@@ -569,6 +620,60 @@ export class ApiService {
     } catch (error) {
       console.error('Error fetching branding data:', error);
       throw new Error('Failed to fetch branding data');
+    }
+  }
+
+  // Update branding data by organization ID
+  static async updateBranding(
+    orgId: string,
+    brandingData: {
+      logo: string;
+      favicon?: string;
+      banner?: string;
+      watermark?: string;
+    },
+  ): Promise<BrandingResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'branding',
+          attributes: brandingData,
+        },
+      };
+
+      console.log(`Making PUT request to: /${orgId}/branding`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.put(
+        `/${orgId}/branding`,
+        requestBody,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating branding data:', error);
+      throw new Error('Failed to update branding section data');
     }
   }
 
