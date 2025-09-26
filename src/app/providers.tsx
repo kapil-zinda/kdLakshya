@@ -68,19 +68,25 @@ export function Providers({ children }: ThemeProviderProps) {
             currentHost.includes('localhost') ||
             currentHost.includes('127.0.0.1');
 
+          // Pass the access token via URL hash for cross-subdomain authentication
+          const tokenParam = accessToken
+            ? `#access_token=${encodeURIComponent(accessToken)}`
+            : '';
+
           if (isLocalhost) {
             // For development, redirect to subdomain on localhost
             const port = currentHost.split(':')[1] || '3000';
-            const redirectUrl = `http://${expectedSubdomain}.localhost:${port}`;
+            const redirectUrl = `http://${expectedSubdomain}.localhost:${port}${tokenParam}`;
             console.log('🖥️ LOCALHOST REDIRECT TO:', redirectUrl);
             window.location.href = redirectUrl;
           } else {
             // For production, redirect to the actual subdomain
             const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
-            const redirectUrl = `https://${expectedSubdomain}.${domain}`;
+            const redirectUrl = `https://${expectedSubdomain}.${domain}${tokenParam}`;
             console.log('🌍 PRODUCTION REDIRECT TO:', redirectUrl);
             console.log('🌍 Domain calculated as:', domain);
             console.log('🌍 Full redirect URL:', redirectUrl);
+            console.log('🌍 Including access token in URL hash');
 
             // Add a small delay to ensure logs are visible
             setTimeout(() => {

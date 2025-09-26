@@ -21,14 +21,21 @@ export default function Home() {
   const searchParams = useSearchParams();
   const { userData } = useUserData();
 
-  const handleAuth0Callback = () => {
+  const handleAuth0Callback = async () => {
     try {
-      // Check for token in URL hash (implicit flow)
+      // Check for token in URL hash (both implicit flow and cross-subdomain auth)
       const hash = window.location.hash.substring(1);
       const hashParams = new URLSearchParams(hash);
       const accessToken = hashParams.get('access_token');
 
       if (accessToken) {
+        console.log(
+          '🔑 Found access token in URL hash, storing in localStorage',
+        );
+
+        // Show loading state while processing authentication
+        setLoading(true);
+
         // Store token in localStorage with TTL
         localStorage.setItem(
           'bearerToken',
@@ -38,9 +45,90 @@ export default function Home() {
           }),
         );
 
+        // Fetch and cache user data before reload
+        console.log('👤 Fetching and caching user data...');
+        try {
+          const BaseURLAuth =
+            process.env.NEXT_PUBLIC_BaseURLAuth ||
+            'https://apis.testkdlakshya.uchhal.in/auth';
+
+          const response = await fetch(
+            `${BaseURLAuth}/users/me?include=permission`,
+            {
+              method: 'GET',
+              headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/vnd.api+json',
+              },
+            },
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            const userData = data.data;
+
+            console.log('👤 Successfully fetched user data:', userData);
+
+            // Determine user role
+            let role = 'student';
+            if (userData.attributes && userData.attributes.type === 'faculty') {
+              role = 'admin';
+            } else if (userData.user_permissions) {
+              if (
+                userData.user_permissions['admin'] ||
+                userData.user_permissions['organization_admin'] ||
+                userData.user_permissions['org']
+              ) {
+                role = 'admin';
+              } else if (
+                userData.user_permissions['teacher'] ||
+                userData.user_permissions['instructor']
+              ) {
+                role = 'teacher';
+              }
+            }
+
+            // Cache user data in localStorage
+            const processedUserData = {
+              id: userData.id,
+              email: userData.attributes.email,
+              firstName:
+                userData.attributes.first_name ||
+                userData.attributes.name?.split(' ')[0] ||
+                'User',
+              lastName:
+                userData.attributes.last_name ||
+                userData.attributes.name?.split(' ').slice(1).join(' ') ||
+                '',
+              role: role as 'admin' | 'teacher' | 'student',
+              permissions:
+                userData.attributes.permissions ||
+                userData.user_permissions ||
+                {},
+              orgId: userData.attributes.org_id || userData.attributes.org,
+              accessToken,
+              cacheTimestamp: Date.now(),
+            };
+
+            localStorage.setItem(
+              'cachedUserData',
+              JSON.stringify(processedUserData),
+            );
+            console.log('💾 User data cached successfully');
+          } else {
+            console.error('❌ Failed to fetch user data:', response.status);
+          }
+        } catch (userDataError) {
+          console.error('❌ Error fetching user data:', userDataError);
+        }
+
         // Clean URL and redirect to dashboard
+        console.log('🔑 Cleaning URL and redirecting to dashboard');
         window.history.replaceState({}, '', '/');
-        router.push('/dashboard');
+
+        // Force a page reload to ensure all hooks pick up the new token and cached data
+        console.log('🔄 Reloading page to initialize authentication state');
+        window.location.reload();
         return true;
       }
       return false;
@@ -79,14 +167,19 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Check if this is an Auth0 callback with token in hash
-    if (window.location.hash.includes('access_token')) {
-      handleAuth0Callback();
-      return;
-    }
+    const initializeAuth = async () => {
+      // Check if this is an Auth0 callback with token in hash (cross-subdomain or direct)
+      if (window.location.hash.includes('access_token')) {
+        console.log('🔍 Detected access token in URL hash');
+        await handleAuth0Callback();
+        return;
+      }
 
-    // Try to load data from API first
-    loadDataFromAPI();
+      // Try to load data from API first
+      loadDataFromAPI();
+    };
+
+    initializeAuth();
   }, [userData]); // Reload when user data changes
 
   if (loading) {
