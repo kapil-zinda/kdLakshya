@@ -26,15 +26,23 @@ export function Providers({ children }: ThemeProviderProps) {
     orgId: string,
     accessToken?: string,
   ) => {
+    console.log('🔧 redirectToOrgSubdomain CALLED with:', {
+      orgId,
+      hasToken: !!accessToken,
+    });
     try {
       // Show loader during redirect
       setIsRedirecting(true);
+      console.log('🔧 Set isRedirecting to true');
 
       // Get organization data to determine subdomain
+      console.log('🔧 Fetching organization data for orgId:', orgId);
       const orgData = await ApiService.getOrganizationById(orgId, accessToken);
+      console.log('🔧 Raw organization response:', orgData);
       const expectedSubdomain = orgData.data.attributes.subdomain;
+      console.log('🔧 Extracted subdomain:', expectedSubdomain);
 
-      console.log('Redirecting user to org subdomain:', expectedSubdomain);
+      console.log('🔄 Redirecting user to org subdomain:', expectedSubdomain);
 
       if (expectedSubdomain) {
         // Check current subdomain to avoid unnecessary redirects
@@ -44,14 +52,18 @@ export function Providers({ children }: ThemeProviderProps) {
           currentHostParts.length > 2 ? currentHostParts[0] : null;
 
         console.log(
-          'Current subdomain:',
+          '🌐 Current subdomain:',
           currentSubdomain,
           'Expected:',
           expectedSubdomain,
         );
+        console.log('🌐 Current host:', currentHost);
+        console.log('🌐 Host parts:', currentHostParts);
 
         // Only redirect if user is on wrong subdomain
         if (currentSubdomain !== expectedSubdomain) {
+          console.log('🚀 SUBDOMAIN MISMATCH - INITIATING REDIRECT');
+          console.log('🚀 From:', currentSubdomain, 'To:', expectedSubdomain);
           const isLocalhost =
             currentHost.includes('localhost') ||
             currentHost.includes('127.0.0.1');
@@ -59,19 +71,22 @@ export function Providers({ children }: ThemeProviderProps) {
           if (isLocalhost) {
             // For development, redirect to subdomain on localhost
             const port = currentHost.split(':')[1] || '3000';
-            console.log(
-              'Redirecting to:',
-              `http://${expectedSubdomain}.localhost:${port}`,
-            );
-            window.location.href = `http://${expectedSubdomain}.localhost:${port}`;
+            const redirectUrl = `http://${expectedSubdomain}.localhost:${port}`;
+            console.log('🖥️ LOCALHOST REDIRECT TO:', redirectUrl);
+            window.location.href = redirectUrl;
           } else {
             // For production, redirect to the actual subdomain
             const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
-            console.log(
-              'Redirecting to:',
-              `https://${expectedSubdomain}.${domain}`,
-            );
-            window.location.href = `https://${expectedSubdomain}.${domain}`;
+            const redirectUrl = `https://${expectedSubdomain}.${domain}`;
+            console.log('🌍 PRODUCTION REDIRECT TO:', redirectUrl);
+            console.log('🌍 Domain calculated as:', domain);
+            console.log('🌍 Full redirect URL:', redirectUrl);
+
+            // Add a small delay to ensure logs are visible
+            setTimeout(() => {
+              console.log('🌍 EXECUTING REDIRECT NOW...');
+              window.location.href = redirectUrl;
+            }, 100);
           }
         } else {
           // User is already on correct subdomain, just go to dashboard
@@ -138,8 +153,16 @@ export function Providers({ children }: ThemeProviderProps) {
 
       // Only redirect on initial login, not when navigating back to homepage
       if (shouldRedirect && orgId) {
-        console.log('Redirecting user with orgId:', orgId);
+        console.log('🚀 CALLING redirectToOrgSubdomain with orgId:', orgId);
+        console.log('🚀 shouldRedirect:', shouldRedirect);
+        console.log('🚀 bearerToken exists:', !!bearerToken);
         await redirectToOrgSubdomain(orgId, bearerToken);
+      } else {
+        console.log('❌ NOT calling redirectToOrgSubdomain:', {
+          shouldRedirect,
+          orgId,
+          hasToken: !!bearerToken,
+        });
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -245,10 +268,39 @@ export function Providers({ children }: ThemeProviderProps) {
 
       // Only redirect immediately after OAuth callback, not on normal homepage visits
       const wasAuthCallback = sessionStorage.getItem('isAuthCallback');
-      if (window.location.pathname === '/' && wasAuthCallback) {
+      console.log('🔍 Auth callback check:', {
+        pathname: window.location.pathname,
+        wasAuthCallback: !!wasAuthCallback,
+        fullUrl: window.location.href,
+        currentHost: window.location.host,
+      });
+
+      // Check if this is SLS domain and should trigger redirect
+      const currentHost = window.location.host;
+      const isSlsOrLocalhost =
+        currentHost.includes('sls.') ||
+        currentHost.includes('localhost') ||
+        currentHost.includes('127.0.0.1');
+
+      if (
+        window.location.pathname === '/' &&
+        wasAuthCallback &&
+        isSlsOrLocalhost
+      ) {
+        console.log(
+          '✅ This is an auth callback on SLS - will trigger redirect',
+        );
         sessionStorage.removeItem('isAuthCallback'); // Clear the flag
         await userMeData(token, true); // Pass true to trigger subdomain redirect
       } else {
+        console.log(
+          '❌ Not an auth callback, not on SLS, or not on homepage - no redirect',
+          {
+            isHomepage: window.location.pathname === '/',
+            wasAuthCallback: !!wasAuthCallback,
+            isSlsOrLocalhost,
+          },
+        );
         await userMeData(token, false); // Don't redirect for normal visits
       }
     } catch (error) {
