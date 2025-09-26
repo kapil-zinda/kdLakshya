@@ -91,7 +91,6 @@ export function DashboardWrapper({
     firstName: cachedUserData.firstName || '',
     lastName: cachedUserData.lastName || '',
     permission: cachedUserData.permissions,
-    permissions: cachedUserData.permissions, // Add this for dashboard check
     allowedTeams: Object.keys(cachedUserData.permissions || {})
       .filter((key) => key.startsWith('team-'))
       .map((key) => key.match(/team-(\d+)/)?.[1])
