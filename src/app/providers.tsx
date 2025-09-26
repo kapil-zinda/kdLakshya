@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import { usePathname } from 'next/navigation';
 
+import { ApiService } from '@/services/api';
 import axios from 'axios';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { type ThemeProviderProps } from 'next-themes/dist/types';
@@ -20,7 +21,43 @@ export function Providers({ children }: ThemeProviderProps) {
   const [isProcessingCode, setIsProcessingCode] = React.useState(false);
   const pathname = usePathname();
 
-  const userMeData = async (bearerToken: string) => {
+  const redirectToOrgSubdomain = async (orgId: string) => {
+    try {
+      // Get organization data to determine subdomain
+      const orgData = await ApiService.getOrganizationById(orgId);
+      const subdomain = orgData.data.attributes.subdomain;
+
+      if (subdomain) {
+        // Redirect to the organization's subdomain
+        const currentHost = window.location.host;
+        const isLocalhost =
+          currentHost.includes('localhost') ||
+          currentHost.includes('127.0.0.1');
+
+        if (isLocalhost) {
+          // For development, redirect to subdomain on localhost
+          const port = currentHost.split(':')[1] || '3000';
+          window.location.href = `http://${subdomain}.localhost:${port}`;
+        } else {
+          // For production, redirect to the actual subdomain
+          const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
+          window.location.href = `https://${subdomain}.${domain}`;
+        }
+      } else {
+        // Fallback to dashboard if no subdomain found
+        window.location.href = '/dashboard';
+      }
+    } catch (error) {
+      console.error('Error fetching organization data for redirect:', error);
+      // Fallback to dashboard on error
+      window.location.href = '/dashboard';
+    }
+  };
+
+  const userMeData = async (
+    bearerToken: string,
+    shouldRedirect: boolean = false,
+  ) => {
     if (!bearerToken) return;
 
     try {
@@ -54,7 +91,9 @@ export function Providers({ children }: ThemeProviderProps) {
       });
 
       // Only redirect on initial login, not when navigating back to homepage
-      // Remove automatic redirect to allow homepage access when authenticated
+      if (shouldRedirect && attributes.org) {
+        await redirectToOrgSubdomain(attributes.org);
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
       // If we get a 401 or 403, the token is invalid
@@ -157,13 +196,13 @@ export function Providers({ children }: ThemeProviderProps) {
       // Mark code as processed temporarily
       sessionStorage.setItem('authCodeProcessed', 'true');
 
-      await userMeData(token);
-
-      // Only redirect to dashboard immediately after OAuth callback, not on normal homepage visits
+      // Only redirect immediately after OAuth callback, not on normal homepage visits
       const wasAuthCallback = sessionStorage.getItem('isAuthCallback');
       if (window.location.pathname === '/' && wasAuthCallback) {
         sessionStorage.removeItem('isAuthCallback'); // Clear the flag
-        window.location.href = '/dashboard';
+        await userMeData(token, true); // Pass true to trigger subdomain redirect
+      } else {
+        await userMeData(token, false); // Don't redirect for normal visits
       }
     } catch (error) {
       console.error('Error fetching auth token:', error);
@@ -205,7 +244,7 @@ export function Providers({ children }: ThemeProviderProps) {
         setAccessTkn(token);
         // Only call userMeData if not on dashboard page (DashboardWrapper handles it)
         if (pathname !== '/dashboard') {
-          userMeData(token);
+          userMeData(token, false); // Don't redirect on page load
         }
       }
     }

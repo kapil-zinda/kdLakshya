@@ -489,6 +489,19 @@ export class ApiService {
     }
   }
 
+  // Get organization data by ID
+  static async getOrganizationById(
+    orgId: string,
+  ): Promise<OrganizationResponse> {
+    try {
+      const response = await externalApi.get(`/organizations/${orgId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching organization data by ID:', error);
+      throw new Error('Failed to fetch organization data by ID');
+    }
+  }
+
   // Helper method to get current organization ID from subdomain with sessionStorage caching
   static async getCurrentOrgId(): Promise<string> {
     try {
