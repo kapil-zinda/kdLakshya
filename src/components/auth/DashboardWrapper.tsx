@@ -76,6 +76,11 @@ export function DashboardWrapper({
     return null;
   }
 
+  console.log(
+    'DashboardWrapper cachedUserData:',
+    JSON.stringify(cachedUserData, null, 2),
+  );
+
   // Convert cached user data to the expected UserData format
   const userData: UserData = {
     userId: cachedUserData.id,
@@ -83,14 +88,19 @@ export function DashboardWrapper({
     orgKeyId: 'org-' + cachedUserData.orgId,
     orgId: cachedUserData.orgId,
     userEmail: cachedUserData.email,
-    firstName: cachedUserData.firstName,
-    lastName: cachedUserData.lastName,
+    firstName: cachedUserData.firstName || '',
+    lastName: cachedUserData.lastName || '',
     permission: cachedUserData.permissions,
     allowedTeams: Object.keys(cachedUserData.permissions || {})
       .filter((key) => key.startsWith('team-'))
       .map((key) => key.match(/team-(\d+)/)?.[1])
       .filter(Boolean) as string[],
   };
+
+  console.log(
+    'DashboardWrapper transformed userData:',
+    JSON.stringify(userData, null, 2),
+  );
 
   return <>{children(userData)}</>;
 }

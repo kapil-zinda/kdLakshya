@@ -97,12 +97,22 @@ export function useUserData() {
       const data = await response.json();
       const userData = data.data;
 
+      console.log(
+        'Full user data from API:',
+        JSON.stringify(userData, null, 2),
+      );
+
       // Determine user role based on permissions
       let role = 'student';
-      if (userData.user_permissions) {
+
+      // Check user type from attributes first
+      if (userData.attributes && userData.attributes.type === 'faculty') {
+        role = 'admin'; // Faculty should have admin access
+      } else if (userData.user_permissions) {
         if (
           userData.user_permissions['admin'] ||
-          userData.user_permissions['organization_admin']
+          userData.user_permissions['organization_admin'] ||
+          userData.user_permissions['org']
         ) {
           role = 'admin';
         } else if (
@@ -113,14 +123,23 @@ export function useUserData() {
         }
       }
 
+      console.log('Determined role:', role);
+
       const processedUserData = {
         id: userData.id,
         email: userData.attributes.email,
-        firstName: userData.attributes.first_name,
-        lastName: userData.attributes.last_name,
+        firstName:
+          userData.attributes.first_name ||
+          userData.attributes.name?.split(' ')[0] ||
+          'User',
+        lastName:
+          userData.attributes.last_name ||
+          userData.attributes.name?.split(' ').slice(1).join(' ') ||
+          '',
         role: role as 'admin' | 'teacher' | 'student',
-        permissions: userData.user_permissions,
-        orgId: userData.attributes.org,
+        permissions:
+          userData.attributes.permissions || userData.user_permissions || {},
+        orgId: userData.attributes.org_id || userData.attributes.org,
         accessToken,
       };
 
@@ -139,13 +158,20 @@ export function useUserData() {
       setIsLoading(true);
 
       try {
-        // First, try to load cached data
+        // Clear old cache to force fresh data fetch
+        localStorage.removeItem(USER_DATA_KEY);
+        console.log('Cleared cached user data');
+
+        // First, try to load cached data (should be null after removal)
         const cached = loadCachedData();
         if (cached) {
+          console.log('Found cached data (unexpected):', cached);
           setUserData(cached);
           setIsLoading(false);
           return;
         }
+
+        console.log('No cached data, fetching fresh...');
 
         // If no cached data, check for access token
         const tokenData = localStorage.getItem('bearerToken');

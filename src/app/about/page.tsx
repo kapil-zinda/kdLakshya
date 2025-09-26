@@ -5,24 +5,29 @@ import { useEffect, useState } from 'react';
 import { AboutSection } from '@/components/template/AboutSection';
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
+import { useUserData } from '@/hooks/useUserData';
 import {
   ApiService,
   transformApiDataToOrganizationConfig,
 } from '@/services/api';
 import { OrganizationConfig } from '@/types/organization';
-import { getSubdomain } from '@/utils/subdomainUtils';
+import { getTargetSubdomain } from '@/utils/subdomainUtils';
 
 export default function AboutPage() {
   const [organizationData, setOrganizationData] =
     useState<OrganizationConfig | null>(null);
   const [loading, setLoading] = useState(true);
+  const { userData } = useUserData();
 
   useEffect(() => {
     const loadDataFromAPI = async () => {
       try {
         setLoading(true);
-        const subdomain = getSubdomain();
-        const apiData = await ApiService.fetchAllData(subdomain || 'sls');
+        const targetSubdomain = await getTargetSubdomain(
+          userData?.orgId,
+          userData?.accessToken,
+        );
+        const apiData = await ApiService.fetchAllData(targetSubdomain);
         const transformedData = transformApiDataToOrganizationConfig(apiData);
         setOrganizationData(transformedData);
       } catch (error) {
@@ -33,7 +38,7 @@ export default function AboutPage() {
     };
 
     loadDataFromAPI();
-  }, []);
+  }, [userData]);
 
   if (loading) {
     return (

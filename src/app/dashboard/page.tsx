@@ -8,8 +8,14 @@ import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
 
 export default function DashboardPage() {
   const renderDashboardContent = (userData: any) => {
+    console.log(
+      'Dashboard received userData:',
+      JSON.stringify(userData, null, 2),
+    );
+
     // Check if user has org permission (admin)
     if (userData.permission?.org || userData.permissions?.org) {
+      console.log('Admin access granted - rendering admin dashboard');
       return <AdminDashboardContent userData={userData} />;
     }
 

@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import { usePathname } from 'next/navigation';
 
+import { ApiService } from '@/services/api';
 import axios from 'axios';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { type ThemeProviderProps } from 'next-themes/dist/types';
@@ -18,9 +19,99 @@ const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null);
   const [isProcessingCode, setIsProcessingCode] = React.useState(false);
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
   const pathname = usePathname();
 
-  const userMeData = async (bearerToken: string) => {
+  const redirectToOrgSubdomain = async (
+    orgId: string,
+    accessToken?: string,
+  ) => {
+    console.log('🔧 redirectToOrgSubdomain CALLED with:', {
+      orgId,
+      hasToken: !!accessToken,
+    });
+    try {
+      // Show loader during redirect
+      setIsRedirecting(true);
+      console.log('🔧 Set isRedirecting to true');
+
+      // Get organization data to determine subdomain
+      console.log('🔧 Fetching organization data for orgId:', orgId);
+      const orgData = await ApiService.getOrganizationById(orgId, accessToken);
+      console.log('🔧 Raw organization response:', orgData);
+      const expectedSubdomain = orgData.data.attributes.subdomain;
+      console.log('🔧 Extracted subdomain:', expectedSubdomain);
+
+      console.log('🔄 Redirecting user to org subdomain:', expectedSubdomain);
+
+      if (expectedSubdomain) {
+        // Check current subdomain to avoid unnecessary redirects
+        const currentHost = window.location.host;
+        const currentHostParts = currentHost.split('.');
+        const currentSubdomain =
+          currentHostParts.length > 2 ? currentHostParts[0] : null;
+
+        console.log(
+          '🌐 Current subdomain:',
+          currentSubdomain,
+          'Expected:',
+          expectedSubdomain,
+        );
+        console.log('🌐 Current host:', currentHost);
+        console.log('🌐 Host parts:', currentHostParts);
+
+        // Only redirect if user is on wrong subdomain
+        if (currentSubdomain !== expectedSubdomain) {
+          console.log('🚀 SUBDOMAIN MISMATCH - INITIATING REDIRECT');
+          console.log('🚀 From:', currentSubdomain, 'To:', expectedSubdomain);
+          const isLocalhost =
+            currentHost.includes('localhost') ||
+            currentHost.includes('127.0.0.1');
+
+          if (isLocalhost) {
+            // For development, redirect to subdomain on localhost
+            const port = currentHost.split(':')[1] || '3000';
+            const redirectUrl = `http://${expectedSubdomain}.localhost:${port}`;
+            console.log('🖥️ LOCALHOST REDIRECT TO:', redirectUrl);
+            window.location.href = redirectUrl;
+          } else {
+            // For production, redirect to the actual subdomain
+            const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
+            const redirectUrl = `https://${expectedSubdomain}.${domain}`;
+            console.log('🌍 PRODUCTION REDIRECT TO:', redirectUrl);
+            console.log('🌍 Domain calculated as:', domain);
+            console.log('🌍 Full redirect URL:', redirectUrl);
+
+            // Add a small delay to ensure logs are visible
+            setTimeout(() => {
+              console.log('🌍 EXECUTING REDIRECT NOW...');
+              window.location.href = redirectUrl;
+            }, 100);
+          }
+        } else {
+          // User is already on correct subdomain, just go to dashboard
+          console.log('User already on correct subdomain, going to dashboard');
+          setIsRedirecting(false);
+          window.location.href = '/dashboard';
+        }
+      } else {
+        // Fallback to dashboard if no subdomain found
+        console.log('No subdomain found, going to dashboard');
+        setIsRedirecting(false);
+        window.location.href = '/dashboard';
+      }
+    } catch (error) {
+      console.error('Error fetching organization data for redirect:', error);
+      // Fallback to dashboard on error
+      setIsRedirecting(false);
+      window.location.href = '/dashboard';
+    }
+  };
+
+  const userMeData = async (
+    bearerToken: string,
+    shouldRedirect: boolean = false,
+  ) => {
     if (!bearerToken) return;
 
     try {
@@ -38,14 +129,21 @@ export function Providers({ children }: ThemeProviderProps) {
       const attributes = userData.attributes;
       const permissions = res.data.data.user_permissions || {};
 
+      // Handle both possible field names for org ID
+      const orgId = attributes.org_id || attributes.org;
+      console.log('🔍 Provider: Raw attributes:', attributes);
+      console.log('🏢 Provider: Extracted orgId:', orgId);
+
       updateUserData({
-        userId: attributes.user_id,
-        keyId: 'user-' + attributes.user_id,
-        orgKeyId: 'org-' + attributes.org,
-        orgId: attributes.org,
+        userId: attributes.user_id || attributes.id,
+        keyId: 'user-' + (attributes.user_id || attributes.id),
+        orgKeyId: 'org-' + orgId,
+        orgId: orgId,
         userEmail: attributes.email,
-        firstName: attributes.first_name,
-        lastName: attributes.last_name,
+        firstName: attributes.first_name || attributes.name?.split(' ')[0],
+        lastName:
+          attributes.last_name ||
+          attributes.name?.split(' ').slice(1).join(' '),
         permission: permissions,
         allowedTeams: Object.keys(permissions || {})
           .filter((key) => key.startsWith('team-'))
@@ -54,7 +152,18 @@ export function Providers({ children }: ThemeProviderProps) {
       });
 
       // Only redirect on initial login, not when navigating back to homepage
-      // Remove automatic redirect to allow homepage access when authenticated
+      if (shouldRedirect && orgId) {
+        console.log('🚀 CALLING redirectToOrgSubdomain with orgId:', orgId);
+        console.log('🚀 shouldRedirect:', shouldRedirect);
+        console.log('🚀 bearerToken exists:', !!bearerToken);
+        await redirectToOrgSubdomain(orgId, bearerToken);
+      } else {
+        console.log('❌ NOT calling redirectToOrgSubdomain:', {
+          shouldRedirect,
+          orgId,
+          hasToken: !!bearerToken,
+        });
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
       // If we get a 401 or 403, the token is invalid
@@ -157,13 +266,42 @@ export function Providers({ children }: ThemeProviderProps) {
       // Mark code as processed temporarily
       sessionStorage.setItem('authCodeProcessed', 'true');
 
-      await userMeData(token);
-
-      // Only redirect to dashboard immediately after OAuth callback, not on normal homepage visits
+      // Only redirect immediately after OAuth callback, not on normal homepage visits
       const wasAuthCallback = sessionStorage.getItem('isAuthCallback');
-      if (window.location.pathname === '/' && wasAuthCallback) {
+      console.log('🔍 Auth callback check:', {
+        pathname: window.location.pathname,
+        wasAuthCallback: !!wasAuthCallback,
+        fullUrl: window.location.href,
+        currentHost: window.location.host,
+      });
+
+      // Check if this is SLS domain and should trigger redirect
+      const currentHost = window.location.host;
+      const isSlsOrLocalhost =
+        currentHost.includes('sls.') ||
+        currentHost.includes('localhost') ||
+        currentHost.includes('127.0.0.1');
+
+      if (
+        window.location.pathname === '/' &&
+        wasAuthCallback &&
+        isSlsOrLocalhost
+      ) {
+        console.log(
+          '✅ This is an auth callback on SLS - will trigger redirect',
+        );
         sessionStorage.removeItem('isAuthCallback'); // Clear the flag
-        window.location.href = '/dashboard';
+        await userMeData(token, true); // Pass true to trigger subdomain redirect
+      } else {
+        console.log(
+          '❌ Not an auth callback, not on SLS, or not on homepage - no redirect',
+          {
+            isHomepage: window.location.pathname === '/',
+            wasAuthCallback: !!wasAuthCallback,
+            isSlsOrLocalhost,
+          },
+        );
+        await userMeData(token, false); // Don't redirect for normal visits
       }
     } catch (error) {
       console.error('Error fetching auth token:', error);
@@ -205,7 +343,7 @@ export function Providers({ children }: ThemeProviderProps) {
         setAccessTkn(token);
         // Only call userMeData if not on dashboard page (DashboardWrapper handles it)
         if (pathname !== '/dashboard') {
-          userMeData(token);
+          userMeData(token, false); // Don't redirect on page load
         }
       }
     }
@@ -243,6 +381,29 @@ export function Providers({ children }: ThemeProviderProps) {
       }
     }
   }, [accessTkn, isProcessingCode]);
+
+  // Show loader when processing auth code or redirecting
+  if (isProcessingCode || isRedirecting) {
+    return (
+      <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <div className="text-center">
+            <p className="text-lg font-semibold text-gray-900">
+              {isProcessingCode
+                ? 'Authenticating...'
+                : 'Redirecting to your organization...'}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              {isProcessingCode
+                ? 'Please wait while we verify your credentials'
+                : 'Please wait while we take you to the right place'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <NextThemesProvider
