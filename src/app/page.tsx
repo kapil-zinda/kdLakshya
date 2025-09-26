@@ -5,12 +5,13 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import { OrganizationTemplate } from '@/components/template/OrganizationTemplate';
+import { useUserData } from '@/hooks/useUserData';
 import {
   ApiService,
   transformApiDataToOrganizationConfig,
 } from '@/services/api';
 import { OrganizationConfig } from '@/types/organization';
-import { getSubdomain } from '@/utils/subdomainUtils';
+import { getTargetSubdomain } from '@/utils/subdomainUtils';
 
 export default function Home() {
   const [organizationData, setOrganizationData] =
@@ -18,6 +19,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { userData } = useUserData();
 
   const handleAuth0Callback = () => {
     try {
@@ -54,13 +56,15 @@ export default function Home() {
       setLoading(true);
       console.log('Fetching data from APIs...');
 
-      // Get current subdomain from URL or fallback methods
-      const subdomain = getSubdomain();
-      console.log('Detected subdomain:', subdomain);
+      // Get the correct subdomain to use
+      const targetSubdomain = await getTargetSubdomain(
+        userData?.orgId,
+        userData?.accessToken,
+      );
 
-      // Fetch all API data in sequence
-      const apiData = await ApiService.fetchAllData(subdomain || 'sls');
-      console.log('API Data received:', apiData);
+      // Fetch all API data using the determined subdomain
+      const apiData = await ApiService.fetchAllData(targetSubdomain);
+      console.log('API Data received for subdomain:', targetSubdomain, apiData);
 
       // Transform API data to OrganizationConfig format
       const transformedData = transformApiDataToOrganizationConfig(apiData);
@@ -83,7 +87,7 @@ export default function Home() {
 
     // Try to load data from API first
     loadDataFromAPI();
-  }, []);
+  }, [userData]); // Reload when user data changes
 
   if (loading) {
     return (

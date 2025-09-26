@@ -492,9 +492,20 @@ export class ApiService {
   // Get organization data by ID
   static async getOrganizationById(
     orgId: string,
+    accessToken?: string,
   ): Promise<OrganizationResponse> {
     try {
-      const response = await externalApi.get(`/organizations/${orgId}`);
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
+
+      const response = await externalApi.get(`/organizations/${orgId}`, {
+        headers,
+      });
       return response.data;
     } catch (error) {
       console.error('Error fetching organization data by ID:', error);

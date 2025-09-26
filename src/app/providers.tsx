@@ -19,37 +19,76 @@ const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null);
   const [isProcessingCode, setIsProcessingCode] = React.useState(false);
+  const [isRedirecting, setIsRedirecting] = React.useState(false);
   const pathname = usePathname();
 
-  const redirectToOrgSubdomain = async (orgId: string) => {
+  const redirectToOrgSubdomain = async (
+    orgId: string,
+    accessToken?: string,
+  ) => {
     try {
+      // Show loader during redirect
+      setIsRedirecting(true);
+
       // Get organization data to determine subdomain
-      const orgData = await ApiService.getOrganizationById(orgId);
-      const subdomain = orgData.data.attributes.subdomain;
+      const orgData = await ApiService.getOrganizationById(orgId, accessToken);
+      const expectedSubdomain = orgData.data.attributes.subdomain;
 
-      if (subdomain) {
-        // Redirect to the organization's subdomain
+      console.log('Redirecting user to org subdomain:', expectedSubdomain);
+
+      if (expectedSubdomain) {
+        // Check current subdomain to avoid unnecessary redirects
         const currentHost = window.location.host;
-        const isLocalhost =
-          currentHost.includes('localhost') ||
-          currentHost.includes('127.0.0.1');
+        const currentHostParts = currentHost.split('.');
+        const currentSubdomain =
+          currentHostParts.length > 2 ? currentHostParts[0] : null;
 
-        if (isLocalhost) {
-          // For development, redirect to subdomain on localhost
-          const port = currentHost.split(':')[1] || '3000';
-          window.location.href = `http://${subdomain}.localhost:${port}`;
+        console.log(
+          'Current subdomain:',
+          currentSubdomain,
+          'Expected:',
+          expectedSubdomain,
+        );
+
+        // Only redirect if user is on wrong subdomain
+        if (currentSubdomain !== expectedSubdomain) {
+          const isLocalhost =
+            currentHost.includes('localhost') ||
+            currentHost.includes('127.0.0.1');
+
+          if (isLocalhost) {
+            // For development, redirect to subdomain on localhost
+            const port = currentHost.split(':')[1] || '3000';
+            console.log(
+              'Redirecting to:',
+              `http://${expectedSubdomain}.localhost:${port}`,
+            );
+            window.location.href = `http://${expectedSubdomain}.localhost:${port}`;
+          } else {
+            // For production, redirect to the actual subdomain
+            const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
+            console.log(
+              'Redirecting to:',
+              `https://${expectedSubdomain}.${domain}`,
+            );
+            window.location.href = `https://${expectedSubdomain}.${domain}`;
+          }
         } else {
-          // For production, redirect to the actual subdomain
-          const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
-          window.location.href = `https://${subdomain}.${domain}`;
+          // User is already on correct subdomain, just go to dashboard
+          console.log('User already on correct subdomain, going to dashboard');
+          setIsRedirecting(false);
+          window.location.href = '/dashboard';
         }
       } else {
         // Fallback to dashboard if no subdomain found
+        console.log('No subdomain found, going to dashboard');
+        setIsRedirecting(false);
         window.location.href = '/dashboard';
       }
     } catch (error) {
       console.error('Error fetching organization data for redirect:', error);
       // Fallback to dashboard on error
+      setIsRedirecting(false);
       window.location.href = '/dashboard';
     }
   };
@@ -75,14 +114,21 @@ export function Providers({ children }: ThemeProviderProps) {
       const attributes = userData.attributes;
       const permissions = res.data.data.user_permissions || {};
 
+      // Handle both possible field names for org ID
+      const orgId = attributes.org_id || attributes.org;
+      console.log('🔍 Provider: Raw attributes:', attributes);
+      console.log('🏢 Provider: Extracted orgId:', orgId);
+
       updateUserData({
-        userId: attributes.user_id,
-        keyId: 'user-' + attributes.user_id,
-        orgKeyId: 'org-' + attributes.org,
-        orgId: attributes.org,
+        userId: attributes.user_id || attributes.id,
+        keyId: 'user-' + (attributes.user_id || attributes.id),
+        orgKeyId: 'org-' + orgId,
+        orgId: orgId,
         userEmail: attributes.email,
-        firstName: attributes.first_name,
-        lastName: attributes.last_name,
+        firstName: attributes.first_name || attributes.name?.split(' ')[0],
+        lastName:
+          attributes.last_name ||
+          attributes.name?.split(' ').slice(1).join(' '),
         permission: permissions,
         allowedTeams: Object.keys(permissions || {})
           .filter((key) => key.startsWith('team-'))
@@ -91,8 +137,9 @@ export function Providers({ children }: ThemeProviderProps) {
       });
 
       // Only redirect on initial login, not when navigating back to homepage
-      if (shouldRedirect && attributes.org) {
-        await redirectToOrgSubdomain(attributes.org);
+      if (shouldRedirect && orgId) {
+        console.log('Redirecting user with orgId:', orgId);
+        await redirectToOrgSubdomain(orgId, bearerToken);
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -282,6 +329,29 @@ export function Providers({ children }: ThemeProviderProps) {
       }
     }
   }, [accessTkn, isProcessingCode]);
+
+  // Show loader when processing auth code or redirecting
+  if (isProcessingCode || isRedirecting) {
+    return (
+      <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <div className="text-center">
+            <p className="text-lg font-semibold text-gray-900">
+              {isProcessingCode
+                ? 'Authenticating...'
+                : 'Redirecting to your organization...'}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              {isProcessingCode
+                ? 'Please wait while we verify your credentials'
+                : 'Please wait while we take you to the right place'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <NextThemesProvider

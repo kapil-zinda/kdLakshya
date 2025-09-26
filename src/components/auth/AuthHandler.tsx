@@ -14,6 +14,7 @@ export function AuthHandler() {
   const { fetchUserDataFromBackend } = useUserData();
   const router = useRouter();
   const [hasProcessed, setHasProcessed] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   useEffect(() => {
     if (!isLoading && user && !hasProcessed) {
@@ -57,26 +58,65 @@ export function AuthHandler() {
       // Both admin and faculty users redirect to their organization's subdomain
       try {
         // Get organization data to determine subdomain
-        const orgData = await ApiService.getOrganizationById(userData.orgId);
-        const subdomain = orgData.data.attributes.subdomain;
+        const orgData = await ApiService.getOrganizationById(
+          userData.orgId,
+          accessToken,
+        );
+        const expectedSubdomain = orgData.data.attributes.subdomain;
 
-        if (subdomain) {
-          // Redirect to the organization's subdomain
+        console.log('User orgId:', userData.orgId);
+        console.log('Organization data:', orgData);
+        console.log('Expected subdomain:', expectedSubdomain);
+
+        if (expectedSubdomain) {
+          // Check current subdomain
           const currentHost = window.location.host;
-          const isLocalhost =
-            currentHost.includes('localhost') ||
-            currentHost.includes('127.0.0.1');
+          const currentHostParts = currentHost.split('.');
+          const currentSubdomain =
+            currentHostParts.length > 2 ? currentHostParts[0] : null;
 
-          if (isLocalhost) {
-            // For development, redirect to subdomain on localhost
-            const port = currentHost.split(':')[1] || '3000';
-            window.location.href = `http://${subdomain}.localhost:${port}`;
+          console.log('Current host:', currentHost);
+          console.log('Current subdomain:', currentSubdomain);
+
+          // Only redirect if user is on wrong subdomain
+          if (currentSubdomain !== expectedSubdomain) {
+            const isLocalhost =
+              currentHost.includes('localhost') ||
+              currentHost.includes('127.0.0.1');
+
+            console.log('Is localhost:', isLocalhost);
+            console.log(
+              'Subdomain mismatch - redirecting from',
+              currentSubdomain,
+              'to',
+              expectedSubdomain,
+            );
+
+            // Show loader during redirect
+            setIsRedirecting(true);
+
+            if (isLocalhost) {
+              // For development, redirect to subdomain on localhost
+              const port = currentHost.split(':')[1] || '3000';
+              const redirectUrl = `http://${expectedSubdomain}.localhost:${port}`;
+              console.log('Redirecting to:', redirectUrl);
+              window.location.href = redirectUrl;
+            } else {
+              // For production, redirect to the actual subdomain
+              const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
+              const redirectUrl = `https://${expectedSubdomain}.${domain}`;
+              console.log('Production redirect URL:', redirectUrl);
+              window.location.href = redirectUrl;
+            }
           } else {
-            // For production, redirect to the actual subdomain
-            const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
-            window.location.href = `https://${subdomain}.${domain}`;
+            console.log(
+              'User is already on correct subdomain, redirecting to dashboard',
+            );
+            // User is on correct subdomain, redirect to dashboard
+            router.push('/dashboard');
           }
         } else {
+          console.log('No subdomain found, redirecting to dashboard');
           // Fallback to dashboard if no subdomain found
           router.push('/dashboard');
         }
@@ -92,5 +132,24 @@ export function AuthHandler() {
     }
   };
 
-  return null; // This component doesn't render anything
+  // Show loader when redirecting to correct subdomain
+  if (isRedirecting) {
+    return (
+      <div className="fixed inset-0 bg-white z-50 flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <div className="text-center">
+            <p className="text-lg font-semibold text-gray-900">
+              Redirecting to your organization...
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              Please wait while we take you to the right place
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null; // This component doesn't render anything when not redirecting
 }
