@@ -95,17 +95,23 @@ export function AuthHandler() {
             // Show loader during redirect
             setIsRedirecting(true);
 
+            // Pass the access token via URL hash for cross-subdomain authentication
+            const tokenParam = accessToken
+              ? `#access_token=${encodeURIComponent(accessToken)}`
+              : '';
+
             if (isLocalhost) {
               // For development, redirect to subdomain on localhost
               const port = currentHost.split(':')[1] || '3000';
-              const redirectUrl = `http://${expectedSubdomain}.localhost:${port}`;
+              const redirectUrl = `http://${expectedSubdomain}.localhost:${port}${tokenParam}`;
               console.log('Redirecting to:', redirectUrl);
               window.location.href = redirectUrl;
             } else {
               // For production, redirect to the actual subdomain
               const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
-              const redirectUrl = `https://${expectedSubdomain}.${domain}`;
+              const redirectUrl = `https://${expectedSubdomain}.${domain}${tokenParam}`;
               console.log('Production redirect URL:', redirectUrl);
+              console.log('Including access token in URL hash');
               window.location.href = redirectUrl;
             }
           } else {
