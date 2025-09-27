@@ -60,19 +60,20 @@ export function Providers({ children }: ThemeProviderProps) {
         console.log('🌐 Current host:', currentHost);
         console.log('🌐 Host parts:', currentHostParts);
 
-        // Only redirect if user is on wrong subdomain or on SLS
-        const isOnSls = currentSubdomain === 'sls';
-        const needsRedirect = currentSubdomain !== expectedSubdomain || isOnSls;
+        // Only redirect if user is on wrong subdomain or on AUTH
+        const isOnAuth = currentSubdomain === 'auth';
+        const needsRedirect =
+          currentSubdomain !== expectedSubdomain || isOnAuth;
 
         console.log('🔍 Redirect decision:', {
           currentSubdomain,
           expectedSubdomain,
-          isOnSls,
+          isOnAuth,
           needsRedirect,
         });
 
         if (needsRedirect) {
-          console.log('🚀 SUBDOMAIN MISMATCH OR ON SLS - INITIATING REDIRECT');
+          console.log('🚀 SUBDOMAIN MISMATCH OR ON AUTH - INITIATING REDIRECT');
           console.log('🚀 From:', currentSubdomain, 'To:', expectedSubdomain);
           const isLocalhost =
             currentHost.includes('localhost') ||
@@ -101,7 +102,13 @@ export function Providers({ children }: ThemeProviderProps) {
             // Add a small delay to ensure logs are visible
             setTimeout(() => {
               console.log('🌍 EXECUTING REDIRECT NOW...');
+              console.log('🌍 About to redirect to:', redirectUrl);
+              console.log(
+                '🌍 Current location before redirect:',
+                window.location.href,
+              );
               window.location.href = redirectUrl;
+              console.log('🌍 Redirect command executed');
             }, 100);
           }
         } else {
@@ -173,12 +180,19 @@ export function Providers({ children }: ThemeProviderProps) {
         console.log('🚀 CALLING redirectToOrgSubdomain with orgId:', orgId);
         console.log('🚀 shouldRedirect:', shouldRedirect);
         console.log('🚀 bearerToken exists:', !!bearerToken);
+        console.log(
+          '🚀 Current URL when calling redirect:',
+          window.location.href,
+        );
+        console.log('🚀 User attributes that led to this call:', attributes);
         await redirectToOrgSubdomain(orgId, bearerToken);
       } else {
         console.log('❌ NOT calling redirectToOrgSubdomain:', {
           shouldRedirect,
           orgId,
           hasToken: !!bearerToken,
+          currentUrl: window.location.href,
+          userAttributes: attributes,
         });
       }
     } catch (error) {
@@ -292,30 +306,34 @@ export function Providers({ children }: ThemeProviderProps) {
         currentHost: window.location.host,
       });
 
-      // Check if this is SLS domain and should trigger redirect
+      // Check if this is AUTH domain and should trigger redirect
       const currentHost = window.location.host;
-      const isSlsOrLocalhost =
-        currentHost.includes('sls.') ||
+      const isAuthOrLocalhost =
+        currentHost.includes('auth.') ||
         currentHost.includes('localhost') ||
         currentHost.includes('127.0.0.1');
 
       if (
         window.location.pathname === '/' &&
         wasAuthCallback &&
-        isSlsOrLocalhost
+        isAuthOrLocalhost
       ) {
         console.log(
-          '✅ This is an auth callback on SLS - will trigger redirect',
+          '✅ This is an auth callback on AUTH - will trigger redirect',
         );
+        console.log('✅ About to call userMeData with shouldRedirect=true');
         sessionStorage.removeItem('isAuthCallback'); // Clear the flag
         await userMeData(token, true); // Pass true to trigger subdomain redirect
+        console.log('✅ userMeData call completed');
       } else {
         console.log(
-          '❌ Not an auth callback, not on SLS, or not on homepage - no redirect',
+          '❌ Not an auth callback, not on AUTH, or not on homepage - no redirect',
           {
             isHomepage: window.location.pathname === '/',
             wasAuthCallback: !!wasAuthCallback,
-            isSlsOrLocalhost,
+            isAuthOrLocalhost,
+            fullUrl: window.location.href,
+            pathname: window.location.pathname,
           },
         );
         await userMeData(token, false); // Don't redirect for normal visits

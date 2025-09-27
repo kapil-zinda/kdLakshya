@@ -373,7 +373,7 @@ export interface UserInfoResponse {
 export class ApiService {
   // Step 1: Get subdomain and base configuration (keeping for backward compatibility)
   static async getSubdomain(
-    subdomain: string = 'sls',
+    subdomain: string = 'auth',
   ): Promise<SubdomainResponse> {
     try {
       console.log(
@@ -554,19 +554,19 @@ export class ApiService {
         const hostname = window.location.hostname;
         console.log('Current hostname:', hostname);
 
-        // Handle localhost development - default to 'sls' for testing
+        // Handle localhost development - default to 'auth' for testing
         if (
           hostname === 'localhost' ||
           hostname.startsWith('localhost:') ||
           hostname === '127.0.0.1'
         ) {
-          subdomain = 'sls'; // Default subdomain for localhost development
+          subdomain = 'auth'; // Default subdomain for localhost development
           console.log(
             'Development mode detected, using default subdomain:',
             subdomain,
           );
         } else {
-          // Extract subdomain from production URL (e.g., 'sls' from 'sls.uchhal.in')
+          // Extract subdomain from production URL (e.g., 'auth' from 'auth.uchhal.in')
           const parts = hostname.split('.');
           if (parts.length > 2) {
             subdomain = parts[0];
@@ -1110,8 +1110,8 @@ export class ApiService {
         }
       }
 
-      // Default to 'sls' if no subdomain found
-      targetSubdomain = targetSubdomain || 'sls';
+      // Default to 'auth' if no subdomain found
+      targetSubdomain = targetSubdomain || 'auth';
 
       console.log('Fetching data for subdomain:', targetSubdomain);
 

@@ -30,7 +30,7 @@ export default function ContactPage() {
       try {
         setLoading(true);
         const subdomain = getSubdomain();
-        const apiData = await ApiService.fetchAllData(subdomain || 'sls');
+        const apiData = await ApiService.fetchAllData(subdomain || 'auth');
         const transformedData = transformApiDataToOrganizationConfig(apiData);
         setOrganizationData(transformedData);
       } catch (error) {

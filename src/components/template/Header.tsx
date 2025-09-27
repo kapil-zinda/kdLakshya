@@ -81,7 +81,7 @@ export function Header({ organization }: HeaderProps) {
   };
 
   const handleAuthLogin = () => {
-    // Always redirect to SLS for authentication, regardless of current subdomain
+    // Always redirect to AUTH for authentication, regardless of current subdomain
     const currentHost = window.location.host;
     const isLocalhost =
       currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
@@ -90,14 +90,14 @@ export function Header({ organization }: HeaderProps) {
     if (isLocalhost) {
       // For development, use localhost:3000 as the auth domain
       const port = currentHost.split(':')[1] || '3000';
-      authUrl = `http://sls.localhost:${port}/login`;
+      authUrl = `http://auth.localhost:${port}/login`;
     } else {
-      // For production, always redirect to sls.uchhal.in for authentication
+      // For production, always redirect to auth.uchhal.in for authentication
       const domain = currentHost.split('.').slice(1).join('.'); // Get base domain (uchhal.in)
-      authUrl = `https://sls.${domain}/login`;
+      authUrl = `https://auth.${domain}/login`;
     }
 
-    console.log('🔑 Header: Redirecting to SLS login page:', authUrl);
+    console.log('🔑 Header: Redirecting to AUTH login page:', authUrl);
     window.location.href = authUrl;
   };
 
