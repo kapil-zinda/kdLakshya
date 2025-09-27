@@ -513,10 +513,29 @@ export class ApiService {
     }
   }
 
-  // Helper method to get current organization ID from subdomain with sessionStorage caching
+  // Helper method to get current organization ID from user data or subdomain with sessionStorage caching
   static async getCurrentOrgId(): Promise<string> {
     try {
-      // Check if we already have the org ID cached in sessionStorage
+      // Priority 1: Check if user is logged in and get org ID from user data
+      if (typeof window !== 'undefined') {
+        const cachedUserData = localStorage.getItem('cachedUserData');
+        if (cachedUserData) {
+          try {
+            const userData = JSON.parse(cachedUserData);
+            if (userData.orgId) {
+              console.log(
+                'Using organization ID from authenticated user data:',
+                userData.orgId,
+              );
+              return userData.orgId;
+            }
+          } catch (e) {
+            console.error('Error parsing cached user data:', e);
+          }
+        }
+      }
+
+      // Priority 2: Check if we already have the org ID cached in sessionStorage
       if (typeof window !== 'undefined') {
         const cachedOrgId = sessionStorage.getItem('currentOrgId');
         if (cachedOrgId) {

@@ -103,14 +103,14 @@ export function AuthHandler() {
             if (isLocalhost) {
               // For development, redirect to subdomain on localhost
               const port = currentHost.split(':')[1] || '3000';
-              const redirectUrl = `http://${expectedSubdomain}.localhost:${port}${tokenParam}`;
-              console.log('Redirecting to:', redirectUrl);
+              const redirectUrl = `http://${expectedSubdomain}.localhost:${port}/dashboard${tokenParam}`;
+              console.log('Redirecting to dashboard:', redirectUrl);
               window.location.href = redirectUrl;
             } else {
               // For production, redirect to the actual subdomain
               const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
-              const redirectUrl = `https://${expectedSubdomain}.${domain}${tokenParam}`;
-              console.log('Production redirect URL:', redirectUrl);
+              const redirectUrl = `https://${expectedSubdomain}.${domain}/dashboard${tokenParam}`;
+              console.log('Production redirect to dashboard:', redirectUrl);
               console.log('Including access token in URL hash');
               window.location.href = redirectUrl;
             }
