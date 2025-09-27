@@ -60,9 +60,19 @@ export function Providers({ children }: ThemeProviderProps) {
         console.log('🌐 Current host:', currentHost);
         console.log('🌐 Host parts:', currentHostParts);
 
-        // Only redirect if user is on wrong subdomain
-        if (currentSubdomain !== expectedSubdomain) {
-          console.log('🚀 SUBDOMAIN MISMATCH - INITIATING REDIRECT');
+        // Only redirect if user is on wrong subdomain or on SLS
+        const isOnSls = currentSubdomain === 'sls';
+        const needsRedirect = currentSubdomain !== expectedSubdomain || isOnSls;
+
+        console.log('🔍 Redirect decision:', {
+          currentSubdomain,
+          expectedSubdomain,
+          isOnSls,
+          needsRedirect,
+        });
+
+        if (needsRedirect) {
+          console.log('🚀 SUBDOMAIN MISMATCH OR ON SLS - INITIATING REDIRECT');
           console.log('🚀 From:', currentSubdomain, 'To:', expectedSubdomain);
           const isLocalhost =
             currentHost.includes('localhost') ||
@@ -74,16 +84,16 @@ export function Providers({ children }: ThemeProviderProps) {
             : '';
 
           if (isLocalhost) {
-            // For development, redirect to subdomain on localhost
+            // For development, redirect to subdomain on localhost with dashboard
             const port = currentHost.split(':')[1] || '3000';
-            const redirectUrl = `http://${expectedSubdomain}.localhost:${port}${tokenParam}`;
-            console.log('🖥️ LOCALHOST REDIRECT TO:', redirectUrl);
+            const redirectUrl = `http://${expectedSubdomain}.localhost:${port}/dashboard${tokenParam}`;
+            console.log('🖥️ LOCALHOST REDIRECT TO DASHBOARD:', redirectUrl);
             window.location.href = redirectUrl;
           } else {
-            // For production, redirect to the actual subdomain
+            // For production, redirect to the actual subdomain with dashboard
             const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
-            const redirectUrl = `https://${expectedSubdomain}.${domain}${tokenParam}`;
-            console.log('🌍 PRODUCTION REDIRECT TO:', redirectUrl);
+            const redirectUrl = `https://${expectedSubdomain}.${domain}/dashboard${tokenParam}`;
+            console.log('🌍 PRODUCTION REDIRECT TO DASHBOARD:', redirectUrl);
             console.log('🌍 Domain calculated as:', domain);
             console.log('🌍 Full redirect URL:', redirectUrl);
             console.log('🌍 Including access token in URL hash');
@@ -98,6 +108,7 @@ export function Providers({ children }: ThemeProviderProps) {
           // User is already on correct subdomain, just go to dashboard
           console.log('User already on correct subdomain, going to dashboard');
           setIsRedirecting(false);
+          // Use router.push instead of window.location.href to stay on current domain
           window.location.href = '/dashboard';
         }
       } else {

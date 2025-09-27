@@ -124,11 +124,11 @@ export default function Home() {
 
         // Clean URL and redirect to dashboard
         console.log('🔑 Cleaning URL and redirecting to dashboard');
-        window.history.replaceState({}, '', '/');
+        window.history.replaceState({}, '', '/dashboard');
 
-        // Force a page reload to ensure all hooks pick up the new token and cached data
-        console.log('🔄 Reloading page to initialize authentication state');
-        window.location.reload();
+        // Redirect directly to dashboard instead of reloading
+        console.log('🚀 Redirecting to dashboard');
+        router.push('/dashboard');
         return true;
       }
       return false;
