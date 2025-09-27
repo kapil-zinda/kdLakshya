@@ -6,7 +6,7 @@ export function getSubdomain(): string | null {
   const hostname = window.location.hostname;
   const parts = hostname.split('.');
 
-  // Return subdomain if it exists (e.g., 'sls' from 'sls.uchhal.in')
+  // Return subdomain if it exists (e.g., 'auth' from 'auth.uchhal.in')
   if (parts.length > 2) {
     return parts[0];
   }
@@ -15,7 +15,7 @@ export function getSubdomain(): string | null {
 }
 
 export function isValidSubdomain(subdomain: string): boolean {
-  const validSubdomains = ['sls', 'amity', 'spd'];
+  const validSubdomains = ['auth', 'amity', 'spd'];
   return validSubdomains.includes(subdomain);
 }
 
