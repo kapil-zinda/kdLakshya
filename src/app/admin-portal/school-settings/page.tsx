@@ -10,13 +10,16 @@ import { ApiService } from '@/services/api';
 interface SchoolSettings {
   // Basic Information
   name: string;
-  buildingNumber: string;
-  town: string;
-  district: string;
+  subdomain: string;
+  description: string;
+  buildingStreet: string;
+  city: string;
+  state: string;
+  country: string;
   pincode: string;
+  pocName: string;
+  pocEmail: string;
   phone: string;
-  email: string;
-  affiliatedCode: string;
   establishedYear: string;
 
   // Branding
@@ -51,13 +54,16 @@ export default function SchoolSettings() {
   const [settings, setSettings] = useState<SchoolSettings>({
     // Basic Information
     name: 'SHREE LAHARI SINGH MEMO. INTER COLLEGE',
-    buildingNumber: 'Building 1',
-    town: 'GHANGHAULI',
-    district: 'ALIGARH',
+    subdomain: 'spd',
+    description: 'Leading educational institution focused on excellence',
+    buildingStreet: '123 Main Street, Block A',
+    city: 'GHANGHAULI',
+    state: 'UTTAR PRADESH',
+    country: 'India',
     pincode: '202001',
+    pocName: 'Principal Name',
+    pocEmail: 'principal@school.edu.in',
     phone: '+91 571 123 4567',
-    email: 'info@shreelaharischool.edu.in',
-    affiliatedCode: 'UP12345',
     establishedYear: '1985',
 
     // Branding
@@ -103,9 +109,13 @@ export default function SchoolSettings() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('basic');
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
+  const [originalSettings, setOriginalSettings] =
+    useState<SchoolSettings | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -135,10 +145,89 @@ export default function SchoolSettings() {
     }
 
     // Load data from all APIs
-    loadAboutSection();
-    loadHeroSection();
-    loadBrandingSection();
+    const loadAllData = async () => {
+      setDataLoading(true);
+      try {
+        await Promise.all([
+          loadOrganizationSection(),
+          loadAboutSection(),
+          loadHeroSection(),
+          loadBrandingSection(),
+          loadSiteConfigSection(),
+        ]);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+
+    loadAllData();
   }, [router]);
+
+  // Store original settings after data is loaded
+  useEffect(() => {
+    if (!dataLoading && !originalSettings) {
+      console.log('Storing original settings:', settings);
+      setOriginalSettings({ ...settings });
+      setModifiedFields(new Set());
+    }
+  }, [dataLoading, settings, originalSettings]);
+
+  const loadOrganizationSection = async () => {
+    try {
+      const orgId = await ApiService.getCurrentOrgId();
+
+      // Get authentication token for the API call
+      const tokenStr = localStorage.getItem('bearerToken');
+      let accessToken = null;
+      if (tokenStr) {
+        try {
+          const tokenItem = JSON.parse(tokenStr);
+          const now = new Date().getTime();
+          if (now <= tokenItem.expiry) {
+            accessToken = tokenItem.value;
+          }
+        } catch (e) {
+          console.error('Error parsing token:', e);
+        }
+      }
+
+      const response = await ApiService.getOrganizationById(orgId, accessToken);
+      const orgData = response.data.attributes;
+
+      // Update settings with API data
+      setSettings((prev) => ({
+        ...prev,
+        name: orgData.name || prev.name,
+        subdomain: orgData.subdomain || prev.subdomain,
+        description: orgData.description || prev.description,
+        // Address mapping
+        buildingStreet: orgData.address?.building_street || prev.buildingStreet,
+        city: orgData.address?.city || prev.city,
+        state: orgData.address?.state || prev.state,
+        country: orgData.address?.country || prev.country,
+        pincode: orgData.address?.pincode || prev.pincode,
+        // Contact mapping
+        pocName: orgData.contact?.poc_name || prev.pocName,
+        pocEmail: orgData.contact?.poc_email || prev.pocEmail,
+        phone: orgData.contact?.phone || prev.phone,
+      }));
+
+      console.log('Loaded organization data:', orgData);
+      console.log('Updated settings:', settings);
+    } catch (error) {
+      console.error('Failed to load organization section:', error);
+      // Don't show error for 404 (no organization exists yet)
+      if (
+        error instanceof Error &&
+        !error.message.includes('Failed to fetch organization data') &&
+        !error.message.includes('404')
+      ) {
+        setError('Failed to load organization data. Please try again.');
+      }
+    }
+  };
 
   const loadAboutSection = async () => {
     try {
@@ -233,7 +322,39 @@ export default function SchoolSettings() {
     }
   };
 
+  const loadSiteConfigSection = async () => {
+    try {
+      const orgId = await ApiService.getCurrentOrgId();
+      const response = await ApiService.getSiteConfig(orgId);
+      const siteConfigData = response.data.attributes;
+
+      // Update settings with API data
+      setSettings((prev) => ({
+        ...prev,
+        primaryColor: siteConfigData.theme?.primaryColor || prev.primaryColor,
+        secondaryColor:
+          siteConfigData.theme?.secondaryColor || prev.secondaryColor,
+        // Note: accentColor is not in siteconfig API, keeping local value
+      }));
+    } catch (error) {
+      console.error('Failed to load site config section:', error);
+      // Don't show error for 404 (no site config exists yet)
+      if (
+        error instanceof Error &&
+        !error.message.includes('Failed to fetch site configuration') &&
+        !error.message.includes('404')
+      ) {
+        console.log('Site config section not found, using defaults');
+      }
+    }
+  };
+
   const handleSave = async () => {
+    if (dataLoading) {
+      setError('Please wait for data to finish loading before saving.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
@@ -244,18 +365,125 @@ export default function SchoolSettings() {
       // Call different APIs based on the active tab
       switch (activeTab) {
         case 'basic':
-          // For basic info, we'll save to localStorage for now (no specific API endpoint provided)
-          localStorage.setItem('schoolSettings', JSON.stringify(settings));
-          setSuccessMessage('Basic information saved successfully!');
+          // Check if any basic info fields were modified
+          const basicFields = [
+            'name',
+            'subdomain',
+            'description',
+            'buildingStreet',
+            'city',
+            'state',
+            'country',
+            'pincode',
+            'pocName',
+            'pocEmail',
+            'phone',
+          ];
+          const modifiedBasicFields = Array.from(modifiedFields).filter(
+            (field) => basicFields.includes(field),
+          );
+
+          if (modifiedBasicFields.length === 0) {
+            setSuccessMessage('No changes to save.');
+            break;
+          }
+
+          console.log('Modified basic fields:', modifiedBasicFields);
+
+          // Build PATCH data with only modified fields
+          const organizationData: any = {};
+
+          // Check if any main org fields were modified
+          if (modifiedFields.has('name')) {
+            organizationData.name = settings.name.trim();
+          }
+          if (modifiedFields.has('subdomain')) {
+            organizationData.subdomain = settings.subdomain.trim();
+          }
+          if (modifiedFields.has('description')) {
+            organizationData.description = settings.description.trim();
+          }
+
+          // Check if any address fields were modified
+          const addressFields = [
+            'buildingStreet',
+            'city',
+            'state',
+            'country',
+            'pincode',
+          ];
+          const modifiedAddressFields = addressFields.filter((field) =>
+            modifiedFields.has(field),
+          );
+
+          if (modifiedAddressFields.length > 0) {
+            organizationData.address = {};
+            if (modifiedFields.has('buildingStreet')) {
+              organizationData.address.building_street =
+                settings.buildingStreet.trim();
+            }
+            if (modifiedFields.has('city')) {
+              organizationData.address.city = settings.city.trim();
+            }
+            if (modifiedFields.has('state')) {
+              organizationData.address.state = settings.state.trim();
+            }
+            if (modifiedFields.has('country')) {
+              organizationData.address.country = settings.country.trim();
+            }
+            if (modifiedFields.has('pincode')) {
+              organizationData.address.pincode = settings.pincode.trim();
+            }
+          }
+
+          // Check if any contact fields were modified
+          const contactFields = ['pocName', 'pocEmail', 'phone'];
+          const modifiedContactFields = contactFields.filter((field) =>
+            modifiedFields.has(field),
+          );
+
+          if (modifiedContactFields.length > 0) {
+            organizationData.contact = {};
+            if (modifiedFields.has('pocName')) {
+              organizationData.contact.poc_name = settings.pocName.trim();
+            }
+            if (modifiedFields.has('pocEmail')) {
+              organizationData.contact.poc_email = settings.pocEmail.trim();
+            }
+            if (modifiedFields.has('phone')) {
+              organizationData.contact.phone = settings.phone.trim();
+            }
+          }
+
+          console.log('PATCH data to send:', organizationData);
+
+          await ApiService.updateOrganization(orgId, organizationData);
+
+          // Reset modified fields after successful save
+          setModifiedFields(new Set());
+          setOriginalSettings({ ...settings });
+
+          setSuccessMessage(`Updated: ${modifiedBasicFields.join(', ')}`);
           break;
 
         case 'branding':
-          // Save branding data to API
+          // Save logo to branding API
           const brandingData = {
             logo: settings.logo,
             // Add other branding fields when they're added to settings interface
           };
           await ApiService.updateBranding(orgId, brandingData);
+
+          // Save colors to siteconfig API
+          const siteConfigData = {
+            theme: {
+              primaryColor: settings.primaryColor,
+              secondaryColor: settings.secondaryColor,
+              fontFamily: 'Arial', // Default font family
+            },
+          };
+          await ApiService.updateSiteConfig(orgId, siteConfigData);
+
           setSuccessMessage('Branding settings saved successfully!');
           break;
 
@@ -342,6 +570,20 @@ export default function SchoolSettings() {
       ...prev,
       [field]: value,
     }));
+
+    // Track which fields have been modified
+    if (originalSettings) {
+      const originalValue = originalSettings[field];
+      if (originalValue !== value) {
+        setModifiedFields((prev) => new Set(prev).add(field));
+      } else {
+        setModifiedFields((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(field);
+          return newSet;
+        });
+      }
+    }
   };
 
   const updateValueAtIndex = (
@@ -413,7 +655,7 @@ export default function SchoolSettings() {
               </Link>
               <button
                 onClick={handleSave}
-                disabled={loading}
+                disabled={loading || dataLoading}
                 className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
               >
                 {loading ? (
@@ -452,7 +694,11 @@ export default function SchoolSettings() {
                     />
                   </svg>
                 )}
-                Save Changes
+                {dataLoading
+                  ? 'Loading Data...'
+                  : loading
+                    ? 'Saving...'
+                    : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -542,70 +788,106 @@ export default function SchoolSettings() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        School Name
+                        Organization Name{' '}
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         value={settings.name}
                         onChange={(e) => updateSetting('name', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        required
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Established Year
+                        Subdomain
                       </label>
                       <input
                         type="text"
-                        value={settings.establishedYear}
+                        value={settings.subdomain}
                         onChange={(e) =>
-                          updateSetting('establishedYear', e.target.value)
+                          updateSetting('subdomain', e.target.value)
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="e.g., spd, math, english"
                       />
                     </div>
 
-                    <div>
+                    <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Building Number
+                        Description
+                      </label>
+                      <textarea
+                        value={settings.description}
+                        onChange={(e) =>
+                          updateSetting('description', e.target.value)
+                        }
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Brief description of your organization"
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Building/Street Address{' '}
+                        <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
-                        value={settings.buildingNumber}
+                        value={settings.buildingStreet}
                         onChange={(e) =>
-                          updateSetting('buildingNumber', e.target.value)
+                          updateSetting('buildingStreet', e.target.value)
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="Building 1, Block A, etc."
+                        placeholder="123 Main Street, Block A"
+                        required
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Town/Village
+                        City <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
-                        value={settings.town}
-                        onChange={(e) => updateSetting('town', e.target.value)}
+                        value={settings.city}
+                        onChange={(e) => updateSetting('city', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="Town or village name"
+                        placeholder="City name"
+                        required
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        District
+                        State <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
-                        value={settings.district}
+                        value={settings.state}
+                        onChange={(e) => updateSetting('state', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="State name"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Country <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.country}
                         onChange={(e) =>
-                          updateSetting('district', e.target.value)
+                          updateSetting('country', e.target.value)
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="District name"
+                        placeholder="Country name"
+                        required
                       />
                     </div>
 
@@ -628,40 +910,62 @@ export default function SchoolSettings() {
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Phone
+                        Point of Contact Name{' '}
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.pocName}
+                        onChange={(e) =>
+                          updateSetting('pocName', e.target.value)
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Principal/Admin name"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Contact Email <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={settings.pocEmail}
+                        onChange={(e) =>
+                          updateSetting('pocEmail', e.target.value)
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="contact@organization.edu"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number
                       </label>
                       <input
                         type="tel"
                         value={settings.phone}
                         onChange={(e) => updateSetting('phone', e.target.value)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="+91-9876543210"
                       />
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        value={settings.email}
-                        onChange={(e) => updateSetting('email', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Affiliated Code
+                        Established Year
                       </label>
                       <input
                         type="text"
-                        value={settings.affiliatedCode}
+                        value={settings.establishedYear}
                         onChange={(e) =>
-                          updateSetting('affiliatedCode', e.target.value)
+                          updateSetting('establishedYear', e.target.value)
                         }
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="School affiliation code (e.g., UP12345)"
+                        placeholder="e.g., 1985"
                       />
                     </div>
                   </div>
