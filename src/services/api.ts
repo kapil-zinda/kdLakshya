@@ -420,6 +420,38 @@ export interface ClassListResponse {
   data: ClassResponse['data'][];
 }
 
+export interface StudentResponse {
+  data: {
+    type: 'students';
+    id: string;
+    attributes: {
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone: string;
+      date_of_birth: string;
+      grade_level: string;
+      admission_date: string;
+      guardian_info: {
+        father_name: string;
+        mother_name: string;
+        phone: string;
+        email: string;
+        address: string;
+      };
+      unique_id?: string;
+      profile?: string;
+      gender?: string;
+      createdAt: number;
+      updatedAt: number;
+    };
+  };
+}
+
+export interface StudentListResponse {
+  data: StudentResponse['data'][];
+}
+
 // API service functions
 export class ApiService {
   // Step 1: Get subdomain and base configuration (keeping for backward compatibility)
@@ -1351,6 +1383,232 @@ export class ApiService {
     } catch (error) {
       console.error('Error creating class:', error);
       throw new Error('Failed to create class');
+    }
+  }
+
+  // Get all students by organization ID
+  static async getStudents(orgId: string): Promise<StudentListResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await externalApi.get(`/${orgId}/students`, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      throw new Error('Failed to fetch students');
+    }
+  }
+
+  // Create new student
+  static async createStudent(
+    orgId: string,
+    studentData: {
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      dob: string;
+      gender?: string;
+      uniqueId?: string;
+      profile?: string;
+      gradeLevel: string;
+      guardianInfo: {
+        fatherName: string;
+        motherName: string;
+        phone: string;
+        email: string;
+        address: string;
+      };
+    },
+  ): Promise<StudentResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      // Format date to DD/MM/YYYY
+      const formatDate = (dateStr: string) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+
+      const requestBody = {
+        data: {
+          type: 'students',
+          attributes: {
+            first_name: studentData.firstName,
+            last_name: studentData.lastName,
+            email: studentData.email,
+            phone: studentData.phone,
+            date_of_birth: formatDate(studentData.dob),
+            grade_level: studentData.gradeLevel,
+            admission_date: formatDate(new Date().toISOString()),
+            guardian_info: {
+              father_name: studentData.guardianInfo.fatherName,
+              mother_name: studentData.guardianInfo.motherName,
+              phone: studentData.guardianInfo.phone,
+              email: studentData.guardianInfo.email,
+              address: studentData.guardianInfo.address,
+            },
+            ...(studentData.gender && { gender: studentData.gender }),
+            ...(studentData.uniqueId && { unique_id: studentData.uniqueId }),
+            ...(studentData.profile && { profile: studentData.profile }),
+          },
+        },
+      };
+
+      console.log(`Making POST request to: /${orgId}/students`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.post(
+        `/${orgId}/students`,
+        requestBody,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating student:', error);
+      throw new Error('Failed to create student');
+    }
+  }
+
+  // Update existing student
+  static async updateStudent(
+    orgId: string,
+    studentId: string,
+    studentData: Partial<{
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      dob: string;
+      gender: string;
+      uniqueId: string;
+      profile: string;
+      gradeLevel: string;
+      guardianInfo: {
+        fatherName: string;
+        motherName: string;
+        phone: string;
+        email: string;
+        address: string;
+      };
+    }>,
+  ): Promise<StudentResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      // Format date to DD/MM/YYYY if provided
+      const formatDate = (dateStr: string) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      };
+
+      // Build request body with only provided fields
+      const attributes: any = {};
+
+      if (studentData.firstName) attributes.first_name = studentData.firstName;
+      if (studentData.lastName) attributes.last_name = studentData.lastName;
+      if (studentData.email) attributes.email = studentData.email;
+      if (studentData.phone) attributes.phone = studentData.phone;
+      if (studentData.dob)
+        attributes.date_of_birth = formatDate(studentData.dob);
+      if (studentData.gender) attributes.gender = studentData.gender;
+      if (studentData.uniqueId) attributes.unique_id = studentData.uniqueId;
+      if (studentData.profile) attributes.profile = studentData.profile;
+      if (studentData.gradeLevel)
+        attributes.grade_level = studentData.gradeLevel;
+
+      if (studentData.guardianInfo) {
+        attributes.guardian_info = {
+          father_name: studentData.guardianInfo.fatherName,
+          mother_name: studentData.guardianInfo.motherName,
+          phone: studentData.guardianInfo.phone,
+          email: studentData.guardianInfo.email,
+          address: studentData.guardianInfo.address,
+        };
+      }
+
+      const requestBody = {
+        data: {
+          type: 'students',
+          id: studentId,
+          attributes,
+        },
+      };
+
+      console.log(`Making PUT request to: /${orgId}/students/${studentId}`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.put(
+        `/${orgId}/students/${studentId}`,
+        requestBody,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating student:', error);
+      throw new Error('Failed to update student');
     }
   }
 
