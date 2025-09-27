@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { ApiService } from '@/services/api';
+
 interface Student {
   id: string;
   name: string;
@@ -190,765 +192,248 @@ export default function ClassManagement() {
       return;
     }
 
-    // Load sample data
-    // Sample data for different classes
-    const class10AData: ClassData = {
-      students: [
-        {
-          id: '1',
-          name: 'Aarav Sharma',
-          rollNumber: '10A001',
-          email: 'aarav@student.com',
-          phone: '9876543215',
-          status: 'Active',
-        },
-        {
-          id: '2',
-          name: 'Diya Patel',
-          rollNumber: '10A002',
-          email: 'diya@student.com',
-          phone: '9876543216',
-          status: 'Active',
-        },
-        {
-          id: '3',
-          name: 'Arjun Singh',
-          rollNumber: '10A003',
-          email: 'arjun@student.com',
-          phone: '9876543217',
-          status: 'Active',
-        },
-        {
-          id: '4',
-          name: 'Priya Gupta',
-          rollNumber: '10A004',
-          email: 'priya@student.com',
-          phone: '9876543218',
-          status: 'Active',
-        },
-        {
-          id: '5',
-          name: 'Rohit Kumar',
-          rollNumber: '10A005',
-          email: 'rohit@student.com',
-          phone: '9876543219',
-          status: 'Active',
-        },
-      ],
-      subjects: [
-        {
-          id: '1',
-          name: 'Mathematics',
-          code: 'MATH10A',
-          teacherId: '1',
-          teacherName: 'Dr. Rajesh Kumar',
-          credits: 4,
-          type: 'Core',
-        },
-        {
-          id: '2',
-          name: 'English',
-          code: 'ENG10A',
-          teacherId: '2',
-          teacherName: 'Mrs. Priya Sharma',
-          credits: 3,
-          type: 'Core',
-        },
-        {
-          id: '3',
-          name: 'Science',
-          code: 'SCI10A',
-          teacherId: '3',
-          teacherName: 'Mr. Amit Patel',
-          credits: 4,
-          type: 'Core',
-        },
-        {
-          id: '4',
-          name: 'Hindi',
-          code: 'HIN10A',
-          teacherId: '4',
-          teacherName: 'Ms. Kavita Singh',
-          credits: 3,
-          type: 'Core',
-        },
-        {
-          id: '5',
-          name: 'Social Studies',
-          code: 'SS10A',
-          teacherId: '5',
-          teacherName: 'Mr. Suresh Gupta',
-          credits: 3,
-          type: 'Core',
-        },
-      ],
-      timetable: [
-        {
-          id: '1',
-          day: 'Monday',
-          period: 1,
-          startTime: '09:00',
-          endTime: '09:45',
-          subjectId: '1',
-          subjectName: 'Mathematics',
-          teacherId: '1',
-          teacherName: 'Dr. Rajesh Kumar',
-          room: 'Room 101',
-        },
-        {
-          id: '2',
-          day: 'Monday',
-          period: 2,
-          startTime: '09:45',
-          endTime: '10:30',
-          subjectId: '2',
-          subjectName: 'English',
-          teacherId: '2',
-          teacherName: 'Mrs. Priya Sharma',
-          room: 'Room 101',
-        },
-        {
-          id: '3',
-          day: 'Tuesday',
-          period: 1,
-          startTime: '09:00',
-          endTime: '09:45',
-          subjectId: '3',
-          subjectName: 'Science',
-          teacherId: '3',
-          teacherName: 'Mr. Amit Patel',
-          room: 'Room 101',
-        },
-      ],
-      exams: [
-        {
-          id: '1',
-          name: 'Unit Test 1 - Class 10A',
-          subjects: [
-            {
-              subjectId: '1',
-              subjectName: 'Mathematics',
-              marks: 50,
-              duration: 90,
-              date: '2024-02-15',
-              startTime: '10:00',
-              endTime: '11:30',
-              room: 'Room 101',
+    // Load data from API
+    const loadData = async () => {
+      try {
+        setLoading(true);
+
+        // Get organization ID first
+        const orgId = await ApiService.getCurrentOrgId();
+
+        // Load teachers and classes data
+        const [teachersResponse, classesResponse] = await Promise.all([
+          ApiService.getFaculty(orgId),
+          ApiService.getClasses(orgId),
+        ]);
+
+        // Transform classes data from API response
+        const transformedClasses: Class[] = classesResponse.data.map(
+          (classData) => ({
+            id: classData.id,
+            name: classData.attributes.class,
+            section: classData.attributes.section,
+            classTeacherId: classData.attributes.teacher_id,
+            classTeacherName: classData.attributes.teacher_name,
+            academicYear: classData.attributes.academic_year,
+            totalStudents: 0, // Will be populated when student management is implemented
+            room: classData.attributes.room,
+            data: {
+              students: [],
+              subjects: [],
+              timetable: [],
+              exams: [],
+              timeSlots: [
+                {
+                  id: '1',
+                  name: 'Period 1',
+                  startTime: '09:00',
+                  endTime: '09:45',
+                  duration: 45,
+                },
+                {
+                  id: '2',
+                  name: 'Period 2',
+                  startTime: '09:45',
+                  endTime: '10:30',
+                  duration: 45,
+                },
+                {
+                  id: '3',
+                  name: 'Break',
+                  startTime: '10:30',
+                  endTime: '10:45',
+                  duration: 15,
+                },
+                {
+                  id: '4',
+                  name: 'Period 3',
+                  startTime: '10:45',
+                  endTime: '11:30',
+                  duration: 45,
+                },
+                {
+                  id: '5',
+                  name: 'Period 4',
+                  startTime: '11:30',
+                  endTime: '12:15',
+                  duration: 45,
+                },
+                {
+                  id: '6',
+                  name: 'Lunch Break',
+                  startTime: '12:15',
+                  endTime: '01:00',
+                  duration: 45,
+                },
+                {
+                  id: '7',
+                  name: 'Period 5',
+                  startTime: '01:00',
+                  endTime: '01:45',
+                  duration: 45,
+                },
+                {
+                  id: '8',
+                  name: 'Period 6',
+                  startTime: '01:45',
+                  endTime: '02:30',
+                  duration: 45,
+                },
+              ],
             },
-            {
-              subjectId: '3',
-              subjectName: 'Science',
-              marks: 50,
-              duration: 90,
-              date: '2024-02-15',
-              startTime: '12:00',
-              endTime: '13:30',
-              room: 'Room 101',
-            },
-          ],
-          instructions: 'Bring calculator and geometry box.',
-          type: 'Unit Test',
-          status: 'Scheduled',
-        },
-      ],
-      timeSlots: [
-        {
-          id: '1',
-          name: 'Period 1',
-          startTime: '09:00',
-          endTime: '09:45',
-          duration: 45,
-        },
-        {
-          id: '2',
-          name: 'Period 2',
-          startTime: '09:45',
-          endTime: '10:30',
-          duration: 45,
-        },
-        {
-          id: '3',
-          name: 'Break',
-          startTime: '10:30',
-          endTime: '10:45',
-          duration: 15,
-        },
-        {
-          id: '4',
-          name: 'Period 3',
-          startTime: '10:45',
-          endTime: '11:30',
-          duration: 45,
-        },
-        {
-          id: '5',
-          name: 'Period 4',
-          startTime: '11:30',
-          endTime: '12:15',
-          duration: 45,
-        },
-        {
-          id: '6',
-          name: 'Lunch Break',
-          startTime: '12:15',
-          endTime: '01:00',
-          duration: 45,
-        },
-        {
-          id: '7',
-          name: 'Period 5',
-          startTime: '01:00',
-          endTime: '01:45',
-          duration: 45,
-        },
-        {
-          id: '8',
-          name: 'Period 6',
-          startTime: '01:45',
-          endTime: '02:30',
-          duration: 45,
-        },
-      ],
+          }),
+        );
+
+        // Transform teachers data
+        const transformedTeachers: Teacher[] = teachersResponse.data.map(
+          (teacher) => ({
+            id: teacher.id,
+            name: teacher.attributes.name,
+            employeeId: teacher.attributes.employee_id || '',
+            department: teacher.attributes.subject || '',
+            email: teacher.attributes.email,
+            phone: teacher.attributes.phone,
+          }),
+        );
+
+        setClasses(transformedClasses);
+        setTeachers(transformedTeachers);
+        if (transformedClasses.length > 0) {
+          setSelectedClass(transformedClasses[0]);
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading classes data:', error);
+        // Fall back to empty arrays if API fails
+        setClasses([]);
+        setTeachers([]);
+        setLoading(false);
+      }
     };
 
-    const class10BData: ClassData = {
-      students: [
-        {
-          id: '1',
-          name: 'Kavya Verma',
-          rollNumber: '10B001',
-          email: 'kavya@student.com',
-          phone: '9876543220',
-          status: 'Active',
-        },
-        {
-          id: '2',
-          name: 'Ishaan Joshi',
-          rollNumber: '10B002',
-          email: 'ishaan@student.com',
-          phone: '9876543221',
-          status: 'Active',
-        },
-        {
-          id: '3',
-          name: 'Ananya Roy',
-          rollNumber: '10B003',
-          email: 'ananya@student.com',
-          phone: '9876543222',
-          status: 'Active',
-        },
-      ],
-      subjects: [
-        {
-          id: '1',
-          name: 'Mathematics',
-          code: 'MATH10B',
-          teacherId: '1',
-          teacherName: 'Dr. Rajesh Kumar',
-          credits: 4,
-          type: 'Core',
-        },
-        {
-          id: '2',
-          name: 'English',
-          code: 'ENG10B',
-          teacherId: '2',
-          teacherName: 'Mrs. Priya Sharma',
-          credits: 3,
-          type: 'Core',
-        },
-        {
-          id: '3',
-          name: 'Physics',
-          code: 'PHY10B',
-          teacherId: '3',
-          teacherName: 'Mr. Amit Patel',
-          credits: 4,
-          type: 'Core',
-        },
-      ],
-      timetable: [
-        {
-          id: '1',
-          day: 'Monday',
-          period: 1,
-          startTime: '09:00',
-          endTime: '09:45',
-          subjectId: '2',
-          subjectName: 'English',
-          teacherId: '2',
-          teacherName: 'Mrs. Priya Sharma',
-          room: 'Room 102',
-        },
-        {
-          id: '2',
-          day: 'Monday',
-          period: 2,
-          startTime: '09:45',
-          endTime: '10:30',
-          subjectId: '1',
-          subjectName: 'Mathematics',
-          teacherId: '1',
-          teacherName: 'Dr. Rajesh Kumar',
-          room: 'Room 102',
-        },
-      ],
-      exams: [
-        {
-          id: '1',
-          name: 'Mid Term - Class 10B',
-          subjects: [
-            {
-              subjectId: '1',
-              subjectName: 'Mathematics',
-              marks: 80,
-              duration: 120,
-              date: '2024-02-20',
-              startTime: '09:00',
-              endTime: '11:00',
-              room: 'Room 102',
-            },
-            {
-              subjectId: '3',
-              subjectName: 'Physics',
-              marks: 80,
-              duration: 120,
-              date: '2024-02-21',
-              startTime: '09:00',
-              endTime: '11:00',
-              room: 'Room 102',
-            },
-          ],
-          instructions: 'Scientific calculator allowed.',
-          type: 'Mid Term',
-          status: 'Scheduled',
-        },
-      ],
-      timeSlots: [
-        {
-          id: '1',
-          name: '1st Period',
-          startTime: '08:30',
-          endTime: '09:15',
-          duration: 45,
-        },
-        {
-          id: '2',
-          name: '2nd Period',
-          startTime: '09:15',
-          endTime: '10:00',
-          duration: 45,
-        },
-        {
-          id: '3',
-          name: 'Short Break',
-          startTime: '10:00',
-          endTime: '10:15',
-          duration: 15,
-        },
-        {
-          id: '4',
-          name: '3rd Period',
-          startTime: '10:15',
-          endTime: '11:00',
-          duration: 45,
-        },
-        {
-          id: '5',
-          name: '4th Period',
-          startTime: '11:00',
-          endTime: '11:45',
-          duration: 45,
-        },
-        {
-          id: '6',
-          name: 'Lunch Time',
-          startTime: '11:45',
-          endTime: '12:30',
-          duration: 45,
-        },
-        {
-          id: '7',
-          name: '5th Period',
-          startTime: '12:30',
-          endTime: '01:15',
-          duration: 45,
-        },
-        {
-          id: '8',
-          name: '6th Period',
-          startTime: '01:15',
-          endTime: '02:00',
-          duration: 45,
-        },
-      ],
-    };
-
-    const class9AData: ClassData = {
-      students: [
-        {
-          id: '1',
-          name: 'Ravi Sharma',
-          rollNumber: '9A001',
-          email: 'ravi@student.com',
-          phone: '9876543223',
-          status: 'Active',
-        },
-        {
-          id: '2',
-          name: 'Meera Patel',
-          rollNumber: '9A002',
-          email: 'meera@student.com',
-          phone: '9876543224',
-          status: 'Active',
-        },
-      ],
-      subjects: [
-        {
-          id: '1',
-          name: 'Mathematics',
-          code: 'MATH9A',
-          teacherId: '1',
-          teacherName: 'Dr. Rajesh Kumar',
-          credits: 4,
-          type: 'Core',
-        },
-        {
-          id: '2',
-          name: 'English',
-          code: 'ENG9A',
-          teacherId: '2',
-          teacherName: 'Mrs. Priya Sharma',
-          credits: 3,
-          type: 'Core',
-        },
-      ],
-      timetable: [],
-      exams: [],
-      timeSlots: [
-        {
-          id: '1',
-          name: 'Morning Session 1',
-          startTime: '09:30',
-          endTime: '10:15',
-          duration: 45,
-        },
-        {
-          id: '2',
-          name: 'Morning Session 2',
-          startTime: '10:15',
-          endTime: '11:00',
-          duration: 45,
-        },
-        {
-          id: '3',
-          name: 'Break Time',
-          startTime: '11:00',
-          endTime: '11:20',
-          duration: 20,
-        },
-        {
-          id: '4',
-          name: 'Mid Morning',
-          startTime: '11:20',
-          endTime: '12:05',
-          duration: 45,
-        },
-        {
-          id: '5',
-          name: 'Pre Lunch',
-          startTime: '12:05',
-          endTime: '12:50',
-          duration: 45,
-        },
-        {
-          id: '6',
-          name: 'Lunch Break',
-          startTime: '12:50',
-          endTime: '01:40',
-          duration: 50,
-        },
-        {
-          id: '7',
-          name: 'Afternoon 1',
-          startTime: '01:40',
-          endTime: '02:25',
-          duration: 45,
-        },
-        {
-          id: '8',
-          name: 'Afternoon 2',
-          startTime: '02:25',
-          endTime: '03:10',
-          duration: 45,
-        },
-      ],
-    };
-
-    const class9BData: ClassData = {
-      students: [
-        {
-          id: '1',
-          name: 'Vikram Singh',
-          rollNumber: '9B001',
-          email: 'vikram@student.com',
-          phone: '9876543225',
-          status: 'Active',
-        },
-      ],
-      subjects: [
-        {
-          id: '1',
-          name: 'Mathematics',
-          code: 'MATH9B',
-          teacherId: '1',
-          teacherName: 'Dr. Rajesh Kumar',
-          credits: 4,
-          type: 'Core',
-        },
-      ],
-      timetable: [],
-      exams: [],
-      timeSlots: [
-        {
-          id: '1',
-          name: 'Block A',
-          startTime: '10:00',
-          endTime: '10:50',
-          duration: 50,
-        },
-        {
-          id: '2',
-          name: 'Block B',
-          startTime: '10:50',
-          endTime: '11:40',
-          duration: 50,
-        },
-        {
-          id: '3',
-          name: 'Recess',
-          startTime: '11:40',
-          endTime: '12:00',
-          duration: 20,
-        },
-        {
-          id: '4',
-          name: 'Block C',
-          startTime: '12:00',
-          endTime: '12:50',
-          duration: 50,
-        },
-        {
-          id: '5',
-          name: 'Block D',
-          startTime: '12:50',
-          endTime: '01:40',
-          duration: 50,
-        },
-        {
-          id: '6',
-          name: 'Extended Lunch',
-          startTime: '01:40',
-          endTime: '02:40',
-          duration: 60,
-        },
-        {
-          id: '7',
-          name: 'Block E',
-          startTime: '02:40',
-          endTime: '03:30',
-          duration: 50,
-        },
-      ],
-    };
-
-    const sampleClasses: Class[] = [
-      {
-        id: '1',
-        name: 'Class 10',
-        section: 'A',
-        classTeacherId: '1',
-        classTeacherName: 'Dr. Rajesh Kumar',
-        academicYear: '2024-25',
-        totalStudents: 5,
-        room: 'Room 101',
-        data: class10AData,
-      },
-      {
-        id: '2',
-        name: 'Class 10',
-        section: 'B',
-        classTeacherId: '2',
-        classTeacherName: 'Mrs. Priya Sharma',
-        academicYear: '2024-25',
-        totalStudents: 3,
-        room: 'Room 102',
-        data: class10BData,
-      },
-      {
-        id: '3',
-        name: 'Class 9',
-        section: 'A',
-        classTeacherId: '3',
-        classTeacherName: 'Mr. Amit Patel',
-        academicYear: '2024-25',
-        totalStudents: 2,
-        room: 'Room 201',
-        data: class9AData,
-      },
-      {
-        id: '4',
-        name: 'Class 9',
-        section: 'B',
-        academicYear: '2024-25',
-        totalStudents: 1,
-        room: 'Room 202',
-        data: class9BData,
-      },
-    ];
-
-    const sampleTeachers: Teacher[] = [
-      {
-        id: '1',
-        name: 'Dr. Rajesh Kumar',
-        employeeId: 'EMP001',
-        department: 'Mathematics',
-        email: 'rajesh@school.com',
-        phone: '9876543210',
-      },
-      {
-        id: '2',
-        name: 'Mrs. Priya Sharma',
-        employeeId: 'EMP002',
-        department: 'English',
-        email: 'priya@school.com',
-        phone: '9876543211',
-      },
-      {
-        id: '3',
-        name: 'Mr. Amit Patel',
-        employeeId: 'EMP003',
-        department: 'Science',
-        email: 'amit@school.com',
-        phone: '9876543212',
-      },
-      {
-        id: '4',
-        name: 'Ms. Kavita Singh',
-        employeeId: 'EMP004',
-        department: 'Hindi',
-        email: 'kavita@school.com',
-        phone: '9876543213',
-      },
-      {
-        id: '5',
-        name: 'Mr. Suresh Gupta',
-        employeeId: 'EMP005',
-        department: 'Social Studies',
-        email: 'suresh@school.com',
-        phone: '9876543214',
-      },
-    ];
-
-    setClasses(sampleClasses);
-    setTeachers(sampleTeachers);
-    setSelectedClass(sampleClasses[0]);
-    setLoading(false);
+    loadData();
   }, [router]);
 
-  const handleCreateClass = () => {
+  const handleCreateClass = async () => {
     if (!classFormData.name || !classFormData.section) {
       alert('Please fill in required fields');
       return;
     }
 
-    const newClass: Class = {
-      id: (classes.length + 1).toString(),
-      name: classFormData.name,
-      section: classFormData.section,
-      classTeacherId: classFormData.classTeacherId || undefined,
-      classTeacherName: classFormData.classTeacherId
-        ? teachers.find((t) => t.id === classFormData.classTeacherId)?.name
-        : undefined,
-      academicYear: classFormData.academicYear,
-      totalStudents: 0,
-      room: classFormData.room,
-      data: {
-        students: [],
-        subjects: [],
-        timetable: [],
-        exams: [],
-        timeSlots: [
-          {
-            id: '1',
-            name: 'Period 1',
-            startTime: '09:00',
-            endTime: '09:45',
-            duration: 45,
-          },
-          {
-            id: '2',
-            name: 'Period 2',
-            startTime: '09:45',
-            endTime: '10:30',
-            duration: 45,
-          },
-          {
-            id: '3',
-            name: 'Break',
-            startTime: '10:30',
-            endTime: '10:45',
-            duration: 15,
-          },
-          {
-            id: '4',
-            name: 'Period 3',
-            startTime: '10:45',
-            endTime: '11:30',
-            duration: 45,
-          },
-          {
-            id: '5',
-            name: 'Period 4',
-            startTime: '11:30',
-            endTime: '12:15',
-            duration: 45,
-          },
-          {
-            id: '6',
-            name: 'Lunch Break',
-            startTime: '12:15',
-            endTime: '01:00',
-            duration: 45,
-          },
-          {
-            id: '7',
-            name: 'Period 5',
-            startTime: '01:00',
-            endTime: '01:45',
-            duration: 45,
-          },
-          {
-            id: '8',
-            name: 'Period 6',
-            startTime: '01:45',
-            endTime: '02:30',
-            duration: 45,
-          },
-        ],
-      },
-    };
+    try {
+      setLoading(true);
 
-    setClasses((prev) => [...prev, newClass]);
-    setShowCreateClassModal(false);
-    setClassFormData({
-      name: '',
-      section: '',
-      classTeacherId: '',
-      academicYear: '2024-25',
-      room: '',
-    });
-    alert('Class created successfully!');
+      // Get organization ID
+      const orgId = await ApiService.getCurrentOrgId();
+
+      // Get teacher name if teacher ID is provided
+      const teacherName = classFormData.classTeacherId
+        ? teachers.find((t) => t.id === classFormData.classTeacherId)?.name
+        : undefined;
+
+      // Create class via API
+      const response = await ApiService.createClass(orgId, {
+        class: classFormData.name,
+        section: classFormData.section,
+        teacher_id: classFormData.classTeacherId || undefined,
+        teacher_name: teacherName,
+        room: classFormData.room,
+        academic_year: classFormData.academicYear,
+        description: `${classFormData.name} ${classFormData.section}`,
+      });
+
+      // Create new class object for local state
+      const newClass: Class = {
+        id: response.data.id,
+        name: response.data.attributes.class,
+        section: response.data.attributes.section,
+        classTeacherId: response.data.attributes.teacher_id,
+        classTeacherName: response.data.attributes.teacher_name,
+        academicYear: response.data.attributes.academic_year,
+        totalStudents: 0,
+        room: response.data.attributes.room,
+        data: {
+          students: [],
+          subjects: [],
+          timetable: [],
+          exams: [],
+          timeSlots: [
+            {
+              id: '1',
+              name: 'Period 1',
+              startTime: '09:00',
+              endTime: '09:45',
+              duration: 45,
+            },
+            {
+              id: '2',
+              name: 'Period 2',
+              startTime: '09:45',
+              endTime: '10:30',
+              duration: 45,
+            },
+            {
+              id: '3',
+              name: 'Break',
+              startTime: '10:30',
+              endTime: '10:45',
+              duration: 15,
+            },
+            {
+              id: '4',
+              name: 'Period 3',
+              startTime: '10:45',
+              endTime: '11:30',
+              duration: 45,
+            },
+            {
+              id: '5',
+              name: 'Period 4',
+              startTime: '11:30',
+              endTime: '12:15',
+              duration: 45,
+            },
+            {
+              id: '6',
+              name: 'Lunch Break',
+              startTime: '12:15',
+              endTime: '01:00',
+              duration: 45,
+            },
+            {
+              id: '7',
+              name: 'Period 5',
+              startTime: '01:00',
+              endTime: '01:45',
+              duration: 45,
+            },
+            {
+              id: '8',
+              name: 'Period 6',
+              startTime: '01:45',
+              endTime: '02:30',
+              duration: 45,
+            },
+          ],
+        },
+      };
+
+      setClasses((prev) => [...prev, newClass]);
+      setShowCreateClassModal(false);
+      setClassFormData({
+        name: '',
+        section: '',
+        classTeacherId: '',
+        academicYear: '2024-25',
+        room: '',
+      });
+      setLoading(false);
+      alert('Class created successfully!');
+    } catch (error) {
+      console.error('Error creating class:', error);
+      setLoading(false);
+      alert('Failed to create class. Please try again.');
+    }
   };
 
   const handleAddSubject = () => {

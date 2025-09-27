@@ -6,6 +6,10 @@ const API_CONFIG = {
   EXTERNAL_API:
     process.env.NEXT_PUBLIC_BaseURLAuth ||
     'https://apis.testkdlakshya.uchhal.in/auth',
+  // Use class API for class endpoints
+  CLASS_API:
+    process.env.NEXT_PUBLIC_BaseURLClass ||
+    'https://apis.testkdlakshya.uchhal.in/class',
   // Use local API for mock endpoints (during development)
   LOCAL_API:
     typeof window !== 'undefined'
@@ -19,6 +23,15 @@ const externalApi = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
+  },
+});
+
+// Class API instance (for class endpoints)
+const classApi = axios.create({
+  baseURL: API_CONFIG.CLASS_API,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/vnd.api+json',
   },
 });
 
@@ -383,6 +396,28 @@ export interface UserInfoResponse {
   users: number;
   active: boolean;
   [key: string]: any;
+}
+
+export interface ClassResponse {
+  data: {
+    type: 'classes';
+    id: string;
+    attributes: {
+      class: string;
+      section: string;
+      teacher_id?: string;
+      teacher_name?: string;
+      room: string;
+      academic_year: string;
+      description: string;
+      createdAt: number;
+      updatedAt: number;
+    };
+  };
+}
+
+export interface ClassListResponse {
+  data: ClassResponse['data'][];
 }
 
 // API service functions
@@ -1235,6 +1270,87 @@ export class ApiService {
     } catch (error) {
       console.error('Error fetching user data:', error);
       throw new Error('Failed to fetch user data');
+    }
+  }
+
+  // Get all classes by organization ID
+  static async getClasses(orgId: string): Promise<ClassListResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(`/${orgId}/classes`, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+      throw new Error('Failed to fetch classes');
+    }
+  }
+
+  // Create new class
+  static async createClass(
+    orgId: string,
+    classData: {
+      class: string;
+      section: string;
+      teacher_id?: string;
+      room: string;
+      academic_year: string;
+      description?: string;
+    },
+  ): Promise<ClassResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'classes',
+          attributes: classData,
+        },
+      };
+
+      console.log(`Making POST request to: /${orgId}/classes`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await classApi.post(`/${orgId}/classes`, requestBody, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/vnd.api+json',
+        },
+      });
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating class:', error);
+      throw new Error('Failed to create class');
     }
   }
 
