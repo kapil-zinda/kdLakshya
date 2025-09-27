@@ -30,12 +30,20 @@ export interface OrganizationResponse {
     attributes: {
       name: string;
       subdomain: string;
-      code: string;
-      logo: string;
-      contact: {
-        address: string;
+      code?: string;
+      logo?: string;
+      description?: string;
+      address?: {
+        building_street: string;
+        city: string;
+        state: string;
+        country: string;
+        pincode: string;
+      };
+      contact?: {
+        poc_name: string;
+        poc_email: string;
         phone: string;
-        email: string;
       };
       object_id: string;
       createdAt: number;
@@ -149,15 +157,19 @@ interface FacultyResponse {
       orgId: string;
       name: string;
       designation: string;
+      experience: number;
+      role: string;
       bio: string;
       photo: string;
       subjects: string[];
       email: string;
       phone: string;
+      status: string;
       createdAt: number;
       updatedAt: number;
       created_by: string;
       created_by_email: string;
+      temporary_password?: string;
     };
     links: {
       self: string;
@@ -174,15 +186,19 @@ interface FacultyListResponse {
       orgId: string;
       name: string;
       designation: string;
+      experience: number;
+      role: string;
       bio: string;
       photo: string;
       subjects: string[];
       email: string;
       phone: string;
+      status: string;
       createdAt: number;
       updatedAt: number;
       created_by: string;
       created_by_email: string;
+      temporary_password?: string;
     };
     links: {
       self: string;
@@ -513,6 +529,72 @@ export class ApiService {
     }
   }
 
+  // Update organization data by ID
+  static async updateOrganization(
+    orgId: string,
+    organizationData: {
+      name?: string;
+      subdomain?: string;
+      description?: string;
+      address?: {
+        building_street?: string;
+        city?: string;
+        state?: string;
+        country?: string;
+        pincode?: string;
+      };
+      contact?: {
+        poc_name?: string;
+        poc_email?: string;
+        phone?: string;
+      };
+    },
+  ): Promise<OrganizationResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'organizations',
+          id: orgId,
+          attributes: organizationData,
+        },
+      };
+
+      console.log(`Making PATCH request to: /organizations/${orgId}`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.patch(
+        `/organizations/${orgId}`,
+        requestBody,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating organization:', error);
+      throw new Error('Failed to update organization data');
+    }
+  }
+
   // Helper method to get current organization ID from user data or subdomain with sessionStorage caching
   static async getCurrentOrgId(): Promise<string> {
     try {
@@ -614,6 +696,67 @@ export class ApiService {
     } catch (error) {
       console.error('Error fetching site config:', error);
       throw new Error('Failed to fetch site configuration');
+    }
+  }
+
+  // Update site configuration by organization ID
+  static async updateSiteConfig(
+    orgId: string,
+    siteConfigData: {
+      theme?: {
+        primaryColor?: string;
+        secondaryColor?: string;
+        fontFamily?: string;
+      };
+      seo?: {
+        title?: string;
+        description?: string;
+        keywords?: string[];
+      };
+      customDomain?: string;
+    },
+  ): Promise<SiteConfigResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'siteconfigs',
+          attributes: siteConfigData,
+        },
+      };
+
+      console.log(`Making PUT request to: /${orgId}/siteconfig`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.put(
+        `/${orgId}/siteconfig`,
+        requestBody,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating site config:', error);
+      throw new Error('Failed to update site configuration');
     }
   }
 
@@ -985,11 +1128,14 @@ export class ApiService {
     facultyData: {
       name: string;
       designation: string;
+      experience?: number;
+      role?: string;
       bio: string;
       photo: string;
       subjects: string[];
       email: string;
       phone: string;
+      temporary_password?: string;
     },
   ): Promise<FacultyResponse> {
     try {
@@ -1007,10 +1153,18 @@ export class ApiService {
         throw new Error('Authentication token has expired');
       }
 
+      // Ensure all required fields are present
+      const completeAttributes = {
+        ...facultyData,
+        experience: facultyData.experience || 1, // Default to 1 year if not provided
+        role: facultyData.role || 'faculty', // Default role
+        temporary_password: facultyData.temporary_password || 'TempPass123!', // Default temp password
+      };
+
       const requestBody = {
         data: {
           type: 'faculty',
-          attributes: facultyData,
+          attributes: completeAttributes,
         },
       };
 

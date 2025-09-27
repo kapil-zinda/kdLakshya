@@ -22,13 +22,9 @@ interface Teacher {
   employeeId?: string;
   role?: 'Teacher' | 'Faculty' | 'Staff';
   department?: string;
-  address?: string;
-  dateOfJoining?: string;
-  qualification?: string;
   experience?: number;
   gender?: 'Male' | 'Female';
   dateOfBirth?: string;
-  emergencyContact?: string;
   status?: 'Active' | 'Inactive' | 'On Leave';
   isClassTeacher?: boolean;
   assignedClass?: string;
@@ -72,11 +68,16 @@ export default function TeacherManagement() {
         subjects: faculty.attributes.subjects,
         email: faculty.attributes.email,
         phone: faculty.attributes.phone,
+        experience: faculty.attributes.experience, // Map experience from API
         createdAt: faculty.attributes.createdAt,
         updatedAt: faculty.attributes.updatedAt,
-        // Default values for legacy fields
-        role: 'Faculty',
-        status: 'Active',
+        // Cast role and status to expected types
+        role:
+          (faculty.attributes.role as 'Teacher' | 'Faculty' | 'Staff') ||
+          'Faculty',
+        status:
+          (faculty.attributes.status as 'Active' | 'Inactive' | 'On Leave') ||
+          'Active',
         isClassTeacher: false,
       }));
 
@@ -109,6 +110,8 @@ export default function TeacherManagement() {
       const facultyData = {
         name: addFormData.name!,
         designation: addFormData.designation!,
+        experience: addFormData.experience || 1, // Include experience field
+        role: addFormData.role || 'faculty', // Include role field
         bio: addFormData.bio || '',
         photo:
           addFormData.photo ||
@@ -130,10 +133,18 @@ export default function TeacherManagement() {
         subjects: response.data.attributes.subjects,
         email: response.data.attributes.email,
         phone: response.data.attributes.phone,
+        experience: response.data.attributes.experience, // Include experience from API response
         createdAt: response.data.attributes.createdAt,
         updatedAt: response.data.attributes.updatedAt,
-        role: 'Faculty',
-        status: 'Active',
+        // Cast role and status to expected types
+        role:
+          (response.data.attributes.role as 'Teacher' | 'Faculty' | 'Staff') ||
+          'Faculty',
+        status:
+          (response.data.attributes.status as
+            | 'Active'
+            | 'Inactive'
+            | 'On Leave') || 'Active',
         isClassTeacher: false,
       };
 
@@ -492,9 +503,6 @@ export default function TeacherManagement() {
                           ? `${teacher.experience} years`
                           : 'N/A'}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {teacher.qualification || 'Not specified'}
-                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -619,29 +627,11 @@ export default function TeacherManagement() {
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-500">
-                            Address
+                            Phone
                           </label>
                           <p className="text-sm text-gray-900">
-                            {selectedTeacher.address}
+                            {selectedTeacher.phone}
                           </p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium text-gray-500">
-                              Phone
-                            </label>
-                            <p className="text-sm text-gray-900">
-                              {selectedTeacher.phone}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-gray-500">
-                              Emergency Contact
-                            </label>
-                            <p className="text-sm text-gray-900">
-                              {selectedTeacher.emergencyContact}
-                            </p>
-                          </div>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-500">
@@ -679,22 +669,6 @@ export default function TeacherManagement() {
                               {selectedTeacher.experience} years
                             </p>
                           </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-500">
-                            Qualification
-                          </label>
-                          <p className="text-sm text-gray-900">
-                            {selectedTeacher.qualification}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-500">
-                            Date of Joining
-                          </label>
-                          <p className="text-sm text-gray-900">
-                            {selectedTeacher.dateOfJoining}
-                          </p>
                         </div>
                         {selectedTeacher.isClassTeacher && (
                           <div>
@@ -918,20 +892,6 @@ export default function TeacherManagement() {
                             placeholder="Math, Science, English"
                           />
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Address
-                          </label>
-                          <textarea
-                            value={addFormData.address || ''}
-                            onChange={(e) =>
-                              updateAddFormField('address', e.target.value)
-                            }
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter address"
-                          />
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -943,38 +903,19 @@ export default function TeacherManagement() {
                         Professional & Contact Details
                       </h4>
                       <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Phone
-                            </label>
-                            <input
-                              type="tel"
-                              value={addFormData.phone || ''}
-                              onChange={(e) =>
-                                updateAddFormField('phone', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter phone number"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Emergency Contact
-                            </label>
-                            <input
-                              type="tel"
-                              value={addFormData.emergencyContact || ''}
-                              onChange={(e) =>
-                                updateAddFormField(
-                                  'emergencyContact',
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Emergency contact number"
-                            />
-                          </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Phone
+                          </label>
+                          <input
+                            type="tel"
+                            value={addFormData.phone || ''}
+                            onChange={(e) =>
+                              updateAddFormField('phone', e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter phone number"
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -992,56 +933,21 @@ export default function TeacherManagement() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Qualification
+                            Experience (Years)
                           </label>
                           <input
-                            type="text"
-                            value={addFormData.qualification || ''}
+                            type="number"
+                            value={addFormData.experience || ''}
                             onChange={(e) =>
                               updateAddFormField(
-                                'qualification',
-                                e.target.value,
+                                'experience',
+                                parseInt(e.target.value) || 0,
                               )
                             }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Educational qualification"
+                            placeholder="0"
+                            min="0"
                           />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Experience (Years)
-                            </label>
-                            <input
-                              type="number"
-                              value={addFormData.experience || ''}
-                              onChange={(e) =>
-                                updateAddFormField(
-                                  'experience',
-                                  parseInt(e.target.value) || 0,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="0"
-                              min="0"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Date of Joining
-                            </label>
-                            <input
-                              type="date"
-                              value={addFormData.dateOfJoining || ''}
-                              onChange={(e) =>
-                                updateAddFormField(
-                                  'dateOfJoining',
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </div>
                         </div>
 
                         {/* Class Teacher Assignment */}
@@ -1297,32 +1203,6 @@ export default function TeacherManagement() {
                               <option value="On Leave">On Leave</option>
                             </select>
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Date of Joining
-                            </label>
-                            <input
-                              type="date"
-                              value={editFormData.dateOfJoining || ''}
-                              onChange={(e) =>
-                                updateFormField('dateOfJoining', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Address
-                          </label>
-                          <textarea
-                            value={editFormData.address || ''}
-                            onChange={(e) =>
-                              updateFormField('address', e.target.value)
-                            }
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          />
                         </div>
                       </div>
                     </div>
@@ -1335,36 +1215,18 @@ export default function TeacherManagement() {
                         Professional & Contact Details
                       </h4>
                       <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Phone
-                            </label>
-                            <input
-                              type="tel"
-                              value={editFormData.phone || ''}
-                              onChange={(e) =>
-                                updateFormField('phone', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Emergency Contact
-                            </label>
-                            <input
-                              type="tel"
-                              value={editFormData.emergencyContact || ''}
-                              onChange={(e) =>
-                                updateFormField(
-                                  'emergencyContact',
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Phone
+                          </label>
+                          <input
+                            type="tel"
+                            value={editFormData.phone || ''}
+                            onChange={(e) =>
+                              updateFormField('phone', e.target.value)
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1381,35 +1243,20 @@ export default function TeacherManagement() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Qualification
+                            Experience (Years)
                           </label>
                           <input
-                            type="text"
-                            value={editFormData.qualification || ''}
+                            type="number"
+                            value={editFormData.experience || ''}
                             onChange={(e) =>
-                              updateFormField('qualification', e.target.value)
+                              updateFormField(
+                                'experience',
+                                parseInt(e.target.value) || 0,
+                              )
                             }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            min="0"
                           />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Experience (Years)
-                            </label>
-                            <input
-                              type="number"
-                              value={editFormData.experience || ''}
-                              onChange={(e) =>
-                                updateFormField(
-                                  'experience',
-                                  parseInt(e.target.value) || 0,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              min="0"
-                            />
-                          </div>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
