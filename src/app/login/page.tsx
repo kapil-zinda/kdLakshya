@@ -82,6 +82,13 @@ export default function LoginPage() {
     localStorage.removeItem('studentAuth');
     sessionStorage.removeItem('authCodeProcessed');
 
+    // Store the current subdomain for post-login redirect
+    const currentHost = window.location.host;
+    const currentSubdomain = currentHost.split('.')[0];
+    if (currentSubdomain && currentSubdomain !== 'localhost') {
+      sessionStorage.setItem('loginOriginSubdomain', currentSubdomain);
+    }
+
     // Redirect to Auth0 login
     const AUTH0_Domain_Name =
       process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME ||
@@ -89,9 +96,18 @@ export default function LoginPage() {
     const AUTH0_Client_Id =
       process.env.NEXT_PUBLIC_AUTH0_Client_Id ||
       'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL';
-    const login_redirect =
-      process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL ||
-      'http://localhost:3000/';
+
+    // Use dynamic redirect URL based on current host
+    let login_redirect;
+    const isLocalhost =
+      currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
+
+    if (isLocalhost) {
+      login_redirect = 'http://localhost:3000/';
+    } else {
+      // For production, always redirect back to the current subdomain
+      login_redirect = `https://${currentHost}/`;
+    }
 
     window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${encodeURIComponent(login_redirect)}&scope=${encodeURIComponent('openid profile email')}`;
   };
