@@ -1585,6 +1585,159 @@ export class ApiService {
     }
   }
 
+  // Create a new subject
+  static async createSubject(
+    orgId: string,
+    subjectData: {
+      subject_name: string;
+      class_id: string;
+      teacher_id: string;
+    },
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'subjects',
+          attributes: subjectData,
+        },
+      };
+
+      const response = await classApi.post(`/${orgId}/subjects`, requestBody, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/vnd.api+json',
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error creating subject:', error);
+      throw new Error('Failed to create subject');
+    }
+  }
+
+  // Get all subjects for a specific class
+  static async getSubjectsForClass(
+    orgId: string,
+    classId: string,
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(
+        `/${orgId}/subjects/class/${classId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching class subjects:', error);
+      throw new Error('Failed to fetch class subjects');
+    }
+  }
+
+  // Update a subject
+  static async updateSubject(
+    orgId: string,
+    subjectId: string,
+    teacherId: string,
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.put(
+        `/${orgId}/subjects/${subjectId}`,
+        {
+          data: {
+            type: 'subjects',
+            attributes: {
+              teacher_id: teacherId,
+            },
+          },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+            Authorization: `Bearer ${tokenItem.value}`,
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating subject:', error);
+      throw new Error('Failed to update subject');
+    }
+  }
+
+  // Delete a subject
+  static async deleteSubject(orgId: string, subjectId: string): Promise<void> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      await classApi.delete(`/${orgId}/subjects/${subjectId}`, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+        },
+      });
+    } catch (error) {
+      console.error('Error deleting subject:', error);
+      throw new Error('Failed to delete subject');
+    }
+  }
+
   // Get all students by organization ID
   static async getStudents(orgId: string): Promise<StudentListResponse> {
     try {

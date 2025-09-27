@@ -104,6 +104,12 @@ export default function ClassManagement() {
   const [showAssignTeacherModal, setShowAssignTeacherModal] = useState(false);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [showRollNumberModal, setShowRollNumberModal] = useState(false);
+  const [showEditSubjectModal, setShowEditSubjectModal] = useState(false);
+  const [showDeleteSubjectModal, setShowDeleteSubjectModal] = useState(false);
+  const [selectedSubjectForEdit, setSelectedSubjectForEdit] =
+    useState<Subject | null>(null);
+  const [selectedSubjectForDelete, setSelectedSubjectForDelete] =
+    useState<Subject | null>(null);
   const [selectedStudentForAssignment, setSelectedStudentForAssignment] =
     useState<any>(null);
   const [unassignedStudents, setUnassignedStudents] = useState<any[]>([]);
@@ -125,6 +131,9 @@ export default function ClassManagement() {
   });
   const [rollNumberFormData, setRollNumberFormData] = useState({
     rollNumber: '',
+  });
+  const [editSubjectFormData, setEditSubjectFormData] = useState({
+    teacherId: '',
   });
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
 
@@ -226,6 +235,18 @@ export default function ClassManagement() {
             ApiService.getStudents(orgId),
           ]);
 
+        // Transform teachers data first (needed for subject mapping)
+        const transformedTeachers: Teacher[] = teachersResponse.data.map(
+          (teacher) => ({
+            id: teacher.id,
+            name: teacher.attributes.name,
+            employeeId: teacher.attributes.employee_id || '',
+            department: teacher.attributes.subject || '',
+            email: teacher.attributes.email,
+            phone: teacher.attributes.phone,
+          }),
+        );
+
         // Transform classes data from API response
         const transformedClasses: Class[] = await Promise.all(
           classesResponse.data.map(async (classData) => {
@@ -254,6 +275,31 @@ export default function ClassManagement() {
               );
             }
 
+            // Fetch subjects for each class
+            let classSubjects: Subject[] = [];
+            try {
+              const subjectsResponse = await ApiService.getSubjectsForClass(
+                orgId,
+                classData.id,
+              );
+              classSubjects = subjectsResponse.data.map((subject: any) => ({
+                id: subject.id,
+                name: subject.attributes.subject_name,
+                code: '', // API doesn't provide code, use empty string
+                teacherId: subject.attributes.teacher_id,
+                teacherName: transformedTeachers.find(
+                  (t) => t.id === subject.attributes.teacher_id,
+                )?.name,
+                credits: 1, // Default value, API doesn't provide this
+                type: 'Core' as const, // Default value, API doesn't provide this
+              }));
+            } catch (error) {
+              console.error(
+                `Error fetching subjects for class ${classData.id}:`,
+                error,
+              );
+            }
+
             return {
               id: classData.id,
               name: classData.attributes.class,
@@ -265,7 +311,7 @@ export default function ClassManagement() {
               room: classData.attributes.room,
               data: {
                 students: classStudents,
-                subjects: [],
+                subjects: classSubjects,
                 exams: [],
                 timeSlots: [
                   {
@@ -327,18 +373,6 @@ export default function ClassManagement() {
                 ],
               },
             };
-          }),
-        );
-
-        // Transform teachers data
-        const transformedTeachers: Teacher[] = teachersResponse.data.map(
-          (teacher) => ({
-            id: teacher.id,
-            name: teacher.attributes.name,
-            employeeId: teacher.attributes.employee_id || '',
-            department: teacher.attributes.subject || '',
-            email: teacher.attributes.email,
-            phone: teacher.attributes.phone,
           }),
         );
 
@@ -814,9 +848,9 @@ export default function ClassManagement() {
     }
   };
 
-  const handleAddSubject = () => {
-    if (!subjectFormData.name || !subjectFormData.code) {
-      alert('Please fill in required fields');
+  const handleAddSubject = async () => {
+    if (!subjectFormData.name || !subjectFormData.teacherId) {
+      alert('Please fill in required fields (Subject Name and Teacher)');
       return;
     }
 
@@ -825,39 +859,164 @@ export default function ClassManagement() {
       return;
     }
 
-    const newSubject: Subject = {
-      id: (currentSubjects.length + 1).toString(),
-      name: subjectFormData.name,
-      code: subjectFormData.code,
-      teacherId: subjectFormData.teacherId || undefined,
-      teacherName: subjectFormData.teacherId
-        ? teachers.find((t) => t.id === subjectFormData.teacherId)?.name
-        : undefined,
-      credits: subjectFormData.credits,
-      type: subjectFormData.type,
-    };
+    try {
+      setLoading(true);
 
-    const updatedClass = {
-      ...selectedClass,
-      data: {
-        ...selectedClass.data,
-        subjects: [...selectedClass.data.subjects, newSubject],
-      },
-    };
+      // Get organization ID
+      const orgId = await getOrgId();
 
-    setClasses((prev) =>
-      prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-    );
-    setSelectedClass(updatedClass);
-    setShowAddSubjectModal(false);
-    setSubjectFormData({
-      name: '',
-      code: '',
-      teacherId: '',
-      credits: 1,
-      type: 'Core',
-    });
-    alert('Subject added successfully!');
+      // Create subject via API
+      const response = await ApiService.createSubject(orgId, {
+        subject_name: subjectFormData.name,
+        class_id: selectedClass.id,
+        teacher_id: subjectFormData.teacherId,
+      });
+
+      // Create the new subject object for local state
+      const newSubject: Subject = {
+        id: response.data.id,
+        name: response.data.attributes.subject_name,
+        code: subjectFormData.code || '', // Code might not be in API response
+        teacherId: response.data.attributes.teacher_id,
+        teacherName: teachers.find(
+          (t) => t.id === response.data.attributes.teacher_id,
+        )?.name,
+        credits: subjectFormData.credits,
+        type: subjectFormData.type,
+      };
+
+      // Update local state
+      const updatedClass = {
+        ...selectedClass,
+        data: {
+          ...selectedClass.data,
+          subjects: [...selectedClass.data.subjects, newSubject],
+        },
+      };
+
+      setClasses((prev) =>
+        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
+      );
+      setSelectedClass(updatedClass);
+      setShowAddSubjectModal(false);
+      setSubjectFormData({
+        name: '',
+        code: '',
+        teacherId: '',
+        credits: 1,
+        type: 'Core',
+      });
+      setLoading(false);
+      alert('Subject added successfully!');
+    } catch (error) {
+      console.error('Error creating subject:', error);
+      setLoading(false);
+      alert('Failed to create subject. Please try again.');
+    }
+  };
+
+  const handleEditSubject = async () => {
+    if (!editSubjectFormData.teacherId) {
+      alert('Please select a teacher');
+      return;
+    }
+
+    if (!selectedClass || !selectedSubjectForEdit) {
+      alert('No class or subject selected');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Get organization ID
+      const orgId = await getOrgId();
+
+      // Update subject via API
+      await ApiService.updateSubject(
+        orgId,
+        selectedSubjectForEdit.id,
+        editSubjectFormData.teacherId,
+      );
+
+      // Update local state
+      const updatedSubjects = selectedClass.data.subjects.map((subject) =>
+        subject.id === selectedSubjectForEdit.id
+          ? {
+              ...subject,
+              teacherId: editSubjectFormData.teacherId,
+              teacherName: teachers.find(
+                (t) => t.id === editSubjectFormData.teacherId,
+              )?.name,
+            }
+          : subject,
+      );
+
+      const updatedClass = {
+        ...selectedClass,
+        data: {
+          ...selectedClass.data,
+          subjects: updatedSubjects,
+        },
+      };
+
+      setClasses((prev) =>
+        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
+      );
+      setSelectedClass(updatedClass);
+      setShowEditSubjectModal(false);
+      setSelectedSubjectForEdit(null);
+      setEditSubjectFormData({ teacherId: '' });
+      setLoading(false);
+      alert('Subject updated successfully!');
+    } catch (error) {
+      console.error('Error updating subject:', error);
+      setLoading(false);
+      alert('Failed to update subject. Please try again.');
+    }
+  };
+
+  const handleDeleteSubject = async () => {
+    if (!selectedClass || !selectedSubjectForDelete) {
+      alert('No class or subject selected');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Get organization ID
+      const orgId = await getOrgId();
+
+      // Delete subject via API
+      await ApiService.deleteSubject(orgId, selectedSubjectForDelete.id);
+
+      // Update local state
+      const updatedSubjects = selectedClass.data.subjects.filter(
+        (subject) => subject.id !== selectedSubjectForDelete.id,
+      );
+
+      const updatedClass = {
+        ...selectedClass,
+        data: {
+          ...selectedClass.data,
+          subjects: updatedSubjects,
+        },
+      };
+
+      setClasses((prev) =>
+        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
+      );
+      setSelectedClass(updatedClass);
+      setShowDeleteSubjectModal(false);
+      setSelectedSubjectForDelete(null);
+      setLoading(false);
+      alert('Subject deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting subject:', error);
+      setLoading(false);
+      alert('Failed to delete subject. Please try again.');
+    }
   };
 
   const handleCreateExam = () => {
@@ -1517,12 +1676,6 @@ export default function ClassManagement() {
                                   {subject.type}
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-600 mb-2">
-                                Code: {subject.code}
-                              </p>
-                              <p className="text-sm text-gray-600 mb-2">
-                                Credits: {subject.credits}
-                              </p>
                               <div className="border-t pt-2">
                                 <p className="text-sm font-medium text-gray-700">
                                   Teacher:
@@ -1530,6 +1683,29 @@ export default function ClassManagement() {
                                 <p className="text-sm text-gray-600">
                                   {subject.teacherName || 'Not Assigned'}
                                 </p>
+                              </div>
+                              <div className="border-t pt-3 mt-3 flex justify-end space-x-2">
+                                <button
+                                  onClick={() => {
+                                    setSelectedSubjectForEdit(subject);
+                                    setEditSubjectFormData({
+                                      teacherId: subject.teacherId || '',
+                                    });
+                                    setShowEditSubjectModal(true);
+                                  }}
+                                  className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setSelectedSubjectForDelete(subject);
+                                    setShowDeleteSubjectModal(true);
+                                  }}
+                                  className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700"
+                                >
+                                  Delete
+                                </button>
                               </div>
                             </div>
                           ))}
@@ -1971,7 +2147,7 @@ export default function ClassManagement() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Assign Teacher
+                    Assign Teacher <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={subjectFormData.teacherId}
@@ -1990,44 +2166,6 @@ export default function ClassManagement() {
                       </option>
                     ))}
                   </select>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Credits
-                    </label>
-                    <input
-                      type="number"
-                      value={subjectFormData.credits}
-                      onChange={(e) =>
-                        setSubjectFormData((prev) => ({
-                          ...prev,
-                          credits: parseInt(e.target.value) || 1,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      min="1"
-                      max="5"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Type
-                    </label>
-                    <select
-                      value={subjectFormData.type}
-                      onChange={(e) =>
-                        setSubjectFormData((prev) => ({
-                          ...prev,
-                          type: e.target.value as 'Core' | 'Elective',
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="Core">Core</option>
-                      <option value="Elective">Elective</option>
-                    </select>
-                  </div>
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
@@ -2912,6 +3050,121 @@ export default function ClassManagement() {
                   className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
                 >
                   Add Student
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Subject Modal */}
+        {showEditSubjectModal && selectedSubjectForEdit && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Edit Subject
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Edit teacher for {selectedSubjectForEdit.name}
+                </p>
+              </div>
+              <div className="p-6">
+                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium text-gray-900">
+                    {selectedSubjectForEdit.name}
+                  </h4>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Current Teacher:{' '}
+                    {selectedSubjectForEdit.teacherName || 'Not Assigned'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Select New Teacher <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={editSubjectFormData.teacherId}
+                    onChange={(e) =>
+                      setEditSubjectFormData((prev) => ({
+                        ...prev,
+                        teacherId: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Select a teacher</option>
+                    {teachers.map((teacher) => (
+                      <option key={teacher.id} value={teacher.id}>
+                        {teacher.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowEditSubjectModal(false);
+                    setSelectedSubjectForEdit(null);
+                    setEditSubjectFormData({ teacherId: '' });
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditSubject}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                >
+                  Update Subject
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Subject Modal */}
+        {showDeleteSubjectModal && selectedSubjectForDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Delete Subject
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Are you sure you want to delete this subject?
+                </p>
+              </div>
+              <div className="p-6">
+                <div className="mb-4 p-4 bg-red-50 rounded-lg border border-red-200">
+                  <h4 className="font-medium text-red-900">
+                    {selectedSubjectForDelete.name}
+                  </h4>
+                  <p className="text-sm text-red-700 mt-1">
+                    Teacher:{' '}
+                    {selectedSubjectForDelete.teacherName || 'Not Assigned'}
+                  </p>
+                  <p className="text-sm text-red-600 mt-2">
+                    <strong>Warning:</strong> This action cannot be undone. The
+                    subject will be permanently deleted.
+                  </p>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteSubjectModal(false);
+                    setSelectedSubjectForDelete(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteSubject}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+                >
+                  Delete Subject
                 </button>
               </div>
             </div>
