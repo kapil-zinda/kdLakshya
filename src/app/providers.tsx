@@ -175,7 +175,7 @@ export function Providers({ children }: ThemeProviderProps) {
           .filter(Boolean) as string[],
       });
 
-      // Only redirect on initial login, not when navigating back to homepage
+      // Only redirect if explicitly requested and has org ID
       if (shouldRedirect && orgId) {
         console.log('🚀 CALLING redirectToOrgSubdomain with orgId:', orgId);
         console.log('🚀 shouldRedirect:', shouldRedirect);
@@ -192,7 +192,7 @@ export function Providers({ children }: ThemeProviderProps) {
           orgId,
           hasToken: !!bearerToken,
           currentUrl: window.location.href,
-          userAttributes: attributes,
+          reason: shouldRedirect ? 'No orgId' : 'shouldRedirect is false',
         });
       }
     } catch (error) {
@@ -266,7 +266,16 @@ export function Providers({ children }: ThemeProviderProps) {
       data.append('client_id', AUTH0_Client_Id);
       data.append('client_secret', AUTH0_Client_Secret);
       data.append('code', code);
-      data.append('redirect_uri', login_redirect);
+      // Use dynamic redirect URI based on current domain
+      const tokenExchangeHost = window.location.host;
+      const tokenIsLocalhost =
+        tokenExchangeHost.includes('localhost') ||
+        tokenExchangeHost.includes('127.0.0.1');
+      const dynamicRedirectUri = tokenIsLocalhost
+        ? login_redirect
+        : `https://${tokenExchangeHost}/`;
+
+      data.append('redirect_uri', dynamicRedirectUri);
 
       console.log('Token request data:', Object.fromEntries(data));
 
@@ -306,32 +315,54 @@ export function Providers({ children }: ThemeProviderProps) {
         currentHost: window.location.host,
       });
 
-      // Check if this is AUTH domain and should trigger redirect
+      // Check if this is an auth callback that should trigger redirect to dashboard
       const currentHost = window.location.host;
-      const isAuthOrLocalhost =
-        currentHost.includes('auth.') ||
-        currentHost.includes('localhost') ||
-        currentHost.includes('127.0.0.1');
+      const isLocalhost =
+        currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
 
-      if (
-        window.location.pathname === '/' &&
-        wasAuthCallback &&
-        isAuthOrLocalhost
-      ) {
+      if (window.location.pathname === '/' && wasAuthCallback) {
         console.log(
-          '✅ This is an auth callback on AUTH - will trigger redirect',
+          '✅ This is an auth callback - will fetch user data and redirect to dashboard',
         );
         console.log('✅ About to call userMeData with shouldRedirect=true');
         sessionStorage.removeItem('isAuthCallback'); // Clear the flag
-        await userMeData(token, true); // Pass true to trigger subdomain redirect
-        console.log('✅ userMeData call completed');
+
+        // Get user data first
+        await userMeData(token, false); // Don't auto-redirect in userMeData
+
+        // Check if we need to redirect to a specific subdomain from the stored origin
+        const loginOriginSubdomain = sessionStorage.getItem(
+          'loginOriginSubdomain',
+        );
+        const currentSubdomain = currentHost.split('.')[0];
+
+        if (
+          loginOriginSubdomain &&
+          loginOriginSubdomain !== currentSubdomain &&
+          !isLocalhost
+        ) {
+          // Redirect back to the original subdomain with dashboard
+          const domain = currentHost.split('.').slice(1).join('.');
+          const redirectUrl = `https://${loginOriginSubdomain}.${domain}/dashboard#access_token=${encodeURIComponent(token)}`;
+          console.log(
+            '🔄 Redirecting back to original subdomain:',
+            redirectUrl,
+          );
+          sessionStorage.removeItem('loginOriginSubdomain');
+          window.location.href = redirectUrl;
+        } else {
+          // Stay on current domain but go to dashboard
+          console.log('🏠 Redirecting to dashboard on current domain');
+          window.location.href = '/dashboard';
+        }
+
+        console.log('✅ Auth callback processing completed');
       } else {
         console.log(
-          '❌ Not an auth callback, not on AUTH, or not on homepage - no redirect',
+          '❌ Not an auth callback or not on homepage - no redirect',
           {
             isHomepage: window.location.pathname === '/',
             wasAuthCallback: !!wasAuthCallback,
-            isAuthOrLocalhost,
             fullUrl: window.location.href,
             pathname: window.location.pathname,
           },
@@ -360,11 +391,21 @@ export function Providers({ children }: ThemeProviderProps) {
       localStorage.removeItem('codeVerifier');
       setAccessTkn(null);
 
+      // Use dynamic redirect URI based on current domain
+      const loginHost = window.location.host;
+      const loginIsLocalhost =
+        loginHost.includes('localhost') || loginHost.includes('127.0.0.1');
+      const loginRedirectUri = loginIsLocalhost
+        ? login_redirect
+        : `https://${loginHost}/`;
+
       console.log(
         'Initiating login to:',
         `https://${AUTH0_Domain_Name}/authorize`,
       );
-      window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${login_redirect}&scope=${encodeURIComponent('openid profile email')}`;
+      console.log('Using redirect URI:', loginRedirectUri);
+
+      window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${encodeURIComponent(loginRedirectUri)}&scope=${encodeURIComponent('openid profile email')}`;
     } catch (error) {
       console.error('Login redirect error:', error);
     }
@@ -373,6 +414,29 @@ export function Providers({ children }: ThemeProviderProps) {
   // Initialize auth state
   React.useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Check for access token in URL hash first (from cross-subdomain redirect)
+      const urlHash = window.location.hash;
+      const hashParams = new URLSearchParams(urlHash.substring(1));
+      const tokenFromHash = hashParams.get('access_token');
+
+      if (tokenFromHash) {
+        console.log('🔑 Found access token in URL hash, storing it');
+        setAccessTkn(tokenFromHash);
+        setItemWithTTL('bearerToken', tokenFromHash, 24); // Store for 24 hours
+
+        // Clean the URL by removing the hash
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname + window.location.search,
+        );
+
+        // Load user data with this token
+        userMeData(tokenFromHash, false);
+        return;
+      }
+
+      // Check for stored token
       const token = getItemWithTTL('bearerToken');
       if (token) {
         setAccessTkn(token);

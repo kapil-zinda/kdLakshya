@@ -70,24 +70,29 @@ export function SignInButton({
   }
 
   const handleSignIn = () => {
-    // Always redirect to AUTH for authentication, regardless of current subdomain
+    // Store the current subdomain for post-login redirect
     const currentHost = window.location.host;
-    const isLocalhost =
-      currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
-
-    let authUrl;
-    if (isLocalhost) {
-      // For development, use localhost:3000 as the auth domain
-      const port = currentHost.split(':')[1] || '3000';
-      authUrl = `http://auth.localhost:${port}/api/auth/login`;
-    } else {
-      // For production, always redirect to auth.uchhal.in for authentication
-      const domain = currentHost.split('.').slice(1).join('.'); // Get base domain (uchhal.in)
-      authUrl = `https://auth.${domain}/api/auth/login`;
+    const currentSubdomain = currentHost.split('.')[0];
+    if (currentSubdomain && currentSubdomain !== 'localhost') {
+      sessionStorage.setItem('loginOriginSubdomain', currentSubdomain);
     }
 
-    console.log('🔑 Redirecting to AUTH for authentication:', authUrl);
-    window.location.href = authUrl;
+    // Redirect directly to Auth0 login
+    const AUTH0_Domain_Name =
+      process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME ||
+      'dev-p3hppyisuuaems5y.us.auth0.com';
+    const AUTH0_Client_Id =
+      process.env.NEXT_PUBLIC_AUTH0_Client_Id ||
+      'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL';
+
+    // Use dynamic redirect URL based on current host
+    const isLocalhost =
+      currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
+    const login_redirect = isLocalhost
+      ? 'http://localhost:3000/'
+      : `https://${currentHost}/`;
+
+    window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${encodeURIComponent(login_redirect)}&scope=${encodeURIComponent('openid profile email')}`;
   };
 
   return (
