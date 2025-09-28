@@ -26,23 +26,13 @@ export function Providers({ children }: ThemeProviderProps) {
     orgId: string,
     accessToken?: string,
   ) => {
-    console.log('🔧 redirectToOrgSubdomain CALLED with:', {
-      orgId,
-      hasToken: !!accessToken,
-    });
     try {
       // Show loader during redirect
       setIsRedirecting(true);
-      console.log('🔧 Set isRedirecting to true');
 
       // Get organization data to determine subdomain
-      console.log('🔧 Fetching organization data for orgId:', orgId);
       const orgData = await ApiService.getOrganizationById(orgId, accessToken);
-      console.log('🔧 Raw organization response:', orgData);
       const expectedSubdomain = orgData.data.attributes.subdomain;
-      console.log('🔧 Extracted subdomain:', expectedSubdomain);
-
-      console.log('🔄 Redirecting user to org subdomain:', expectedSubdomain);
 
       if (expectedSubdomain) {
         // Check current subdomain to avoid unnecessary redirects
@@ -51,30 +41,12 @@ export function Providers({ children }: ThemeProviderProps) {
         const currentSubdomain =
           currentHostParts.length > 2 ? currentHostParts[0] : null;
 
-        console.log(
-          '🌐 Current subdomain:',
-          currentSubdomain,
-          'Expected:',
-          expectedSubdomain,
-        );
-        console.log('🌐 Current host:', currentHost);
-        console.log('🌐 Host parts:', currentHostParts);
-
         // Only redirect if user is on wrong subdomain or on AUTH
         const isOnAuth = currentSubdomain === 'auth';
         const needsRedirect =
           currentSubdomain !== expectedSubdomain || isOnAuth;
 
-        console.log('🔍 Redirect decision:', {
-          currentSubdomain,
-          expectedSubdomain,
-          isOnAuth,
-          needsRedirect,
-        });
-
         if (needsRedirect) {
-          console.log('🚀 SUBDOMAIN MISMATCH OR ON AUTH - INITIATING REDIRECT');
-          console.log('🚀 From:', currentSubdomain, 'To:', expectedSubdomain);
           const isLocalhost =
             currentHost.includes('localhost') ||
             currentHost.includes('127.0.0.1');
@@ -88,39 +60,23 @@ export function Providers({ children }: ThemeProviderProps) {
             // For development, redirect to subdomain on localhost with dashboard
             const port = currentHost.split(':')[1] || '3000';
             const redirectUrl = `http://${expectedSubdomain}.localhost:${port}/dashboard${tokenParam}`;
-            console.log('🖥️ LOCALHOST REDIRECT TO DASHBOARD:', redirectUrl);
             window.location.href = redirectUrl;
           } else {
             // For production, redirect to the actual subdomain with dashboard
             const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
             const redirectUrl = `https://${expectedSubdomain}.${domain}/dashboard${tokenParam}`;
-            console.log('🌍 PRODUCTION REDIRECT TO DASHBOARD:', redirectUrl);
-            console.log('🌍 Domain calculated as:', domain);
-            console.log('🌍 Full redirect URL:', redirectUrl);
-            console.log('🌍 Including access token in URL hash');
 
             // Add a small delay to ensure logs are visible
-            setTimeout(() => {
-              console.log('🌍 EXECUTING REDIRECT NOW...');
-              console.log('🌍 About to redirect to:', redirectUrl);
-              console.log(
-                '🌍 Current location before redirect:',
-                window.location.href,
-              );
-              window.location.href = redirectUrl;
-              console.log('🌍 Redirect command executed');
-            }, 100);
+            window.location.href = redirectUrl;
           }
         } else {
           // User is already on correct subdomain, just go to dashboard
-          console.log('User already on correct subdomain, going to dashboard');
           setIsRedirecting(false);
           // Use router.push instead of window.location.href to stay on current domain
           window.location.href = '/dashboard';
         }
       } else {
         // Fallback to dashboard if no subdomain found
-        console.log('No subdomain found, going to dashboard');
         setIsRedirecting(false);
         window.location.href = '/dashboard';
       }
@@ -155,8 +111,6 @@ export function Providers({ children }: ThemeProviderProps) {
 
       // Handle both possible field names for org ID
       const orgId = attributes.org_id || attributes.org;
-      console.log('🔍 Provider: Raw attributes:', attributes);
-      console.log('🏢 Provider: Extracted orgId:', orgId);
 
       updateUserData({
         userId: attributes.user_id || attributes.id,
@@ -177,23 +131,7 @@ export function Providers({ children }: ThemeProviderProps) {
 
       // Only redirect if explicitly requested and has org ID
       if (shouldRedirect && orgId) {
-        console.log('🚀 CALLING redirectToOrgSubdomain with orgId:', orgId);
-        console.log('🚀 shouldRedirect:', shouldRedirect);
-        console.log('🚀 bearerToken exists:', !!bearerToken);
-        console.log(
-          '🚀 Current URL when calling redirect:',
-          window.location.href,
-        );
-        console.log('🚀 User attributes that led to this call:', attributes);
         await redirectToOrgSubdomain(orgId, bearerToken);
-      } else {
-        console.log('❌ NOT calling redirectToOrgSubdomain:', {
-          shouldRedirect,
-          orgId,
-          hasToken: !!bearerToken,
-          currentUrl: window.location.href,
-          reason: shouldRedirect ? 'No orgId' : 'shouldRedirect is false',
-        });
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -308,12 +246,6 @@ export function Providers({ children }: ThemeProviderProps) {
 
       // Only redirect immediately after OAuth callback, not on normal homepage visits
       const wasAuthCallback = sessionStorage.getItem('isAuthCallback');
-      console.log('🔍 Auth callback check:', {
-        pathname: window.location.pathname,
-        wasAuthCallback: !!wasAuthCallback,
-        fullUrl: window.location.href,
-        currentHost: window.location.host,
-      });
 
       // Check if this is an auth callback that should trigger redirect to dashboard
       const currentHost = window.location.host;
@@ -321,52 +253,64 @@ export function Providers({ children }: ThemeProviderProps) {
         currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
 
       if (window.location.pathname === '/' && wasAuthCallback) {
-        console.log(
-          '✅ This is an auth callback - will fetch user data and redirect to dashboard',
-        );
-        console.log('✅ About to call userMeData with shouldRedirect=true');
         sessionStorage.removeItem('isAuthCallback'); // Clear the flag
 
-        // Get user data first
+        // Get user data first to determine their organization
         await userMeData(token, false); // Don't auto-redirect in userMeData
 
-        // Check if we need to redirect to a specific subdomain from the stored origin
-        const loginOriginSubdomain = sessionStorage.getItem(
-          'loginOriginSubdomain',
-        );
+        // Get user's organization subdomain from their orgId
+        let userOrgSubdomain = null;
+        try {
+          // Get user data from the API to find their orgId
+          const userResponse = await axios.get(
+            `https://apis.testkdlakshya.uchhal.in/auth/users/me?include=permission`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          );
+
+          const userData = userResponse.data.data;
+          const orgId = userData.attributes.org_id || userData.attributes.org;
+
+          if (orgId) {
+            // Fetch organization data to get the subdomain
+            const orgResponse = await axios.get(
+              `https://apis.testkdlakshya.uchhal.in/auth/organizations/${orgId}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              },
+            );
+
+            userOrgSubdomain = orgResponse.data.data.attributes.subdomain;
+          }
+        } catch (error) {
+          console.error('❌ Error fetching user organization:', error);
+        }
+
         const currentSubdomain = currentHost.split('.')[0];
 
+        // Redirect to user's organization subdomain if different from current
         if (
-          loginOriginSubdomain &&
-          loginOriginSubdomain !== currentSubdomain &&
+          userOrgSubdomain &&
+          userOrgSubdomain !== currentSubdomain &&
           !isLocalhost
         ) {
-          // Redirect back to the original subdomain with dashboard
+          // Redirect to the user's organization subdomain
           const domain = currentHost.split('.').slice(1).join('.');
-          const redirectUrl = `https://${loginOriginSubdomain}.${domain}/dashboard#access_token=${encodeURIComponent(token)}`;
-          console.log(
-            '🔄 Redirecting back to original subdomain:',
-            redirectUrl,
-          );
+          const redirectUrl = `https://${userOrgSubdomain}.${domain}/dashboard#access_token=${encodeURIComponent(token)}`;
           sessionStorage.removeItem('loginOriginSubdomain');
           window.location.href = redirectUrl;
         } else {
           // Stay on current domain but go to dashboard
-          console.log('🏠 Redirecting to dashboard on current domain');
           window.location.href = '/dashboard';
         }
-
-        console.log('✅ Auth callback processing completed');
       } else {
-        console.log(
-          '❌ Not an auth callback or not on homepage - no redirect',
-          {
-            isHomepage: window.location.pathname === '/',
-            wasAuthCallback: !!wasAuthCallback,
-            fullUrl: window.location.href,
-            pathname: window.location.pathname,
-          },
-        );
         await userMeData(token, false); // Don't redirect for normal visits
       }
     } catch (error) {

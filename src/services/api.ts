@@ -672,10 +672,6 @@ export class ApiService {
           try {
             const userData = JSON.parse(cachedUserData);
             if (userData.orgId) {
-              console.log(
-                'Using organization ID from authenticated user data:',
-                userData.orgId,
-              );
               return userData.orgId;
             }
           } catch (e) {
@@ -688,20 +684,42 @@ export class ApiService {
       if (typeof window !== 'undefined') {
         const cachedOrgId = sessionStorage.getItem('currentOrgId');
         if (cachedOrgId) {
-          console.log(
-            'Using cached organization ID from sessionStorage:',
-            cachedOrgId,
-          );
           return cachedOrgId;
         }
       }
 
-      // Get subdomain from current URL
+      // Priority 3: If we have a bearer token, fetch user data to get org ID
+      if (typeof window !== 'undefined') {
+        const tokenStr = localStorage.getItem('bearerToken');
+        if (tokenStr) {
+          try {
+            const tokenItem = JSON.parse(tokenStr);
+            const now = new Date().getTime();
+
+            if (now < tokenItem.expiry && tokenItem.value) {
+              const userResponse = await this.getUserMe(tokenItem.value);
+              const userData = userResponse.data;
+              const orgId =
+                userData.attributes.org_id || userData.attributes.org;
+
+              if (orgId) {
+                // Cache the org ID for future use
+                sessionStorage.setItem('currentOrgId', orgId);
+                return orgId;
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching user data to get org ID:', error);
+            // Continue to fallback method
+          }
+        }
+      }
+
+      // Priority 4 (Fallback): Get subdomain from current URL
       let subdomain = '';
 
       if (typeof window !== 'undefined') {
         const hostname = window.location.hostname;
-        console.log('Current hostname:', hostname);
 
         // Handle localhost development - default to 'auth' for testing
         if (
@@ -710,10 +728,6 @@ export class ApiService {
           hostname === '127.0.0.1'
         ) {
           subdomain = 'auth'; // Default subdomain for localhost development
-          console.log(
-            'Development mode detected, using default subdomain:',
-            subdomain,
-          );
         } else {
           // Extract subdomain from production URL (e.g., 'auth' from 'auth.uchhal.in')
           const parts = hostname.split('.');
@@ -729,8 +743,6 @@ export class ApiService {
         );
       }
 
-      console.log('Using subdomain:', subdomain);
-
       // Use existing getSubdomain method which returns config with organizationId
       const subdomainData = await this.getSubdomain(subdomain);
       const orgId = subdomainData.config.organizationId;
@@ -742,10 +754,8 @@ export class ApiService {
       // Cache the organization ID in sessionStorage for future use
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('currentOrgId', orgId);
-        console.log('Cached organization ID in sessionStorage:', orgId);
       }
 
-      console.log('Got organization ID:', orgId);
       return orgId;
     } catch (error) {
       console.error('Error getting current organization ID:', error);
