@@ -5,38 +5,50 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { ApiService } from '@/services/api';
+
 interface Student {
   id: string;
-  name: string;
-  rollNumber: string;
-  class: string;
-  section: string;
-  fatherName: string;
-  motherName: string;
-  dateOfBirth: string;
-  gender: 'Male' | 'Female';
+  firstName: string;
+  lastName: string;
+  name: string; // Computed field: firstName + lastName
   email: string;
   phone: string;
-  address: string;
+  dateOfBirth: string;
+  gender?: string;
+  uniqueId?: string;
+  profile?: string;
+  gradeLevel: string;
+  guardianInfo: {
+    fatherName: string;
+    motherName: string;
+    phone: string;
+    email: string;
+    address: string;
+  };
   admissionDate: string;
-  bloodGroup: string;
-  emergencyContact: string;
-  photo: string;
-  academicYear: string;
-  status: 'Active' | 'Inactive' | 'Transferred';
-  fees: {
+  // Legacy fields for UI compatibility
+  rollNumber?: string;
+  class?: string;
+  section?: string;
+  bloodGroup?: string;
+  emergencyContact?: string;
+  photo?: string;
+  academicYear?: string;
+  status?: 'Active' | 'Inactive' | 'Transferred';
+  fees?: {
     totalFees: number;
     paidFees: number;
     pendingFees: number;
     lastPaymentDate: string;
   };
-  attendance: {
+  attendance?: {
     totalDays: number;
     presentDays: number;
     absentDays: number;
     percentage: number;
   };
-  grades: {
+  grades?: {
     subject: string;
     marks: number;
     grade: string;
@@ -52,12 +64,22 @@ export default function StudentManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [addFormData, setAddFormData] = useState<Partial<Student>>({
-    status: 'Active',
-    academicYear: '2024-25',
-    fees: { totalFees: 0, paidFees: 0, pendingFees: 0, lastPaymentDate: '' },
-    attendance: { totalDays: 0, presentDays: 0, absentDays: 0, percentage: 0 },
-    grades: [],
+  const [addFormData, setAddFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    dob: '',
+    gender: 'Male',
+    uniqueId: '',
+    profile: '',
+    guardianInfo: {
+      fatherName: '',
+      motherName: '',
+      phone: '',
+      email: '',
+      address: '',
+    },
   });
   const router = useRouter();
 
@@ -100,261 +122,88 @@ export default function StudentManagement() {
       return;
     }
 
-    // Load sample student data (in production, fetch from API)
-    const sampleStudents: Student[] = [
-      {
-        id: '1',
-        name: 'Aarav Sharma',
-        rollNumber: '001',
-        class: 'Class 10',
-        section: 'A',
-        fatherName: 'Rajesh Sharma',
-        motherName: 'Priya Sharma',
-        dateOfBirth: '2008-05-15',
-        gender: 'Male',
-        email: 'aarav.sharma@email.com',
-        phone: '9876543210',
-        address: '123, Green Park, Delhi',
-        admissionDate: '2020-04-01',
-        bloodGroup: 'B+',
-        emergencyContact: '9876543211',
-        photo:
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-        academicYear: '2024-25',
-        status: 'Active',
-        fees: {
-          totalFees: 50000,
-          paidFees: 35000,
-          pendingFees: 15000,
-          lastPaymentDate: '2024-01-15',
-        },
-        attendance: {
-          totalDays: 180,
-          presentDays: 165,
-          absentDays: 15,
-          percentage: 91.7,
-        },
-        grades: [
-          { subject: 'Mathematics', marks: 85, grade: 'A' },
-          { subject: 'Science', marks: 78, grade: 'B+' },
-          { subject: 'English', marks: 92, grade: 'A+' },
-          { subject: 'Hindi', marks: 75, grade: 'B' },
-          { subject: 'Social Studies', marks: 88, grade: 'A' },
-        ],
-      },
-      {
-        id: '2',
-        name: 'Ananya Patel',
-        rollNumber: '002',
-        class: 'Class 10',
-        section: 'A',
-        fatherName: 'Vikram Patel',
-        motherName: 'Kavita Patel',
-        dateOfBirth: '2008-08-22',
-        gender: 'Female',
-        email: 'ananya.patel@email.com',
-        phone: '9876543212',
-        address: '456, Blue Valley, Mumbai',
-        admissionDate: '2020-04-01',
-        bloodGroup: 'A+',
-        emergencyContact: '9876543213',
-        photo:
-          'https://images.unsplash.com/photo-1494790108755-2616b612b37c?w=150&h=150&fit=crop&crop=face',
-        academicYear: '2024-25',
-        status: 'Active',
-        fees: {
-          totalFees: 50000,
-          paidFees: 50000,
-          pendingFees: 0,
-          lastPaymentDate: '2024-01-10',
-        },
-        attendance: {
-          totalDays: 180,
-          presentDays: 175,
-          absentDays: 5,
-          percentage: 97.2,
-        },
-        grades: [
-          { subject: 'Mathematics', marks: 95, grade: 'A+' },
-          { subject: 'Science', marks: 89, grade: 'A' },
-          { subject: 'English', marks: 87, grade: 'A' },
-          { subject: 'Hindi', marks: 82, grade: 'A' },
-          { subject: 'Social Studies', marks: 91, grade: 'A+' },
-        ],
-      },
-      {
-        id: '3',
-        name: 'Arjun Kumar',
-        rollNumber: '003',
-        class: 'Class 9',
-        section: 'B',
-        fatherName: 'Suresh Kumar',
-        motherName: 'Meera Kumar',
-        dateOfBirth: '2009-03-10',
-        gender: 'Male',
-        email: 'arjun.kumar@email.com',
-        phone: '9876543214',
-        address: '789, Rose Garden, Bangalore',
-        admissionDate: '2021-04-01',
-        bloodGroup: 'O+',
-        emergencyContact: '9876543215',
-        photo:
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
-        academicYear: '2024-25',
-        status: 'Active',
-        fees: {
-          totalFees: 45000,
-          paidFees: 30000,
-          pendingFees: 15000,
-          lastPaymentDate: '2023-12-20',
-        },
-        attendance: {
-          totalDays: 170,
-          presentDays: 155,
-          absentDays: 15,
-          percentage: 91.2,
-        },
-        grades: [
-          { subject: 'Mathematics', marks: 72, grade: 'B' },
-          { subject: 'Science', marks: 85, grade: 'A' },
-          { subject: 'English', marks: 79, grade: 'B+' },
-          { subject: 'Hindi', marks: 88, grade: 'A' },
-          { subject: 'Social Studies', marks: 76, grade: 'B+' },
-        ],
-      },
-      {
-        id: '4',
-        name: 'Diya Singh',
-        rollNumber: '001',
-        class: 'Class 5',
-        section: 'A',
-        fatherName: 'Rohit Singh',
-        motherName: 'Sunita Singh',
-        dateOfBirth: '2013-11-05',
-        gender: 'Female',
-        email: 'diya.singh@email.com',
-        phone: '9876543216',
-        address: '321, Lily Apartments, Pune',
-        admissionDate: '2019-04-01',
-        bloodGroup: 'AB+',
-        emergencyContact: '9876543217',
-        photo:
-          'https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=150&h=150&fit=crop&crop=face',
-        academicYear: '2024-25',
-        status: 'Active',
-        fees: {
-          totalFees: 35000,
-          paidFees: 35000,
-          pendingFees: 0,
-          lastPaymentDate: '2024-01-05',
-        },
-        attendance: {
-          totalDays: 160,
-          presentDays: 158,
-          absentDays: 2,
-          percentage: 98.8,
-        },
-        grades: [
-          { subject: 'Mathematics', marks: 90, grade: 'A+' },
-          { subject: 'Science', marks: 85, grade: 'A' },
-          { subject: 'English', marks: 88, grade: 'A' },
-          { subject: 'Hindi', marks: 92, grade: 'A+' },
-          { subject: 'EVS', marks: 87, grade: 'A' },
-        ],
-      },
-      {
-        id: '5',
-        name: 'Karan Verma',
-        rollNumber: '002',
-        class: 'Class 5',
-        section: 'A',
-        fatherName: 'Amit Verma',
-        motherName: 'Pooja Verma',
-        dateOfBirth: '2013-07-18',
-        gender: 'Male',
-        email: 'karan.verma@email.com',
-        phone: '9876543218',
-        address: '654, Orchid Heights, Chennai',
-        admissionDate: '2019-04-01',
-        bloodGroup: 'B-',
-        emergencyContact: '9876543219',
-        photo:
-          'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop&crop=face',
-        academicYear: '2024-25',
-        status: 'Active',
-        fees: {
-          totalFees: 35000,
-          paidFees: 25000,
-          pendingFees: 10000,
-          lastPaymentDate: '2023-11-30',
-        },
-        attendance: {
-          totalDays: 160,
-          presentDays: 145,
-          absentDays: 15,
-          percentage: 90.6,
-        },
-        grades: [
-          { subject: 'Mathematics', marks: 78, grade: 'B+' },
-          { subject: 'Science', marks: 82, grade: 'A' },
-          { subject: 'English', marks: 75, grade: 'B' },
-          { subject: 'Hindi', marks: 80, grade: 'B+' },
-          { subject: 'EVS', marks: 83, grade: 'A' },
-        ],
-      },
-      {
-        id: '6',
-        name: 'Riya Gupta',
-        rollNumber: '004',
-        class: 'Class 9',
-        section: 'B',
-        fatherName: 'Manoj Gupta',
-        motherName: 'Suman Gupta',
-        dateOfBirth: '2009-12-30',
-        gender: 'Female',
-        email: 'riya.gupta@email.com',
-        phone: '9876543220',
-        address: '987, Jasmine Colony, Hyderabad',
-        admissionDate: '2021-04-01',
-        bloodGroup: 'A-',
-        emergencyContact: '9876543221',
-        photo:
-          'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
-        academicYear: '2024-25',
-        status: 'Active',
-        fees: {
-          totalFees: 45000,
-          paidFees: 45000,
-          pendingFees: 0,
-          lastPaymentDate: '2024-01-01',
-        },
-        attendance: {
-          totalDays: 170,
-          presentDays: 168,
-          absentDays: 2,
-          percentage: 98.8,
-        },
-        grades: [
-          { subject: 'Mathematics', marks: 93, grade: 'A+' },
-          { subject: 'Science', marks: 91, grade: 'A+' },
-          { subject: 'English', marks: 89, grade: 'A' },
-          { subject: 'Hindi', marks: 85, grade: 'A' },
-          { subject: 'Social Studies', marks: 90, grade: 'A+' },
-        ],
-      },
-    ];
+    // Load students data from API
+    const loadStudents = async () => {
+      try {
+        setLoading(true);
 
-    setStudents(sampleStudents);
-    setLoading(false);
+        // Get organization ID
+        const orgId = await ApiService.getCurrentOrgId();
+
+        // Fetch students from API
+        const studentsResponse = await ApiService.getStudents(orgId);
+
+        // Transform API response to local interface
+        const transformedStudents: Student[] = studentsResponse.data.map(
+          (studentData) => ({
+            id: studentData.id,
+            firstName: studentData.attributes.first_name,
+            lastName: studentData.attributes.last_name,
+            name: `${studentData.attributes.first_name} ${studentData.attributes.last_name}`,
+            email: studentData.attributes.email,
+            phone: studentData.attributes.phone,
+            dateOfBirth: studentData.attributes.date_of_birth || '', // API returns DD/MM/YYYY format
+            gender: studentData.attributes.gender,
+            uniqueId: studentData.attributes.unique_id,
+            profile: studentData.attributes.profile,
+            gradeLevel: studentData.attributes.grade_level,
+            guardianInfo: {
+              fatherName: studentData.attributes.guardian_info.father_name,
+              motherName: studentData.attributes.guardian_info.mother_name,
+              phone: studentData.attributes.guardian_info.phone,
+              email: studentData.attributes.guardian_info.email,
+              address: studentData.attributes.guardian_info.address,
+            },
+            admissionDate: studentData.attributes.admission_date || '', // API returns DD/MM/YYYY format
+            // Legacy fields for UI compatibility
+            rollNumber: studentData.attributes.unique_id || studentData.id,
+            class: studentData.attributes.grade_level,
+            section: 'A', // Default section
+            status: 'Active',
+            photo:
+              studentData.attributes.profile ||
+              'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+            academicYear: '2024-25',
+            fees: {
+              totalFees: 0,
+              paidFees: 0,
+              pendingFees: 0,
+              lastPaymentDate: '',
+            },
+            attendance: {
+              totalDays: 0,
+              presentDays: 0,
+              absentDays: 0,
+              percentage: 0,
+            },
+            grades: [],
+          }),
+        );
+
+        setStudents(transformedStudents);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error loading students:', error);
+        // Fall back to empty array if API fails
+        setStudents([]);
+        setLoading(false);
+      }
+    };
+
+    loadStudents();
   }, [router]);
 
   const filteredStudents = students.filter((student) => {
     const classMatch =
-      selectedClass === 'All' || student.class === selectedClass;
+      selectedClass === 'All' ||
+      student.class === selectedClass ||
+      student.gradeLevel === selectedClass;
     const searchMatch =
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.rollNumber.includes(searchTerm) ||
-      student.fatherName.toLowerCase().includes(searchTerm.toLowerCase());
+      (student.rollNumber && student.rollNumber.includes(searchTerm)) ||
+      student.guardianInfo.fatherName
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
     return classMatch && searchMatch;
   });
 
@@ -384,21 +233,100 @@ export default function StudentManagement() {
     setSelectedStudent(null);
   };
 
-  const handleSaveStudent = () => {
+  const handleSaveStudent = async () => {
     if (!editingStudent || !editFormData.id) return;
 
-    setStudents((prev) =>
-      prev.map((student) =>
-        student.id === editFormData.id
-          ? ({ ...student, ...editFormData } as Student)
-          : student,
-      ),
-    );
+    try {
+      setLoading(true);
 
-    setEditingStudent(null);
-    setEditFormData({});
-    // Show success message (in production, make API call)
-    alert('Student details updated successfully!');
+      // Get organization ID
+      const orgId = await ApiService.getCurrentOrgId();
+
+      // Convert editFormData to API format
+      const updateData: any = {};
+
+      if (editFormData.firstName) updateData.firstName = editFormData.firstName;
+      if (editFormData.lastName) updateData.lastName = editFormData.lastName;
+      if (editFormData.email) updateData.email = editFormData.email;
+      if (editFormData.phone) updateData.phone = editFormData.phone;
+      if (editFormData.dateOfBirth) updateData.dob = editFormData.dateOfBirth;
+      if (editFormData.gender) updateData.gender = editFormData.gender;
+      if (editFormData.uniqueId) updateData.uniqueId = editFormData.uniqueId;
+      if (editFormData.profile) updateData.profile = editFormData.profile;
+      if (editFormData.gradeLevel)
+        updateData.gradeLevel = editFormData.gradeLevel;
+
+      if (editFormData.guardianInfo) {
+        updateData.guardianInfo = editFormData.guardianInfo;
+      }
+
+      // Update student via API
+      const response = await ApiService.updateStudent(
+        orgId,
+        editingStudent.id,
+        updateData,
+      );
+
+      // Transform API response and update local state
+      const updatedStudent: Student = {
+        id: response.data.id,
+        firstName: response.data.attributes.first_name,
+        lastName: response.data.attributes.last_name,
+        name: `${response.data.attributes.first_name} ${response.data.attributes.last_name}`,
+        email: response.data.attributes.email,
+        phone: response.data.attributes.phone,
+        dateOfBirth: response.data.attributes.date_of_birth || '', // API returns DD/MM/YYYY format
+        gender: response.data.attributes.gender,
+        uniqueId: response.data.attributes.unique_id,
+        profile: response.data.attributes.profile,
+        gradeLevel: response.data.attributes.grade_level,
+        guardianInfo: {
+          fatherName: response.data.attributes.guardian_info.father_name,
+          motherName: response.data.attributes.guardian_info.mother_name,
+          phone: response.data.attributes.guardian_info.phone,
+          email: response.data.attributes.guardian_info.email,
+          address: response.data.attributes.guardian_info.address,
+        },
+        admissionDate: response.data.attributes.admission_date || '', // API returns DD/MM/YYYY format
+        // Legacy fields for UI compatibility
+        rollNumber: response.data.attributes.unique_id || response.data.id,
+        class: response.data.attributes.grade_level,
+        section: 'A',
+        status: 'Active',
+        photo:
+          response.data.attributes.profile ||
+          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        academicYear: '2024-25',
+        fees: {
+          totalFees: 0,
+          paidFees: 0,
+          pendingFees: 0,
+          lastPaymentDate: '',
+        },
+        attendance: {
+          totalDays: 0,
+          presentDays: 0,
+          absentDays: 0,
+          percentage: 0,
+        },
+        grades: [],
+      };
+
+      setStudents((prev) =>
+        prev.map((student) =>
+          student.id === editingStudent.id ? updatedStudent : student,
+        ),
+      );
+
+      setEditingStudent(null);
+      setEditFormData({});
+      setLoading(false);
+      alert('Student details updated successfully!');
+    } catch (error) {
+      console.error('Error updating student:', error);
+      setLoading(false);
+      alert('Failed to update student. Please try again.');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -442,85 +370,125 @@ export default function StudentManagement() {
     setAddFormData((prev) => ({
       ...prev,
       [parentField]: {
-        ...(prev[parentField as keyof Student] as any),
+        ...(prev[parentField as keyof typeof prev] as any),
         [childField]: value,
       },
     }));
   };
 
-  const handleAddStudent = () => {
-    if (!addFormData.name || !addFormData.rollNumber || !addFormData.class) {
-      alert('Please fill in required fields: Name, Roll Number, and Class');
+  const handleAddStudent = async () => {
+    if (!addFormData.firstName || !addFormData.lastName) {
+      alert('Please fill in required fields: First Name and Last Name');
       return;
     }
 
-    const newStudent: Student = {
-      id: (students.length + 1).toString(),
-      name: addFormData.name || '',
-      rollNumber: addFormData.rollNumber || '',
-      class: addFormData.class || '',
-      section: addFormData.section || 'A',
-      fatherName: addFormData.fatherName || '',
-      motherName: addFormData.motherName || '',
-      dateOfBirth: addFormData.dateOfBirth || '',
-      gender: addFormData.gender || 'Male',
-      email: addFormData.email || '',
-      phone: addFormData.phone || '',
-      address: addFormData.address || '',
-      admissionDate:
-        addFormData.admissionDate || new Date().toISOString().split('T')[0],
-      bloodGroup: addFormData.bloodGroup || 'O+',
-      emergencyContact: addFormData.emergencyContact || '',
-      photo:
-        addFormData.photo ||
-        'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-      academicYear: '2024-25',
-      status: 'Active',
-      fees: addFormData.fees || {
-        totalFees: 0,
-        paidFees: 0,
-        pendingFees: 0,
-        lastPaymentDate: '',
-      },
-      attendance: addFormData.attendance || {
-        totalDays: 0,
-        presentDays: 0,
-        absentDays: 0,
-        percentage: 0,
-      },
-      grades: [],
-    };
+    try {
+      setLoading(true);
 
-    setStudents((prev) => [...prev, newStudent]);
-    setShowAddModal(false);
-    setAddFormData({
-      status: 'Active',
-      academicYear: '2024-25',
-      fees: { totalFees: 0, paidFees: 0, pendingFees: 0, lastPaymentDate: '' },
-      attendance: {
-        totalDays: 0,
-        presentDays: 0,
-        absentDays: 0,
-        percentage: 0,
-      },
-      grades: [],
-    });
-    alert('Student added successfully!');
+      // Get organization ID
+      const orgId = await ApiService.getCurrentOrgId();
+
+      // Create student via API with default grade level
+      const studentDataWithDefaults = {
+        ...addFormData,
+        gradeLevel: '1', // Default grade level
+      };
+      const response = await ApiService.createStudent(
+        orgId,
+        studentDataWithDefaults,
+      );
+
+      // Transform API response to local interface
+      const newStudent: Student = {
+        id: response.data.id,
+        firstName: response.data.attributes.first_name,
+        lastName: response.data.attributes.last_name,
+        name: `${response.data.attributes.first_name} ${response.data.attributes.last_name}`,
+        email: response.data.attributes.email,
+        phone: response.data.attributes.phone,
+        dateOfBirth: response.data.attributes.date_of_birth || '', // API returns DD/MM/YYYY format
+        gender: response.data.attributes.gender,
+        uniqueId: response.data.attributes.unique_id,
+        profile: response.data.attributes.profile,
+        gradeLevel: response.data.attributes.grade_level,
+        guardianInfo: {
+          fatherName: response.data.attributes.guardian_info.father_name,
+          motherName: response.data.attributes.guardian_info.mother_name,
+          phone: response.data.attributes.guardian_info.phone,
+          email: response.data.attributes.guardian_info.email,
+          address: response.data.attributes.guardian_info.address,
+        },
+        admissionDate: response.data.attributes.admission_date || '', // API returns DD/MM/YYYY format
+        // Legacy fields for UI compatibility
+        rollNumber: response.data.attributes.unique_id || response.data.id,
+        class: response.data.attributes.grade_level,
+        section: 'A',
+        status: 'Active',
+        photo:
+          response.data.attributes.profile ||
+          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        academicYear: '2024-25',
+        fees: {
+          totalFees: 0,
+          paidFees: 0,
+          pendingFees: 0,
+          lastPaymentDate: '',
+        },
+        attendance: {
+          totalDays: 0,
+          presentDays: 0,
+          absentDays: 0,
+          percentage: 0,
+        },
+        grades: [],
+      };
+
+      setStudents((prev) => [...prev, newStudent]);
+      setShowAddModal(false);
+      setAddFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        dob: '',
+        gender: 'Male',
+        uniqueId: '',
+        profile: '',
+        guardianInfo: {
+          fatherName: '',
+          motherName: '',
+          phone: '',
+          email: '',
+          address: '',
+        },
+      });
+      setLoading(false);
+      alert('Student added successfully!');
+    } catch (error) {
+      console.error('Error creating student:', error);
+      setLoading(false);
+      alert('Failed to create student. Please try again.');
+    }
   };
 
   const handleCancelAdd = () => {
     setShowAddModal(false);
     setAddFormData({
-      status: 'Active',
-      academicYear: '2024-25',
-      fees: { totalFees: 0, paidFees: 0, pendingFees: 0, lastPaymentDate: '' },
-      attendance: {
-        totalDays: 0,
-        presentDays: 0,
-        absentDays: 0,
-        percentage: 0,
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      dob: '',
+      gender: 'Male',
+      uniqueId: '',
+      profile: '',
+      guardianInfo: {
+        fatherName: '',
+        motherName: '',
+        phone: '',
+        email: '',
+        address: '',
       },
-      grades: [],
     });
   };
 
@@ -636,22 +604,13 @@ export default function StudentManagement() {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Student
+                    Student Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Class & Roll
+                    Phone Number
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Attendance
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fees Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
+                    Email
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -670,58 +629,23 @@ export default function StudentManagement() {
                         />
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {student.name}
+                            {student.firstName} {student.lastName}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {student.fatherName}
+                            {student.guardianInfo.fatherName}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        {student.class}-{student.section}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Roll: {student.rollNumber}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
                         {student.phone}
                       </div>
-                      <div className="text-sm text-gray-500">
-                        {student.email}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        {student.attendance.percentage}%
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {student.attendance.presentDays}/
-                        {student.attendance.totalDays} days
-                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">
-                        ₹{student.fees.paidFees.toLocaleString()}/₹
-                        {student.fees.totalFees.toLocaleString()}
+                        {student.email}
                       </div>
-                      <div
-                        className={`text-sm ${student.fees.pendingFees > 0 ? 'text-red-600' : 'text-green-600'}`}
-                      >
-                        {student.fees.pendingFees > 0
-                          ? `₹${student.fees.pendingFees.toLocaleString()} pending`
-                          : 'Paid'}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(student.status)}`}
-                      >
-                        {student.status}
-                      </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
@@ -823,6 +747,24 @@ export default function StudentManagement() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-medium text-gray-500">
+                              First Name
+                            </label>
+                            <p className="text-sm text-gray-900">
+                              {selectedStudent.firstName}
+                            </p>
+                          </div>
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">
+                              Last Name
+                            </label>
+                            <p className="text-sm text-gray-900">
+                              {selectedStudent.lastName}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-sm font-medium text-gray-500">
                               Date of Birth
                             </label>
                             <p className="text-sm text-gray-900">
@@ -834,34 +776,34 @@ export default function StudentManagement() {
                               Gender
                             </label>
                             <p className="text-sm text-gray-900">
-                              {selectedStudent.gender}
+                              {selectedStudent.gender || 'Not specified'}
                             </p>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-medium text-gray-500">
-                              Blood Group
+                              Email
                             </label>
                             <p className="text-sm text-gray-900">
-                              {selectedStudent.bloodGroup}
+                              {selectedStudent.email}
                             </p>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-500">
-                              Admission Date
+                              Phone
                             </label>
                             <p className="text-sm text-gray-900">
-                              {selectedStudent.admissionDate}
+                              {selectedStudent.phone}
                             </p>
                           </div>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-500">
-                            Address
+                            Admission Date
                           </label>
                           <p className="text-sm text-gray-900">
-                            {selectedStudent.address}
+                            {selectedStudent.admissionDate}
                           </p>
                         </div>
                       </div>
@@ -877,7 +819,7 @@ export default function StudentManagement() {
                             Father&apos;s Name
                           </label>
                           <p className="text-sm text-gray-900">
-                            {selectedStudent.fatherName}
+                            {selectedStudent.guardianInfo.fatherName}
                           </p>
                         </div>
                         <div>
@@ -885,133 +827,33 @@ export default function StudentManagement() {
                             Mother&apos;s Name
                           </label>
                           <p className="text-sm text-gray-900">
-                            {selectedStudent.motherName}
+                            {selectedStudent.guardianInfo.motherName}
                           </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="text-sm font-medium text-gray-500">
-                              Phone
+                              Guardian Phone
                             </label>
                             <p className="text-sm text-gray-900">
-                              {selectedStudent.phone}
+                              {selectedStudent.guardianInfo.phone}
                             </p>
                           </div>
                           <div>
                             <label className="text-sm font-medium text-gray-500">
-                              Emergency Contact
+                              Guardian Email
                             </label>
                             <p className="text-sm text-gray-900">
-                              {selectedStudent.emergencyContact}
+                              {selectedStudent.guardianInfo.email}
                             </p>
                           </div>
                         </div>
                         <div>
                           <label className="text-sm font-medium text-gray-500">
-                            Email
+                            Address
                           </label>
                           <p className="text-sm text-gray-900">
-                            {selectedStudent.email}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Academic Information */}
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                        Academic Information
-                      </h4>
-                      <div className="grid grid-cols-2 gap-4 mb-4">
-                        <div className="bg-blue-50 p-4 rounded-lg">
-                          <div className="text-sm font-medium text-blue-600">
-                            Attendance
-                          </div>
-                          <div className="text-2xl font-bold text-blue-900">
-                            {selectedStudent.attendance.percentage}%
-                          </div>
-                          <div className="text-xs text-blue-600">
-                            {selectedStudent.attendance.presentDays}/
-                            {selectedStudent.attendance.totalDays} days
-                          </div>
-                        </div>
-                        <div className="bg-green-50 p-4 rounded-lg">
-                          <div className="text-sm font-medium text-green-600">
-                            Status
-                          </div>
-                          <div
-                            className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedStudent.status)}`}
-                          >
-                            {selectedStudent.status}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                        Recent Grades
-                      </h4>
-                      <div className="space-y-2">
-                        {selectedStudent.grades.map((grade, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                          >
-                            <span className="text-sm font-medium text-gray-900">
-                              {grade.subject}
-                            </span>
-                            <div className="text-right">
-                              <span className="text-sm font-bold text-gray-900">
-                                {grade.marks}
-                              </span>
-                              <span
-                                className={`ml-2 text-sm font-semibold ${getGradeColor(grade.grade)}`}
-                              >
-                                {grade.grade}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                        Fee Details
-                      </h4>
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="text-center p-3 bg-gray-50 rounded-lg">
-                            <div className="text-xs text-gray-500">
-                              Total Fees
-                            </div>
-                            <div className="text-sm font-semibold">
-                              ₹{selectedStudent.fees.totalFees.toLocaleString()}
-                            </div>
-                          </div>
-                          <div className="text-center p-3 bg-green-50 rounded-lg">
-                            <div className="text-xs text-green-600">Paid</div>
-                            <div className="text-sm font-semibold text-green-900">
-                              ₹{selectedStudent.fees.paidFees.toLocaleString()}
-                            </div>
-                          </div>
-                          <div className="text-center p-3 bg-red-50 rounded-lg">
-                            <div className="text-xs text-red-600">Pending</div>
-                            <div className="text-sm font-semibold text-red-900">
-                              ₹
-                              {selectedStudent.fees.pendingFees.toLocaleString()}
-                            </div>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-500">
-                            Last Payment Date
-                          </label>
-                          <p className="text-sm text-gray-900">
-                            {selectedStudent.fees.lastPaymentDate}
+                            {selectedStudent.guardianInfo.address}
                           </p>
                         </div>
                       </div>
@@ -1093,70 +935,38 @@ export default function StudentManagement() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Name
+                              First Name <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
-                              value={editFormData.name || ''}
+                              value={editFormData.firstName || ''}
                               onChange={(e) =>
-                                updateFormField('name', e.target.value)
+                                updateFormField('firstName', e.target.value)
                               }
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter first name"
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Roll Number
+                              Last Name <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
-                              value={editFormData.rollNumber || ''}
+                              value={editFormData.lastName || ''}
                               onChange={(e) =>
-                                updateFormField('rollNumber', e.target.value)
+                                updateFormField('lastName', e.target.value)
                               }
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Class
-                            </label>
-                            <select
-                              value={editFormData.class || ''}
-                              onChange={(e) =>
-                                updateFormField('class', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            >
-                              {classes
-                                .filter((c) => c !== 'All')
-                                .map((cls) => (
-                                  <option key={cls} value={cls}>
-                                    {cls}
-                                  </option>
-                                ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Section
-                            </label>
-                            <input
-                              type="text"
-                              value={editFormData.section || ''}
-                              onChange={(e) =>
-                                updateFormField('section', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter last name"
                             />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Date of Birth
+                              Date of Birth{' '}
+                              <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="date"
@@ -1186,96 +996,21 @@ export default function StudentManagement() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Blood Group
+                              Email <span className="text-red-500">*</span>
                             </label>
-                            <select
-                              value={editFormData.bloodGroup || ''}
+                            <input
+                              type="email"
+                              value={editFormData.email || ''}
                               onChange={(e) =>
-                                updateFormField('bloodGroup', e.target.value)
+                                updateFormField('email', e.target.value)
                               }
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            >
-                              <option value="A+">A+</option>
-                              <option value="A-">A-</option>
-                              <option value="B+">B+</option>
-                              <option value="B-">B-</option>
-                              <option value="AB+">AB+</option>
-                              <option value="AB-">AB-</option>
-                              <option value="O+">O+</option>
-                              <option value="O-">O-</option>
-                            </select>
+                              placeholder="Enter email address"
+                            />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Status
-                            </label>
-                            <select
-                              value={editFormData.status || ''}
-                              onChange={(e) =>
-                                updateFormField('status', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            >
-                              <option value="Active">Active</option>
-                              <option value="Inactive">Inactive</option>
-                              <option value="Transferred">Transferred</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Address
-                          </label>
-                          <textarea
-                            value={editFormData.address || ''}
-                            onChange={(e) =>
-                              updateFormField('address', e.target.value)
-                            }
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Family & Contact Information */}
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                        Family & Contact Details
-                      </h4>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Father&apos;s Name
-                          </label>
-                          <input
-                            type="text"
-                            value={editFormData.fatherName || ''}
-                            onChange={(e) =>
-                              updateFormField('fatherName', e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Mother&apos;s Name
-                          </label>
-                          <input
-                            type="text"
-                            value={editFormData.motherName || ''}
-                            onChange={(e) =>
-                              updateFormField('motherName', e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Phone
+                              Phone <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="tel"
@@ -1284,47 +1019,19 @@ export default function StudentManagement() {
                                 updateFormField('phone', e.target.value)
                               }
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Emergency Contact
-                            </label>
-                            <input
-                              type="tel"
-                              value={editFormData.emergencyContact || ''}
-                              onChange={(e) =>
-                                updateFormField(
-                                  'emergencyContact',
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter phone number"
                             />
                           </div>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Email
-                          </label>
-                          <input
-                            type="email"
-                            value={editFormData.email || ''}
-                            onChange={(e) =>
-                              updateFormField('email', e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Photo URL
+                            Profile Photo URL
                           </label>
                           <input
                             type="url"
-                            value={editFormData.photo || ''}
+                            value={editFormData.profile || ''}
                             onChange={(e) =>
-                              updateFormField('photo', e.target.value)
+                              updateFormField('profile', e.target.value)
                             }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="https://example.com/photo.jpg"
@@ -1332,80 +1039,107 @@ export default function StudentManagement() {
                         </div>
                       </div>
                     </div>
+                  </div>
 
+                  {/* Guardian Information */}
+                  <div className="space-y-6">
                     <div>
                       <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                        Fee Information
+                        Guardian Information
                       </h4>
                       <div className="space-y-4">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Total Fees
-                            </label>
-                            <input
-                              type="number"
-                              value={editFormData.fees?.totalFees || ''}
-                              onChange={(e) =>
-                                updateNestedField(
-                                  'fees',
-                                  'totalFees',
-                                  parseInt(e.target.value),
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Paid Fees
-                            </label>
-                            <input
-                              type="number"
-                              value={editFormData.fees?.paidFees || ''}
-                              onChange={(e) =>
-                                updateNestedField(
-                                  'fees',
-                                  'paidFees',
-                                  parseInt(e.target.value),
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Pending Fees
-                            </label>
-                            <input
-                              type="number"
-                              value={editFormData.fees?.pendingFees || ''}
-                              onChange={(e) =>
-                                updateNestedField(
-                                  'fees',
-                                  'pendingFees',
-                                  parseInt(e.target.value),
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </div>
-                        </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Last Payment Date
+                            Father&apos;s Name{' '}
+                            <span className="text-red-500">*</span>
                           </label>
                           <input
-                            type="date"
-                            value={editFormData.fees?.lastPaymentDate || ''}
+                            type="text"
+                            value={editFormData.guardianInfo?.fatherName || ''}
                             onChange={(e) =>
                               updateNestedField(
-                                'fees',
-                                'lastPaymentDate',
+                                'guardianInfo',
+                                'fatherName',
                                 e.target.value,
                               )
                             }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter father's name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Mother&apos;s Name{' '}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={editFormData.guardianInfo?.motherName || ''}
+                            onChange={(e) =>
+                              updateNestedField(
+                                'guardianInfo',
+                                'motherName',
+                                e.target.value,
+                              )
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter mother's name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Guardian Phone{' '}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            value={editFormData.guardianInfo?.phone || ''}
+                            onChange={(e) =>
+                              updateNestedField(
+                                'guardianInfo',
+                                'phone',
+                                e.target.value,
+                              )
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter guardian phone number"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Guardian Email{' '}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="email"
+                            value={editFormData.guardianInfo?.email || ''}
+                            onChange={(e) =>
+                              updateNestedField(
+                                'guardianInfo',
+                                'email',
+                                e.target.value,
+                              )
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter guardian email address"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Address <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            value={editFormData.guardianInfo?.address || ''}
+                            onChange={(e) =>
+                              updateNestedField(
+                                'guardianInfo',
+                                'address',
+                                e.target.value,
+                              )
+                            }
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter home address"
                           />
                         </div>
                       </div>
@@ -1480,84 +1214,53 @@ export default function StudentManagement() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Name <span className="text-red-500">*</span>
+                              First Name <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="text"
-                              value={addFormData.name || ''}
+                              value={addFormData.firstName}
                               onChange={(e) =>
-                                updateAddFormField('name', e.target.value)
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  firstName: e.target.value,
+                                }))
                               }
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter student name"
+                              placeholder="Enter first name"
                             />
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Roll Number{' '}
+                              Last Name <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={addFormData.lastName}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  lastName: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter last name"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Date of Birth{' '}
                               <span className="text-red-500">*</span>
                             </label>
                             <input
-                              type="text"
-                              value={addFormData.rollNumber || ''}
-                              onChange={(e) =>
-                                updateAddFormField('rollNumber', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter roll number"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Class <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                              value={addFormData.class || ''}
-                              onChange={(e) =>
-                                updateAddFormField('class', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            >
-                              <option value="">Select Class</option>
-                              {classes
-                                .filter((c) => c !== 'All')
-                                .map((cls) => (
-                                  <option key={cls} value={cls}>
-                                    {cls}
-                                  </option>
-                                ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Section
-                            </label>
-                            <input
-                              type="text"
-                              value={addFormData.section || ''}
-                              onChange={(e) =>
-                                updateAddFormField('section', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="A"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Date of Birth
-                            </label>
-                            <input
                               type="date"
-                              value={addFormData.dateOfBirth || ''}
+                              value={addFormData.dob}
                               onChange={(e) =>
-                                updateAddFormField(
-                                  'dateOfBirth',
-                                  e.target.value,
-                                )
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  dob: e.target.value,
+                                }))
                               }
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             />
@@ -1567,9 +1270,12 @@ export default function StudentManagement() {
                               Gender
                             </label>
                             <select
-                              value={addFormData.gender || 'Male'}
+                              value={addFormData.gender}
                               onChange={(e) =>
-                                updateAddFormField('gender', e.target.value)
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  gender: e.target.value,
+                                }))
                               }
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             >
@@ -1581,151 +1287,51 @@ export default function StudentManagement() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Blood Group
-                            </label>
-                            <select
-                              value={addFormData.bloodGroup || 'O+'}
-                              onChange={(e) =>
-                                updateAddFormField('bloodGroup', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            >
-                              <option value="A+">A+</option>
-                              <option value="A-">A-</option>
-                              <option value="B+">B+</option>
-                              <option value="B-">B-</option>
-                              <option value="AB+">AB+</option>
-                              <option value="AB-">AB-</option>
-                              <option value="O+">O+</option>
-                              <option value="O-">O-</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Admission Date
+                              Email <span className="text-red-500">*</span>
                             </label>
                             <input
-                              type="date"
-                              value={addFormData.admissionDate || ''}
+                              type="email"
+                              value={addFormData.email}
                               onChange={(e) =>
-                                updateAddFormField(
-                                  'admissionDate',
-                                  e.target.value,
-                                )
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  email: e.target.value,
+                                }))
                               }
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter email address"
                             />
                           </div>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Address
-                          </label>
-                          <textarea
-                            value={addFormData.address || ''}
-                            onChange={(e) =>
-                              updateAddFormField('address', e.target.value)
-                            }
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter student address"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Family & Contact Information */}
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                        Family & Contact Details
-                      </h4>
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Father&apos;s Name
-                          </label>
-                          <input
-                            type="text"
-                            value={addFormData.fatherName || ''}
-                            onChange={(e) =>
-                              updateAddFormField('fatherName', e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter father's name"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Mother&apos;s Name
-                          </label>
-                          <input
-                            type="text"
-                            value={addFormData.motherName || ''}
-                            onChange={(e) =>
-                              updateAddFormField('motherName', e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter mother's name"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Phone
+                              Phone <span className="text-red-500">*</span>
                             </label>
                             <input
                               type="tel"
-                              value={addFormData.phone || ''}
+                              value={addFormData.phone}
                               onChange={(e) =>
-                                updateAddFormField('phone', e.target.value)
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  phone: e.target.value,
+                                }))
                               }
                               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                               placeholder="Enter phone number"
                             />
                           </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Emergency Contact
-                            </label>
-                            <input
-                              type="tel"
-                              value={addFormData.emergencyContact || ''}
-                              onChange={(e) =>
-                                updateAddFormField(
-                                  'emergencyContact',
-                                  e.target.value,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter emergency contact"
-                            />
-                          </div>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Email
-                          </label>
-                          <input
-                            type="email"
-                            value={addFormData.email || ''}
-                            onChange={(e) =>
-                              updateAddFormField('email', e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter email address"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Photo URL
+                            Profile Photo URL
                           </label>
                           <input
                             type="url"
-                            value={addFormData.photo || ''}
+                            value={addFormData.profile}
                             onChange={(e) =>
-                              updateAddFormField('photo', e.target.value)
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                profile: e.target.value,
+                              }))
                             }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="https://example.com/photo.jpg"
@@ -1733,85 +1339,117 @@ export default function StudentManagement() {
                         </div>
                       </div>
                     </div>
+                  </div>
 
+                  {/* Guardian Information */}
+                  <div className="space-y-6">
                     <div>
                       <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                        Fee Information
+                        Guardian Information
                       </h4>
                       <div className="space-y-4">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Total Fees
-                            </label>
-                            <input
-                              type="number"
-                              value={addFormData.fees?.totalFees || ''}
-                              onChange={(e) =>
-                                updateAddFormNestedField(
-                                  'fees',
-                                  'totalFees',
-                                  parseInt(e.target.value) || 0,
-                                )
-                              }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="0"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Paid Fees
-                            </label>
-                            <input
-                              type="number"
-                              value={addFormData.fees?.paidFees || ''}
-                              onChange={(e) => {
-                                const paidFees = parseInt(e.target.value) || 0;
-                                const totalFees =
-                                  addFormData.fees?.totalFees || 0;
-                                updateAddFormNestedField(
-                                  'fees',
-                                  'paidFees',
-                                  paidFees,
-                                );
-                                updateAddFormNestedField(
-                                  'fees',
-                                  'pendingFees',
-                                  totalFees - paidFees,
-                                );
-                              }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="0"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Pending Fees
-                            </label>
-                            <input
-                              type="number"
-                              value={addFormData.fees?.pendingFees || ''}
-                              readOnly
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
-                              placeholder="Auto calculated"
-                            />
-                          </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Father&apos;s Name{' '}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={addFormData.guardianInfo.fatherName}
+                            onChange={(e) =>
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                guardianInfo: {
+                                  ...prev.guardianInfo,
+                                  fatherName: e.target.value,
+                                },
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter father's name"
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Last Payment Date
+                            Mother&apos;s Name{' '}
+                            <span className="text-red-500">*</span>
                           </label>
                           <input
-                            type="date"
-                            value={addFormData.fees?.lastPaymentDate || ''}
+                            type="text"
+                            value={addFormData.guardianInfo.motherName}
                             onChange={(e) =>
-                              updateAddFormNestedField(
-                                'fees',
-                                'lastPaymentDate',
-                                e.target.value,
-                              )
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                guardianInfo: {
+                                  ...prev.guardianInfo,
+                                  motherName: e.target.value,
+                                },
+                              }))
                             }
                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter mother's name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Guardian Phone{' '}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="tel"
+                            value={addFormData.guardianInfo.phone}
+                            onChange={(e) =>
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                guardianInfo: {
+                                  ...prev.guardianInfo,
+                                  phone: e.target.value,
+                                },
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter guardian phone number"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Guardian Email{' '}
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="email"
+                            value={addFormData.guardianInfo.email}
+                            onChange={(e) =>
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                guardianInfo: {
+                                  ...prev.guardianInfo,
+                                  email: e.target.value,
+                                },
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter guardian email address"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Address <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            value={addFormData.guardianInfo.address}
+                            onChange={(e) =>
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                guardianInfo: {
+                                  ...prev.guardianInfo,
+                                  address: e.target.value,
+                                },
+                              }))
+                            }
+                            rows={3}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            placeholder="Enter home address"
                           />
                         </div>
                       </div>
