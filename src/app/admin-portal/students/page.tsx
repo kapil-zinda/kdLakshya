@@ -370,7 +370,7 @@ export default function StudentManagement() {
     setAddFormData((prev) => ({
       ...prev,
       [parentField]: {
-        ...(prev[parentField as keyof Student] as any),
+        ...(prev[parentField as keyof typeof prev] as any),
         [childField]: value,
       },
     }));

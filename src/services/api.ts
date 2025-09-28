@@ -1738,6 +1738,56 @@ export class ApiService {
     }
   }
 
+  // Create a new exam
+  static async createExam(
+    orgId: string,
+    examData: {
+      exam_name: string;
+      class_id: string;
+      exam_date: string;
+      subjects: Array<{
+        subject_id: string;
+        max_marks: number;
+      }>;
+    },
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.post(
+        `/${orgId}/exams`,
+        {
+          data: {
+            type: 'exams',
+            attributes: examData,
+          },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+            Authorization: `Bearer ${tokenItem.value}`,
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error creating exam:', error);
+      throw new Error('Failed to create exam');
+    }
+  }
+
   // Get all students by organization ID
   static async getStudents(orgId: string): Promise<StudentListResponse> {
     try {

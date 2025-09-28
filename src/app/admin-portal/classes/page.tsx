@@ -159,6 +159,7 @@ export default function ClassManagement() {
   });
   const [examFormData, setExamFormData] = useState({
     name: '',
+    date: '',
     subjects: [] as ExamSubject[],
     instructions: '',
     type: 'Unit Test' as 'Unit Test' | 'Mid Term' | 'Final' | 'Assignment',
@@ -240,8 +241,8 @@ export default function ClassManagement() {
           (teacher) => ({
             id: teacher.id,
             name: teacher.attributes.name,
-            employeeId: teacher.attributes.employee_id || '',
-            department: teacher.attributes.subject || '',
+            employeeId: teacher.attributes.id || '',
+            department: teacher.attributes.subjects?.[0] || '',
             email: teacher.attributes.email,
             phone: teacher.attributes.phone,
           }),
@@ -454,7 +455,6 @@ export default function ClassManagement() {
         data: {
           students: [],
           subjects: [],
-          timetable: [],
           exams: [],
           timeSlots: [
             {
@@ -1019,9 +1019,15 @@ export default function ClassManagement() {
     }
   };
 
-  const handleCreateExam = () => {
-    if (!examFormData.name || examFormData.subjects.length === 0) {
-      alert('Please fill in required fields and add at least one subject');
+  const handleCreateExam = async () => {
+    if (
+      !examFormData.name ||
+      !examFormData.date ||
+      examFormData.subjects.length === 0
+    ) {
+      alert(
+        'Please fill in required fields (Name, Date) and add at least one subject',
+      );
       return;
     }
 
@@ -1030,45 +1036,74 @@ export default function ClassManagement() {
       return;
     }
 
-    const newExam: Exam = {
-      id: (currentExams.length + 1).toString(),
-      name: examFormData.name,
-      subjects: examFormData.subjects,
-      instructions: examFormData.instructions,
-      type: examFormData.type,
-      status: 'Scheduled',
-    };
+    try {
+      setLoading(true);
 
-    const updatedClass = {
-      ...selectedClass,
-      data: {
-        ...selectedClass.data,
-        exams: [...selectedClass.data.exams, newExam],
-      },
-    };
+      // Get organization ID
+      const orgId = await getOrgId();
 
-    setClasses((prev) =>
-      prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-    );
-    setSelectedClass(updatedClass);
-    setShowCreateExamModal(false);
-    setExamFormData({
-      name: '',
-      subjects: [],
-      instructions: '',
-      type: 'Unit Test',
-      room: '',
-    });
-    setTempExamSubject({
-      subjectId: '',
-      marks: 50,
-      duration: 60,
-      date: '',
-      startTime: '',
-      endTime: '',
-      room: '',
-    });
-    alert('Exam created successfully!');
+      // Prepare API data format
+      const apiData = {
+        exam_name: examFormData.name,
+        class_id: selectedClass.id,
+        exam_date: examFormData.date,
+        subjects: examFormData.subjects.map((subject) => ({
+          subject_id: subject.subjectId,
+          max_marks: subject.marks,
+        })),
+      };
+
+      // Create exam via API
+      const response = await ApiService.createExam(orgId, apiData);
+
+      // Create the new exam object for local state
+      const newExam: Exam = {
+        id: response.data.id,
+        name: response.data.attributes.exam_name,
+        subjects: examFormData.subjects,
+        instructions: examFormData.instructions,
+        type: examFormData.type,
+        status: 'Scheduled',
+      };
+
+      // Update local state
+      const updatedClass = {
+        ...selectedClass,
+        data: {
+          ...selectedClass.data,
+          exams: [...selectedClass.data.exams, newExam],
+        },
+      };
+
+      setClasses((prev) =>
+        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
+      );
+      setSelectedClass(updatedClass);
+      setShowCreateExamModal(false);
+      setExamFormData({
+        name: '',
+        date: '',
+        subjects: [],
+        instructions: '',
+        type: 'Unit Test',
+        room: '',
+      });
+      setTempExamSubject({
+        subjectId: '',
+        marks: 50,
+        duration: 60,
+        date: '',
+        startTime: '',
+        endTime: '',
+        room: '',
+      });
+      setLoading(false);
+      alert('Exam created successfully!');
+    } catch (error) {
+      console.error('Error creating exam:', error);
+      setLoading(false);
+      alert('Failed to create exam. Please try again.');
+    }
   };
 
   const handleAddExamSubject = () => {
@@ -2211,6 +2246,22 @@ export default function ClassManagement() {
                     }
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Unit Test 1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Exam Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={examFormData.date}
+                    onChange={(e) =>
+                      setExamFormData((prev) => ({
+                        ...prev,
+                        date: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   />
                 </div>
 
