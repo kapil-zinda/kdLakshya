@@ -359,6 +359,7 @@ export interface RealUserResponse {
       last_name: string;
       email: string;
       org: string;
+      org_id?: string;
       is_active: boolean;
       created_ts: number;
       id: string;
