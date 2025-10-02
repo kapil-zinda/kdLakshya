@@ -49,6 +49,8 @@ export default function TeacherManagement() {
     email: '',
     phone: '',
   });
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const router = useRouter();
 
   // Load faculty data from API
@@ -307,6 +309,35 @@ export default function TeacherManagement() {
       ...prev,
       [field]: value,
     }));
+  };
+
+  // Handle photo file selection and upload
+  const handlePhotoUpload = async (file: File) => {
+    if (!editingTeacher) return;
+
+    try {
+      setUploadingPhoto(true);
+
+      // Step 1: Get signed URL
+      const signedUrlResponse = await ApiService.getS3SignedUrl(
+        editingTeacher.id,
+        'profile_photo',
+        'faculty',
+      );
+
+      // Step 2: Upload file to S3
+      await ApiService.uploadFileToS3(signedUrlResponse.data.signed_url, file);
+
+      // Step 3: Update form data with the file path
+      updateFormField('photo', signedUrlResponse.data.file_path);
+
+      setSelectedFile(null);
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      alert('Failed to upload photo. Please try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   const handleAddTeacher = () => {
@@ -1260,17 +1291,33 @@ export default function TeacherManagement() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Photo URL
+                            Profile Photo
                           </label>
-                          <input
-                            type="url"
-                            value={editFormData.photo || ''}
-                            onChange={(e) =>
-                              updateFormField('photo', e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="https://example.com/photo.jpg"
-                          />
+                          <div className="space-y-2">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  setSelectedFile(file);
+                                  handlePhotoUpload(file);
+                                }
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              disabled={uploadingPhoto}
+                            />
+                            {uploadingPhoto && (
+                              <p className="text-sm text-gray-500">
+                                Uploading photo...
+                              </p>
+                            )}
+                            {editFormData.photo && !uploadingPhoto && (
+                              <p className="text-sm text-green-600">
+                                Photo uploaded successfully
+                              </p>
+                            )}
+                          </div>
                         </div>
 
                         {/* Class Teacher Assignment */}
