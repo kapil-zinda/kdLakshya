@@ -10,6 +10,10 @@ const API_CONFIG = {
   CLASS_API:
     process.env.NEXT_PUBLIC_BaseURLClass ||
     'https://apis.testkdlakshya.uchhal.in/class',
+  // Use workspace API for workspace endpoints
+  WORKSPACE_API:
+    process.env.NEXT_PUBLIC_BaseURLWorkspace ||
+    'https://apis.testkdlakshya.uchhal.in',
   // Use local API for mock endpoints (during development)
   LOCAL_API:
     typeof window !== 'undefined'
@@ -32,6 +36,15 @@ const classApi = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/vnd.api+json',
+  },
+});
+
+// Workspace API instance (for workspace endpoints like S3)
+const workspaceApi = axios.create({
+  baseURL: API_CONFIG.WORKSPACE_API,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
   },
 });
 
@@ -187,6 +200,16 @@ interface FacultyResponse {
     links: {
       self: string;
     };
+  };
+}
+
+interface S3SignedUrlResponse {
+  success: boolean;
+  data: {
+    signed_url: string;
+    file_path: string;
+    bucket: string;
+    expires_in: number;
   };
 }
 
@@ -1265,6 +1288,64 @@ export class ApiService {
     } catch (error) {
       console.error('Error creating faculty:', error);
       throw new Error('Failed to create faculty member');
+    }
+  }
+
+  // Get S3 signed URL for file upload
+  static async getS3SignedUrl(
+    userId: string,
+    title: string,
+    role: string,
+  ): Promise<S3SignedUrlResponse> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        type: 'upload',
+        id: userId,
+        attributes: {
+          title: title,
+          role: role,
+        },
+      };
+
+      const response = await workspaceApi.post('/s3/signed-url', requestBody, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error getting S3 signed URL:', error);
+      throw new Error('Failed to get S3 signed URL');
+    }
+  }
+
+  // Upload file to S3 using signed URL
+  static async uploadFileToS3(signedUrl: string, file: File): Promise<void> {
+    try {
+      await axios.put(signedUrl, file, {
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+    } catch (error) {
+      console.error('Error uploading file to S3:', error);
+      throw new Error('Failed to upload file to S3');
     }
   }
 
