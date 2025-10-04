@@ -1746,6 +1746,7 @@ export class ApiService {
         `/${orgId}/subjects/class/${classId}`,
         {
           headers: {
+            'Content-Type': 'application/vnd.api+json',
             Authorization: `Bearer ${tokenItem.value}`,
           },
         },
@@ -1859,7 +1860,7 @@ export class ApiService {
       }
 
       const response = await classApi.post(
-        `/${orgId}/exams`,
+        `/class/${orgId}/exams`,
         {
           data: {
             type: 'exams',
@@ -1874,9 +1875,176 @@ export class ApiService {
         },
       );
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
       console.error('Error creating exam:', error);
-      throw new Error('Failed to create exam');
+      // Preserve backend error message if available
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to create exam: ${backendMessage}`);
+    }
+  }
+
+  // Get all exams for a specific class
+  static async getExamsForClass(orgId: string, classId: string): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(
+        `/${orgId}/classes/${classId}/exams`,
+        {
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+            Authorization: `Bearer ${tokenItem.value}`,
+          },
+        },
+      );
+      return response.data;
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
+      console.error('Error fetching exams for class:', error);
+      // Preserve backend error message if available
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to fetch exams for class: ${backendMessage}`);
+    }
+  }
+
+  // Get all exams for an organization
+  static async getExams(orgId: string): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(`/${orgId}/exams`, {
+        headers: {
+          'Content-Type': 'application/vnd.api+json',
+          Authorization: `Bearer ${tokenItem.value}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching exams:', error);
+      throw new Error('Failed to fetch exams');
+    }
+  }
+
+  // Update an exam
+  static async updateExam(
+    orgId: string,
+    examId: string,
+    examData: {
+      exam_name?: string;
+      class_id?: string;
+      exam_date?: string;
+      subjects?: Array<{
+        subject_id: string;
+        max_marks: number;
+      }>;
+    },
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.put(
+        `/${orgId}/exams/${examId}`,
+        {
+          data: {
+            type: 'exams',
+            attributes: examData,
+          },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+            Authorization: `Bearer ${tokenItem.value}`,
+          },
+        },
+      );
+      return response.data;
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
+      console.error('Error updating exam:', error);
+      // Preserve backend error message if available
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to update exam: ${backendMessage}`);
+    }
+  }
+
+  // Delete an exam
+  static async deleteExam(orgId: string, examId: string): Promise<void> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      await classApi.delete(`/${orgId}/exams/${examId}`, {
+        headers: {
+          'Content-Type': 'application/vnd.api+json',
+          Authorization: `Bearer ${tokenItem.value}`,
+        },
+      });
+    } catch (error: any) {
+      // eslint-disable-line @typescript-eslint/no-explicit-any
+      console.error('Error deleting exam:', error);
+      // Preserve backend error message if available
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to delete exam: ${backendMessage}`);
     }
   }
 
