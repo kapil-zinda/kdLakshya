@@ -252,8 +252,7 @@ export default function ClassManagement() {
         }
 
         // Get organization ID from user data or fallback
-        const orgId =
-          userData?.data?.attributes?.organization_id || (await getOrgId());
+        const orgId = userData?.data?.attributes?.org_id || (await getOrgId());
 
         // Now that user is authorized, load teachers, classes, and students data
         const [teachersResponse, classesResponse, studentsResponse] =
