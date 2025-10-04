@@ -100,6 +100,13 @@ export default function ClassManagement() {
   const [showEditClassModal, setShowEditClassModal] = useState(false);
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
   const [showCreateExamModal, setShowCreateExamModal] = useState(false);
+  const [showEditExamModal, setShowEditExamModal] = useState(false);
+  const [showDeleteExamModal, setShowDeleteExamModal] = useState(false);
+  const [selectedExamForEdit, setSelectedExamForEdit] = useState<Exam | null>(
+    null,
+  );
+  const [selectedExamForDelete, setSelectedExamForDelete] =
+    useState<Exam | null>(null);
   const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
   const [showAssignTeacherModal, setShowAssignTeacherModal] = useState(false);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
@@ -225,10 +232,30 @@ export default function ClassManagement() {
       try {
         setLoading(true);
 
-        // Get organization ID first
-        const orgId = await getOrgId();
+        // First, verify user is authorized by calling users/me API
+        const tokenStr = localStorage.getItem('bearerToken');
+        if (!tokenStr) {
+          router.push('/');
+          return;
+        }
 
-        // Load teachers, classes, and students data
+        const tokenItem = JSON.parse(tokenStr);
+        let userData;
+
+        try {
+          userData = await ApiService.getUserMe(tokenItem.value);
+        } catch (error) {
+          console.error('User authorization failed:', error);
+          localStorage.removeItem('bearerToken');
+          router.push('/');
+          return;
+        }
+
+        // Get organization ID from user data or fallback
+        const orgId =
+          userData?.data?.attributes?.organization_id || (await getOrgId());
+
+        // Now that user is authorized, load teachers, classes, and students data
         const [teachersResponse, classesResponse, studentsResponse] =
           await Promise.all([
             ApiService.getFaculty(orgId),
@@ -301,6 +328,48 @@ export default function ClassManagement() {
               );
             }
 
+            // Fetch exams for each class
+            let classExams: Exam[] = [];
+            try {
+              const examsResponse = await ApiService.getExamsForClass(
+                orgId,
+                classData.id,
+              );
+              classExams = examsResponse.data.map((exam: any) => {
+                // Map exam subjects to ExamSubject format
+                const examSubjects: ExamSubject[] =
+                  exam.attributes.subjects.map((subj: any) => {
+                    const subjectInfo = classSubjects.find(
+                      (s) => s.id === subj.subject_id,
+                    );
+                    return {
+                      subjectId: subj.subject_id,
+                      subjectName: subjectInfo?.name || 'Unknown Subject',
+                      marks: subj.max_marks,
+                      duration: 60, // Default duration, API doesn't provide this
+                      date: exam.attributes.exam_date,
+                      startTime: '09:00', // Default time, API doesn't provide this
+                      endTime: '10:00', // Default time, API doesn't provide this
+                      room: '', // API doesn't provide room per subject
+                    };
+                  });
+
+                return {
+                  id: exam.id,
+                  name: exam.attributes.exam_name,
+                  subjects: examSubjects,
+                  instructions: '', // API doesn't provide instructions
+                  type: 'Unit Test' as const, // Default type, API doesn't provide this
+                  status: 'Scheduled' as const, // Default status, API doesn't provide this
+                };
+              });
+            } catch (error) {
+              console.error(
+                `Error fetching exams for class ${classData.id}:`,
+                error,
+              );
+            }
+
             return {
               id: classData.id,
               name: classData.attributes.class,
@@ -313,7 +382,7 @@ export default function ClassManagement() {
               data: {
                 students: classStudents,
                 subjects: classSubjects,
-                exams: [],
+                exams: classExams,
                 timeSlots: [
                   {
                     id: '1',
@@ -1157,6 +1226,153 @@ export default function ClassManagement() {
     }));
   };
 
+  const handleEditExam = (exam: Exam) => {
+    setSelectedExamForEdit(exam);
+    setExamFormData({
+      name: exam.name,
+      date: exam.subjects[0]?.date || '',
+      subjects: exam.subjects,
+      instructions: exam.instructions,
+      type: exam.type,
+      room: exam.subjects[0]?.room || '',
+    });
+    setShowEditExamModal(true);
+  };
+
+  const handleUpdateExam = async () => {
+    if (
+      !examFormData.name ||
+      !examFormData.date ||
+      examFormData.subjects.length === 0
+    ) {
+      alert(
+        'Please fill in required fields (Name, Date) and add at least one subject',
+      );
+      return;
+    }
+
+    if (!selectedClass || !selectedExamForEdit) {
+      alert('No exam selected');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Get organization ID
+      const orgId = await getOrgId();
+
+      // Prepare API data format
+      const apiData = {
+        exam_name: examFormData.name,
+        class_id: selectedClass.id,
+        exam_date: examFormData.date,
+        subjects: examFormData.subjects.map((subject) => ({
+          subject_id: subject.subjectId,
+          max_marks: subject.marks,
+        })),
+      };
+
+      // Update exam via API
+      const response = await ApiService.updateExam(
+        orgId,
+        selectedExamForEdit.id,
+        apiData,
+      );
+
+      // Update the exam object for local state
+      const updatedExam: Exam = {
+        ...selectedExamForEdit,
+        name: response.data.attributes.exam_name,
+        subjects: examFormData.subjects,
+        instructions: examFormData.instructions,
+        type: examFormData.type,
+      };
+
+      // Update local state
+      const updatedClass = {
+        ...selectedClass,
+        data: {
+          ...selectedClass.data,
+          exams: selectedClass.data.exams.map((e) =>
+            e.id === selectedExamForEdit.id ? updatedExam : e,
+          ),
+        },
+      };
+
+      setClasses((prev) =>
+        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
+      );
+      setSelectedClass(updatedClass);
+      setShowEditExamModal(false);
+      setSelectedExamForEdit(null);
+      setExamFormData({
+        name: '',
+        date: '',
+        subjects: [],
+        instructions: '',
+        type: 'Unit Test',
+        room: '',
+      });
+      setTempExamSubject({
+        subjectId: '',
+        marks: 50,
+        duration: 60,
+        date: '',
+        startTime: '',
+        endTime: '',
+        room: '',
+      });
+      setLoading(false);
+      alert('Exam updated successfully!');
+    } catch (error) {
+      console.error('Error updating exam:', error);
+      setLoading(false);
+      alert('Failed to update exam. Please try again.');
+    }
+  };
+
+  const handleDeleteExam = async () => {
+    if (!selectedClass || !selectedExamForDelete) {
+      alert('No exam selected');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      // Get organization ID
+      const orgId = await getOrgId();
+
+      // Delete exam via API
+      await ApiService.deleteExam(orgId, selectedExamForDelete.id);
+
+      // Update local state
+      const updatedClass = {
+        ...selectedClass,
+        data: {
+          ...selectedClass.data,
+          exams: selectedClass.data.exams.filter(
+            (e) => e.id !== selectedExamForDelete.id,
+          ),
+        },
+      };
+
+      setClasses((prev) =>
+        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
+      );
+      setSelectedClass(updatedClass);
+      setShowDeleteExamModal(false);
+      setSelectedExamForDelete(null);
+      setLoading(false);
+      alert('Exam deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting exam:', error);
+      setLoading(false);
+      alert('Failed to delete exam. Please try again.');
+    }
+  };
+
   const handleAddTimeSlot = () => {
     if (
       !timeSlotFormData.name ||
@@ -1779,11 +1995,30 @@ export default function ClassManagement() {
                                       .join(', ')}
                                   </p>
                                 </div>
-                                <span
-                                  className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(exam.status)}`}
-                                >
-                                  {exam.status}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className={`px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(exam.status)}`}
+                                  >
+                                    {exam.status}
+                                  </span>
+                                  <button
+                                    onClick={() => handleEditExam(exam)}
+                                    className="px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                    title="Edit Exam"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => {
+                                      setSelectedExamForDelete(exam);
+                                      setShowDeleteExamModal(true);
+                                    }}
+                                    className="px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                    title="Delete Exam"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
                               </div>
                               <div className="mb-4">
                                 <span className="font-medium text-gray-700 text-sm">
@@ -2287,8 +2522,13 @@ export default function ClassManagement() {
                             }))
                           }
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          disabled={currentSubjects.length === 0}
                         >
-                          <option value="">Select Subject</option>
+                          <option value="">
+                            {currentSubjects.length === 0
+                              ? 'No subjects available for this class'
+                              : 'Select Subject'}
+                          </option>
                           {currentSubjects
                             .filter(
                               (sub) =>
@@ -2302,6 +2542,12 @@ export default function ClassManagement() {
                               </option>
                             ))}
                         </select>
+                        {currentSubjects.length === 0 && (
+                          <p className="text-xs text-red-600 mt-1">
+                            Please add subjects to this class first from the
+                            Subjects tab.
+                          </p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -2587,6 +2833,446 @@ export default function ClassManagement() {
                   className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md"
                 >
                   Create Exam
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Edit Exam Modal */}
+        {showEditExamModal && selectedExamForEdit && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Edit Exam
+                </h3>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Exam Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={examFormData.name}
+                    onChange={(e) =>
+                      setExamFormData((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Unit Test 1"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Exam Date <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={examFormData.date}
+                    onChange={(e) =>
+                      setExamFormData((prev) => ({
+                        ...prev,
+                        date: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
+                </div>
+
+                {/* Add Subjects Section */}
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                    Exam Subjects
+                  </h4>
+
+                  {/* Add Subject Form */}
+                  <div className="space-y-3 mb-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Subject *
+                        </label>
+                        <select
+                          value={tempExamSubject.subjectId}
+                          onChange={(e) =>
+                            setTempExamSubject((prev) => ({
+                              ...prev,
+                              subjectId: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          disabled={currentSubjects.length === 0}
+                        >
+                          <option value="">
+                            {currentSubjects.length === 0
+                              ? 'No subjects available for this class'
+                              : 'Select Subject'}
+                          </option>
+                          {currentSubjects
+                            .filter(
+                              (sub) =>
+                                !examFormData.subjects.find(
+                                  (es) => es.subjectId === sub.id,
+                                ),
+                            )
+                            .map((subject) => (
+                              <option key={subject.id} value={subject.id}>
+                                {subject.name}
+                              </option>
+                            ))}
+                        </select>
+                        {currentSubjects.length === 0 && (
+                          <p className="text-xs text-red-600 mt-1">
+                            Please add subjects to this class first from the
+                            Subjects tab.
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Room
+                        </label>
+                        <input
+                          type="text"
+                          value={tempExamSubject.room}
+                          onChange={(e) =>
+                            setTempExamSubject((prev) => ({
+                              ...prev,
+                              room: e.target.value,
+                            }))
+                          }
+                          placeholder="Room 101"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Date (dd/mm/yyyy) *
+                        </label>
+                        <input
+                          type="date"
+                          value={tempExamSubject.date}
+                          onChange={(e) =>
+                            setTempExamSubject((prev) => ({
+                              ...prev,
+                              date: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Start Time *
+                        </label>
+                        <input
+                          type="time"
+                          value={tempExamSubject.startTime}
+                          onChange={(e) =>
+                            setTempExamSubject((prev) => ({
+                              ...prev,
+                              startTime: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          End Time *
+                        </label>
+                        <input
+                          type="time"
+                          value={tempExamSubject.endTime}
+                          onChange={(e) =>
+                            setTempExamSubject((prev) => ({
+                              ...prev,
+                              endTime: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Marks
+                        </label>
+                        <input
+                          type="number"
+                          value={tempExamSubject.marks}
+                          onChange={(e) =>
+                            setTempExamSubject((prev) => ({
+                              ...prev,
+                              marks: parseInt(e.target.value) || 50,
+                            }))
+                          }
+                          placeholder="50"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          min="1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleAddExamSubject}
+                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                      >
+                        Add Subject to Exam
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Subject List */}
+                  {examFormData.subjects.length > 0 && (
+                    <div className="space-y-3">
+                      {examFormData.subjects.map((subject, index) => (
+                        <div
+                          key={index}
+                          className="border border-gray-200 rounded-lg p-4 bg-gray-50"
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <h5 className="font-semibold text-gray-900">
+                                {subject.subjectName}
+                              </h5>
+                              <div className="text-sm text-gray-600 mt-1">
+                                <span className="font-medium">
+                                  {subject.marks} marks
+                                </span>{' '}
+                                •
+                                <span className="ml-1">
+                                  {subject.duration} minutes
+                                </span>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveExamSubject(index)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-3 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium text-gray-700">
+                                Date:
+                              </span>
+                              <p className="text-gray-600">
+                                {new Date(subject.date).toLocaleDateString(
+                                  'en-GB',
+                                )}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">
+                                Time:
+                              </span>
+                              <p className="text-gray-600">
+                                {subject.startTime} - {subject.endTime}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="font-medium text-gray-700">
+                                Room:
+                              </span>
+                              <p className="text-gray-600">
+                                {subject.room || 'Not specified'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {examFormData.subjects.length === 0 && (
+                    <p className="text-gray-500 text-sm">
+                      No subjects added yet. Add at least one subject for the
+                      exam.
+                    </p>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Room
+                    </label>
+                    <input
+                      type="text"
+                      value={examFormData.room}
+                      onChange={(e) =>
+                        setExamFormData((prev) => ({
+                          ...prev,
+                          room: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Room 101"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Exam Type
+                    </label>
+                    <select
+                      value={examFormData.type}
+                      onChange={(e) =>
+                        setExamFormData((prev) => ({
+                          ...prev,
+                          type: e.target.value as any,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="Unit Test">Unit Test</option>
+                      <option value="Mid Term">Mid Term</option>
+                      <option value="Final">Final</option>
+                      <option value="Assignment">Assignment</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Summary */}
+                {examFormData.subjects.length > 0 && (
+                  <div className="bg-blue-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-blue-900 mb-2">
+                      Exam Summary
+                    </h4>
+                    <div className="grid grid-cols-3 gap-4 text-sm text-blue-800">
+                      <div>
+                        <span className="font-medium">Total Subjects:</span>
+                        <p className="text-blue-900">
+                          {examFormData.subjects.length}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Total Marks:</span>
+                        <p className="text-blue-900">
+                          {examFormData.subjects.reduce(
+                            (sum, s) => sum + s.marks,
+                            0,
+                          )}
+                        </p>
+                      </div>
+                      <div>
+                        <span className="font-medium">Total Duration:</span>
+                        <p className="text-blue-900">
+                          {examFormData.subjects.reduce(
+                            (sum, s) => sum + s.duration,
+                            0,
+                          )}{' '}
+                          minutes
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-2 text-sm text-blue-700">
+                      <span className="font-medium">Exam Dates:</span>{' '}
+                      {Array.from(
+                        new Set(
+                          examFormData.subjects.map((s) =>
+                            new Date(s.date).toLocaleDateString('en-GB'),
+                          ),
+                        ),
+                      ).join(', ')}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Instructions
+                  </label>
+                  <textarea
+                    value={examFormData.instructions}
+                    onChange={(e) =>
+                      setExamFormData((prev) => ({
+                        ...prev,
+                        instructions: e.target.value,
+                      }))
+                    }
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Exam instructions for students..."
+                  />
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowEditExamModal(false);
+                    setSelectedExamForEdit(null);
+                    setExamFormData({
+                      name: '',
+                      date: '',
+                      subjects: [],
+                      instructions: '',
+                      type: 'Unit Test',
+                      room: '',
+                    });
+                    setTempExamSubject({
+                      subjectId: '',
+                      marks: 50,
+                      duration: 60,
+                      date: '',
+                      startTime: '',
+                      endTime: '',
+                      room: '',
+                    });
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateExam}
+                  className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md"
+                >
+                  Update Exam
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Exam Confirmation Modal */}
+        {showDeleteExamModal && selectedExamForDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Delete Exam
+                </h3>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-600">
+                  Are you sure you want to delete the exam &quot;
+                  {selectedExamForDelete.name}&quot;? This action cannot be
+                  undone.
+                </p>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteExamModal(false);
+                    setSelectedExamForDelete(null);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteExam}
+                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+                >
+                  Delete
                 </button>
               </div>
             </div>
