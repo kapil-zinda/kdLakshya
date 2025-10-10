@@ -208,6 +208,8 @@ export default function ClassManagement() {
   ];
 
   useEffect(() => {
+    let isMounted = true; // Prevent state updates on unmounted component
+
     const tokenStr = localStorage.getItem('bearerToken');
     if (!tokenStr) {
       router.push('/');
@@ -230,37 +232,130 @@ export default function ClassManagement() {
     // Load data from API
     const loadData = async () => {
       try {
+        if (!isMounted) return; // Prevent duplicate calls
         setLoading(true);
+
+        console.log('🔄 Starting data load for /admin-portal/classes');
 
         // First, verify user is authorized by calling users/me API
         const tokenStr = localStorage.getItem('bearerToken');
         if (!tokenStr) {
+          console.error('❌ No bearer token found, redirecting to login');
           router.push('/');
           return;
         }
 
         const tokenItem = JSON.parse(tokenStr);
+        console.log(
+          '✅ Bearer token found, expires:',
+          new Date(tokenItem.expiry),
+        );
         let userData;
 
         try {
+          console.log('📡 Calling getUserMe API...');
           userData = await ApiService.getUserMe(tokenItem.value);
-        } catch (error) {
+          console.log('✅ getUserMe successful:', userData?.data?.attributes);
+        } catch (error: any) {
           console.error('User authorization failed:', error);
-          localStorage.removeItem('bearerToken');
-          router.push('/');
-          return;
+
+          // Only redirect to login on 401/403 errors (auth failures)
+          // Don't redirect on 500 errors (server issues)
+          if (
+            error.response?.status === 401 ||
+            error.response?.status === 403
+          ) {
+            console.error(
+              `❌ Auth error ${error.response?.status}, redirecting to login`,
+            );
+            localStorage.removeItem('bearerToken');
+            router.push('/');
+            return;
+          }
+
+          // For other errors (500, network issues), log but continue
+          console.warn(
+            `⚠️ getUserMe failed with status ${error.response?.status || 'unknown'}, continuing with fallback`,
+          );
+          console.error('getUserMe error details:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message,
+          });
         }
 
         // Get organization ID from user data or fallback
-        const orgId = userData?.data?.attributes?.org_id || (await getOrgId());
+        let orgId: string;
+        try {
+          console.log('📡 Getting organization ID...');
+          orgId = userData?.data?.attributes?.org_id || (await getOrgId());
+          console.log('✅ Organization ID:', orgId);
+        } catch (error) {
+          console.error('❌ Failed to get organization ID:', error);
+          alert(
+            'Failed to get organization information. Please refresh the page.',
+          );
+          setLoading(false);
+          return;
+        }
 
         // Now that user is authorized, load teachers, classes, and students data
-        const [teachersResponse, classesResponse, studentsResponse] =
-          await Promise.all([
+        // Use Promise.allSettled to continue even if some APIs fail
+        console.log('📡 Loading teachers, classes, and students...');
+        const [teachersResult, classesResult, studentsResult] =
+          await Promise.allSettled([
             ApiService.getFaculty(orgId),
             ApiService.getClasses(orgId),
             ApiService.getStudents(orgId),
           ]);
+        console.log('✅ Initial API calls completed');
+
+        // Extract successful responses or use empty arrays
+        const teachersResponse =
+          teachersResult.status === 'fulfilled'
+            ? teachersResult.value
+            : { data: [] };
+        const classesResponse =
+          classesResult.status === 'fulfilled'
+            ? classesResult.value
+            : { data: [] };
+        const studentsResponse =
+          studentsResult.status === 'fulfilled'
+            ? studentsResult.value
+            : { data: [] };
+
+        // Log any failed requests
+        if (teachersResult.status === 'rejected') {
+          console.error('❌ Failed to load teachers:', teachersResult.reason);
+          console.error('Teachers error details:', {
+            message: teachersResult.reason?.message,
+            response: teachersResult.reason?.response,
+          });
+        } else {
+          console.log(
+            `✅ Loaded ${teachersResponse.data?.length || 0} teachers`,
+          );
+        }
+        if (classesResult.status === 'rejected') {
+          console.error('❌ Failed to load classes:', classesResult.reason);
+          console.error('Classes error details:', {
+            message: classesResult.reason?.message,
+            response: classesResult.reason?.response,
+          });
+        } else {
+          console.log(`✅ Loaded ${classesResponse.data?.length || 0} classes`);
+        }
+        if (studentsResult.status === 'rejected') {
+          console.error('❌ Failed to load students:', studentsResult.reason);
+          console.error('Students error details:', {
+            message: studentsResult.reason?.message,
+            response: studentsResult.reason?.response,
+          });
+        } else {
+          console.log(
+            `✅ Loaded ${studentsResponse.data?.length || 0} students`,
+          );
+        }
 
         // Transform teachers data first (needed for subject mapping)
         const transformedTeachers: Teacher[] = teachersResponse.data.map(
@@ -446,7 +541,6 @@ export default function ClassManagement() {
         );
 
         // Transform students data
-        console.log('Raw student data from API:', studentsResponse.data[0]); // Debug log
         const allStudents = studentsResponse.data.map((student: any) => ({
           id: student.id,
           firstName:
@@ -470,24 +564,44 @@ export default function ClassManagement() {
           (student: any) => !enrolledStudentIds.has(student.id),
         );
 
+        if (!isMounted) return; // Don't update state if unmounted
+
+        console.log('✅ Data transformation complete, updating state');
         setClasses(transformedClasses);
         setTeachers(transformedTeachers);
         setUnassignedStudents(unassigned);
         if (transformedClasses.length > 0) {
           setSelectedClass(transformedClasses[0]);
+          console.log('✅ Selected first class:', transformedClasses[0].name);
         }
         setLoading(false);
-      } catch (error) {
-        console.error('Error loading classes data:', error);
+        console.log('✅ Page load complete');
+      } catch (error: any) {
+        console.error('❌ Critical error loading classes data:', error);
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+          response: error.response,
+        });
+        if (!isMounted) return; // Don't update state if unmounted
         // Fall back to empty arrays if API fails
         setClasses([]);
         setTeachers([]);
         setLoading(false);
+        alert(
+          `Failed to load classes: ${error.message || 'Unknown error'}. Please check the console for details.`,
+        );
       }
     };
 
     loadData();
-  }, [router]);
+
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty array - only run once on mount
 
   const handleCreateClass = async () => {
     if (!classFormData.name || !classFormData.section) {

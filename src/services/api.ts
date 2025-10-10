@@ -1,5 +1,73 @@
 import axios from 'axios';
 
+// Cache configuration
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  expiresAt: number;
+}
+
+class ApiCache {
+  private cache: Map<string, CacheEntry<any>> = new Map();
+  private pendingRequests: Map<string, Promise<any>> = new Map();
+
+  // Get cached data if valid
+  get<T>(key: string, ttl: number = 30000): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    const now = Date.now();
+    if (now > entry.expiresAt) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.data as T;
+  }
+
+  // Set cache data
+  set<T>(key: string, data: T, ttl: number = 30000): void {
+    const now = Date.now();
+    this.cache.set(key, {
+      data,
+      timestamp: now,
+      expiresAt: now + ttl,
+    });
+  }
+
+  // Execute request with deduplication
+  async dedupe<T>(key: string, requestFn: () => Promise<T>): Promise<T> {
+    // Check if there's already a pending request for this key
+    const pending = this.pendingRequests.get(key);
+    if (pending) {
+      console.log(`🔄 Deduplicating request: ${key}`);
+      return pending as Promise<T>;
+    }
+
+    // Create new request
+    const promise = requestFn().finally(() => {
+      // Remove from pending requests when done
+      this.pendingRequests.delete(key);
+    });
+
+    this.pendingRequests.set(key, promise);
+    return promise;
+  }
+
+  // Clear specific cache entry
+  clear(key: string): void {
+    this.cache.delete(key);
+  }
+
+  // Clear all cache
+  clearAll(): void {
+    this.cache.clear();
+    this.pendingRequests.clear();
+  }
+}
+
+const apiCache = new ApiCache();
+
 // Configuration for API endpoints
 const API_CONFIG = {
   // Use external API for real endpoints
@@ -24,7 +92,7 @@ const API_CONFIG = {
 // External API instance (for real endpoints like users/me)
 const externalApi = axios.create({
   baseURL: API_CONFIG.EXTERNAL_API,
-  timeout: 10000,
+  timeout: 30000, // 30s timeout for Lambda cold starts
   headers: {
     'Content-Type': 'application/json',
   },
@@ -33,7 +101,7 @@ const externalApi = axios.create({
 // Class API instance (for class endpoints)
 const classApi = axios.create({
   baseURL: API_CONFIG.CLASS_API,
-  timeout: 10000,
+  timeout: 30000, // 30s timeout for Lambda cold starts
   headers: {
     'Content-Type': 'application/vnd.api+json',
   },
@@ -42,11 +110,35 @@ const classApi = axios.create({
 // Workspace API instance (for workspace endpoints like S3)
 const workspaceApi = axios.create({
   baseURL: API_CONFIG.WORKSPACE_API,
-  timeout: 10000,
+  timeout: 30000, // 30s timeout for Lambda cold starts
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Retry helper for handling intermittent 500 errors (Lambda cold starts)
+const retryRequest = async <T>(
+  requestFn: () => Promise<T>,
+  retries = 3,
+  delay = 1000,
+): Promise<T> => {
+  try {
+    return await requestFn();
+  } catch (error: any) {
+    const status = error.response?.status;
+    const shouldRetry = status >= 500 && retries > 0;
+
+    if (shouldRetry) {
+      console.warn(
+        `⚠️ Request failed with ${status}, retrying... (${retries} retries left)`,
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return retryRequest(requestFn, retries - 1, delay * 1.5);
+    }
+
+    throw error;
+  }
+};
 
 // Response type definitions
 export interface OrganizationResponse {
@@ -478,6 +570,24 @@ export interface StudentListResponse {
 
 // API service functions
 export class ApiService {
+  // Clear cache for specific resource
+  static clearCache(
+    resource: 'classes' | 'students' | 'faculty' | 'user',
+    orgId?: string,
+  ): void {
+    if (resource === 'user') {
+      // Clear all user cache entries
+      const keys = ['user_me'];
+      keys.forEach((key) => apiCache.clear(key));
+    } else if (orgId) {
+      apiCache.clear(`${resource}_${orgId}`);
+    }
+  }
+
+  // Clear all caches
+  static clearAllCache(): void {
+    apiCache.clearAll();
+  }
   // Step 1: Get subdomain and base configuration (keeping for backward compatibility)
   static async getSubdomain(
     subdomain: string = 'auth',
@@ -1214,13 +1324,27 @@ export class ApiService {
 
   // Get all faculty members by organization ID
   static async getFaculty(orgId: string): Promise<FacultyListResponse> {
-    try {
-      const response = await externalApi.get(`/${orgId}/faculty`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching faculty data:', error);
-      throw new Error('Failed to fetch faculty data');
+    const cacheKey = `faculty_${orgId}`;
+
+    // Check cache first (1 min TTL for faculty)
+    const cached = apiCache.get<FacultyListResponse>(cacheKey, 60000);
+    if (cached) {
+      console.log('✅ Using cached faculty data');
+      return cached;
     }
+
+    // Deduplicate concurrent requests
+    return apiCache.dedupe(cacheKey, async () => {
+      try {
+        const response = await externalApi.get(`/${orgId}/faculty`);
+        // Cache the result
+        apiCache.set(cacheKey, response.data, 60000);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching faculty data:', error);
+        throw new Error('Failed to fetch faculty data');
+      }
+    });
   }
 
   // Create new faculty member
@@ -1284,6 +1408,8 @@ export class ApiService {
       );
 
       console.log('API response:', response.data);
+      // Invalidate faculty cache
+      this.clearCache('faculty', orgId);
       return response.data;
     } catch (error) {
       console.error('Error creating faculty:', error);
@@ -1384,46 +1510,81 @@ export class ApiService {
 
   // Additional method to get user data (using the real API structure)
   static async getUserMe(token: string): Promise<RealUserResponse> {
-    try {
-      const response = await externalApi.get('/users/me?include=permission', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching user data:', error);
-      throw new Error('Failed to fetch user data');
+    const cacheKey = `user_me_${token.substring(0, 10)}`;
+
+    // Check cache first (5 min TTL for user data)
+    const cached = apiCache.get<RealUserResponse>(cacheKey, 300000);
+    if (cached) {
+      console.log('✅ Using cached user data');
+      return cached;
     }
+
+    // Deduplicate concurrent requests
+    return apiCache.dedupe(cacheKey, async () => {
+      return retryRequest(async () => {
+        try {
+          const response = await externalApi.get(
+            '/users/me?include=permission',
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            },
+          );
+          // Cache the result
+          apiCache.set(cacheKey, response.data, 300000);
+          return response.data;
+        } catch (error) {
+          console.error('Error fetching user data:', error);
+          throw error; // Let retryRequest handle the retry logic
+        }
+      });
+    });
   }
 
   // Get all classes by organization ID
   static async getClasses(orgId: string): Promise<ClassListResponse> {
-    try {
-      // Get authentication token
-      const tokenStr = localStorage.getItem('bearerToken');
-      if (!tokenStr) {
-        throw new Error('No authentication token found');
-      }
+    const cacheKey = `classes_${orgId}`;
 
-      const tokenItem = JSON.parse(tokenStr);
-      const now = new Date().getTime();
-
-      if (now > tokenItem.expiry) {
-        localStorage.removeItem('bearerToken');
-        throw new Error('Authentication token has expired');
-      }
-
-      const response = await classApi.get(`/${orgId}/classes`, {
-        headers: {
-          Authorization: `Bearer ${tokenItem.value}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching classes:', error);
-      throw new Error('Failed to fetch classes');
+    // Check cache first (30 sec TTL for classes)
+    const cached = apiCache.get<ClassListResponse>(cacheKey, 30000);
+    if (cached) {
+      console.log('✅ Using cached classes data');
+      return cached;
     }
+
+    // Deduplicate concurrent requests
+    return apiCache.dedupe(cacheKey, async () => {
+      return retryRequest(async () => {
+        try {
+          // Get authentication token
+          const tokenStr = localStorage.getItem('bearerToken');
+          if (!tokenStr) {
+            throw new Error('No authentication token found');
+          }
+
+          const tokenItem = JSON.parse(tokenStr);
+          const now = new Date().getTime();
+
+          if (now > tokenItem.expiry) {
+            localStorage.removeItem('bearerToken');
+            throw new Error('Authentication token has expired');
+          }
+
+          const response = await classApi.get(`/${orgId}/classes`, {
+            headers: {
+              Authorization: `Bearer ${tokenItem.value}`,
+            },
+          });
+          // Cache the result
+          apiCache.set(cacheKey, response.data, 30000);
+          return response.data;
+        } catch (error) {
+          console.error('Error fetching classes:', error);
+          throw error; // Let retryRequest handle the retry
+        }
+      });
+    });
   }
 
   // Create new class
@@ -1471,6 +1632,8 @@ export class ApiService {
       });
 
       console.log('API response:', response.data);
+      // Invalidate classes cache
+      this.clearCache('classes', orgId);
       return response.data;
     } catch (error) {
       console.error('Error creating class:', error);
@@ -1524,6 +1687,8 @@ export class ApiService {
         },
       );
 
+      // Invalidate classes cache
+      this.clearCache('classes', orgId);
       return response.data;
     } catch (error) {
       console.error('Error updating class:', error);
@@ -1553,6 +1718,9 @@ export class ApiService {
           Authorization: `Bearer ${tokenItem.value}`,
         },
       });
+
+      // Invalidate classes cache
+      this.clearCache('classes', orgId);
     } catch (error) {
       console.error('Error deleting class:', error);
       throw new Error('Failed to delete class');
@@ -1917,6 +2085,16 @@ export class ApiService {
     } catch (error: any) {
       // eslint-disable-line @typescript-eslint/no-explicit-any
       console.error('Error fetching exams for class:', error);
+
+      // Check for CORS error
+      if (error.message?.includes('CORS') || error.code === 'ERR_NETWORK') {
+        console.error(
+          '❌ CORS error detected. API Gateway needs CORS configuration.',
+        );
+        // Return empty data instead of throwing to prevent page crash
+        return { data: [] };
+      }
+
       // Preserve backend error message if available
       const backendMessage =
         error.response?.data?.errors?.[0]?.detail ||
@@ -2050,31 +2228,47 @@ export class ApiService {
 
   // Get all students by organization ID
   static async getStudents(orgId: string): Promise<StudentListResponse> {
-    try {
-      // Get authentication token
-      const tokenStr = localStorage.getItem('bearerToken');
-      if (!tokenStr) {
-        throw new Error('No authentication token found');
-      }
+    const cacheKey = `students_${orgId}`;
 
-      const tokenItem = JSON.parse(tokenStr);
-      const now = new Date().getTime();
-
-      if (now > tokenItem.expiry) {
-        localStorage.removeItem('bearerToken');
-        throw new Error('Authentication token has expired');
-      }
-
-      const response = await externalApi.get(`/${orgId}/students`, {
-        headers: {
-          Authorization: `Bearer ${tokenItem.value}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching students:', error);
-      throw new Error('Failed to fetch students');
+    // Check cache first (30 sec TTL for students)
+    const cached = apiCache.get<StudentListResponse>(cacheKey, 30000);
+    if (cached) {
+      console.log('✅ Using cached students data');
+      return cached;
     }
+
+    // Deduplicate concurrent requests
+    return apiCache.dedupe(cacheKey, async () => {
+      return retryRequest(async () => {
+        try {
+          // Get authentication token
+          const tokenStr = localStorage.getItem('bearerToken');
+          if (!tokenStr) {
+            throw new Error('No authentication token found');
+          }
+
+          const tokenItem = JSON.parse(tokenStr);
+          const now = new Date().getTime();
+
+          if (now > tokenItem.expiry) {
+            localStorage.removeItem('bearerToken');
+            throw new Error('Authentication token has expired');
+          }
+
+          const response = await externalApi.get(`/${orgId}/students`, {
+            headers: {
+              Authorization: `Bearer ${tokenItem.value}`,
+            },
+          });
+          // Cache the result
+          apiCache.set(cacheKey, response.data, 30000);
+          return response.data;
+        } catch (error) {
+          console.error('Error fetching students:', error);
+          throw error; // Let retryRequest handle the retry
+        }
+      });
+    });
   }
 
   // Create new student
@@ -2164,6 +2358,8 @@ export class ApiService {
       );
 
       console.log('API response:', response.data);
+      // Invalidate students cache
+      this.clearCache('students', orgId);
       return response.data;
     } catch (error) {
       console.error('Error creating student:', error);
@@ -2267,6 +2463,8 @@ export class ApiService {
       );
 
       console.log('API response:', response.data);
+      // Invalidate students cache
+      this.clearCache('students', orgId);
       return response.data;
     } catch (error) {
       console.error('Error updating student:', error);
