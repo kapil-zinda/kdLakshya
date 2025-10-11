@@ -139,6 +139,25 @@ export default function Home() {
     }
   };
 
+  const checkStudentAuth = () => {
+    // Check if user is logged in as a student and redirect accordingly
+    const studentAuth = localStorage.getItem('studentAuth');
+    if (studentAuth) {
+      try {
+        JSON.parse(studentAuth); // Validate JSON
+        console.log(
+          '👨‍🎓 Student authenticated, redirecting to student dashboard',
+        );
+        router.push('/student-dashboard');
+        return true;
+      } catch (error) {
+        console.error('Error parsing student auth:', error);
+        localStorage.removeItem('studentAuth');
+      }
+    }
+    return false;
+  };
+
   const loadDataFromAPI = async () => {
     try {
       setLoading(true);
@@ -168,6 +187,11 @@ export default function Home() {
 
   useEffect(() => {
     const initializeAuth = async () => {
+      // Check if student is already authenticated
+      if (checkStudentAuth()) {
+        return;
+      }
+
       // Check if this is an Auth0 callback with token in hash (cross-subdomain or direct)
       if (window.location.hash.includes('access_token')) {
         console.log('🔍 Detected access token in URL hash');

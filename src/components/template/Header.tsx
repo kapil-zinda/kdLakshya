@@ -242,17 +242,30 @@ export function Header({ organization }: HeaderProps) {
                 </Button>
               </div>
             ) : (
-              <Button
-                className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white"
-                style={{
-                  backgroundColor: organization.branding.primaryColor,
-                  borderColor: organization.branding.primaryColor,
-                  color: 'white',
-                }}
-                onClick={handleAuthLogin}
-              >
-                Sign in
-              </Button>
+              <div className="flex items-center space-x-3">
+                <Button
+                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105"
+                  variant="outline"
+                  style={{
+                    borderColor: organization.branding.primaryColor,
+                    color: organization.branding.primaryColor,
+                  }}
+                  onClick={() => handleNavigation('/student-login')}
+                >
+                  Student Login
+                </Button>
+                <Button
+                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white"
+                  style={{
+                    backgroundColor: organization.branding.primaryColor,
+                    borderColor: organization.branding.primaryColor,
+                    color: 'white',
+                  }}
+                  onClick={handleAuthLogin}
+                >
+                  Staff Login
+                </Button>
+              </div>
             )}
           </div>
 
@@ -355,20 +368,36 @@ export function Header({ organization }: HeaderProps) {
                       </Button>
                     </div>
                   ) : (
-                    <Button
-                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white"
-                      style={{
-                        backgroundColor: organization.branding.primaryColor,
-                        borderColor: organization.branding.primaryColor,
-                        color: 'white',
-                      }}
-                      onClick={() => {
-                        handleAuthLogin();
-                        setIsMenuOpen(false);
-                      }}
-                    >
-                      Sign in
-                    </Button>
+                    <div className="space-y-3">
+                      <Button
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm"
+                        variant="outline"
+                        style={{
+                          borderColor: organization.branding.primaryColor,
+                          color: organization.branding.primaryColor,
+                        }}
+                        onClick={() => {
+                          handleNavigation('/student-login');
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        Student Login
+                      </Button>
+                      <Button
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white"
+                        style={{
+                          backgroundColor: organization.branding.primaryColor,
+                          borderColor: organization.branding.primaryColor,
+                          color: 'white',
+                        }}
+                        onClick={() => {
+                          handleAuthLogin();
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        Staff Login
+                      </Button>
+                    </div>
                   )}
                 </li>
               </ul>

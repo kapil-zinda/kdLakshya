@@ -2,67 +2,27 @@ import { NextRequest, NextResponse } from 'next/server';
 
 interface StudentLoginRequest {
   username: string;
-  dateOfBirth: string;
+  password: string;
 }
-
-// This would typically connect to your student database
-// For now, we'll use a mock validation
-const validateStudentCredentials = async (
-  username: string,
-  dateOfBirth: string,
-) => {
-  // TODO: Replace with actual database query
-  // Example student data (in production, this would come from your database)
-  const students = [
-    {
-      username: 'rishabh',
-      dateOfBirth: '2001-09-14',
-      name: 'Rishabh',
-      class: '12th Grade',
-      rollNumber: 'S001',
-    },
-    {
-      username: 'student1',
-      dateOfBirth: '2005-01-15',
-      name: 'John Doe',
-      class: '10th Grade',
-      rollNumber: 'S002',
-    },
-    {
-      username: 'student2',
-      dateOfBirth: '2004-06-20',
-      name: 'Jane Smith',
-      class: '11th Grade',
-      rollNumber: 'S003',
-    },
-    {
-      username: 'student3',
-      dateOfBirth: '2005-03-10',
-      name: 'Mike Johnson',
-      class: '10th Grade',
-      rollNumber: 'S004',
-    },
-  ];
-
-  // Find student by username and date of birth
-  const student = students.find(
-    (s) =>
-      s.username.toLowerCase() === username.toLowerCase() &&
-      s.dateOfBirth === dateOfBirth,
-  );
-
-  return student;
-};
 
 export async function POST(request: NextRequest) {
   try {
     const body: StudentLoginRequest = await request.json();
-    const { username, dateOfBirth } = body;
+    const { username, password } = body;
 
     // Validate required fields
-    if (!username || !dateOfBirth) {
+    if (!username || !password) {
       return NextResponse.json(
-        { success: false, error: 'Username and date of birth are required' },
+        {
+          errors: [
+            {
+              status: '400',
+              code: 'VALIDATION_ERROR',
+              title: 'Validation Error',
+              detail: 'Username and password are required',
+            },
+          ],
+        },
         { status: 400 },
       );
     }
@@ -71,64 +31,73 @@ export async function POST(request: NextRequest) {
     if (username.trim().length < 3) {
       return NextResponse.json(
         {
-          success: false,
-          error: 'Username must be at least 3 characters long',
+          errors: [
+            {
+              status: '400',
+              code: 'VALIDATION_ERROR',
+              title: 'Validation Error',
+              detail: 'Username must be at least 3 characters long',
+            },
+          ],
         },
         { status: 400 },
       );
     }
 
-    // Validate date format and ensure it's not in the future
-    const dobDate = new Date(dateOfBirth);
-    const today = new Date();
+    // Call the backend API for student authentication
+    const BaseURL =
+      process.env.NEXT_PUBLIC_BaseURLAuth ||
+      'https://apis.testkdlakshya.uchhal.in/auth';
 
-    if (isNaN(dobDate.getTime())) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid date format' },
-        { status: 400 },
-      );
-    }
+    console.log('Calling student auth API:', `${BaseURL}/students/auth`);
+    console.log('With credentials:', { username: username.trim(), password });
 
-    if (dobDate > today) {
-      return NextResponse.json(
-        { success: false, error: 'Date of birth cannot be in the future' },
-        { status: 400 },
-      );
-    }
-
-    // Validate student credentials
-    const student = await validateStudentCredentials(
-      username.trim(),
-      dateOfBirth,
-    );
-
-    if (!student) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            'Invalid credentials. Please check your username and date of birth.',
+    const apiResponse = await fetch(`${BaseURL}/students/auth`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/vnd.api+json',
+      },
+      body: JSON.stringify({
+        data: {
+          type: 'student_auth',
+          attributes: {
+            username: username.trim(),
+            password: password,
+          },
         },
-        { status: 401 },
-      );
+      }),
+    });
+
+    console.log('API Response status:', apiResponse.status);
+
+    const responseData = await apiResponse.json();
+    console.log('API Response data:', responseData);
+
+    if (!apiResponse.ok) {
+      // Return the error from the API
+      console.error('API Error:', responseData);
+      return NextResponse.json(responseData, { status: apiResponse.status });
     }
 
-    // Successful login
+    // Successful login - return the full student data with token
+    console.log('Login successful, returning data');
     return NextResponse.json({
       success: true,
-      message: 'Login successful',
-      student: {
-        username: student.username,
-        name: student.name,
-        class: student.class,
-        rollNumber: student.rollNumber,
-        userType: 'student',
-      },
+      data: responseData.data,
     });
   } catch (error) {
     console.error('Student login error:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      {
+        errors: [
+          {
+            status: '500',
+            code: 'INTERNAL_ERROR',
+            title: 'Internal Server Error',
+            detail: 'An error occurred while processing your request',
+          },
+        ],
+      },
       { status: 500 },
     );
   }
