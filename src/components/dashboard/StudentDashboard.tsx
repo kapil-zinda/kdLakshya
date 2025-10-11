@@ -48,22 +48,88 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
-    const storedStudentData = localStorage.getItem('studentAuth');
-    if (storedStudentData) {
+    const fetchStudentProfile = async () => {
       try {
+        const storedStudentData = localStorage.getItem('studentAuth');
+        if (!storedStudentData) {
+          console.warn('No student data found in localStorage');
+          return;
+        }
+
         const parsed = JSON.parse(storedStudentData);
         setStudentData(parsed);
-        const photoUrl = parsed.profilePhoto || '';
-        setProfilePhoto(photoUrl);
-        console.log('Student data loaded:', parsed);
-        console.log('Profile photo URL:', photoUrl);
-        console.log('Has profile photo:', !!photoUrl);
+
+        // Fetch complete profile from /users/me API
+        const BaseURLAuth =
+          process.env.NEXT_PUBLIC_BaseURLAuth ||
+          'https://apis.testkdlakshya.uchhal.in/auth';
+
+        const response = await fetch(
+          `${BaseURLAuth}/users/me?include=permission`,
+          {
+            method: 'GET',
+            headers: {
+              'x-api-key': parsed.basicAuthToken,
+              'Content-Type': 'application/vnd.api+json',
+            },
+          },
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Users/me response:', data);
+
+          if (data.data) {
+            const userData = data.data;
+            const attrs = userData.attributes;
+
+            // Update student data with complete profile info
+            const updatedStudentData = {
+              ...parsed,
+              id: userData.id,
+              email: attrs.email,
+              firstName: attrs.first_name,
+              lastName: attrs.last_name,
+              phone: attrs.phone,
+              rollNumber: attrs.roll_number,
+              gradeLevel: attrs.grade_level,
+              dateOfBirth: attrs.date_of_birth,
+              profilePhoto:
+                attrs.profile_photo || attrs.photo || parsed.profilePhoto || '',
+              guardianInfo: attrs.guardian_info,
+              status: attrs.status,
+              admissionDate: attrs.admission_date,
+            };
+
+            // Save updated data
+            localStorage.setItem(
+              'studentAuth',
+              JSON.stringify(updatedStudentData),
+            );
+            setStudentData(updatedStudentData);
+            setProfilePhoto(updatedStudentData.profilePhoto);
+
+            console.log('Updated student data from API:', updatedStudentData);
+            console.log('Profile photo URL:', updatedStudentData.profilePhoto);
+          }
+        } else {
+          console.error('Failed to fetch user profile:', response.status);
+          // Still use cached data
+          setProfilePhoto(parsed.profilePhoto || '');
+        }
       } catch (error) {
-        console.error('Error parsing student data:', error);
+        console.error('Error fetching student profile:', error);
+        // Fallback to localStorage data
+        const storedStudentData = localStorage.getItem('studentAuth');
+        if (storedStudentData) {
+          const parsed = JSON.parse(storedStudentData);
+          setStudentData(parsed);
+          setProfilePhoto(parsed.profilePhoto || '');
+        }
       }
-    } else {
-      console.warn('No student data found in localStorage');
-    }
+    };
+
+    fetchStudentProfile();
   }, []);
 
   const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
