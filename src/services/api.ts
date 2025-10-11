@@ -1447,12 +1447,16 @@ export class ApiService {
         },
       };
 
-      const response = await workspaceApi.post('/s3/signed-url', requestBody, {
-        headers: {
-          Authorization: `Bearer ${tokenItem.value}`,
-          'Content-Type': 'application/json',
+      const response = await workspaceApi.post(
+        '/workspace/s3/signed-url',
+        requestBody,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/json',
+          },
         },
-      });
+      );
 
       return response.data;
     } catch (error) {

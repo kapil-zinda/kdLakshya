@@ -1,7 +1,7 @@
 'use client';
 
 import { userData } from '@/app/interfaces/userInterface';
-import { getItemWithTTL } from '@/utils/customLocalStorageWithTTL';
+import { getAuthHeaders } from '@/utils/authHeaders';
 import axios from 'axios';
 
 const BaseURL = process.env.NEXT_PUBLIC_BaseURL || '';
@@ -64,8 +64,6 @@ export const makeApiCall = async ({
   payload = {},
   method = 'GET',
 }: ApiRequest) => {
-  const bearerToken = getItemWithTTL('bearerToken');
-
   const pathParams = {
     org_id: userData.orgId,
     user_id: userData.userId,
@@ -79,12 +77,15 @@ export const makeApiCall = async ({
   const fullUrl = `${BaseURL}${updatedPath}`;
 
   try {
+    // Get auth headers based on user type (student or admin/teacher)
+    const authHeaders = getAuthHeaders();
+
     const config = {
       url: fullUrl,
       method,
       headers: {
         ...headers,
-        Authorization: `Bearer ${bearerToken}`,
+        ...authHeaders,
       },
       ...(method === 'POST' || method === 'PUT' || method === 'PATCH'
         ? { data: updatedPayload }

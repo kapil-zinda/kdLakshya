@@ -32,46 +32,116 @@ export default function LoginPage() {
       // Validate required fields
       if (!studentData.username.trim() || !studentData.dateOfBirth) {
         setError('Please fill in all fields');
+        setIsLoading(false);
         return;
       }
 
-      // Call student login API
-      const response = await fetch('/api/student/login', {
+      // Convert date from YYYY-MM-DD (HTML date input) to DD/MM/YYYY (API format)
+      const convertToAPIFormat = (dateStr: string) => {
+        const [year, month, day] = dateStr.split('-');
+        return `${day}/${month}/${year}`;
+      };
+
+      const password = convertToAPIFormat(studentData.dateOfBirth);
+
+      console.log('Attempting login with:', {
+        username: studentData.username.trim(),
+        password,
+      });
+
+      // Call external API directly
+      const BaseURL =
+        process.env.NEXT_PUBLIC_BaseURLAuth ||
+        'https://apis.testkdlakshya.uchhal.in/auth';
+      const apiUrl = `${BaseURL}/students/auth`;
+
+      console.log('Calling external API at:', apiUrl);
+
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/vnd.api+json',
         },
         body: JSON.stringify({
-          username: studentData.username.trim(),
-          dateOfBirth: studentData.dateOfBirth,
+          data: {
+            type: 'student_auth',
+            attributes: {
+              username: studentData.username.trim(),
+              password: password,
+            },
+          },
         }),
       });
 
       const data = await response.json();
+      console.log('Login response status:', response.status);
+      console.log('Login response data:', JSON.stringify(data, null, 2));
 
-      if (response.ok && data.success) {
-        // Store student session data
+      if (!response.ok) {
+        const errorMessage =
+          data.errors?.[0]?.detail ||
+          data.errors?.[0]?.title ||
+          data.message ||
+          'Invalid credentials. Please try again.';
+        console.error('Login failed:', errorMessage, data);
+        setError(errorMessage);
+        setIsLoading(false);
+        return;
+      }
+
+      if (data.data) {
+        // Store student authentication data
+        const attrs = data.data.attributes;
+        const basicAuthToken =
+          attrs.credentials?.basic_auth_token ||
+          attrs.basic_auth_token ||
+          btoa(`${studentData.username}:${password}`);
+
+        const studentAuthData = {
+          id: data.data.id,
+          studentId: attrs.student_id || data.data.id,
+          orgId: attrs.org_id,
+          firstName: attrs.first_name,
+          lastName: attrs.last_name,
+          email: attrs.email,
+          gradeLevel: attrs.grade_level,
+          rollNumber: attrs.roll_number,
+          phone: attrs.phone,
+          dateOfBirth: attrs.date_of_birth,
+          admissionDate: attrs.admission_date,
+          guardianInfo: attrs.guardian_info,
+          role: 'student',
+          basicAuthToken: basicAuthToken,
+          permissions: attrs.permissions || { role: 'student' },
+          authenticatedAt: attrs.authenticated_at || new Date().toISOString(),
+        };
+
+        console.log('Storing student data:', studentAuthData);
+
+        // Store in localStorage
+        localStorage.setItem('studentAuth', JSON.stringify(studentAuthData));
+
+        // Also create a basic auth token entry for compatibility
         localStorage.setItem(
-          'studentAuth',
+          'bearerToken',
           JSON.stringify({
-            username: studentData.username,
-            loginTime: new Date().toISOString(),
-            userType: 'student',
+            value: basicAuthToken,
+            expiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
           }),
         );
 
         // Redirect to student dashboard
+        console.log('Student login successful, redirecting to dashboard');
         router.push('/student-dashboard');
       } else {
         setError(
-          data.error ||
-            'Invalid credentials. Please check your username and date of birth.',
+          'Invalid credentials. Please check your username and date of birth.',
         );
+        setIsLoading(false);
       }
     } catch (error) {
       console.error('Student login error:', error);
       setError('Login failed. Please try again.');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -147,7 +217,7 @@ export default function LoginPage() {
                 <Input
                   id="username"
                   type="text"
-                  placeholder="Enter your username"
+                  placeholder="68d6b128d88f00c8b1b4a89a-Rishabh"
                   value={studentData.username}
                   onChange={(e) =>
                     handleInputChange('username', e.target.value)
@@ -155,6 +225,9 @@ export default function LoginPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
+                <p className="text-xs text-gray-500">
+                  Format: org_id-first_name
+                </p>
               </div>
 
               {/* Date of Birth Field */}
