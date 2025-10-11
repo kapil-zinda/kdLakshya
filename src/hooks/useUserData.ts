@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import { getAuthHeaders } from '@/utils/authHeaders';
+
 export interface CachedUserData {
   id: string;
   email: string;
@@ -79,18 +81,33 @@ export function useUserData() {
     try {
       const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
 
+      // Get auth headers based on user type
+      const authHeaders = getAuthHeaders();
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/vnd.api+json',
+        ...authHeaders,
+      };
+
+      console.log('Fetching user data with headers:', {
+        ...headers,
+        Authorization: '[REDACTED]',
+        'x-api-key': '[REDACTED]',
+      });
+
       const response = await fetch(
         `${BaseURLAuth}/users/me?include=permission`,
         {
           method: 'GET',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/vnd.api+json',
-          },
+          headers,
         },
       );
 
       if (!response.ok) {
+        console.error(
+          `Backend API error: ${response.status}`,
+          await response.text(),
+        );
         throw new Error(`Backend API error: ${response.status}`);
       }
 
@@ -158,6 +175,34 @@ export function useUserData() {
       setIsLoading(true);
 
       try {
+        // Check if student is logged in
+        const studentAuth = localStorage.getItem('studentAuth');
+        if (studentAuth) {
+          console.log(
+            'Student authentication detected, using stored student data',
+          );
+          try {
+            const studentData = JSON.parse(studentAuth);
+            // Convert student data to CachedUserData format
+            const userData: CachedUserData = {
+              id: studentData.id || studentData.studentId,
+              email: studentData.email,
+              firstName: studentData.firstName,
+              lastName: studentData.lastName,
+              role: 'student',
+              permissions: studentData.permissions || { role: 'student' },
+              orgId: studentData.orgId,
+              accessToken: studentData.basicAuthToken,
+              cacheTimestamp: Date.now(),
+            };
+            setUserData(userData);
+            setIsLoading(false);
+            return;
+          } catch (error) {
+            console.error('Error parsing student auth:', error);
+          }
+        }
+
         // Clear old cache to force fresh data fetch
         localStorage.removeItem(USER_DATA_KEY);
         console.log('Cleared cached user data');

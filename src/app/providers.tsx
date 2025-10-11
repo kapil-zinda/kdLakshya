@@ -5,6 +5,7 @@ import * as React from 'react';
 import { usePathname } from 'next/navigation';
 
 import { ApiService } from '@/services/api';
+import { getAuthHeaders, isStudentUser } from '@/utils/authHeaders';
 import axios from 'axios';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { type ThemeProviderProps } from 'next-themes/dist/types';
@@ -94,12 +95,21 @@ export function Providers({ children }: ThemeProviderProps) {
   ) => {
     if (!bearerToken) return;
 
+    // Skip /users/me call for students as we already have their data
+    if (isStudentUser()) {
+      console.log('Student user detected, skipping /users/me call');
+      return;
+    }
+
     try {
+      // Get auth headers (will use Bearer for admin/teachers)
+      const authHeaders = getAuthHeaders();
+
       const res = await axios.get(
         `https://apis.testkdlakshya.uchhal.in/auth/users/me?include=permission`,
         {
           headers: {
-            Authorization: `Bearer ${bearerToken}`,
+            ...authHeaders,
             'Content-Type': 'application/json',
           },
         },
@@ -258,15 +268,26 @@ export function Providers({ children }: ThemeProviderProps) {
         // Get user data first to determine their organization
         await userMeData(token, false); // Don't auto-redirect in userMeData
 
+        // Skip redirect logic for students
+        if (isStudentUser()) {
+          console.log(
+            'Student user detected, skipping organization subdomain redirect',
+          );
+          return;
+        }
+
         // Get user's organization subdomain from their orgId
         let userOrgSubdomain = null;
         try {
+          // Get auth headers
+          const authHeaders = getAuthHeaders();
+
           // Get user data from the API to find their orgId
           const userResponse = await axios.get(
             `https://apis.testkdlakshya.uchhal.in/auth/users/me?include=permission`,
             {
               headers: {
-                Authorization: `Bearer ${token}`,
+                ...authHeaders,
                 'Content-Type': 'application/json',
               },
             },
