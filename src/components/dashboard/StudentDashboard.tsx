@@ -8,18 +8,6 @@ import {
   dummyStudentDashboardStats,
   dummyStudentMarks,
 } from '@/data/studentDashboardDummyData';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 
 import StudentAttendance from './StudentAttendance';
 import StudentCalendar from './StudentCalendar';
@@ -325,7 +313,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
         >
           Overview
         </button>
-        <button
+        {/* <button
           onClick={() => setActiveTab('marks')}
           className={`px-4 py-2 rounded-md ${
             activeTab === 'marks'
@@ -374,7 +362,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
           }`}
         >
           Fees
-        </button>
+        </button> */}
       </div>
 
       {/* Dashboard Content */}
@@ -473,12 +461,12 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
                 </div>
               </div>
             </div>
-            <div className="bg-green-500 p-4 rounded-lg hidden sm:block">
+            {/* <div className="bg-green-500 p-4 rounded-lg hidden sm:block">
               <h2 className="font-bold text-sm md:text-base">
                 TODAY&apos;S DATE
               </h2>
               <p className="text-lg md:text-xl">{currentDate}</p>
-            </div>
+            </div> */}
           </div>
 
           {/* Stats */}
@@ -512,8 +500,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
           </div> */}
 
           {/* Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-            {/* Attendance Chart */}
+          {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            
             <div className="bg-gray-700 p-4 rounded-lg">
               <h3 className="text-lg font-semibold mb-4">
                 Current Month Attendance
@@ -572,7 +560,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
               </ResponsiveContainer>
             </div>
 
-            {/* Performance Chart */}
+           
             <div className="bg-gray-700 p-4 rounded-lg">
               <h3 className="text-lg font-semibold mb-4">
                 Last Exam Performance
@@ -597,7 +585,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
+          </div> */}
 
           {/* Quick Actions */}
           {/* <div className="mt-6 bg-gray-700 p-4 rounded-lg">
