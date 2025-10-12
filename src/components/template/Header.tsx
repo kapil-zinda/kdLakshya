@@ -101,11 +101,19 @@ export function Header({ organization }: HeaderProps) {
     if (isLocalhost) {
       // For development, use localhost:3000 as the auth domain
       const port = currentHost.split(':')[1] || '3000';
-      authUrl = `http://auth.localhost:${port}/login`;
+      // Pass origin subdomain as URL parameter
+      const returnParam =
+        currentSubdomain !== 'auth' && currentSubdomain !== 'localhost'
+          ? `?return_to=${currentSubdomain}`
+          : '';
+      authUrl = `http://auth.localhost:${port}/login${returnParam}`;
     } else {
       // For production, always redirect to auth.uchhal.in for authentication
       const domain = currentHost.split('.').slice(1).join('.'); // Get base domain (uchhal.in)
-      authUrl = `https://auth.${domain}/login`;
+      // Pass origin subdomain as URL parameter for cross-subdomain tracking
+      const returnParam =
+        currentSubdomain !== 'auth' ? `?return_to=${currentSubdomain}` : '';
+      authUrl = `https://auth.${domain}/login${returnParam}`;
     }
 
     console.log('🔑 Header: Redirecting to AUTH login page:', authUrl);
