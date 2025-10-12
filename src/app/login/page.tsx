@@ -185,7 +185,7 @@ export default function LoginPage() {
         const basicAuthToken =
           attrs.credentials?.basic_auth_token ||
           attrs.basic_auth_token ||
-          btoa(`${studentData.username}:${password}`);
+          btoa(`${username}:${password}`);
 
         const studentAuthData = {
           id: data.data.id,
