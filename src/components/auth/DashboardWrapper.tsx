@@ -95,6 +95,8 @@ export function DashboardWrapper({
       .filter((key) => key.startsWith('team-'))
       .map((key) => key.match(/team-(\d+)/)?.[1])
       .filter(Boolean) as string[],
+    type: cachedUserData.type,
+    role: cachedUserData.role,
   };
 
   console.log(

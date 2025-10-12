@@ -19,16 +19,18 @@ export default function DashboardPage() {
       return <AdminDashboardContent userData={userData} />;
     }
 
-    // Check if user has any team permission (teacher)
+    // Check if user is faculty or has any team permission (teacher)
     const permissions = userData.permission || userData.permissions || {};
     const hasTeamPermission = Object.keys(permissions).some(
       (key) => key.startsWith('team-') || key.includes('team'),
     );
+    const isFaculty =
+      userData.type === 'faculty' || userData.role === 'faculty';
 
-    if (hasTeamPermission) {
+    if (hasTeamPermission || isFaculty) {
       return <TeacherDashboard userData={userData} />;
     }
-
+    console.log('rishabh"', isFaculty, userData);
     // Default to student dashboard
     return <StudentDashboard userData={userData} />;
   };

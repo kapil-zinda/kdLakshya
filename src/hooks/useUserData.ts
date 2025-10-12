@@ -14,6 +14,7 @@ export interface CachedUserData {
   orgId: string;
   accessToken: string;
   cacheTimestamp: number;
+  type?: string;
 }
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
@@ -124,7 +125,7 @@ export function useUserData() {
 
       // Check user type from attributes first
       if (userData.attributes && userData.attributes.type === 'faculty') {
-        role = 'admin'; // Faculty should have admin access
+        role = 'teacher'; // Faculty should have teacher access
       } else if (userData.user_permissions) {
         if (
           userData.user_permissions['admin'] ||
@@ -158,6 +159,7 @@ export function useUserData() {
           userData.attributes.permissions || userData.user_permissions || {},
         orgId: userData.attributes.org_id || userData.attributes.org,
         accessToken,
+        type: userData.attributes.type,
       };
 
       // Cache the data
