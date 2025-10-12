@@ -104,9 +104,12 @@ export function Providers({ children }: ThemeProviderProps) {
     try {
       // Get auth headers (will use Bearer for admin/teachers)
       const authHeaders = getAuthHeaders();
+      const BaseURLAuth =
+        process.env.NEXT_PUBLIC_BaseURLAuth ||
+        'https://apis.testkdlakshya.uchhal.in/auth';
 
       const res = await axios.get(
-        `https://apis.testkdlakshya.uchhal.in/auth/users/me?include=permission`,
+        `${BaseURLAuth}/users/me?include=permission`,
         {
           headers: {
             ...authHeaders,
@@ -273,8 +276,11 @@ export function Providers({ children }: ThemeProviderProps) {
         try {
           // Step 1: Call /users/me to get orgId
           console.log('📞 Step 1: Calling /users/me to get orgId...');
+          const BaseURLAuth =
+            process.env.NEXT_PUBLIC_BaseURLAuth ||
+            'https://apis.testkdlakshya.uchhal.in/auth';
           const userResponse = await axios.get(
-            `https://apis.testkdlakshya.uchhal.in/auth/users/me?include=permission`,
+            `${BaseURLAuth}/users/me?include=permission`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -307,7 +313,7 @@ export function Providers({ children }: ThemeProviderProps) {
               ' to get subdomain...',
           );
           const orgResponse = await axios.get(
-            `https://apis.testkdlakshya.uchhal.in/auth/organizations/${orgId}`,
+            `${BaseURLAuth}/organizations/${orgId}`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
