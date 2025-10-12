@@ -32,7 +32,7 @@ interface TeacherDashboardProps {
 }
 
 const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
-  const [activeTab, setActiveTab] = useState<string>('overview');
+  const [activeTab, setActiveTab] = useState<string>('profile');
   const [statistics, setStatistics] = useState(dummyDashboardStats);
   const [isLoading, setIsLoading] = useState(true);
   const [teacherData, setTeacherData] = useState<any>(null);
@@ -234,7 +234,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
       {/* Navigation Tabs */}
       <div className="mb-6">
         <ul className="flex flex-wrap text-sm font-medium text-center text-gray-400 border-b border-gray-700">
-          <li className="mr-2">
+          {/* <li className="mr-2">
             <button
               onClick={() => setActiveTab('overview')}
               className={`inline-block p-4 rounded-t-lg ${
@@ -281,8 +281,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
             >
               Results
             </button>
-          </li>
-          <li className="mr-2">
+          </li> */}
+          {/* <li className="mr-2">
             <button
               onClick={() => setActiveTab('tasks')}
               className={`inline-block p-4 rounded-t-lg ${
@@ -293,7 +293,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
             >
               Academic Tasks
             </button>
-          </li>
+          </li> */}
           <li>
             <button
               onClick={() => setActiveTab('profile')}
