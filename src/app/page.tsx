@@ -144,11 +144,9 @@ export default function Home() {
             if (userRole === 'teacher' || userRole === 'faculty') {
               dashboardPath = '/teacher-dashboard';
               console.log('👨‍🏫 Redirecting to teacher dashboard');
-            } else if (userRole === 'student') {
-              dashboardPath = '/student-dashboard';
-              console.log('👨‍🎓 Redirecting to student dashboard');
             } else {
-              console.log('👔 Redirecting to admin dashboard');
+              dashboardPath = '/dashboard';
+              console.log('👔 Redirecting to dashboard');
             }
           } catch (e) {
             console.error('Error parsing cached user data:', e);

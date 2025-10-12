@@ -130,9 +130,9 @@ export default function LoginPage() {
           }),
         );
 
-        // Redirect to student dashboard
+        // Redirect to dashboard
         console.log('Student login successful, redirecting to dashboard');
-        router.push('/student-dashboard');
+        router.push('/dashboard');
       } else {
         setError(
           'Invalid credentials. Please check your username and date of birth.',

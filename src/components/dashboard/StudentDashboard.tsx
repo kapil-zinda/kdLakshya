@@ -469,6 +469,155 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
             </div> */}
           </div>
 
+          {/* Student Information Section */}
+          {studentData && (
+            <div className="mt-6 bg-gray-700 p-6 rounded-lg">
+              <h3 className="text-xl font-bold text-white mb-4">
+                Student Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Personal Details */}
+                <div className="space-y-3">
+                  <h4 className="text-lg font-semibold text-blue-400 mb-3">
+                    Personal Details
+                  </h4>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400">
+                      Full Name
+                    </label>
+                    <p className="text-white">
+                      {studentData.firstName} {studentData.lastName}
+                    </p>
+                  </div>
+                  {studentData.dateOfBirth && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400">
+                        Date of Birth
+                      </label>
+                      <p className="text-white">{studentData.dateOfBirth}</p>
+                    </div>
+                  )}
+                  {studentData.email && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400">
+                        Email
+                      </label>
+                      <p className="text-white">{studentData.email}</p>
+                    </div>
+                  )}
+                  {studentData.phone && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400">
+                        Phone
+                      </label>
+                      <p className="text-white">{studentData.phone}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Academic Details */}
+                <div className="space-y-3">
+                  <h4 className="text-lg font-semibold text-green-400 mb-3">
+                    Academic Details
+                  </h4>
+                  {studentData.gradeLevel && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400">
+                        Class/Grade
+                      </label>
+                      <p className="text-white">{studentData.gradeLevel}</p>
+                    </div>
+                  )}
+                  {studentData.rollNumber && studentData.rollNumber.trim() && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400">
+                        Roll Number
+                      </label>
+                      <p className="text-white">{studentData.rollNumber}</p>
+                    </div>
+                  )}
+                  {studentData.admissionDate && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400">
+                        Admission Date
+                      </label>
+                      <p className="text-white">{studentData.admissionDate}</p>
+                    </div>
+                  )}
+                  {studentData.status && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400">
+                        Status
+                      </label>
+                      <p className="text-white capitalize">
+                        {studentData.status}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Guardian Information */}
+                {studentData.guardianInfo && (
+                  <div className="space-y-3">
+                    <h4 className="text-lg font-semibold text-yellow-400 mb-3">
+                      Guardian Information
+                    </h4>
+                    {studentData.guardianInfo.father_name && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400">
+                          Father&apos;s Name
+                        </label>
+                        <p className="text-white">
+                          {studentData.guardianInfo.father_name}
+                        </p>
+                      </div>
+                    )}
+                    {studentData.guardianInfo.mother_name && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400">
+                          Mother&apos;s Name
+                        </label>
+                        <p className="text-white">
+                          {studentData.guardianInfo.mother_name}
+                        </p>
+                      </div>
+                    )}
+                    {studentData.guardianInfo.phone && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400">
+                          Guardian Phone
+                        </label>
+                        <p className="text-white">
+                          {studentData.guardianInfo.phone}
+                        </p>
+                      </div>
+                    )}
+                    {studentData.guardianInfo.email && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400">
+                          Guardian Email
+                        </label>
+                        <p className="text-white">
+                          {studentData.guardianInfo.email}
+                        </p>
+                      </div>
+                    )}
+                    {studentData.guardianInfo.address && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400">
+                          Address
+                        </label>
+                        <p className="text-white">
+                          {studentData.guardianInfo.address}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Stats */}
           {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
             <div className="bg-blue-500 p-4 rounded-lg">
