@@ -299,8 +299,54 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
     return null;
   };
 
+  const handleLogout = () => {
+    // Clear all authentication data from localStorage
+    localStorage.removeItem('bearerToken');
+    localStorage.removeItem('studentAuth');
+    localStorage.removeItem('cachedUserData');
+    localStorage.removeItem('authState');
+    localStorage.removeItem('codeVerifier');
+    localStorage.removeItem('adminAuth');
+
+    // Clear all sessionStorage
+    sessionStorage.clear();
+
+    // Clear all localStorage (comprehensive clear)
+    localStorage.clear();
+
+    // Clear cookies
+    document.cookie.split(';').forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, '')
+        .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+    });
+
+    // Clear cache and reload
+    if ('caches' in window) {
+      caches.keys().then((names) => {
+        names.forEach((name) => {
+          caches.delete(name);
+        });
+      });
+    }
+
+    // Redirect to homepage with cache clear
+    window.location.replace('/');
+  };
+
   return (
     <div className="container mx-auto px-4 py-6 text-white">
+      {/* Header with Logout Button */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Student Dashboard</h2>
+        <button
+          onClick={handleLogout}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors"
+        >
+          Logout
+        </button>
+      </div>
+
       {/* Tabs */}
       <div className="flex flex-wrap mb-6 gap-2">
         <button

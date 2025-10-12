@@ -225,12 +225,58 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
     }
   };
 
+  const handleLogout = () => {
+    // Clear all authentication data from localStorage
+    localStorage.removeItem('bearerToken');
+    localStorage.removeItem('studentAuth');
+    localStorage.removeItem('cachedUserData');
+    localStorage.removeItem('authState');
+    localStorage.removeItem('codeVerifier');
+    localStorage.removeItem('adminAuth');
+
+    // Clear all sessionStorage
+    sessionStorage.clear();
+
+    // Clear all localStorage (comprehensive clear)
+    localStorage.clear();
+
+    // Clear cookies
+    document.cookie.split(';').forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, '')
+        .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+    });
+
+    // Clear cache and reload
+    if ('caches' in window) {
+      caches.keys().then((names) => {
+        names.forEach((name) => {
+          caches.delete(name);
+        });
+      });
+    }
+
+    // Redirect to homepage with cache clear
+    window.location.replace('/');
+  };
+
   if (isLoading) {
     return <div>Loading dashboard data...</div>;
   }
 
   return (
     <div className="bg-gray-800 p-4 md:p-6 font-sans rounded-3xl w-full">
+      {/* Header with Logout Button */}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-white">Teacher Dashboard</h2>
+        <button
+          onClick={handleLogout}
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors"
+        >
+          Logout
+        </button>
+      </div>
+
       {/* Navigation Tabs */}
       <div className="mb-6">
         <ul className="flex flex-wrap text-sm font-medium text-center text-gray-400 border-b border-gray-700">

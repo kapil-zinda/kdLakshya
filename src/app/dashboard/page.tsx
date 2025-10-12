@@ -45,16 +45,38 @@ export default function DashboardPage() {
 // Admin Dashboard Content Component
 function AdminDashboardContent({ userData }: { userData: any }) {
   const handleLogout = () => {
-    // Clear all authentication data
+    // Clear all authentication data from localStorage
     localStorage.removeItem('bearerToken');
-    localStorage.removeItem('adminAuth');
+    localStorage.removeItem('studentAuth');
+    localStorage.removeItem('cachedUserData');
     localStorage.removeItem('authState');
     localStorage.removeItem('codeVerifier');
-    sessionStorage.removeItem('authCodeProcessed');
-    sessionStorage.removeItem('isAuthCallback');
+    localStorage.removeItem('adminAuth');
 
-    // Simple redirect to homepage
-    window.location.href = '/';
+    // Clear all sessionStorage
+    sessionStorage.clear();
+
+    // Clear all localStorage (comprehensive clear)
+    localStorage.clear();
+
+    // Clear cookies
+    document.cookie.split(';').forEach((c) => {
+      document.cookie = c
+        .replace(/^ +/, '')
+        .replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+    });
+
+    // Clear cache and reload
+    if ('caches' in window) {
+      caches.keys().then((names) => {
+        names.forEach((name) => {
+          caches.delete(name);
+        });
+      });
+    }
+
+    // Redirect to homepage with cache clear
+    window.location.replace('/');
   };
 
   const dashboardCards = [
