@@ -83,8 +83,19 @@ export function Header({ organization }: HeaderProps) {
   const handleAuthLogin = () => {
     // Always redirect to AUTH for authentication, regardless of current subdomain
     const currentHost = window.location.host;
+    const currentSubdomain = currentHost.split('.')[0];
     const isLocalhost =
       currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
+
+    // Store the current subdomain so we can redirect back after login
+    // Only store if not already on auth subdomain
+    if (currentSubdomain !== 'auth') {
+      sessionStorage.setItem('loginOriginSubdomain', currentSubdomain);
+      console.log(
+        '📝 Stored origin subdomain for post-login redirect:',
+        currentSubdomain,
+      );
+    }
 
     let authUrl;
     if (isLocalhost) {
@@ -98,6 +109,7 @@ export function Header({ organization }: HeaderProps) {
     }
 
     console.log('🔑 Header: Redirecting to AUTH login page:', authUrl);
+    console.log('🔑 Will return to subdomain after login:', currentSubdomain);
     window.location.href = authUrl;
   };
 

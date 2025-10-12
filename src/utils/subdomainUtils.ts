@@ -7,7 +7,7 @@ export function getSubdomain(): string | null {
   const parts = hostname.split('.');
 
   // Return subdomain if it exists (e.g., 'auth' from 'auth.uchhal.in')
-  if (parts.length > 2) {
+  if (parts.length >= 2) {
     return parts[0];
   }
 
