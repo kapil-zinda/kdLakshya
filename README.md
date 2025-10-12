@@ -25,7 +25,7 @@
 
 ### 4. To-Do Task Management
 
-- **Dashboard Overview**: View total tasks, today's tasks, overdue tasks, and completed tasks at a glance.
+- **Dashboard Overview**: View total tasks, Today&apos;s tasks, overdue tasks, and completed tasks at a glance.
 - **Categorized Task List**: Organize tasks by priority, category, and status, making it easy to track and manage.
 - **Task Insights**: Visual charts provide insights into task distribution by status, priority, and category.
 - **Motivation Section**: Includes a daily motivation quote to keep users inspired and focused.

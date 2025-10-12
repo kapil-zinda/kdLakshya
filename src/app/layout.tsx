@@ -8,7 +8,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
-import { NewSideBar } from '@/components/sidebar/NewSideBar';
+import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
 
 import { Providers } from './providers';
 
@@ -40,19 +40,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <div className="grid min-h-screen w-full ">
-          <div className="flex flex-col">
-            <main className="flex-1 p-4 lg:gap-6 lg:p-6">
-              <Providers>
-                <NewSideBar>{children}</NewSideBar>
-                {/* <HomePageComponent /> */}
-                {/* {children} */}
-              </Providers>
-            </main>
-          </div>
-        </div>
+        <Providers>
+          <ConditionalLayout>{children}</ConditionalLayout>
+        </Providers>
         <Analytics />
         <ToastContainer />
       </body>

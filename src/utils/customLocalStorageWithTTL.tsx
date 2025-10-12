@@ -1,4 +1,4 @@
-export function setItemWithTTL(key: string, value: any, ttlHours: number) {
+export function setItemWithTTL(key: string, value: unknown, ttlHours: number) {
   if (typeof window === 'undefined') {
     // localStorage is not available on the server
     return;

@@ -27,9 +27,23 @@ export default function HomePageComponent() {
   const [showPassword, setShowPassword] = useState(false);
 
   const loginHandler = async () => {
-    console.log('hello');
+    console.log('Initiating login from homepage');
     try {
-      window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${login_redirect}&scope=${encodeURIComponent('openid profile email')}`;
+      // Store the current subdomain for post-login redirect
+      const currentHost = window.location.host;
+      const currentSubdomain = currentHost.split('.')[0];
+      if (currentSubdomain && currentSubdomain !== 'localhost') {
+        sessionStorage.setItem('loginOriginSubdomain', currentSubdomain);
+      }
+
+      // Use dynamic redirect URL based on current host
+      const isLocalhost =
+        currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
+      const dynamicRedirectUri = isLocalhost
+        ? login_redirect
+        : `https://${currentHost}/`;
+
+      window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${encodeURIComponent(dynamicRedirectUri)}&scope=${encodeURIComponent('openid profile email')}`;
     } catch (error) {
       console.log(error);
     }
@@ -98,7 +112,22 @@ export default function HomePageComponent() {
       });
 
       try {
-        window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${login_redirect}&scope=${encodeURIComponent('openid profile email')}`;
+        // Store the current subdomain for post-login redirect
+        const currentHost = window.location.host;
+        const currentSubdomain = currentHost.split('.')[0];
+        if (currentSubdomain && currentSubdomain !== 'localhost') {
+          sessionStorage.setItem('loginOriginSubdomain', currentSubdomain);
+        }
+
+        // Use dynamic redirect URL based on current host
+        const isLocalhost =
+          currentHost.includes('localhost') ||
+          currentHost.includes('127.0.0.1');
+        const dynamicRedirectUri = isLocalhost
+          ? login_redirect
+          : `https://${currentHost}/`;
+
+        window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${encodeURIComponent(dynamicRedirectUri)}&scope=${encodeURIComponent('openid profile email')}`;
       } catch (error) {
         console.log(error);
       }
