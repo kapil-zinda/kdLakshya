@@ -71,8 +71,13 @@ export default function Home() {
 
             // Determine user role
             let role = 'student';
-            if (userData.attributes && userData.attributes.type === 'faculty') {
-              role = 'admin';
+            if (userData.attributes && userData.attributes.role === 'faculty') {
+              role = 'teacher';
+            } else if (
+              userData.attributes &&
+              userData.attributes.type === 'faculty'
+            ) {
+              role = 'teacher';
             } else if (userData.user_permissions) {
               if (
                 userData.user_permissions['admin'] ||
@@ -108,6 +113,7 @@ export default function Home() {
               orgId: userData.attributes.org_id || userData.attributes.org,
               accessToken,
               cacheTimestamp: Date.now(),
+              type: userData.attributes.type || userData.attributes.role,
             };
 
             localStorage.setItem(
@@ -122,13 +128,36 @@ export default function Home() {
           console.error('❌ Error fetching user data:', userDataError);
         }
 
-        // Clean URL and redirect to dashboard
+        // Clean URL and redirect to appropriate dashboard based on role
         console.log('🔑 Cleaning URL and redirecting to dashboard');
-        window.history.replaceState({}, '', '/dashboard');
+
+        // Determine dashboard based on role
+        let dashboardPath = '/dashboard';
+        const cachedUserStr = localStorage.getItem('cachedUserData');
+        if (cachedUserStr) {
+          try {
+            const cachedUser = JSON.parse(cachedUserStr);
+            const userRole = cachedUser.role;
+
+            console.log('👤 User role:', userRole);
+
+            if (userRole === 'teacher' || userRole === 'faculty') {
+              dashboardPath = '/teacher-dashboard';
+              console.log('👨‍🏫 Redirecting to teacher dashboard');
+            } else {
+              dashboardPath = '/dashboard';
+              console.log('👔 Redirecting to dashboard');
+            }
+          } catch (e) {
+            console.error('Error parsing cached user data:', e);
+          }
+        }
+
+        window.history.replaceState({}, '', dashboardPath);
 
         // Redirect directly to dashboard instead of reloading
-        console.log('🚀 Redirecting to dashboard');
-        router.push('/dashboard');
+        console.log('🚀 Redirecting to:', dashboardPath);
+        router.push(dashboardPath);
         return true;
       }
       return false;

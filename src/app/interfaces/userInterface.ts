@@ -10,24 +10,25 @@ export interface UserData {
     [key: string]: string;
   };
   allowedTeams: string[];
+  type?: string;
+  role?: string;
 }
 
 export const userData: UserData = {
-  userId: "",
-  keyId: "",
-  orgKeyId: "",
-  orgId: "",
-  userEmail: "",
-  firstName: "",
-  lastName: "",
+  userId: '',
+  keyId: '',
+  orgKeyId: '',
+  orgId: '',
+  userEmail: '',
+  firstName: '',
+  lastName: '',
   permission: {},
   allowedTeams: [],
 };
 
-
 export const loadUserData = () => {
   let storedUserData: string | null = null;
-  if (typeof window !== "undefined") {
+  if (typeof window !== 'undefined') {
     storedUserData = sessionStorage.getItem('userData');
   }
   if (storedUserData) {
@@ -40,7 +41,7 @@ export const updateUserData = (newData: Partial<UserData>) => {
   Object.assign(userData, newData);
 
   // Save the updated user data to session storage
-  if (typeof window !== "undefined") {
+  if (typeof window !== 'undefined') {
     sessionStorage.setItem('userData', JSON.stringify(userData));
   }
 };
