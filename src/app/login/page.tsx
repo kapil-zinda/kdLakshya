@@ -275,35 +275,41 @@ export default function LoginPage() {
         // Check if we need to redirect back to original subdomain
         const currentHost = window.location.host;
         const currentSubdomain = currentHost.split('.')[0];
-        const storedSubdomain = sessionStorage.getItem('loginOriginSubdomain');
         const isLocalhost = currentHost.includes('localhost');
+
+        // Get return subdomain from URL parameter (works across subdomains)
+        const urlParams = new URLSearchParams(window.location.search);
+        const returnToSubdomain =
+          urlParams.get('return_to') ||
+          sessionStorage.getItem('loginOriginSubdomain');
 
         console.log('🔄 Post-login redirect check:', {
           currentHost,
           currentSubdomain,
-          storedSubdomain,
+          returnToSubdomain,
+          urlParam: urlParams.get('return_to'),
           isLocalhost,
         });
 
-        // If we're on 'auth' subdomain and there's a stored origin, redirect back
+        // If we're on 'auth' subdomain and there's a return subdomain, redirect back
         if (
           currentSubdomain === 'auth' &&
-          storedSubdomain &&
-          storedSubdomain !== 'auth'
+          returnToSubdomain &&
+          returnToSubdomain !== 'auth'
         ) {
           console.log(
             '↩️ Redirecting back to origin subdomain:',
-            storedSubdomain,
+            returnToSubdomain,
           );
 
           if (isLocalhost) {
             const port = currentHost.split(':')[1] || '3000';
-            const redirectUrl = `http://${storedSubdomain}.localhost:${port}/dashboard`;
+            const redirectUrl = `http://${returnToSubdomain}.localhost:${port}/dashboard`;
             console.log('🔗 Redirect URL:', redirectUrl);
             window.location.href = redirectUrl;
           } else {
             const domain = currentHost.split('.').slice(1).join('.');
-            const redirectUrl = `https://${storedSubdomain}.${domain}/dashboard`;
+            const redirectUrl = `https://${returnToSubdomain}.${domain}/dashboard`;
             console.log('🔗 Redirect URL:', redirectUrl);
             window.location.href = redirectUrl;
           }
