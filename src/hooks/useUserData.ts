@@ -123,9 +123,14 @@ export function useUserData() {
       // Determine user role based on permissions
       let role = 'student';
 
-      // Check user type from attributes first
-      if (userData.attributes && userData.attributes.type === 'faculty') {
+      // Check user role from attributes first
+      if (userData.attributes && userData.attributes.role === 'faculty') {
         role = 'teacher'; // Faculty should have teacher access
+      } else if (
+        userData.attributes &&
+        userData.attributes.type === 'faculty'
+      ) {
+        role = 'teacher'; // Also check type field for backward compatibility
       } else if (userData.user_permissions) {
         if (
           userData.user_permissions['admin'] ||
@@ -159,7 +164,7 @@ export function useUserData() {
           userData.attributes.permissions || userData.user_permissions || {},
         orgId: userData.attributes.org_id || userData.attributes.org,
         accessToken,
-        type: userData.attributes.type,
+        type: userData.attributes.type || userData.attributes.role,
       };
 
       // Cache the data

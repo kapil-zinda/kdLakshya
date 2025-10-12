@@ -71,7 +71,12 @@ export default function Home() {
 
             // Determine user role
             let role = 'student';
-            if (userData.attributes && userData.attributes.type === 'faculty') {
+            if (userData.attributes && userData.attributes.role === 'faculty') {
+              role = 'teacher';
+            } else if (
+              userData.attributes &&
+              userData.attributes.type === 'faculty'
+            ) {
               role = 'teacher';
             } else if (userData.user_permissions) {
               if (
@@ -108,6 +113,7 @@ export default function Home() {
               orgId: userData.attributes.org_id || userData.attributes.org,
               accessToken,
               cacheTimestamp: Date.now(),
+              type: userData.attributes.type || userData.attributes.role,
             };
 
             localStorage.setItem(
