@@ -27,44 +27,84 @@ export default function LoginPage() {
   // Get org_id from cache, environment, or subdomain API
   useEffect(() => {
     const getOrgId = async () => {
+      const currentHost = window.location.host;
+      const subdomain = currentHost.split('.')[0];
+
+      console.log(
+        '🔍 Starting org_id fetch for host:',
+        currentHost,
+        'subdomain:',
+        subdomain,
+      );
+
       // First check if org_id is cached in localStorage
       const cachedOrgId = localStorage.getItem('orgId');
-      if (cachedOrgId) {
-        console.log('Using cached org_id:', cachedOrgId);
+      const cachedSubdomain = localStorage.getItem('cachedSubdomain');
+
+      // Only use cached org_id if it's for the same subdomain
+      if (cachedOrgId && cachedSubdomain === subdomain) {
+        console.log(
+          '✅ Using cached org_id for subdomain:',
+          subdomain,
+          'org_id:',
+          cachedOrgId,
+        );
         setOrgId(cachedOrgId);
         return;
+      } else if (cachedOrgId) {
+        console.log(
+          '⚠️ Cached org_id exists but subdomain changed. Old:',
+          cachedSubdomain,
+          'New:',
+          subdomain,
+        );
+        // Clear old cache
+        localStorage.removeItem('orgId');
+        localStorage.removeItem('cachedSubdomain');
       }
 
       // Second, try to get from environment variable
       const envOrgId = process.env.NEXT_PUBLIC_ORG_ID;
       if (envOrgId) {
-        console.log('Using org_id from environment:', envOrgId);
+        console.log('📦 Using org_id from environment:', envOrgId);
         setOrgId(envOrgId);
         localStorage.setItem('orgId', envOrgId);
+        localStorage.setItem('cachedSubdomain', subdomain);
         return;
       }
 
-      // Get subdomain from current host
-      const currentHost = window.location.host;
-      const subdomain = currentHost.split('.')[0];
+      // Get additional host info
+      const isLocalhost =
+        currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
 
-      // For localhost or if no subdomain, use default org_id
-      if (subdomain === 'localhost' || currentHost.includes('localhost')) {
-        console.log('Using default org_id for localhost');
+      // Check if we have a valid subdomain (not just 'localhost')
+      const hasSubdomain =
+        subdomain && subdomain !== 'localhost' && subdomain !== '127';
+
+      // For localhost without subdomain, use default org_id
+      if (isLocalhost && !hasSubdomain) {
+        console.log('🏠 Using default org_id for localhost without subdomain');
         const defaultOrgId = '68d6b128d88f00c8b1b4a89a';
         setOrgId(defaultOrgId);
         localStorage.setItem('orgId', defaultOrgId);
+        localStorage.setItem('cachedSubdomain', subdomain);
         return;
       }
 
-      // For production, fetch org_id from subdomain API
+      // For localhost with subdomain (e.g., spd.localhost) or production, fetch org_id from API
+      const subdomainToFetch = hasSubdomain ? subdomain : 'default';
+
       try {
         const BaseURL =
           process.env.NEXT_PUBLIC_BaseURLAuth ||
           'https://apis.testkdlakshya.uchhal.in/auth';
-        const apiUrl = `${BaseURL}/organizations/subdomain/${subdomain}`;
+        const apiUrl = `${BaseURL}/organizations/subdomain/${subdomainToFetch}`;
 
-        console.log('Fetching org_id from subdomain API:', apiUrl);
+        console.log(
+          '🌐 Fetching org_id from API for subdomain:',
+          subdomainToFetch,
+        );
+        console.log('📡 API URL:', apiUrl);
 
         const response = await fetch(apiUrl, {
           method: 'GET',
@@ -75,28 +115,40 @@ export default function LoginPage() {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('📥 API Response:', data);
           const fetchedOrgId = data.data?.id || data.data?.attributes?.id;
 
           if (fetchedOrgId) {
-            console.log('Fetched org_id from API:', fetchedOrgId);
+            console.log(
+              '✅ Fetched org_id from API:',
+              fetchedOrgId,
+              'for subdomain:',
+              subdomainToFetch,
+            );
             setOrgId(fetchedOrgId);
-            // Cache the org_id for future use
+            // Cache the org_id with the subdomain for future use
             localStorage.setItem('orgId', fetchedOrgId);
+            localStorage.setItem('cachedSubdomain', subdomain);
             return;
           }
         }
 
-        console.error('Failed to fetch org_id from subdomain API');
+        console.error(
+          '❌ Failed to fetch org_id from subdomain API, response status:',
+          response.status,
+        );
         // Fallback to default if API fails
         const fallbackOrgId = '68d6b128d88f00c8b1b4a89a';
         setOrgId(fallbackOrgId);
         localStorage.setItem('orgId', fallbackOrgId);
+        localStorage.setItem('cachedSubdomain', subdomain);
       } catch (error) {
-        console.error('Error fetching org_id:', error);
+        console.error('❌ Error fetching org_id:', error);
         // Fallback to default if error occurs
         const fallbackOrgId = '68d6b128d88f00c8b1b4a89a';
         setOrgId(fallbackOrgId);
         localStorage.setItem('orgId', fallbackOrgId);
+        localStorage.setItem('cachedSubdomain', subdomain);
       }
     };
 
@@ -220,9 +272,49 @@ export default function LoginPage() {
           }),
         );
 
-        // Redirect to dashboard
-        console.log('Student login successful, redirecting to dashboard');
-        router.push('/dashboard');
+        // Check if we need to redirect back to original subdomain
+        const currentHost = window.location.host;
+        const currentSubdomain = currentHost.split('.')[0];
+        const storedSubdomain = sessionStorage.getItem('loginOriginSubdomain');
+        const isLocalhost = currentHost.includes('localhost');
+
+        console.log('🔄 Post-login redirect check:', {
+          currentHost,
+          currentSubdomain,
+          storedSubdomain,
+          isLocalhost,
+        });
+
+        // If we're on 'auth' subdomain and there's a stored origin, redirect back
+        if (
+          currentSubdomain === 'auth' &&
+          storedSubdomain &&
+          storedSubdomain !== 'auth'
+        ) {
+          console.log(
+            '↩️ Redirecting back to origin subdomain:',
+            storedSubdomain,
+          );
+
+          if (isLocalhost) {
+            const port = currentHost.split(':')[1] || '3000';
+            const redirectUrl = `http://${storedSubdomain}.localhost:${port}/dashboard`;
+            console.log('🔗 Redirect URL:', redirectUrl);
+            window.location.href = redirectUrl;
+          } else {
+            const domain = currentHost.split('.').slice(1).join('.');
+            const redirectUrl = `https://${storedSubdomain}.${domain}/dashboard`;
+            console.log('🔗 Redirect URL:', redirectUrl);
+            window.location.href = redirectUrl;
+          }
+          sessionStorage.removeItem('loginOriginSubdomain');
+        } else {
+          // Normal redirect to dashboard on same subdomain
+          console.log(
+            '✅ Student login successful, redirecting to dashboard on same subdomain',
+          );
+          router.push('/dashboard');
+        }
       } else {
         setError(
           'Invalid credentials. Please check your username and date of birth.',
