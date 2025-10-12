@@ -55,7 +55,7 @@ export function AuthHandler() {
           .filter(Boolean) as string[],
       });
 
-      // Both admin and faculty users redirect to their organization's subdomain
+      // After successful authentication on auth subdomain, redirect to user's org subdomain
       try {
         // Get organization data to determine subdomain
         const orgData = await ApiService.getOrganizationById(
@@ -64,31 +64,39 @@ export function AuthHandler() {
         );
         const expectedSubdomain = orgData.data.attributes.subdomain;
 
-        console.log('User orgId:', userData.orgId);
-        console.log('Organization data:', orgData);
-        console.log('Expected subdomain:', expectedSubdomain);
+        console.log('🔍 User orgId:', userData.orgId);
+        console.log('🏢 Organization data:', orgData);
+        console.log('🎯 Expected subdomain:', expectedSubdomain);
 
         if (expectedSubdomain) {
           // Check current subdomain
           const currentHost = window.location.host;
           const currentHostParts = currentHost.split('.');
           const currentSubdomain =
-            currentHostParts.length > 2 ? currentHostParts[0] : null;
+            currentHostParts.length > 2
+              ? currentHostParts[0]
+              : currentHostParts.length === 2 &&
+                  !currentHost.includes('localhost')
+                ? currentHostParts[0]
+                : null;
 
-          console.log('Current host:', currentHost);
-          console.log('Current subdomain:', currentSubdomain);
+          const isLocalhost =
+            currentHost.includes('localhost') ||
+            currentHost.includes('127.0.0.1');
 
-          // Only redirect if user is on wrong subdomain
-          if (currentSubdomain !== expectedSubdomain) {
-            const isLocalhost =
-              currentHost.includes('localhost') ||
-              currentHost.includes('127.0.0.1');
+          console.log('🌐 Current host:', currentHost);
+          console.log('📍 Current subdomain:', currentSubdomain);
+          console.log('💻 Is localhost:', isLocalhost);
 
-            console.log('Is localhost:', isLocalhost);
+          // If user is on 'auth' subdomain or different subdomain, redirect to their org subdomain
+          if (
+            currentSubdomain === 'auth' ||
+            (currentSubdomain && currentSubdomain !== expectedSubdomain)
+          ) {
             console.log(
-              'Subdomain mismatch - redirecting from',
+              '🔄 Redirecting from',
               currentSubdomain,
-              'to',
+              'to user org subdomain:',
               expectedSubdomain,
             );
 
@@ -104,30 +112,33 @@ export function AuthHandler() {
               // For development, redirect to subdomain on localhost
               const port = currentHost.split(':')[1] || '3000';
               const redirectUrl = `http://${expectedSubdomain}.localhost:${port}/dashboard${tokenParam}`;
-              console.log('Redirecting to dashboard:', redirectUrl);
+              console.log('🚀 Dev: Redirecting to:', redirectUrl);
               window.location.href = redirectUrl;
             } else {
               // For production, redirect to the actual subdomain
               const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
               const redirectUrl = `https://${expectedSubdomain}.${domain}/dashboard${tokenParam}`;
-              console.log('Production redirect to dashboard:', redirectUrl);
-              console.log('Including access token in URL hash');
+              console.log('🚀 Prod: Redirecting to:', redirectUrl);
+              console.log('🔑 Including access token in URL hash');
               window.location.href = redirectUrl;
             }
           } else {
             console.log(
-              'User is already on correct subdomain, redirecting to dashboard',
+              '✅ User is already on correct subdomain, redirecting to dashboard',
             );
             // User is on correct subdomain, redirect to dashboard
             router.push('/dashboard');
           }
         } else {
-          console.log('No subdomain found, redirecting to dashboard');
+          console.log('⚠️ No subdomain found, redirecting to dashboard');
           // Fallback to dashboard if no subdomain found
           router.push('/dashboard');
         }
       } catch (error) {
-        console.error('Error fetching organization data for redirect:', error);
+        console.error(
+          '❌ Error fetching organization data for redirect:',
+          error,
+        );
         // Fallback to dashboard on error
         router.push('/dashboard');
       }

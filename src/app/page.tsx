@@ -23,11 +23,50 @@ export default function Home() {
 
   const handleAuth0Callback = async () => {
     try {
-      // Check for token in URL hash (both implicit flow and cross-subdomain auth)
+      // Check for auth data in URL hash (both Auth0 and student auth cross-subdomain)
       const hash = window.location.hash.substring(1);
       const hashParams = new URLSearchParams(hash);
       const accessToken = hashParams.get('access_token');
+      const studentAuthData = hashParams.get('student_auth');
 
+      // Handle student authentication callback
+      if (studentAuthData) {
+        console.log('🎓 Found student auth data in URL hash');
+
+        try {
+          const decodedStudentAuth = JSON.parse(
+            decodeURIComponent(studentAuthData),
+          );
+          console.log('💾 Processing student auth data:', decodedStudentAuth);
+
+          // Store student auth data
+          localStorage.setItem(
+            'studentAuth',
+            JSON.stringify(decodedStudentAuth),
+          );
+          localStorage.setItem(
+            'bearerToken',
+            JSON.stringify({
+              value: decodedStudentAuth.basicAuthToken,
+              expiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+            }),
+          );
+
+          console.log(
+            '✅ Student authenticated on org subdomain, cleaning URL',
+          );
+          // Clean URL and redirect to dashboard
+          window.history.replaceState({}, '', '/dashboard');
+          router.push('/dashboard');
+          return true;
+        } catch (error) {
+          console.error('❌ Error processing student auth data:', error);
+          window.history.replaceState({}, '', '/');
+          return false;
+        }
+      }
+
+      // Handle admin/teacher Auth0 callback
       if (accessToken) {
         console.log(
           '🔑 Found access token in URL hash, storing in localStorage',
@@ -142,7 +181,7 @@ export default function Home() {
             console.log('👤 User role:', userRole);
 
             if (userRole === 'teacher' || userRole === 'faculty') {
-              dashboardPath = '/teacher-dashboard';
+              dashboardPath = '/dashboard';
               console.log('👨‍🏫 Redirecting to teacher dashboard');
             } else {
               dashboardPath = '/dashboard';
@@ -221,9 +260,12 @@ export default function Home() {
         return;
       }
 
-      // Check if this is an Auth0 callback with token in hash (cross-subdomain or direct)
-      if (window.location.hash.includes('access_token')) {
-        console.log('🔍 Detected access token in URL hash');
+      // Check if this is an auth callback with token or student data in hash (cross-subdomain)
+      if (
+        window.location.hash.includes('access_token') ||
+        window.location.hash.includes('student_auth')
+      ) {
+        console.log('🔍 Detected auth data in URL hash');
         await handleAuth0Callback();
         return;
       }

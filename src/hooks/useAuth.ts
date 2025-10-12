@@ -39,23 +39,34 @@ export function useAuth() {
   };
 
   const login = () => {
-    // Always redirect to AUTH for authentication, regardless of current subdomain
+    // Always redirect to auth subdomain for authentication
     const currentHost = window.location.host;
+    const currentSubdomain = currentHost.split('.')[0];
     const isLocalhost =
       currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
 
+    // Store the origin subdomain for post-authentication redirect
+    if (currentSubdomain && currentSubdomain !== 'auth') {
+      sessionStorage.setItem('loginOriginSubdomain', currentSubdomain);
+      console.log('💾 Stored origin subdomain for return:', currentSubdomain);
+    }
+
     let authUrl;
     if (isLocalhost) {
-      // For development, use localhost:3000 as the auth domain
+      // For development, use auth.localhost for authentication
       const port = currentHost.split(':')[1] || '3000';
-      authUrl = `http://auth.localhost:${port}/api/auth/login`;
+      authUrl = `http://auth.localhost:${port}/login`;
     } else {
       // For production, always redirect to auth.uchhal.in for authentication
       const domain = currentHost.split('.').slice(1).join('.'); // Get base domain (uchhal.in)
-      authUrl = `https://auth.${domain}/api/auth/login`;
+      authUrl = `https://auth.${domain}/login`;
     }
 
-    console.log('🔑 useAuth: Redirecting to AUTH for authentication:', authUrl);
+    console.log(
+      '🔑 useAuth: Redirecting to AUTH subdomain for authentication:',
+      authUrl,
+    );
+    console.log('🔙 Origin subdomain:', currentSubdomain);
     window.location.href = authUrl;
   };
 

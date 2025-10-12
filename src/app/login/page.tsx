@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { ApiService } from '@/services/api';
 
 interface StudentLoginData {
   firstName: string;
@@ -36,6 +37,14 @@ export default function LoginPage() {
         'subdomain:',
         subdomain,
       );
+
+      // If on 'auth' subdomain, use default org_id (auth subdomain doesn't have its own org)
+      if (subdomain === 'auth') {
+        console.log('🔐 On auth subdomain, using default org_id');
+        const defaultOrgId = '68d6b128d88f00c8b1b4a89a';
+        setOrgId(defaultOrgId);
+        return;
+      }
 
       // First check if org_id is cached in localStorage
       const cachedOrgId = localStorage.getItem('orgId');
@@ -185,9 +194,8 @@ export default function LoginPage() {
 
       const password = convertToAPIFormat(studentData.dateOfBirth);
 
-      console.log('Attempting login with:', {
+      console.log('🎓 Attempting student login with:', {
         username: username,
-        password,
         orgId,
       });
 
@@ -197,7 +205,7 @@ export default function LoginPage() {
         'https://apis.testkdlakshya.uchhal.in/auth';
       const apiUrl = `${BaseURL}/students/auth`;
 
-      console.log('Calling external API at:', apiUrl);
+      console.log('📡 Calling student auth API at:', apiUrl);
 
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -216,8 +224,8 @@ export default function LoginPage() {
       });
 
       const data = await response.json();
-      console.log('Login response status:', response.status);
-      console.log('Login response data:', JSON.stringify(data, null, 2));
+      console.log('📥 Login response status:', response.status);
+      console.log('📥 Login response data:', JSON.stringify(data, null, 2));
 
       if (!response.ok) {
         const errorMessage =
@@ -225,7 +233,7 @@ export default function LoginPage() {
           data.errors?.[0]?.title ||
           data.message ||
           'Invalid credentials. Please try again.';
-        console.error('Login failed:', errorMessage, data);
+        console.error('❌ Login failed:', errorMessage, data);
         setError(errorMessage);
         setIsLoading(false);
         return;
@@ -258,7 +266,7 @@ export default function LoginPage() {
           authenticatedAt: attrs.authenticated_at || new Date().toISOString(),
         };
 
-        console.log('Storing student data:', studentAuthData);
+        console.log('💾 Storing student data:', studentAuthData);
 
         // Store in localStorage
         localStorage.setItem('studentAuth', JSON.stringify(studentAuthData));
@@ -277,43 +285,84 @@ export default function LoginPage() {
         const currentSubdomain = currentHost.split('.')[0];
         const isLocalhost = currentHost.includes('localhost');
 
-        // Get return subdomain from URL parameter (works across subdomains)
-        const urlParams = new URLSearchParams(window.location.search);
-        const returnToSubdomain =
-          urlParams.get('return_to') ||
-          sessionStorage.getItem('loginOriginSubdomain');
+        // Get return subdomain from sessionStorage (stored when user clicked login from org subdomain)
+        const returnToSubdomain = sessionStorage.getItem(
+          'loginOriginSubdomain',
+        );
 
-        console.log('🔄 Post-login redirect check:', {
+        console.log('🔄 Post-student-login redirect check:', {
           currentHost,
           currentSubdomain,
           returnToSubdomain,
-          urlParam: urlParams.get('return_to'),
           isLocalhost,
         });
 
-        // If we're on 'auth' subdomain and there's a return subdomain, redirect back
-        if (
-          currentSubdomain === 'auth' &&
-          returnToSubdomain &&
-          returnToSubdomain !== 'auth'
-        ) {
-          console.log(
-            '↩️ Redirecting back to origin subdomain:',
-            returnToSubdomain,
-          );
+        // If we're on 'auth' subdomain, redirect to appropriate org subdomain
+        if (currentSubdomain === 'auth') {
+          // Try to get return subdomain from sessionStorage first
+          let targetSubdomain = returnToSubdomain;
 
-          if (isLocalhost) {
-            const port = currentHost.split(':')[1] || '3000';
-            const redirectUrl = `http://${returnToSubdomain}.localhost:${port}/dashboard`;
-            console.log('🔗 Redirect URL:', redirectUrl);
-            window.location.href = redirectUrl;
-          } else {
-            const domain = currentHost.split('.').slice(1).join('.');
-            const redirectUrl = `https://${returnToSubdomain}.${domain}/dashboard`;
-            console.log('🔗 Redirect URL:', redirectUrl);
-            window.location.href = redirectUrl;
+          // If no return subdomain, try to fetch student's org subdomain from API
+          if (!targetSubdomain || targetSubdomain === 'auth') {
+            console.log(
+              '🔍 No return subdomain found, fetching org subdomain from API...',
+            );
+            try {
+              // Use ApiService to fetch organization data with student x-api-key auth
+              const orgData = await ApiService.getOrganizationById(
+                studentAuthData.orgId,
+                studentAuthData.basicAuthToken,
+                true, // isStudentAuth = true to use x-api-key header
+              );
+              targetSubdomain = orgData.data?.attributes?.subdomain;
+              console.log(
+                '✅ Fetched org subdomain from API:',
+                targetSubdomain,
+              );
+            } catch (error) {
+              console.error('❌ Error fetching org subdomain:', error);
+            }
           }
-          sessionStorage.removeItem('loginOriginSubdomain');
+
+          // If we have a target subdomain, redirect there
+          if (targetSubdomain && targetSubdomain !== 'auth') {
+            console.log(
+              '↩️ Student authenticated on auth subdomain, redirecting to org:',
+              targetSubdomain,
+            );
+
+            // Encode student auth data to pass it to the org subdomain via URL hash
+            const encodedAuthData = encodeURIComponent(
+              JSON.stringify(studentAuthData),
+            );
+
+            if (isLocalhost) {
+              const port = currentHost.split(':')[1] || '3000';
+              // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
+              const redirectUrl = `http://${targetSubdomain}.localhost:${port}/#student_auth=${encodedAuthData}`;
+              console.log('🔗 Student redirect URL (dev):', redirectUrl);
+              console.log(
+                '📦 Passing student auth data via URL hash for cross-subdomain auth',
+              );
+              window.location.href = redirectUrl;
+            } else {
+              const domain = currentHost.split('.').slice(1).join('.');
+              // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
+              const redirectUrl = `https://${targetSubdomain}.${domain}/#student_auth=${encodedAuthData}`;
+              console.log('🔗 Student redirect URL (prod):', redirectUrl);
+              console.log(
+                '📦 Passing student auth data via URL hash for cross-subdomain auth',
+              );
+              window.location.href = redirectUrl;
+            }
+            sessionStorage.removeItem('loginOriginSubdomain');
+          } else {
+            // No org subdomain found, stay on auth subdomain dashboard
+            console.log(
+              '⚠️ No org subdomain available, redirecting to dashboard on auth subdomain',
+            );
+            router.push('/dashboard');
+          }
         } else {
           // Normal redirect to dashboard on same subdomain
           console.log(
@@ -328,7 +377,7 @@ export default function LoginPage() {
         setIsLoading(false);
       }
     } catch (error) {
-      console.error('Student login error:', error);
+      console.error('❌ Student login error:', error);
       setError('Login failed. Please try again.');
       setIsLoading(false);
     }
@@ -343,8 +392,15 @@ export default function LoginPage() {
     // Store the current subdomain for post-login redirect
     const currentHost = window.location.host;
     const currentSubdomain = currentHost.split('.')[0];
-    if (currentSubdomain && currentSubdomain !== 'localhost') {
+
+    // Store origin subdomain if not already on auth subdomain
+    if (
+      currentSubdomain &&
+      currentSubdomain !== 'auth' &&
+      currentSubdomain !== 'localhost'
+    ) {
       sessionStorage.setItem('loginOriginSubdomain', currentSubdomain);
+      console.log('💾 Stored origin subdomain for return:', currentSubdomain);
     }
 
     // Redirect to Auth0 login
@@ -355,17 +411,21 @@ export default function LoginPage() {
       process.env.NEXT_PUBLIC_AUTH0_Client_Id ||
       'Yue4u4piwndowcgl5Q4TNlA3fPlrdiwL';
 
-    // Use dynamic redirect URL based on current host
+    // Always redirect back to auth subdomain after Auth0 authentication
     let login_redirect;
     const isLocalhost =
       currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
 
     if (isLocalhost) {
-      login_redirect = 'http://localhost:3000/';
+      const port = currentHost.split(':')[1] || '3000';
+      login_redirect = `http://auth.localhost:${port}/`;
     } else {
-      // For production, always redirect back to the current subdomain
-      login_redirect = `https://${currentHost}/`;
+      // For production, always redirect to auth.uchhal.in
+      const domain = currentHost.split('.').slice(1).join('.'); // Get base domain (uchhal.in)
+      login_redirect = `https://auth.${domain}/`;
     }
+
+    console.log('🔐 Redirecting to Auth0 with callback to:', login_redirect);
 
     window.location.href = `https://${AUTH0_Domain_Name}/authorize?response_type=code&client_id=${AUTH0_Client_Id}&redirect_uri=${encodeURIComponent(login_redirect)}&scope=${encodeURIComponent('openid profile email')}`;
   };

@@ -710,6 +710,7 @@ export class ApiService {
   static async getOrganizationById(
     orgId: string,
     accessToken?: string,
+    isStudentAuth: boolean = false,
   ): Promise<OrganizationResponse> {
     try {
       const headers: Record<string, string> = {
@@ -717,7 +718,15 @@ export class ApiService {
       };
 
       if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
+        if (isStudentAuth) {
+          // Students use x-api-key header
+          headers['x-api-key'] = accessToken;
+          console.log('🎓 Using student x-api-key for org fetch');
+        } else {
+          // Admin/teachers use Bearer token
+          headers['Authorization'] = `Bearer ${accessToken}`;
+          console.log('🔑 Using Bearer token for org fetch');
+        }
       }
 
       const response = await externalApi.get(`/organizations/${orgId}`, {

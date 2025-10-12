@@ -262,77 +262,113 @@ export function Providers({ children }: ThemeProviderProps) {
       const isLocalhost =
         currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
 
-      if (window.location.pathname === '/' && wasAuthCallback) {
-        sessionStorage.removeItem('isAuthCallback'); // Clear the flag
+      console.log(
+        '✅ Token obtained, now fetching user org and redirecting...',
+      );
 
-        // Get user data first to determine their organization
-        await userMeData(token, false); // Don't auto-redirect in userMeData
+      // SIMPLE FLOW: Get user → get org → redirect to org subdomain
+      if (wasAuthCallback) {
+        sessionStorage.removeItem('isAuthCallback');
 
-        // Skip redirect logic for students
-        if (isStudentUser()) {
-          console.log(
-            'Student user detected, skipping organization subdomain redirect',
-          );
-          return;
-        }
-
-        // Get user's organization subdomain from their orgId
-        let userOrgSubdomain = null;
         try {
-          // Get auth headers
-          const authHeaders = getAuthHeaders();
-
-          // Get user data from the API to find their orgId
+          // Step 1: Call /users/me to get orgId
+          console.log('📞 Step 1: Calling /users/me to get orgId...');
           const userResponse = await axios.get(
             `https://apis.testkdlakshya.uchhal.in/auth/users/me?include=permission`,
             {
               headers: {
-                ...authHeaders,
+                Authorization: `Bearer ${token}`,
                 'Content-Type': 'application/json',
               },
             },
           );
 
           const userData = userResponse.data.data;
-          const orgId = userData.attributes.org_id || userData.attributes.org;
+          console.log('👤 User data received:', userData);
 
-          if (orgId) {
-            // Fetch organization data to get the subdomain
-            const orgResponse = await axios.get(
-              `https://apis.testkdlakshya.uchhal.in/auth/organizations/${orgId}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
+          // Extract orgId from attributes
+          const orgId =
+            userData.attributes.orgId ||
+            userData.attributes.org_id ||
+            userData.attributes.org;
+
+          console.log('🏢 Extracted orgId:', orgId);
+
+          if (!orgId) {
+            console.error('❌ No orgId found in user data, going to dashboard');
+            window.location.href = '/dashboard';
+            return;
+          }
+
+          // Step 2: Call /organizations/{orgId} to get subdomain
+          console.log(
+            '📞 Step 2: Calling /organizations/' +
+              orgId +
+              ' to get subdomain...',
+          );
+          const orgResponse = await axios.get(
+            `https://apis.testkdlakshya.uchhal.in/auth/organizations/${orgId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
               },
-            );
+            },
+          );
 
-            userOrgSubdomain = orgResponse.data.data.attributes.subdomain;
+          const orgData = orgResponse.data.data;
+          const targetSubdomain = orgData.attributes.subdomain;
+
+          console.log('🏢 Organization data received:', orgData);
+          console.log('🎯 Target subdomain:', targetSubdomain);
+
+          if (!targetSubdomain) {
+            console.error(
+              '❌ No subdomain found in org data, going to dashboard',
+            );
+            window.location.href = '/dashboard';
+            return;
+          }
+
+          // Step 3: Redirect to org subdomain
+          const currentHost = window.location.host;
+          const currentSubdomain = currentHost.split('.')[0];
+
+          console.log('🌐 Current subdomain:', currentSubdomain);
+          console.log('🎯 Target subdomain:', targetSubdomain);
+
+          // Check if we need to redirect
+          const needsRedirect =
+            currentSubdomain === 'localhost' || // Plain localhost
+            currentSubdomain === 'auth' || // Auth subdomain
+            currentSubdomain !== targetSubdomain; // Different org subdomain
+
+          if (needsRedirect) {
+            console.log('🔄 Redirecting to org subdomain:', targetSubdomain);
+
+            if (isLocalhost) {
+              const port = currentHost.split(':')[1] || '3000';
+              const redirectUrl = `http://${targetSubdomain}.localhost:${port}/#access_token=${encodeURIComponent(token)}`;
+              console.log('🔗 Redirect URL:', redirectUrl);
+              window.location.href = redirectUrl;
+            } else {
+              const domain = currentHost.split('.').slice(1).join('.');
+              const redirectUrl = `https://${targetSubdomain}.${domain}/#access_token=${encodeURIComponent(token)}`;
+              console.log('🔗 Redirect URL:', redirectUrl);
+              window.location.href = redirectUrl;
+            }
+          } else {
+            console.log('✅ Already on correct subdomain, going to dashboard');
+            window.location.href = '/dashboard';
           }
         } catch (error) {
-          console.error('❌ Error fetching user organization:', error);
-        }
-
-        const currentSubdomain = currentHost.split('.')[0];
-
-        // Redirect to user's organization subdomain if different from current
-        if (
-          userOrgSubdomain &&
-          userOrgSubdomain !== currentSubdomain &&
-          !isLocalhost
-        ) {
-          // Redirect to the user's organization subdomain
-          const domain = currentHost.split('.').slice(1).join('.');
-          const redirectUrl = `https://${userOrgSubdomain}.${domain}/dashboard#access_token=${encodeURIComponent(token)}`;
-          sessionStorage.removeItem('loginOriginSubdomain');
-          window.location.href = redirectUrl;
-        } else {
-          // Stay on current domain but go to dashboard
+          console.error('❌ Error in faculty login flow:', error);
+          // Fallback to dashboard on error
           window.location.href = '/dashboard';
         }
       } else {
-        await userMeData(token, false); // Don't redirect for normal visits
+        console.log('⚠️ Not an auth callback, calling userMeData normally');
+        await userMeData(token, false);
       }
     } catch (error) {
       console.error('Error fetching auth token:', error);
@@ -437,9 +473,14 @@ export function Providers({ children }: ThemeProviderProps) {
         // Mark this as an auth callback so we can redirect after token exchange
         sessionStorage.setItem('isAuthCallback', 'true');
 
-        // Clear the code from URL immediately to prevent reprocessing
-        const newUrl = window.location.origin + window.location.pathname;
+        // Clear the code from URL immediately to prevent reprocessing and stay on homepage
+        const newUrl = window.location.origin + '/'; // Force homepage
         window.history.replaceState({}, document.title, newUrl);
+
+        console.log(
+          '🔄 Cleared auth code from URL, staying on:',
+          window.location.pathname,
+        );
 
         fetchAuthToken(parsedAuthCode);
       }
