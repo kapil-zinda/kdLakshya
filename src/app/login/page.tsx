@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useRouter } from 'next/navigation';
 
@@ -10,18 +10,98 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface StudentLoginData {
-  username: string;
+  firstName: string;
   dateOfBirth: string;
 }
 
 export default function LoginPage() {
   const [studentData, setStudentData] = useState<StudentLoginData>({
-    username: '',
+    firstName: '',
     dateOfBirth: '',
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [orgId, setOrgId] = useState('');
   const router = useRouter();
+
+  // Get org_id from cache, environment, or subdomain API
+  useEffect(() => {
+    const getOrgId = async () => {
+      // First check if org_id is cached in localStorage
+      const cachedOrgId = localStorage.getItem('orgId');
+      if (cachedOrgId) {
+        console.log('Using cached org_id:', cachedOrgId);
+        setOrgId(cachedOrgId);
+        return;
+      }
+
+      // Second, try to get from environment variable
+      const envOrgId = process.env.NEXT_PUBLIC_ORG_ID;
+      if (envOrgId) {
+        console.log('Using org_id from environment:', envOrgId);
+        setOrgId(envOrgId);
+        localStorage.setItem('orgId', envOrgId);
+        return;
+      }
+
+      // Get subdomain from current host
+      const currentHost = window.location.host;
+      const subdomain = currentHost.split('.')[0];
+
+      // For localhost or if no subdomain, use default org_id
+      if (subdomain === 'localhost' || currentHost.includes('localhost')) {
+        console.log('Using default org_id for localhost');
+        const defaultOrgId = '68d6b128d88f00c8b1b4a89a';
+        setOrgId(defaultOrgId);
+        localStorage.setItem('orgId', defaultOrgId);
+        return;
+      }
+
+      // For production, fetch org_id from subdomain API
+      try {
+        const BaseURL =
+          process.env.NEXT_PUBLIC_BaseURLAuth ||
+          'https://apis.testkdlakshya.uchhal.in/auth';
+        const apiUrl = `${BaseURL}/organizations/subdomain/${subdomain}`;
+
+        console.log('Fetching org_id from subdomain API:', apiUrl);
+
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const fetchedOrgId = data.data?.id || data.data?.attributes?.id;
+
+          if (fetchedOrgId) {
+            console.log('Fetched org_id from API:', fetchedOrgId);
+            setOrgId(fetchedOrgId);
+            // Cache the org_id for future use
+            localStorage.setItem('orgId', fetchedOrgId);
+            return;
+          }
+        }
+
+        console.error('Failed to fetch org_id from subdomain API');
+        // Fallback to default if API fails
+        const fallbackOrgId = '68d6b128d88f00c8b1b4a89a';
+        setOrgId(fallbackOrgId);
+        localStorage.setItem('orgId', fallbackOrgId);
+      } catch (error) {
+        console.error('Error fetching org_id:', error);
+        // Fallback to default if error occurs
+        const fallbackOrgId = '68d6b128d88f00c8b1b4a89a';
+        setOrgId(fallbackOrgId);
+        localStorage.setItem('orgId', fallbackOrgId);
+      }
+    };
+
+    getOrgId();
+  }, []);
 
   const handleStudentLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,11 +110,20 @@ export default function LoginPage() {
 
     try {
       // Validate required fields
-      if (!studentData.username.trim() || !studentData.dateOfBirth) {
+      if (!studentData.firstName.trim() || !studentData.dateOfBirth) {
         setError('Please fill in all fields');
         setIsLoading(false);
         return;
       }
+
+      if (!orgId) {
+        setError('Organization ID not found. Please contact support.');
+        setIsLoading(false);
+        return;
+      }
+
+      // Create username by combining org_id and first name
+      const username = `${orgId}-${studentData.firstName.trim()}`;
 
       // Convert date from YYYY-MM-DD (HTML date input) to DD/MM/YYYY (API format)
       const convertToAPIFormat = (dateStr: string) => {
@@ -45,8 +134,9 @@ export default function LoginPage() {
       const password = convertToAPIFormat(studentData.dateOfBirth);
 
       console.log('Attempting login with:', {
-        username: studentData.username.trim(),
+        username: username,
         password,
+        orgId,
       });
 
       // Call external API directly
@@ -66,7 +156,7 @@ export default function LoginPage() {
           data: {
             type: 'student_auth',
             attributes: {
-              username: studentData.username.trim(),
+              username: username,
               password: password,
             },
           },
@@ -201,33 +291,30 @@ export default function LoginPage() {
               Student Login
             </CardTitle>
             <p className="text-sm text-gray-600">
-              Enter your username and date of birth to access your dashboard
+              Enter your first name and date of birth to access your dashboard
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <form onSubmit={handleStudentLogin} className="space-y-4">
-              {/* Username Field */}
+              {/* First Name Field */}
               <div className="space-y-2">
                 <Label
-                  htmlFor="username"
+                  htmlFor="firstName"
                   className="text-sm font-medium text-gray-700"
                 >
-                  Username
+                  First Name
                 </Label>
                 <Input
-                  id="username"
+                  id="firstName"
                   type="text"
-                  placeholder="68d6b128d88f00c8b1b4a89a-Rishabh"
-                  value={studentData.username}
+                  placeholder="Rishabh"
+                  value={studentData.firstName}
                   onChange={(e) =>
-                    handleInputChange('username', e.target.value)
+                    handleInputChange('firstName', e.target.value)
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
-                <p className="text-xs text-gray-500">
-                  Format: org_id-first_name
-                </p>
               </div>
 
               {/* Date of Birth Field */}
