@@ -2606,14 +2606,11 @@ export const transformApiDataToOrganizationConfig = (apiData: {
 
   // Transform the API data into OrganizationConfig format
   return {
-    name: content.title || 'Educational Institution',
+    name: about?.data.attributes.title || 'Educational Institution',
     type: 'school' as const,
-    tagline:
-      content.sections.find((s) => s.type === 'tagline')?.content ||
-      'Excellence in Education',
+    tagline: hero?.data.attributes.headline || 'Excellence in Education',
     description:
-      content.sections.find((s) => s.type === 'description')?.content ||
-      'A premier educational institution.',
+      hero?.data.attributes.subheadline || 'A premier educational institution.',
     founded: new Date().getFullYear() - 10, // Default to 10 years ago
 
     contact: {
@@ -2652,7 +2649,7 @@ export const transformApiDataToOrganizationConfig = (apiData: {
           text: hero?.data.attributes.ctaText || 'Apply for Admissions',
           link: hero?.data.attributes.ctaLink || '/admissions',
         },
-        secondary: { text: 'Virtual Tour', link: '/tour' },
+        secondary: { text: 'Coming Soon', link: '/admissions' },
       },
     },
 

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import StudentDashboard from '@/components/dashboard/StudentDashboard';
@@ -44,6 +45,7 @@ export default function DashboardPage() {
 
 // Admin Dashboard Content Component
 function AdminDashboardContent({ userData }: { userData: any }) {
+  const router = useRouter();
   const handleLogout = () => {
     // Clear all authentication data from localStorage
     localStorage.removeItem('bearerToken');
@@ -250,6 +252,12 @@ function AdminDashboardContent({ userData }: { userData: any }) {
                 Welcome, {userData.firstName} {userData.lastName}
               </div>
               <button
+                onClick={() => router.push('/')}
+                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+              >
+                Home
+              </button>
+              <button
                 onClick={handleLogout}
                 className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
@@ -270,7 +278,7 @@ function AdminDashboardContent({ userData }: { userData: any }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 rounded-lg">
@@ -371,7 +379,7 @@ function AdminDashboardContent({ userData }: { userData: any }) {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {dashboardCards.map((card, index) => (

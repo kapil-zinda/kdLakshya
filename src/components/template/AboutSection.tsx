@@ -201,7 +201,7 @@ export function AboutSection({ data, branding, news }: AboutSectionProps) {
               Our Values
             </h3>
             <div className="space-y-2 sm:space-y-3">
-              {data.values.slice(0, 3).map((value, index) => (
+              {data.values.slice(0, 5).map((value, index) => (
                 <p
                   key={index}
                   className="text-xs sm:text-sm lg:text-base leading-relaxed font-light"
