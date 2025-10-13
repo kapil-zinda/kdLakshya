@@ -109,7 +109,7 @@ export function Footer({ organization }: FooterProps) {
                   About Us
                 </a>
               </li>
-              <li>
+              {/* <li>
                 <a
                   href="/programs"
                   className="hover:text-white transition-colors duration-200 font-light"
@@ -117,7 +117,7 @@ export function Footer({ organization }: FooterProps) {
                 >
                   Programs
                 </a>
-              </li>
+              </li> */}
               <li>
                 <a
                   href="/contact"
@@ -150,10 +150,10 @@ export function Footer({ organization }: FooterProps) {
                     {organization.contact.address.city},{' '}
                     {organization.contact.address.state}
                   </p>
-                  <p>
+                  {/* <p>
                     {organization.contact.address.country} -{' '}
                     {organization.contact.address.zipCode}
-                  </p>
+                  </p> */}
                 </div>
               </div>
 

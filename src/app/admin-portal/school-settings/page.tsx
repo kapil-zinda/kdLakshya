@@ -646,13 +646,13 @@ export default function SchoolSettings() {
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <Link
+              {/* <Link
                 href="/template"
                 target="_blank"
                 className="text-indigo-600 hover:text-indigo-500 text-sm"
               >
                 Preview Website
-              </Link>
+              </Link> */}
               <button
                 onClick={handleSave}
                 disabled={loading || dataLoading}
@@ -800,7 +800,7 @@ export default function SchoolSettings() {
                       />
                     </div>
 
-                    <div>
+                    {/* <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Subdomain
                       </label>
@@ -813,7 +813,7 @@ export default function SchoolSettings() {
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                         placeholder="e.g., spd, math, english"
                       />
-                    </div>
+                    </div> */}
 
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">

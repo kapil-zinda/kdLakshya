@@ -276,7 +276,7 @@ function AdminDashboardContent({ userData }: { userData: any }) {
             </div>
 
             {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center">
                   <div className="p-2 bg-blue-100 rounded-lg">
@@ -379,7 +379,7 @@ function AdminDashboardContent({ userData }: { userData: any }) {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Management Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
