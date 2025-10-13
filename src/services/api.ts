@@ -2603,10 +2603,9 @@ export const transformApiDataToOrganizationConfig = (apiData: {
     stats,
     news,
   } = apiData;
-
   // Transform the API data into OrganizationConfig format
   return {
-    name: about?.data.attributes.title || 'Educational Institution',
+    name: subdomain?.config?.name || 'Educational Institution',
     type: 'school' as const,
     tagline: hero?.data.attributes.headline || 'Excellence in Education',
     description:
