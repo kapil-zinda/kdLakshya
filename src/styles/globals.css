@@ -81,15 +81,6 @@
   }
 }
 
-#subjectCardHome {
-  /* display: flex; */
-  /* box-shadow: 0 0 2rem pink; */
-  flex: 1 0 33%;
-  margin: 2rem;
-  align-items: center;
-  justify-content: center;
-}
-
 @keyframes spin {
   0% {
     transform: rotate(0deg);

@@ -21,5 +21,5 @@
     "react-hooks/rules-of-hooks": "warn", // Ensure hooks are used properly
     "react-hooks/exhaustive-deps": "warn" // Warn for missing dependencies in hooks
   },
-  "ignorePatterns": ["*.md"]
+  "ignorePatterns": ["*.md", "*.css"]
 }
