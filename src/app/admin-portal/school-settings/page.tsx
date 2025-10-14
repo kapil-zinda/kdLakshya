@@ -1084,12 +1084,6 @@ export default function SchoolSettings() {
                       >
                         Secondary
                       </div>
-                      <div
-                        className="w-16 h-16 rounded-lg flex items-center justify-center text-white text-xs font-medium"
-                        style={{ backgroundColor: settings.accentColor }}
-                      >
-                        Accent
-                      </div>
                     </div>
                   </div>
                 </div>
