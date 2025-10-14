@@ -119,7 +119,7 @@ export default function AboutPage() {
                 className="text-3xl md:text-4xl lg:text-5xl font-light mb-6"
                 style={{ color: organizationData.branding.primaryColor }}
               >
-                About {organizationData.name}
+                {/* About {organizationData.name} */}
               </h1>
               <div
                 className="w-20 h-1 mx-auto mb-8 rounded-full"
@@ -138,7 +138,7 @@ export default function AboutPage() {
           />
 
           {/* Additional About Content */}
-          <section className="py-16 bg-white">
+          {/* <section className="py-16 bg-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
               <div className="prose prose-lg mx-auto">
                 <h2
@@ -186,7 +186,7 @@ export default function AboutPage() {
                 </p>
               </div>
             </div>
-          </section>
+          </section> */}
         </main>
 
         <Footer organization={organizationData} />

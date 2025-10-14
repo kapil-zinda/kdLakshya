@@ -146,10 +146,10 @@ export function Footer({ organization }: FooterProps) {
                   style={{ color: '#d1d5db' }}
                 >
                   <p>{organization.contact.address.street}</p>
-                  <p>
+                  {/* <p>
                     {organization.contact.address.city},{' '}
                     {organization.contact.address.state}
-                  </p>
+                  </p> */}
                   {/* <p>
                     {organization.contact.address.country} -{' '}
                     {organization.contact.address.zipCode}
@@ -196,10 +196,10 @@ export function Footer({ organization }: FooterProps) {
           >
             © {currentYear} {organization.name}. All rights reserved.
             <br className="sm:hidden" />
-            <span className="sm:ml-2">
+            {/* <span className="sm:ml-2">
               {' '}
               | Established {organization.founded}
-            </span>
+            </span> */}
           </p>
         </div>
       </div>

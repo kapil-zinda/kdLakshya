@@ -2645,8 +2645,8 @@ export const transformApiDataToOrganizationConfig = (apiData: {
         'https://images.unsplash.com/photo-1523050854058-8df90110c9d1',
       ctaButtons: {
         primary: {
-          text: hero?.data.attributes.ctaText || 'Apply for Admissions',
-          link: hero?.data.attributes.ctaLink || '/admissions',
+          text: hero?.data.attributes.ctaText || 'Learn More',
+          link: hero?.data.attributes.ctaLink || '/about',
         },
         secondary: { text: 'Coming Soon', link: '/admissions' },
       },

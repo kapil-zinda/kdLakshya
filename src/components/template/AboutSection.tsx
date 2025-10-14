@@ -117,12 +117,12 @@ export function AboutSection({ data, branding, news }: AboutSectionProps) {
           {/* School Information - Right Side on Desktop */}
           <div className="lg:col-span-2 order-1 lg:order-2">
             <div className="bg-gray-50 rounded-lg p-6 sm:p-8 h-full">
-              <h3
+              {/* <h3
                 className="text-xl sm:text-2xl lg:text-3xl font-medium mb-4 sm:mb-6"
                 style={{ color: branding.primaryColor }}
               >
                 About Our School
-              </h3>
+              </h3> */}
               <div className="prose prose-gray max-w-none">
                 <p
                   className="text-base sm:text-lg leading-relaxed mb-4"
