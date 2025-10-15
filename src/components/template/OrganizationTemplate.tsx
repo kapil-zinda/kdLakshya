@@ -143,8 +143,9 @@ export function OrganizationTemplate({
             organizationName={data.name}
             news={data.news}
           />
-          <StatsSection data={data.stats} branding={data.branding} />
-
+          {data.stats && data.stats.items && data.stats.items.length > 0 && (
+            <StatsSection data={data.stats} branding={data.branding} />
+          )}
           {/* Custom sections can be inserted here */}
           {customSections?.map((section, index) => (
             <div key={index}>{section}</div>

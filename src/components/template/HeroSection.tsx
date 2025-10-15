@@ -53,7 +53,7 @@ export function HeroSection({ data, branding }: HeroSectionProps) {
               // }
             >
               {/* {data.ctaButtons.secondary?.text} */}
-              Coming Soon
+              Virtual Tour Coming Soon
             </Button>
           )}
         </div>

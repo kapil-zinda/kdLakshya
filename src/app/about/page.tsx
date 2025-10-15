@@ -113,7 +113,7 @@ export default function AboutPage() {
         <Header organization={organizationData} />
 
         <main className="pt-8">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
+          {/* <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
             <div className="text-center mb-12">
               <h1
                 className="text-3xl md:text-4xl lg:text-5xl font-light mb-6"
@@ -128,17 +128,17 @@ export default function AboutPage() {
                 }}
               ></div>
             </div>
-          </div>
+          </div> */}
 
           <AboutSection
             data={organizationData.about}
             branding={organizationData.branding}
             organizationName={organizationData.name}
-            news={organizationData.news}
+            showNotifications={false}
           />
 
           {/* Additional About Content */}
-          <section className="py-16 bg-white">
+          {/* <section className="py-16 bg-white">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
               <div className="prose prose-lg mx-auto">
                 <h2
@@ -186,7 +186,7 @@ export default function AboutPage() {
                 </p>
               </div>
             </div>
-          </section>
+          </section> */}
         </main>
 
         <Footer organization={organizationData} />

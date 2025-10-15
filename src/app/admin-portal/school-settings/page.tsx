@@ -390,10 +390,13 @@ export default function SchoolSettings() {
 
           console.log('Modified basic fields:', modifiedBasicFields);
 
-          // Build PATCH data with only modified fields
+          // Build PATCH data with smart grouping:
+          // - If ANY address field changes, send COMPLETE address
+          // - If ANY contact field changes, send COMPLETE contact
+          // - Send other fields only if modified
           const organizationData: any = {};
 
-          // Check if any main org fields were modified
+          // Check main org fields
           if (modifiedFields.has('name')) {
             organizationData.name = settings.name.trim();
           }
@@ -404,7 +407,7 @@ export default function SchoolSettings() {
             organizationData.description = settings.description.trim();
           }
 
-          // Check if any address fields were modified
+          // Check if ANY address field was modified
           const addressFields = [
             'buildingStreet',
             'city',
@@ -412,47 +415,34 @@ export default function SchoolSettings() {
             'country',
             'pincode',
           ];
-          const modifiedAddressFields = addressFields.filter((field) =>
+          const hasAddressChange = addressFields.some((field) =>
             modifiedFields.has(field),
           );
 
-          if (modifiedAddressFields.length > 0) {
-            organizationData.address = {};
-            if (modifiedFields.has('buildingStreet')) {
-              organizationData.address.building_street =
-                settings.buildingStreet.trim();
-            }
-            if (modifiedFields.has('city')) {
-              organizationData.address.city = settings.city.trim();
-            }
-            if (modifiedFields.has('state')) {
-              organizationData.address.state = settings.state.trim();
-            }
-            if (modifiedFields.has('country')) {
-              organizationData.address.country = settings.country.trim();
-            }
-            if (modifiedFields.has('pincode')) {
-              organizationData.address.pincode = settings.pincode.trim();
-            }
+          // If any address field changed, send COMPLETE address
+          if (hasAddressChange) {
+            organizationData.address = {
+              building_street: settings.buildingStreet.trim(),
+              city: settings.city.trim(),
+              state: settings.state.trim(),
+              country: settings.country.trim(),
+              pincode: settings.pincode.trim(),
+            };
           }
 
-          // Check if any contact fields were modified
+          // Check if ANY contact field was modified
           const contactFields = ['pocName', 'pocEmail', 'phone'];
-          const modifiedContactFields = contactFields.filter((field) =>
+          const hasContactChange = contactFields.some((field) =>
             modifiedFields.has(field),
           );
 
-          if (modifiedContactFields.length > 0) {
-            organizationData.contact = {};
-            if (modifiedFields.has('pocName')) {
-              organizationData.contact.poc_name = settings.pocName.trim();
-            }
-            if (modifiedFields.has('pocEmail')) {
-              organizationData.contact.poc_email = settings.pocEmail.trim();
-            }
-            if (modifiedFields.has('phone')) {
-              organizationData.contact.phone = settings.phone.trim();
-            }
+          // If any contact field changed, send COMPLETE contact
+          if (hasContactChange) {
+            organizationData.contact = {
+              poc_name: settings.pocName.trim(),
+              poc_email: settings.pocEmail.trim(),
+              phone: settings.phone.trim(),
+            };
           }
 
           console.log('PATCH data to send:', organizationData);
@@ -1050,7 +1040,7 @@ export default function SchoolSettings() {
                         </div>
                       </div>
 
-                      <div>
+                      {/* <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Accent Color
                         </label>
@@ -1072,7 +1062,7 @@ export default function SchoolSettings() {
                             className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                           />
                         </div>
-                      </div>
+                      </div> */}
                     </div>
                   </div>
 
@@ -1093,12 +1083,6 @@ export default function SchoolSettings() {
                         style={{ backgroundColor: settings.secondaryColor }}
                       >
                         Secondary
-                      </div>
-                      <div
-                        className="w-16 h-16 rounded-lg flex items-center justify-center text-white text-xs font-medium"
-                        style={{ backgroundColor: settings.accentColor }}
-                      >
-                        Accent
                       </div>
                     </div>
                   </div>

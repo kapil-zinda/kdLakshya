@@ -196,11 +196,11 @@ export default function ContactPage() {
                         <p className="text-gray-600 leading-relaxed">
                           {organizationData.contact.address.street}
                           <br />
-                          {organizationData.contact.address.city},{' '}
-                          {organizationData.contact.address.state}
-                          <br />
+                          {/* {organizationData.contact.address.city},{' '}
+                          {organizationData.contact.address.state} */}
+                          {/* <br />
                           {organizationData.contact.address.country} -{' '}
-                          {organizationData.contact.address.zipCode}
+                          {organizationData.contact.address.zipCode} */}
                         </p>
                       </div>
                     </div>

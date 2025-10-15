@@ -11,10 +11,16 @@ interface AboutSectionProps {
   data: OrganizationConfig['about'];
   branding: OrganizationConfig['branding'];
   organizationName: string;
-  news: OrganizationConfig['news'];
+  news?: OrganizationConfig['news'];
+  showNotifications?: boolean;
 }
 
-export function AboutSection({ data, branding, news }: AboutSectionProps) {
+export function AboutSection({
+  data,
+  branding,
+  news,
+  showNotifications = true,
+}: AboutSectionProps) {
   const [notifications, setNotifications] = useState<
     Array<{
       id: string;
@@ -25,8 +31,19 @@ export function AboutSection({ data, branding, news }: AboutSectionProps) {
   >([]);
   const [loading, setLoading] = useState(false);
 
+  // Helper function to truncate text if it exceeds 60 words
+  const truncateText = (text: string, maxWords: number = 45): string => {
+    const words = text.trim().split(/\s+/);
+    if (words.length <= maxWords) {
+      return text;
+    }
+    return words.slice(0, maxWords).join(' ') + '...';
+  };
+
   // Load real notifications from API
   const loadNotifications = async () => {
+    if (!showNotifications || !news) return;
+
     try {
       setLoading(true);
       const orgId = await ApiService.getCurrentOrgId();
@@ -65,7 +82,7 @@ export function AboutSection({ data, branding, news }: AboutSectionProps) {
 
   useEffect(() => {
     loadNotifications();
-  }, []);
+  }, [showNotifications, news]);
 
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-white">
@@ -84,55 +101,94 @@ export function AboutSection({ data, branding, news }: AboutSectionProps) {
           ></div>
         </div>
 
-        {/* Two Column Layout: Notifications + School Info */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 sm:mb-16 lg:mb-20">
-          {/* Notifications Panel - Left Side on Desktop */}
-          <div className="lg:col-span-1 order-2 lg:order-1">
-            {loading ? (
-              <div className="bg-white rounded-lg shadow-lg border border-gray-200 h-fit">
-                <div
-                  className="px-4 py-3 rounded-t-lg border-b border-gray-200"
-                  style={{ backgroundColor: branding.primaryColor }}
-                >
-                  <h3 className="text-white font-semibold text-lg flex items-center">
-                    <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
-                    {news.title || 'Latest Updates'}
-                  </h3>
-                </div>
-                <div className="p-4 text-center text-gray-500">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-300 mx-auto mb-2"></div>
-                  Loading notifications...
+        {/* Hero Image/Notifications and Content Section */}
+        <div className="mb-12 sm:mb-16 lg:mb-20">
+          {showNotifications && news ? (
+            // Layout with Notifications on Left and Content on Right (Home Page)
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              {/* Notifications Panel - Left Side */}
+              <div className="lg:col-span-1 order-2 lg:order-1">
+                {loading ? (
+                  <div className="bg-white rounded-lg shadow-lg border border-gray-200 h-fit">
+                    <div
+                      className="px-4 py-3 rounded-t-lg border-b border-gray-200"
+                      style={{ backgroundColor: branding.primaryColor }}
+                    >
+                      <h3 className="text-white font-semibold text-lg flex items-center">
+                        <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
+                        {news.title || 'Latest Updates'}
+                      </h3>
+                    </div>
+                    <div className="p-4 text-center text-gray-500">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-300 mx-auto mb-2"></div>
+                      Loading notifications...
+                    </div>
+                  </div>
+                ) : (
+                  <NotificationPanel
+                    notifications={notifications}
+                    title={news.title || 'Latest Updates'}
+                    primaryColor={branding.primaryColor}
+                    accentColor={branding.accentColor}
+                  />
+                )}
+              </div>
+
+              {/* Content - Right Side */}
+              <div className="lg:col-span-2 order-1 lg:order-2">
+                <div className="bg-gray-50 rounded-lg p-6 sm:p-8 h-full">
+                  <div className="prose prose-gray max-w-none">
+                    <p
+                      className="text-base sm:text-lg leading-relaxed"
+                      style={{ color: '#6b7280' }}
+                    >
+                      {data.content}
+                    </p>
+                  </div>
                 </div>
               </div>
-            ) : (
-              <NotificationPanel
-                notifications={notifications}
-                title={news.title || 'Latest Updates'}
-                primaryColor={branding.primaryColor}
-                accentColor={branding.accentColor}
-              />
-            )}
-          </div>
+            </div>
+          ) : data.images && data.images.length > 0 && data.images[0] ? (
+            // Layout with Hero Image on Left and Content on Right (About Page)
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+              {/* Hero Image - Left Side */}
+              <div className="order-1">
+                <div className="relative rounded-lg overflow-hidden shadow-lg h-full min-h-[300px] lg:min-h-[400px]">
+                  <img
+                    src={data.images[0]}
+                    alt="About Hero"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              </div>
 
-          {/* School Information - Right Side on Desktop */}
-          <div className="lg:col-span-2 order-1 lg:order-2">
-            <div className="bg-gray-50 rounded-lg p-6 sm:p-8 h-full">
-              <h3
-                className="text-xl sm:text-2xl lg:text-3xl font-medium mb-4 sm:mb-6"
-                style={{ color: branding.primaryColor }}
-              >
-                About Our School
-              </h3>
+              {/* Content - Right Side */}
+              <div className="order-2">
+                <div className="bg-gray-50 rounded-lg p-6 sm:p-8 h-full flex items-center">
+                  <div className="prose prose-gray max-w-none w-full">
+                    <p
+                      className="text-base sm:text-lg leading-relaxed"
+                      style={{ color: '#6b7280' }}
+                    >
+                      {data.content}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Full Width Content - No Hero Image or Notifications
+            <div className="bg-gray-50 rounded-lg p-6 sm:p-8">
               <div className="prose prose-gray max-w-none">
                 <p
-                  className="text-base sm:text-lg leading-relaxed mb-4"
+                  className="text-base sm:text-lg leading-relaxed"
                   style={{ color: '#6b7280' }}
                 >
                   {data.content}
                 </p>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 lg:gap-12 mb-12 sm:mb-16 lg:mb-20">
@@ -156,7 +212,7 @@ export function AboutSection({ data, branding, news }: AboutSectionProps) {
               className="text-sm sm:text-base leading-relaxed font-light"
               style={{ color: '#6b7280' }}
             >
-              {data.mission}
+              {truncateText(data.mission)}
             </p>
           </div>
 
@@ -180,7 +236,7 @@ export function AboutSection({ data, branding, news }: AboutSectionProps) {
               className="text-sm sm:text-base leading-relaxed font-light"
               style={{ color: '#6b7280' }}
             >
-              {data.vision}
+              {truncateText(data.vision)}
             </p>
           </div>
 
