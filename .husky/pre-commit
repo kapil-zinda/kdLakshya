@@ -3,7 +3,7 @@
 echo "🔍 Checking staged files..."
 
 # Get staged files
-FILES=$(git diff --name-only --cached --relative | grep -E '\.(js|jsx|ts|tsx|css|json|md)$')
+FILES=$(git diff --name-only --cached --relative | grep -E '\.(js|jsx|ts|tsx|css|json|md)$' || true)
 
 if [ -z "$FILES" ]; then
   echo "No files to format or lint. Proceeding with commit..."
