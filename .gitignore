@@ -29,6 +29,7 @@ yarn-error.log*
 .env.production
 .env.development
 .env
+.env.*
 
 # vercel
 .vercel
@@ -36,3 +37,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# package locks
+package-lock.json
