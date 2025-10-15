@@ -63,20 +63,20 @@ export function StatsSection({ data, branding }: StatsSectionProps) {
           {data.items.map((stat, index) => (
             <div
               key={index}
-              className={`text-center p-6 sm:p-7 lg:p-8 bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-500 hover:scale-105 w-36 sm:w-40 lg:w-44 ${
+              className={`flex flex-col items-center justify-center text-center p-6 sm:p-7 lg:p-8 bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl border border-white/20 hover:bg-white/20 transition-all duration-500 hover:scale-105 w-36 sm:w-40 lg:w-44 ${
                 isVisible ? 'animate-fade-in-up' : 'opacity-0'
               }`}
               style={{ animationDelay: `${index * 100}ms` }}
             >
               {stat.icon && (
-                <div className="text-3xl sm:text-4xl lg:text-5xl mb-3 sm:mb-4 opacity-80">
+                <div className="text-3xl sm:text-4xl lg:text-5xl mb-3 sm:mb-4 opacity-80 flex items-center justify-center">
                   {stat.icon}
                 </div>
               )}
-              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 text-white">
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 text-white w-full">
                 {stat.value}
               </div>
-              <div className="text-xs sm:text-sm font-medium text-white/90 leading-tight">
+              <div className="text-xs sm:text-sm font-medium text-white/90 leading-tight w-full">
                 {stat.label}
               </div>
             </div>
