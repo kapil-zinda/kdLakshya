@@ -1523,6 +1523,109 @@ export class ApiService {
     }
   }
 
+  // Create statistic
+  static async createStat(
+    orgId: string,
+    statData: {
+      label: string;
+      value: string;
+      icon: string;
+    },
+  ): Promise<{ data: StatsResponse['data'][0] }> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'stats',
+          attributes: statData,
+        },
+      };
+
+      console.log(`Making POST request to: /${orgId}/stats`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.post(`/${orgId}/stats`, requestBody, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/vnd.api+json',
+        },
+      });
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating statistic:', error);
+      throw new Error('Failed to create statistic');
+    }
+  }
+
+  // Update statistic
+  static async updateStat(
+    orgId: string,
+    statId: string,
+    statData: {
+      label: string;
+      value: string;
+      icon: string;
+    },
+  ): Promise<{ data: StatsResponse['data'][0] }> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'stats',
+          attributes: statData,
+        },
+      };
+
+      console.log(`Making PUT request to: /${orgId}/stats/${statId}`);
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await externalApi.put(
+        `/${orgId}/stats/${statId}`,
+        requestBody,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      console.log('API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating statistic:', error);
+      throw new Error('Failed to update statistic');
+    }
+  }
+
   // Get news/notifications data by organization ID
   static async getNews(orgId: string): Promise<NewsListResponse> {
     try {
