@@ -1331,7 +1331,7 @@ export class ApiService {
     }
   }
 
-  // Get all faculty members by organization ID
+  // Get all faculty members by organization ID (excludes staff)
   static async getFaculty(orgId: string): Promise<FacultyListResponse> {
     const cacheKey = `faculty_${orgId}`;
 
@@ -1346,9 +1346,22 @@ export class ApiService {
     return apiCache.dedupe(cacheKey, async () => {
       try {
         const response = await externalApi.get(`/${orgId}/faculty`);
-        // Cache the result
-        apiCache.set(cacheKey, response.data, 60000);
-        return response.data;
+
+        // Filter to return only faculty members (exclude staff)
+        const filteredData = {
+          ...response.data,
+          data: response.data.data.filter(
+            (member: any) => member.attributes.role === 'faculty',
+          ),
+        };
+
+        console.log(
+          `📚 Filtered ${response.data.data.length} total members to ${filteredData.data.length} faculty (excluding staff)`,
+        );
+
+        // Cache the filtered result
+        apiCache.set(cacheKey, filteredData, 60000);
+        return filteredData;
       } catch (error) {
         console.error('Error fetching faculty data:', error);
         throw new Error('Failed to fetch faculty data');

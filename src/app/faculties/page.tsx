@@ -12,137 +12,28 @@ import { OrganizationConfig } from '@/types/organization';
 import { getSubdomain } from '@/utils/subdomainUtils';
 import { Award, BookOpen, GraduationCap, Mail, Phone } from 'lucide-react';
 
-const facultyMembers = [
-  {
-    id: 1,
-    name: 'Dr. Sarah Johnson',
-    position: 'Principal',
-    department: 'Administration',
-    image:
-      'https://images.unsplash.com/photo-1594824388853-c02456ff1b0d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    email: 'sarah.johnson@school.edu',
-    phone: '+1-555-0101',
-    qualifications: [
-      'Ph.D. in Educational Leadership',
-      'M.Ed. in Curriculum Development',
-      'B.A. in English Literature',
-    ],
-    experience: '15+ years in education administration',
-    specialties: [
-      'Educational Leadership',
-      'Curriculum Development',
-      'Strategic Planning',
-    ],
-    bio: 'Dr. Johnson brings over 15 years of educational leadership experience to our institution. She is passionate about creating innovative learning environments that foster both academic excellence and character development.',
-  },
-  {
-    id: 2,
-    name: 'Prof. Michael Chen',
-    position: 'Head of Sciences',
-    department: 'Science',
-    image:
-      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    email: 'michael.chen@school.edu',
-    phone: '+1-555-0102',
-    qualifications: [
-      'Ph.D. in Physics',
-      'M.S. in Applied Mathematics',
-      'B.S. in Physics',
-    ],
-    experience: '12 years in STEM education',
-    specialties: ['Physics', 'Mathematics', 'Research Methodology'],
-    bio: 'Professor Chen is dedicated to making science accessible and exciting for students. His innovative teaching methods have earned recognition both locally and nationally.',
-  },
-  {
-    id: 3,
-    name: 'Ms. Emily Rodriguez',
-    position: 'English Department Head',
-    department: 'English',
-    image:
-      'https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    email: 'emily.rodriguez@school.edu',
-    phone: '+1-555-0103',
-    qualifications: [
-      'M.A. in English Literature',
-      'B.A. in Creative Writing',
-      'Teaching Certification',
-    ],
-    experience: '10 years in language arts education',
-    specialties: ['Literature', 'Creative Writing', 'Public Speaking'],
-    bio: 'Ms. Rodriguez believes in the power of literature to transform lives. She encourages students to find their voice through reading and writing.',
-  },
-  {
-    id: 4,
-    name: 'Dr. James Wilson',
-    position: 'Mathematics Coordinator',
-    department: 'Mathematics',
-    image:
-      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    email: 'james.wilson@school.edu',
-    phone: '+1-555-0104',
-    qualifications: [
-      'Ph.D. in Mathematics',
-      'M.S. in Statistics',
-      'B.S. in Mathematics',
-    ],
-    experience: '14 years in mathematics education',
-    specialties: ['Advanced Mathematics', 'Statistics', 'Problem Solving'],
-    bio: 'Dr. Wilson makes mathematics engaging through real-world applications and interactive problem-solving sessions.',
-  },
-  {
-    id: 5,
-    name: 'Ms. Lisa Thompson',
-    position: 'Art & Design Teacher',
-    department: 'Arts',
-    image:
-      'https://images.unsplash.com/photo-1494790108755-2616b612b050?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    email: 'lisa.thompson@school.edu',
-    phone: '+1-555-0105',
-    qualifications: [
-      'M.F.A. in Fine Arts',
-      'B.A. in Art History',
-      'Digital Design Certificate',
-    ],
-    experience: '8 years in arts education',
-    specialties: ['Visual Arts', 'Digital Design', 'Art History'],
-    bio: 'Ms. Thompson inspires creativity in students by exploring various art forms and encouraging personal expression through visual media.',
-  },
-  {
-    id: 6,
-    name: 'Coach Robert Davis',
-    position: 'Physical Education Director',
-    department: 'Physical Education',
-    image:
-      'https://images.unsplash.com/photo-1566492031773-4f4e44671d66?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-    email: 'robert.davis@school.edu',
-    phone: '+1-555-0106',
-    qualifications: [
-      'M.S. in Kinesiology',
-      'B.S. in Physical Education',
-      'Coaching Certification',
-    ],
-    experience: '11 years in physical education',
-    specialties: ['Sports Training', 'Fitness', 'Team Building'],
-    bio: 'Coach Davis promotes physical wellness and teamwork through comprehensive sports programs and fitness initiatives.',
-  },
-];
-
-const departments = [
-  'All',
-  'Administration',
-  'Science',
-  'English',
-  'Mathematics',
-  'Arts',
-  'Physical Education',
-];
+interface Faculty {
+  id: string;
+  name: string;
+  position: string;
+  department: string;
+  image: string;
+  email: string;
+  phone: string;
+  qualifications: string[];
+  experience: string;
+  specialties: string[];
+  bio: string;
+}
 
 export default function FacultiesPage() {
   const [organizationData, setOrganizationData] =
     useState<OrganizationConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDepartment, setSelectedDepartment] = useState('All');
-  const [selectedFaculty, setSelectedFaculty] = useState<any>(null);
+  const [selectedSubject, setSelectedSubject] = useState('All');
+  const [selectedFaculty, setSelectedFaculty] = useState<Faculty | null>(null);
+  const [facultyMembers, setFacultyMembers] = useState<Faculty[]>([]);
+  const [subjects, setSubjects] = useState<string[]>(['All']);
 
   useEffect(() => {
     const loadDataFromAPI = async () => {
@@ -152,8 +43,77 @@ export default function FacultiesPage() {
         const apiData = await ApiService.fetchAllData(subdomain || 'auth');
         const transformedData = transformApiDataToOrganizationConfig(apiData);
         setOrganizationData(transformedData);
+
+        // Get orgId from the fetched subdomain data (already loaded, no need to call API again)
+        const orgId = apiData.subdomain.config.organizationId;
+        console.log('🏫 Using cached Organization ID:', orgId);
+
+        // Fetch faculty data
+        console.log('🎓 Fetching faculty data...');
+
+        let facultyResponse;
+        try {
+          console.log(`📞 Calling API: /${orgId}/faculty`);
+          facultyResponse = await ApiService.getFaculty(orgId);
+          console.log('✅ Faculty API Response:', facultyResponse);
+          console.log(
+            '👥 Number of faculty members:',
+            facultyResponse.data?.length || 0,
+          );
+        } catch (facultyError) {
+          console.error('❌ Failed to fetch faculty:', facultyError);
+          // Don't throw, just set empty array and continue
+          setFacultyMembers([]);
+          setSubjects(['All']);
+          return; // Exit early if faculty fetch fails
+        }
+
+        // Check if we have faculty data
+        if (!facultyResponse.data || facultyResponse.data.length === 0) {
+          console.warn('⚠️ No faculty members found');
+          setFacultyMembers([]);
+          setSubjects(['All']);
+          return;
+        }
+
+        // Transform API data to Faculty interface
+        const transformedFaculty: Faculty[] = facultyResponse.data.map(
+          (member) => {
+            console.log(
+              '📋 Transforming faculty member:',
+              member.attributes.name,
+            );
+            return {
+              id: member.id,
+              name: member.attributes.name,
+              position: member.attributes.designation,
+              department: member.attributes.role || 'General',
+              image:
+                member.attributes.photo ||
+                'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+              email: member.attributes.email,
+              phone: member.attributes.phone,
+              qualifications: [], // API doesn't provide qualifications yet
+              experience: `${member.attributes.experience} years`,
+              specialties: member.attributes.subjects || [],
+              bio: member.attributes.bio,
+            };
+          },
+        );
+
+        console.log('🎯 Transformed faculty data:', transformedFaculty);
+        setFacultyMembers(transformedFaculty);
+
+        // Extract unique subjects from all faculty members
+        const allSubjects = transformedFaculty.flatMap((f) => f.specialties);
+        const uniqueSubjects = [
+          'All',
+          ...Array.from(new Set(allSubjects)).sort(),
+        ];
+        console.log('📚 Subjects:', uniqueSubjects);
+        setSubjects(uniqueSubjects);
       } catch (error) {
-        console.error('Failed to load API data:', error);
+        console.error('❌ Failed to load faculty data:', error);
       } finally {
         setLoading(false);
       }
@@ -189,10 +149,10 @@ export default function FacultiesPage() {
   }
 
   const filteredFaculty =
-    selectedDepartment === 'All'
+    selectedSubject === 'All'
       ? facultyMembers
-      : facultyMembers.filter(
-          (member) => member.department === selectedDepartment,
+      : facultyMembers.filter((member) =>
+          member.specialties.includes(selectedSubject),
         );
 
   return (
@@ -264,25 +224,25 @@ export default function FacultiesPage() {
                 </p>
               </div>
 
-              {/* Department Filter */}
+              {/* Subject Filter */}
               <div className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-12">
-                {departments.map((department) => (
+                {subjects.map((subject) => (
                   <button
-                    key={department}
-                    onClick={() => setSelectedDepartment(department)}
+                    key={subject}
+                    onClick={() => setSelectedSubject(subject)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
-                      selectedDepartment === department
+                      selectedSubject === subject
                         ? 'text-white shadow-lg'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                     style={{
                       backgroundColor:
-                        selectedDepartment === department
+                        selectedSubject === subject
                           ? organizationData.branding.primaryColor
                           : undefined,
                     }}
                   >
-                    {department}
+                    {subject}
                   </button>
                 ))}
               </div>
@@ -385,7 +345,7 @@ export default function FacultiesPage() {
               {filteredFaculty.length === 0 && (
                 <div className="text-center py-12">
                   <p className="text-gray-500">
-                    No faculty members found in this department.
+                    No faculty members found teaching this subject.
                   </p>
                 </div>
               )}

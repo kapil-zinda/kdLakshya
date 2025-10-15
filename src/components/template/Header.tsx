@@ -239,12 +239,8 @@ export function Header({ organization }: HeaderProps) {
             {isAuthenticated ? (
               <div className="flex items-center space-x-3">
                 <Button
-                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105"
+                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white"
                   variant="outline"
-                  style={{
-                    borderColor: organization.branding.primaryColor,
-                    color: organization.branding.primaryColor,
-                  }}
                   onClick={() => handleNavigation('/dashboard')}
                 >
                   Dashboard

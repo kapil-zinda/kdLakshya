@@ -32,7 +32,7 @@ export function AboutSection({
   const [loading, setLoading] = useState(false);
 
   // Helper function to truncate text if it exceeds 60 words
-  const truncateText = (text: string, maxWords: number = 60): string => {
+  const truncateText = (text: string, maxWords: number = 45): string => {
     const words = text.trim().split(/\s+/);
     if (words.length <= maxWords) {
       return text;
