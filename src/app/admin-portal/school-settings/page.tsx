@@ -1560,11 +1560,17 @@ export default function SchoolSettings() {
 
               {/* Statistics Tab */}
               {activeTab === 'statistics' && (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Statistics & Achievements
-                    </h3>
+                <div className="space-y-6 -mx-6">
+                  <div className="flex justify-between items-center mb-6 px-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Statistics & Achievements
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Showcase key metrics and achievements on your school
+                        website
+                      </p>
+                    </div>
                     <button
                       onClick={() =>
                         updateSetting('statistics', [
@@ -1572,17 +1578,59 @@ export default function SchoolSettings() {
                           { label: '', value: '', icon: '' },
                         ])
                       }
-                      className="text-indigo-600 hover:text-indigo-500 text-sm font-medium"
+                      className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium transition-colors"
                     >
-                      + Add Statistic
+                      <svg
+                        className="w-4 h-4 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 4v16m8-8H4"
+                        />
+                      </svg>
+                      Add Statistic
                     </button>
                   </div>
 
                   {settings.statistics.length === 0 ? (
-                    <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                    <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 mx-6">
                       <div className="text-gray-400 mb-4">
                         <svg
-                          className="w-16 h-16 mx-auto"
+                          className="w-20 h-20 mx-auto"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                          />
+                        </svg>
+                      </div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                        No statistics added yet
+                      </h4>
+                      <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                        Add statistics to showcase your school&apos;s
+                        achievements, student count, success rates, and more
+                      </p>
+                      <button
+                        onClick={() =>
+                          updateSetting('statistics', [
+                            { label: '', value: '', icon: '' },
+                          ])
+                        }
+                        className="inline-flex items-center px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors"
+                      >
+                        <svg
+                          className="w-5 h-5 mr-2"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1591,144 +1639,236 @@ export default function SchoolSettings() {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                            d="M12 4v16m8-8H4"
                           />
                         </svg>
-                      </div>
-                      <p className="text-gray-600 mb-2">
-                        No statistics added yet
-                      </p>
-                      <p className="text-sm text-gray-500 mb-4">
-                        Add statistics to showcase your achievements
-                      </p>
-                      <button
-                        onClick={() =>
-                          updateSetting('statistics', [
-                            { label: '', value: '', icon: '' },
-                          ])
-                        }
-                        className="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-sm font-medium"
-                      >
-                        + Add First Statistic
+                        Add Your First Statistic
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {settings.statistics.map((stat, index) => (
-                        <div
-                          key={index}
-                          className="p-4 bg-gray-50 rounded-lg border border-gray-200"
-                        >
-                          <div className="flex justify-between items-start mb-3">
-                            <h4 className="text-sm font-medium text-gray-700">
-                              Statistic {index + 1}
-                            </h4>
-                            <button
-                              onClick={() => {
-                                const newStats = settings.statistics.filter(
-                                  (_, i) => i !== index,
-                                );
-                                updateSetting('statistics', newStats);
-                              }}
-                              className="text-red-500 hover:text-red-700 p-1"
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                    <div className="px-6">
+                      <div className="max-w-4xl mx-auto space-y-5">
+                        {settings.statistics.map((stat, index) => (
+                          <div
+                            key={index}
+                            className="p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                          >
+                            <div className="flex justify-between items-start mb-5">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                  <span className="text-indigo-600 font-semibold text-sm">
+                                    {index + 1}
+                                  </span>
+                                </div>
+                                <h4 className="text-base font-semibold text-gray-900">
+                                  Statistic {index + 1}
+                                </h4>
+                              </div>
+                              <button
+                                onClick={() => {
+                                  const newStats = settings.statistics.filter(
+                                    (_, i) => i !== index,
+                                  );
+                                  updateSetting('statistics', newStats);
+                                }}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                title="Remove statistic"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
-                            </button>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Label
-                              </label>
-                              <input
-                                type="text"
-                                value={stat.label}
-                                onChange={(e) => {
-                                  const newStats = [...settings.statistics];
-                                  newStats[index] = {
-                                    ...newStats[index],
-                                    label: e.target.value,
-                                  };
-                                  updateSetting('statistics', newStats);
-                                }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                placeholder="e.g., Total Students"
-                              />
+                                <svg
+                                  className="w-5 h-5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                  />
+                                </svg>
+                              </button>
                             </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Value
-                              </label>
-                              <input
-                                type="text"
-                                value={stat.value}
-                                onChange={(e) => {
-                                  const newStats = [...settings.statistics];
-                                  newStats[index] = {
-                                    ...newStats[index],
-                                    value: e.target.value,
-                                  };
-                                  updateSetting('statistics', newStats);
-                                }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                placeholder="e.g., 5000+"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">
-                                Icon
-                              </label>
-                              <input
-                                type="text"
-                                value={stat.icon}
-                                onChange={(e) => {
-                                  const newStats = [...settings.statistics];
-                                  newStats[index] = {
-                                    ...newStats[index],
-                                    icon: e.target.value,
-                                  };
-                                  updateSetting('statistics', newStats);
-                                }}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-sm"
-                                placeholder="e.g., 👥 or students"
-                              />
-                            </div>
-                          </div>
-                          {/* Preview */}
-                          {stat.label && stat.value && (
-                            <div className="mt-3 pt-3 border-t border-gray-200">
-                              <p className="text-xs text-gray-500 mb-2">
-                                Preview:
-                              </p>
-                              <div className="inline-flex items-center space-x-2 bg-white px-4 py-2 rounded-md border border-gray-200">
-                                {stat.icon && (
-                                  <span className="text-lg">{stat.icon}</span>
-                                )}
-                                <div>
-                                  <div className="text-xl font-bold text-gray-900">
-                                    {stat.value}
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                              <div className="md:col-span-2">
+                                <div className="grid grid-cols-2 gap-5">
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Label
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={stat.label}
+                                      onChange={(e) => {
+                                        const newStats = [
+                                          ...settings.statistics,
+                                        ];
+                                        newStats[index] = {
+                                          ...newStats[index],
+                                          label: e.target.value,
+                                        };
+                                        updateSetting('statistics', newStats);
+                                      }}
+                                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                      placeholder="e.g., Total Students"
+                                    />
                                   </div>
-                                  <div className="text-xs text-gray-600">
-                                    {stat.label}
+                                  <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                      Value
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={stat.value}
+                                      onChange={(e) => {
+                                        const newStats = [
+                                          ...settings.statistics,
+                                        ];
+                                        newStats[index] = {
+                                          ...newStats[index],
+                                          value: e.target.value,
+                                        };
+                                        updateSetting('statistics', newStats);
+                                      }}
+                                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                      placeholder="e.g., 5000+"
+                                    />
                                   </div>
                                 </div>
                               </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Icon (emoji)
+                                </label>
+                                <div className="relative">
+                                  <input
+                                    type="text"
+                                    value={stat.icon}
+                                    onChange={(e) => {
+                                      const newStats = [...settings.statistics];
+                                      newStats[index] = {
+                                        ...newStats[index],
+                                        icon: e.target.value,
+                                      };
+                                      updateSetting('statistics', newStats);
+                                    }}
+                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm pr-12"
+                                    placeholder="e.g., 👥"
+                                  />
+                                  <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                    <div className="relative group">
+                                      <button
+                                        type="button"
+                                        className="text-gray-400 hover:text-gray-600 p-1"
+                                        onClick={(e) => {
+                                          e.preventDefault();
+                                          const picker =
+                                            e.currentTarget.nextElementSibling;
+                                          if (picker) {
+                                            picker.classList.toggle('hidden');
+                                          }
+                                        }}
+                                      >
+                                        😊
+                                      </button>
+                                      <div className="hidden absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10 w-64">
+                                        <div className="grid grid-cols-6 gap-2">
+                                          {[
+                                            '👥',
+                                            '📚',
+                                            '🏆',
+                                            '🎓',
+                                            '⭐',
+                                            '📖',
+                                            '✏️',
+                                            '🎯',
+                                            '💡',
+                                            '🌟',
+                                            '📊',
+                                            '📈',
+                                            '🏅',
+                                            '🎖️',
+                                            '🏛️',
+                                            '🎨',
+                                            '🔬',
+                                            '🧪',
+                                            '💻',
+                                            '⚽',
+                                            '🏀',
+                                            '🎭',
+                                            '🎵',
+                                            '🌍',
+                                          ].map((emoji) => (
+                                            <button
+                                              key={emoji}
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.preventDefault();
+                                                const newStats = [
+                                                  ...settings.statistics,
+                                                ];
+                                                newStats[index] = {
+                                                  ...newStats[index],
+                                                  icon: emoji,
+                                                };
+                                                updateSetting(
+                                                  'statistics',
+                                                  newStats,
+                                                );
+                                                // Hide picker
+                                                const picker =
+                                                  e.currentTarget.parentElement;
+                                                if (picker) {
+                                                  picker.classList.add(
+                                                    'hidden',
+                                                  );
+                                                }
+                                              }}
+                                              className="text-2xl hover:bg-gray-100 rounded p-1 transition-colors"
+                                            >
+                                              {emoji}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <p className="mt-1.5 text-xs text-gray-500">
+                                  Type or click 😊 to select
+                                </p>
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      ))}
+
+                            {/* Preview */}
+                            {stat.label && stat.value && (
+                              <div className="mt-6 pt-6 border-t border-gray-200">
+                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+                                  Preview
+                                </p>
+                                <div className="flex justify-center">
+                                  <div className="inline-flex items-center space-x-4 bg-gradient-to-br from-indigo-50 to-blue-50 px-6 py-4 rounded-lg border border-indigo-100">
+                                    {stat.icon && (
+                                      <div className="text-3xl">
+                                        {stat.icon}
+                                      </div>
+                                    )}
+                                    <div>
+                                      <div className="text-2xl font-bold text-gray-900">
+                                        {stat.value}
+                                      </div>
+                                      <div className="text-sm text-gray-600 mt-1">
+                                        {stat.label}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
