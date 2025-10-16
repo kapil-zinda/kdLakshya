@@ -15,6 +15,10 @@ export interface CachedUserData {
   accessToken: string;
   cacheTimestamp: number;
   type?: string;
+  phone?: string;
+  designation?: string;
+  experience?: string;
+  profilePhoto?: string;
 }
 
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
@@ -165,6 +169,11 @@ export function useUserData() {
         orgId: userData.attributes.org_id || userData.attributes.org,
         accessToken,
         type: userData.attributes.type || userData.attributes.role,
+        phone: userData.attributes.phone || '',
+        designation: userData.attributes.designation || '',
+        experience: userData.attributes.experience || '',
+        profilePhoto:
+          userData.attributes.profile_photo || userData.attributes.photo || '',
       };
 
       // Cache the data

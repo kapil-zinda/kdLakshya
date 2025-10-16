@@ -59,6 +59,7 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18",
     "react-hook-form": "^7.51.3",
+    "react-hot-toast": "^2.6.0",
     "react-toastify": "^10.0.6",
     "recharts": "^2.13.0",
     "tailwind-merge": "^1.14.0",
