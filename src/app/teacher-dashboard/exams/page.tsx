@@ -4,7 +4,7 @@ import React from 'react';
 
 import Link from 'next/link';
 
-import DashboardWrapper from '@/components/dashboard/DashboardWrapper';
+import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 
 export default function TeacherExamsPage() {
   return (

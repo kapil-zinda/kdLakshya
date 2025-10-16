@@ -54,17 +54,46 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
             attrs.class_id ||
             null;
 
-          if (classTeacherOf) {
+          // Also check if user has team permissions (class teacher permissions)
+          const permissions = attrs.permissions || {};
+          const teamPermissions = Object.keys(permissions).filter((key) =>
+            key.startsWith('team-'),
+          );
+          const hasTeamPermission =
+            teamPermissions.length > 0 &&
+            teamPermissions.some(
+              (key) =>
+                permissions[key] === 'manage' || permissions[key] === 'edit',
+            );
+
+          if (classTeacherOf || hasTeamPermission) {
             setIsClassTeacher(true);
+
+            // Extract team ID from permissions if available
+            let classId = classTeacherOf;
+            const className = attrs.class_name || null;
+
+            if (!classId && hasTeamPermission) {
+              const teamKey = teamPermissions.find(
+                (key) =>
+                  permissions[key] === 'manage' || permissions[key] === 'edit',
+              );
+              if (teamKey) {
+                classId = teamKey.replace('team-', '');
+              }
+            }
+
             setClassTeacherInfo({
-              classId: classTeacherOf,
-              className: attrs.class_name || `Class ${classTeacherOf}`,
+              classId: classId,
+              className:
+                className || (classId ? `Class ${classId}` : 'your class'),
             });
           }
 
           console.log('Class teacher status:', {
-            isClassTeacher: !!classTeacherOf,
-            classInfo: classTeacherOf,
+            isClassTeacher: !!(classTeacherOf || hasTeamPermission),
+            classInfo: classTeacherOf || teamPermissions,
+            permissions: permissions,
           });
         }
       } catch (error) {
