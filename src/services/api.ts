@@ -808,13 +808,31 @@ export class ApiService {
   // Helper method to get current organization ID from user data or subdomain with sessionStorage caching
   static async getCurrentOrgId(): Promise<string> {
     try {
-      // Priority 1: Check if user is logged in and get org ID from user data
+      // Priority 0: For localhost development, use hardcoded orgId
+      if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        const isLocalhost =
+          hostname === 'localhost' ||
+          hostname === '127.0.0.1' ||
+          hostname.startsWith('localhost:');
+        if (isLocalhost) {
+          const localhostOrgId = '68d6b128d88f00c8b1b4a89a';
+          console.log('🏠 Using hardcoded localhost orgId:', localhostOrgId);
+          return localhostOrgId;
+        }
+      }
+
+      // Priority 1: Check cachedUserData in localStorage (set by useUserData hook)
       if (typeof window !== 'undefined') {
         const cachedUserData = localStorage.getItem('cachedUserData');
         if (cachedUserData) {
           try {
             const userData = JSON.parse(cachedUserData);
             if (userData.orgId) {
+              console.log(
+                '✅ Using orgId from cachedUserData:',
+                userData.orgId,
+              );
               return userData.orgId;
             }
           } catch (e) {
@@ -823,15 +841,36 @@ export class ApiService {
         }
       }
 
-      // Priority 2: Check if we already have the org ID cached in sessionStorage
+      // Priority 2: Check sessionStorage cache (from sessionStorage.userData)
+      if (typeof window !== 'undefined') {
+        const sessionUserData = sessionStorage.getItem('userData');
+        if (sessionUserData) {
+          try {
+            const userData = JSON.parse(sessionUserData);
+            if (userData.orgId) {
+              console.log(
+                '✅ Using orgId from sessionStorage userData:',
+                userData.orgId,
+              );
+              return userData.orgId;
+            }
+          } catch (e) {
+            console.error('Error parsing session user data:', e);
+          }
+        }
+      }
+
+      // Priority 3: Check standalone orgId cache in sessionStorage
       if (typeof window !== 'undefined') {
         const cachedOrgId = sessionStorage.getItem('currentOrgId');
         if (cachedOrgId) {
+          console.log('✅ Using orgId from sessionStorage cache:', cachedOrgId);
           return cachedOrgId;
         }
       }
 
-      // Priority 3: If we have a bearer token, fetch user data to get org ID
+      // Priority 4 (AVOID IF POSSIBLE): If we have a bearer token, fetch user data to get org ID
+      // This should only happen on first page load before any caching is set up
       if (typeof window !== 'undefined') {
         const tokenStr = localStorage.getItem('bearerToken');
         if (tokenStr) {
@@ -840,14 +879,16 @@ export class ApiService {
             const now = new Date().getTime();
 
             if (now < tokenItem.expiry && tokenItem.value) {
+              console.warn('⚠️ Fetching user data to get orgId (cache miss)');
               const userResponse = await this.getUserMe(tokenItem.value);
               const userData = userResponse.data;
               const orgId =
                 userData.attributes.org_id || userData.attributes.org;
 
               if (orgId) {
-                // Cache the org ID for future use
+                // Cache the org ID for future use in multiple places
                 sessionStorage.setItem('currentOrgId', orgId);
+                console.log('📝 Cached orgId for future use:', orgId);
                 return orgId;
               }
             }
@@ -1469,16 +1510,12 @@ export class ApiService {
         },
       };
 
-      const response = await workspaceApi.post(
-        '/workspace/s3/signed-url',
-        requestBody,
-        {
-          headers: {
-            Authorization: `Bearer ${tokenItem.value}`,
-            'Content-Type': 'application/json',
-          },
+      const response = await workspaceApi.post('/s3/signed-url', requestBody, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/json',
         },
-      );
+      });
 
       return response.data;
     } catch (error) {
@@ -1673,6 +1710,15 @@ export class ApiService {
 
   // Get all classes by organization ID
   static async getClasses(orgId: string): Promise<ClassListResponse> {
+    console.log('🔵 ApiService.getClasses called with orgId:', orgId);
+
+    if (!orgId || orgId === 'undefined') {
+      console.error('❌ Invalid orgId provided to getClasses:', orgId);
+      throw new Error(
+        'Invalid orgId: orgId is required and cannot be undefined',
+      );
+    }
+
     const cacheKey = `classes_${orgId}`;
 
     // Check cache first (30 sec TTL for classes)
@@ -1682,6 +1728,8 @@ export class ApiService {
       return cached;
     }
 
+    console.log('📡 Making API request to fetch classes...');
+
     // Deduplicate concurrent requests
     return apiCache.dedupe(cacheKey, async () => {
       return retryRequest(async () => {
@@ -1689,27 +1737,47 @@ export class ApiService {
           // Get authentication token
           const tokenStr = localStorage.getItem('bearerToken');
           if (!tokenStr) {
+            console.error('❌ No bearerToken found in localStorage');
             throw new Error('No authentication token found');
           }
+
+          console.log('🔑 Found bearer token in localStorage');
 
           const tokenItem = JSON.parse(tokenStr);
           const now = new Date().getTime();
 
           if (now > tokenItem.expiry) {
+            console.error('❌ Bearer token has expired');
             localStorage.removeItem('bearerToken');
             throw new Error('Authentication token has expired');
           }
+
+          console.log(`🌐 Making GET request to: /${orgId}/classes`);
+          console.log('🔐 Using classApi baseURL:', API_CONFIG.CLASS_API);
 
           const response = await classApi.get(`/${orgId}/classes`, {
             headers: {
               Authorization: `Bearer ${tokenItem.value}`,
             },
           });
+
+          console.log(
+            '✅ Classes API response received:',
+            response.data.data?.length || 0,
+            'classes',
+          );
+
           // Cache the result
           apiCache.set(cacheKey, response.data, 30000);
           return response.data;
-        } catch (error) {
-          console.error('Error fetching classes:', error);
+        } catch (error: any) {
+          console.error('❌ Error fetching classes:', error);
+          console.error('Error details:', {
+            message: error.message,
+            status: error.response?.status,
+            statusText: error.response?.statusText,
+            data: error.response?.data,
+          });
           throw error; // Let retryRequest handle the retry
         }
       });

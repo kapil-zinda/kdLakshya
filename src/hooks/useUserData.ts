@@ -152,6 +152,26 @@ export function useUserData() {
 
       console.log('Determined role:', role);
 
+      // For localhost development, use hardcoded orgId
+      const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
+      const isLocalhost =
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1' ||
+          window.location.hostname.startsWith('localhost:'));
+
+      const orgId = isLocalhost
+        ? LOCALHOST_ORG_ID
+        : userData.attributes.org_id ||
+          userData.attributes.orgId ||
+          userData.attributes.org;
+
+      if (isLocalhost) {
+        console.log('🏠 Using hardcoded localhost orgId:', LOCALHOST_ORG_ID);
+      }
+
+      console.log('Extracted orgId:', orgId);
+
       const processedUserData = {
         id: userData.id,
         email: userData.attributes.email,
@@ -166,7 +186,7 @@ export function useUserData() {
         role: role as 'admin' | 'teacher' | 'student',
         permissions:
           userData.attributes.permissions || userData.user_permissions || {},
-        orgId: userData.attributes.org_id || userData.attributes.org,
+        orgId: orgId || '',
         accessToken,
         type: userData.attributes.type || userData.attributes.role,
         phone: userData.attributes.phone || '',
@@ -220,7 +240,7 @@ export function useUserData() {
         }
 
         // Clear old cache to force fresh data fetch
-        localStorage.removeItem(USER_DATA_KEY);
+        // localStorage.removeItem(USER_DATA_KEY);
         console.log('Cleared cached user data');
 
         // First, try to load cached data (should be null after removal)
