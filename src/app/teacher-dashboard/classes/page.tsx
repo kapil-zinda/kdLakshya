@@ -10,8 +10,9 @@ import { ApiService } from '@/services/api';
 
 interface Student {
   id: string;
-  name: string;
   rollNumber: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
   status: 'Active' | 'Inactive';
@@ -175,6 +176,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       console.log('✅ Using orgId from userData:', orgId);
 
       const permissions = userData.permission || {};
+      const allowedTeams = userData.allowedTeams || [];
 
       // Check if user has team permissions (class teacher permissions)
       const teamPermissions = Object.keys(permissions).filter((key) =>
@@ -187,6 +189,8 @@ function ClassesContent({ userData }: ClassesContentProps) {
       console.log('📚 Fetched classes:', classesData.data.length);
       console.log('👤 Current userId:', userId);
       console.log('🔑 Team permissions:', teamPermissions);
+      console.log('🔑 Allowed teams:', allowedTeams);
+      console.log('🔑 Full permission object:', permissions);
 
       // Also fetch teachers for subjects assignment
       const teachersData = await ApiService.getFaculty(orgId);
@@ -214,52 +218,66 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
         // Check if teacher has permission for this team/class
         const hasPermission =
-          isLocalhost || // Show all classes on localhost for development
+          allowedTeams.includes(teamId) || // Check if team ID is in allowedTeams array
           teamPermissions.includes(`team-${teamId}`) ||
           (classAttrs as any).class_teacher_id === userId ||
           classAttrs.teacher_id === userId; // Also check teacher_id field
 
         console.log(
-          `Class ${classItem.attributes.class || classItem.id}: hasPermission=${hasPermission}, teacher_id=${classAttrs.teacher_id}, class_teacher_id=${(classAttrs as any).class_teacher_id}`,
+          `Class ${classItem.attributes.class || classItem.id}: hasPermission=${hasPermission}, teamId=${teamId}, inAllowedTeams=${allowedTeams.includes(teamId)}, teacher_id=${classAttrs.teacher_id}, class_teacher_id=${(classAttrs as any).class_teacher_id}, userId=${userId}`,
         );
 
         if (hasPermission) {
           // Fetch class details (students, subjects, exams) in parallel
-          const [studentsData, subjectsData, examsData] = await Promise.all([
-            ApiService.getClassStudents(orgId, teamId),
-            ApiService.getClassSubjects(orgId, teamId),
-            ApiService.getClassExams(orgId, teamId),
-          ]);
+          // Handle errors gracefully - some endpoints may return 403 if permissions are limited
+          const [studentsData, subjectsData, examsData] =
+            await Promise.allSettled([
+              ApiService.getClassStudents(orgId, teamId),
+              ApiService.getSubjectsForClass(orgId, teamId),
+              ApiService.getExamsForClass(orgId, teamId),
+            ]);
 
-          const students: Student[] = studentsData.data.map((s: any) => ({
-            id: s.id,
-            name:
-              s.attributes.name ||
-              `${s.attributes.firstName || ''} ${s.attributes.lastName || ''}`.trim(),
-            rollNumber:
-              s.attributes.rollNumber || s.attributes.roll_number || 'N/A',
-            email: s.attributes.email,
-            phone: s.attributes.phone || 'N/A',
-            status: s.attributes.status === 'active' ? 'Active' : 'Inactive',
-          }));
+          const students: Student[] =
+            studentsData.status === 'fulfilled'
+              ? studentsData.value.data.map((s: any) => ({
+                  id: s.id,
+                  name:
+                    s.attributes.name ||
+                    `${s.attributes.firstName || ''} ${s.attributes.lastName || ''}`.trim(),
+                  rollNumber:
+                    s.attributes.rollNumber ||
+                    s.attributes.roll_number ||
+                    'N/A',
+                  email: s.attributes.email,
+                  phone: s.attributes.phone || 'N/A',
+                  status:
+                    s.attributes.status === 'active' ? 'Active' : 'Inactive',
+                }))
+              : [];
 
-          const subjects: Subject[] = subjectsData.data.map((s: any) => ({
-            id: s.id,
-            name: s.attributes.name,
-            code: s.attributes.code || '',
-            teacherId: s.attributes.teacher_id,
-            teacherName: s.attributes.teacher_name,
-            credits: s.attributes.credits || 1,
-          }));
+          const subjects: Subject[] =
+            subjectsData.status === 'fulfilled'
+              ? subjectsData.value.data.map((s: any) => ({
+                  id: s.id,
+                  name: s.attributes.name,
+                  code: s.attributes.code || '',
+                  teacherId: s.attributes.teacher_id,
+                  teacherName: s.attributes.teacher_name,
+                  credits: s.attributes.credits || 1,
+                }))
+              : [];
 
-          const exams: Exam[] = examsData.data.map((e: any) => ({
-            id: e.id,
-            name: e.attributes.name,
-            subjects: e.attributes.subjects || [],
-            instructions: e.attributes.instructions || '',
-            type: e.attributes.type || 'Unit Test',
-            status: e.attributes.status || 'Scheduled',
-          }));
+          const exams: Exam[] =
+            examsData.status === 'fulfilled'
+              ? examsData.value.data.map((e: any) => ({
+                  id: e.id,
+                  name: e.attributes.name,
+                  subjects: e.attributes.subjects || [],
+                  instructions: e.attributes.instructions || '',
+                  type: e.attributes.type || 'Unit Test',
+                  status: e.attributes.status || 'Scheduled',
+                }))
+              : [];
 
           assignedClasses.push({
             id: teamId,
@@ -353,11 +371,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
     try {
       // Use orgId from userData prop (no API call needed!)
-      await ApiService.createClassSubject(orgId, selectedClass.id, {
-        name: subjectFormData.name,
-        code: subjectFormData.code,
+      await ApiService.createSubject(orgId, {
+        subject_name: subjectFormData.name,
+        class_id: selectedClass.id,
         teacher_id: subjectFormData.teacherId,
-        credits: subjectFormData.credits,
       });
 
       setShowAddSubjectModal(false);
@@ -381,13 +398,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
     try {
       // Use orgId from userData prop (no API call needed!)
-      await ApiService.updateClassSubject(
+      await ApiService.updateSubject(
         orgId,
-        selectedClass.id,
         selectedSubjectForEdit.id,
-        {
-          teacher_id: editSubjectFormData.teacherId,
-        },
+        editSubjectFormData.teacherId,
       );
 
       setShowEditSubjectModal(false);
@@ -408,11 +422,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
     try {
       // Use orgId from userData prop (no API call needed!)
-      await ApiService.deleteClassSubject(
-        orgId,
-        selectedClass.id,
-        selectedSubjectForDelete.id,
-      );
+      await ApiService.deleteSubject(orgId, selectedSubjectForDelete.id);
 
       setShowDeleteSubjectModal(false);
       loadClassesData();
@@ -551,12 +561,14 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
     try {
       // Use orgId from userData prop (no API call needed!)
-      await ApiService.createClassExam(orgId, selectedClass.id, {
-        name: examFormData.name,
-        subjects: examFormData.subjects,
-        instructions: examFormData.instructions,
-        type: examFormData.type,
-        status: 'Scheduled',
+      await ApiService.createExam(orgId, {
+        exam_name: examFormData.name,
+        class_id: selectedClass.id,
+        exam_date: examFormData.date || new Date().toISOString().split('T')[0],
+        subjects: examFormData.subjects.map((s) => ({
+          subject_id: s.subjectId,
+          max_marks: s.marks,
+        })),
       });
 
       setShowCreateExamModal(false);
@@ -973,7 +985,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                   <tr key={student.id}>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                       <div className="text-sm font-medium text-gray-900">
-                                        {student.name}
+                                        {student.first_name} {student.last_name}
                                       </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
