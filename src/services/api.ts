@@ -2225,7 +2225,7 @@ export class ApiService {
       }
 
       const response = await classApi.post(
-        `/class/${orgId}/exams`,
+        `/${orgId}/exams`,
         {
           data: {
             type: 'exams',
