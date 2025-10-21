@@ -35,7 +35,7 @@ export default function TeacherExamsPage() {
                     </svg>
                   </Link>
                   <h1 className="text-xl font-semibold text-gray-900">
-                    Exams Management
+                    Result Management
                   </h1>
                 </div>
                 <div className="text-sm text-gray-500">
@@ -49,7 +49,7 @@ export default function TeacherExamsPage() {
           <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                Exams & Assessments
+                Results & Assessments
               </h2>
               <p className="text-gray-600 mb-6">
                 Manage exams, assessments, and student evaluations.

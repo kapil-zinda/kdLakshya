@@ -10,9 +10,8 @@ import { ApiService } from '@/services/api';
 
 interface Student {
   id: string;
+  name: string;
   rollNumber: string;
-  first_name: string;
-  last_name: string;
   email: string;
   phone: string;
   status: 'Active' | 'Inactive';
@@ -93,7 +92,11 @@ function ClassesContent({ userData }: ClassesContentProps) {
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [showCreateExamModal, setShowCreateExamModal] = useState(false);
   const [showEditExamModal, setShowEditExamModal] = useState(false);
+  const [showViewExamModal, setShowViewExamModal] = useState(false);
   const [selectedExamForEdit, setSelectedExamForEdit] = useState<Exam | null>(
+    null,
+  );
+  const [selectedExamForView, setSelectedExamForView] = useState<Exam | null>(
     null,
   );
   const [unassignedStudents, setUnassignedStudents] = useState<any[]>([]);
@@ -224,7 +227,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
           classAttrs.teacher_id === userId; // Also check teacher_id field
 
         console.log(
-          `Class ${classItem.attributes.class || classItem.id}: hasPermission=${hasPermission}, teamId=${teamId}, inAllowedTeams=${allowedTeams.includes(teamId)}, teacher_id=${classAttrs.teacher_id}, class_teacher_id=${(classAttrs as any).class_teacher_id}, userId=${userId}`,
+          `Class ${classAttrs.class || classItem.id}: hasPermission=${hasPermission}, teamId=${teamId}, inAllowedTeams=${allowedTeams.includes(teamId)}, teacher_id=${classAttrs.teacher_id}, class_teacher_id=${(classAttrs as any).class_teacher_id}, userId=${userId}`,
         );
 
         if (hasPermission) {
@@ -241,13 +244,8 @@ function ClassesContent({ userData }: ClassesContentProps) {
             studentsData.status === 'fulfilled'
               ? studentsData.value.data.map((s: any) => ({
                   id: s.id,
-                  name:
-                    s.attributes.name ||
-                    `${s.attributes.firstName || ''} ${s.attributes.lastName || ''}`.trim(),
-                  rollNumber:
-                    s.attributes.rollNumber ||
-                    s.attributes.roll_number ||
-                    'N/A',
+                  name: `${s.attributes.first_name || ''} ${s.attributes.last_name || ''}`.trim(),
+                  rollNumber: s.attributes.roll_number || 'N/A',
                   email: s.attributes.email,
                   phone: s.attributes.phone || 'N/A',
                   status:
@@ -259,8 +257,8 @@ function ClassesContent({ userData }: ClassesContentProps) {
             subjectsData.status === 'fulfilled'
               ? subjectsData.value.data.map((s: any) => ({
                   id: s.id,
-                  name: s.attributes.name,
-                  code: s.attributes.code || '',
+                  name: s.attributes.subject_name,
+                  code: s.attributes.subject_code || '',
                   teacherId: s.attributes.teacher_id,
                   teacherName: s.attributes.teacher_name,
                   credits: s.attributes.credits || 1,
@@ -271,8 +269,24 @@ function ClassesContent({ userData }: ClassesContentProps) {
             examsData.status === 'fulfilled'
               ? examsData.value.data.map((e: any) => ({
                   id: e.id,
-                  name: e.attributes.name,
-                  subjects: e.attributes.subjects || [],
+                  name: e.attributes.exam_name,
+                  subjects: (e.attributes.subjects || []).map(
+                    (examSubject: any) => {
+                      // Find the subject details from the subjects list
+                      const subjectDetails = subjects.find(
+                        (s) => s.id === examSubject.subject_id,
+                      );
+                      return {
+                        subjectId: examSubject.subject_id,
+                        subjectName: subjectDetails?.name || 'Unknown Subject',
+                        marks: examSubject.max_marks,
+                        duration: 0, // Not provided by API
+                        date: e.attributes.exam_date || '',
+                        startTime: '',
+                        endTime: '',
+                      };
+                    },
+                  ),
                   instructions: e.attributes.instructions || '',
                   type: e.attributes.type || 'Unit Test',
                   status: e.attributes.status || 'Scheduled',
@@ -281,7 +295,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
           assignedClasses.push({
             id: teamId,
-            name: classAttrs.name,
+            name: classAttrs.class,
             section: classAttrs.section || 'A',
             classTeacherId: classAttrs.class_teacher_id,
             classTeacherName:
@@ -579,6 +593,59 @@ function ClassesContent({ userData }: ClassesContentProps) {
     }
   };
 
+  const handleUpdateExam = async () => {
+    if (
+      !selectedClass ||
+      !selectedExamForEdit ||
+      !examFormData.name ||
+      examFormData.subjects.length === 0
+    ) {
+      alert('Please fill in all required fields and add at least one subject');
+      return;
+    }
+
+    try {
+      await ApiService.updateExam(orgId, selectedExamForEdit.id, {
+        exam_name: examFormData.name,
+        class_id: selectedClass.id,
+        exam_date: examFormData.date || new Date().toISOString().split('T')[0],
+        subjects: examFormData.subjects.map((s) => ({
+          subject_id: s.subjectId,
+          max_marks: s.marks,
+        })),
+      });
+
+      setShowEditExamModal(false);
+      setSelectedExamForEdit(null);
+      loadClassesData();
+      alert('Exam updated successfully!');
+    } catch (error) {
+      console.error('Error updating exam:', error);
+      alert('Failed to update exam');
+    }
+  };
+
+  const handleDeleteExam = async (exam: Exam) => {
+    if (!selectedClass) return;
+
+    if (
+      !confirm(
+        `Are you sure you want to delete "${exam.name}"? This action cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await ApiService.deleteExam(orgId, exam.id);
+      loadClassesData();
+      alert('Exam deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting exam:', error);
+      alert('Failed to delete exam');
+    }
+  };
+
   // Class Monitor handlers
   const handleAssignClassMonitor = async (student: Student) => {
     if (!selectedClass) return;
@@ -700,7 +767,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       </div>
     );
   }
-
+  console.log(classes);
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -905,7 +972,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                         { id: 'students', label: 'Students', icon: '👥' },
                         { id: 'subjects', label: 'Subjects', icon: '📚' },
                         { id: 'exams', label: 'Exams', icon: '📝' },
-                        { id: 'monitor', label: 'Class Monitor', icon: '⭐' },
+                        // { id: 'monitor', label: 'Class Monitor', icon: '⭐' },
                       ].map((tab) => (
                         <button
                           key={tab.id}
@@ -985,7 +1052,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                   <tr key={student.id}>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                       <div className="text-sm font-medium text-gray-900">
-                                        {student.first_name} {student.last_name}
+                                        {student.name}
                                       </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -1100,9 +1167,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Subject Name
                                   </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Code
-                                  </th>
+                                  </th> */}
                                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                     Assigned Teacher
                                   </th>
@@ -1122,9 +1189,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                         {subject.name}
                                       </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                       {subject.code}
-                                    </td>
+                                    </td> */}
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                       {subject.teacherName || 'Not Assigned'}
                                     </td>
@@ -1242,7 +1309,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                 className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
                               >
                                 <div className="flex items-center justify-between mb-3">
-                                  <div>
+                                  <div className="flex-1">
                                     <h4 className="text-lg font-semibold text-gray-900">
                                       {exam.name}
                                     </h4>
@@ -1250,6 +1317,27 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                       <span className="text-sm text-gray-500">
                                         {exam.type}
                                       </span>
+                                      {exam.subjects.length > 0 &&
+                                        exam.subjects[0].date && (
+                                          <span className="text-sm text-gray-500 flex items-center">
+                                            <svg
+                                              className="w-4 h-4 mr-1"
+                                              fill="none"
+                                              stroke="currentColor"
+                                              viewBox="0 0 24 24"
+                                            >
+                                              <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth={2}
+                                                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                              />
+                                            </svg>
+                                            {new Date(
+                                              exam.subjects[0].date,
+                                            ).toLocaleDateString()}
+                                          </span>
+                                        )}
                                       <span
                                         className={`px-2 py-1 text-xs font-medium rounded-full ${
                                           exam.status === 'Scheduled'
@@ -1264,6 +1352,87 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                         {exam.status}
                                       </span>
                                     </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2 ml-4">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedExamForView(exam);
+                                        setShowViewExamModal(true);
+                                      }}
+                                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                      title="View Exam"
+                                    >
+                                      <svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                        />
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                        />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setSelectedExamForEdit(exam);
+                                        setExamFormData({
+                                          name: exam.name,
+                                          date:
+                                            exam.subjects.length > 0
+                                              ? exam.subjects[0].date
+                                              : '',
+                                          subjects: exam.subjects,
+                                          instructions: exam.instructions,
+                                          type: exam.type,
+                                        });
+                                        setShowEditExamModal(true);
+                                      }}
+                                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                      title="Edit Exam"
+                                    >
+                                      <svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                        />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteExam(exam)}
+                                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                      title="Delete Exam"
+                                    >
+                                      <svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                        />
+                                      </svg>
+                                    </button>
                                   </div>
                                 </div>
                                 {exam.instructions && (
@@ -1898,6 +2067,507 @@ function ClassesContent({ userData }: ClassesContentProps) {
                 className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Create Exam
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Exam Modal */}
+      {showEditExamModal && selectedExamForEdit && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Exam</h3>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Exam Name *
+                </label>
+                <input
+                  type="text"
+                  value={examFormData.name}
+                  onChange={(e) =>
+                    setExamFormData({ ...examFormData, name: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="e.g., Mid Term Examination"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Exam Type *
+                  </label>
+                  <select
+                    value={examFormData.type}
+                    onChange={(e) =>
+                      setExamFormData({
+                        ...examFormData,
+                        type: e.target.value as
+                          | 'Unit Test'
+                          | 'Mid Term'
+                          | 'Final'
+                          | 'Assignment',
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="Unit Test">Unit Test</option>
+                    <option value="Mid Term">Mid Term</option>
+                    <option value="Final">Final</option>
+                    <option value="Assignment">Assignment</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Exam Date
+                  </label>
+                  <input
+                    type="date"
+                    value={examFormData.date}
+                    onChange={(e) =>
+                      setExamFormData({ ...examFormData, date: e.target.value })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Instructions
+                </label>
+                <textarea
+                  value={examFormData.instructions}
+                  onChange={(e) =>
+                    setExamFormData({
+                      ...examFormData,
+                      instructions: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Enter exam instructions..."
+                />
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-gray-900">
+                    Subjects ({examFormData.subjects.length})
+                  </h4>
+                </div>
+
+                {examFormData.subjects.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    {examFormData.subjects.map((subject, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+                      >
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">
+                            {subject.subjectName}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Max Marks: {subject.marks}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => handleRemoveExamSubject(index)}
+                          className="ml-2 p-1 text-red-600 hover:bg-red-50 rounded"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Subject *
+                    </label>
+                    <select
+                      value={tempExamSubject.subjectId}
+                      onChange={(e) =>
+                        setTempExamSubject({
+                          ...tempExamSubject,
+                          subjectId: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">Select Subject</option>
+                      {currentSubjects.map((subject) => (
+                        <option key={subject.id} value={subject.id}>
+                          {subject.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Max Marks *
+                    </label>
+                    <input
+                      type="number"
+                      value={tempExamSubject.marks}
+                      onChange={(e) =>
+                        setTempExamSubject({
+                          ...tempExamSubject,
+                          marks: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="100"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleAddExamSubject}
+                  className="mt-3 w-full px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  + Add Subject
+                </button>
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowEditExamModal(false);
+                  setSelectedExamForEdit(null);
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdateExam}
+                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              >
+                Update Exam
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Exam Modal */}
+      {showViewExamModal && selectedExamForView && (
+        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-white">Exam Details</h3>
+                <button
+                  onClick={() => {
+                    setShowViewExamModal(false);
+                    setSelectedExamForView(null);
+                  }}
+                  className="text-white hover:text-gray-200 transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-6 space-y-6">
+              {/* Exam Basic Info */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+                <div className="grid grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      Exam Name
+                    </label>
+                    <p className="text-lg font-bold text-gray-900">
+                      {selectedExamForView.name}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      Exam Type
+                    </label>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {selectedExamForView.type}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      Status
+                    </label>
+                    <span
+                      className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
+                        selectedExamForView.status === 'Scheduled'
+                          ? 'bg-blue-100 text-blue-800'
+                          : selectedExamForView.status === 'Ongoing'
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : selectedExamForView.status === 'Completed'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {selectedExamForView.status}
+                    </span>
+                  </div>
+                  {selectedExamForView.subjects.length > 0 &&
+                    selectedExamForView.subjects[0].date && (
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-600 mb-2">
+                          Exam Date
+                        </label>
+                        <p className="text-lg font-semibold text-gray-900 flex items-center">
+                          <svg
+                            className="w-5 h-5 mr-2 text-blue-600"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
+                          </svg>
+                          {new Date(
+                            selectedExamForView.subjects[0].date,
+                          ).toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </p>
+                      </div>
+                    )}
+                </div>
+
+                {selectedExamForView.instructions && (
+                  <div className="mt-4 pt-4 border-t border-blue-200">
+                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                      Instructions
+                    </label>
+                    <p className="text-gray-700 leading-relaxed">
+                      {selectedExamForView.instructions}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Subjects Details */}
+              <div>
+                <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                  <svg
+                    className="w-6 h-6 mr-2 text-indigo-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+                    />
+                  </svg>
+                  Subjects ({selectedExamForView.subjects.length})
+                </h4>
+
+                <div className="space-y-3">
+                  {selectedExamForView.subjects.map((subject, idx) => (
+                    <div
+                      key={idx}
+                      className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <h5 className="text-base font-bold text-gray-900 mb-2">
+                            {subject.subjectName}
+                          </h5>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <span className="text-xs font-medium text-gray-500 block mb-1">
+                                Subject ID
+                              </span>
+                              <span className="text-sm text-gray-700 font-mono">
+                                {subject.subjectId.slice(-8)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-xs font-medium text-gray-500 block mb-1">
+                                Maximum Marks
+                              </span>
+                              <span className="text-sm font-bold text-indigo-600">
+                                {subject.marks}
+                              </span>
+                            </div>
+                            {subject.duration > 0 && (
+                              <div>
+                                <span className="text-xs font-medium text-gray-500 block mb-1">
+                                  Duration
+                                </span>
+                                <span className="text-sm text-gray-700">
+                                  {subject.duration} mins
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                          {(subject.startTime || subject.endTime) && (
+                            <div className="mt-2 flex items-center text-sm text-gray-600">
+                              <svg
+                                className="w-4 h-4 mr-1"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                              </svg>
+                              {subject.startTime && (
+                                <span>{subject.startTime}</span>
+                              )}
+                              {subject.startTime && subject.endTime && (
+                                <span className="mx-1">-</span>
+                              )}
+                              {subject.endTime && (
+                                <span>{subject.endTime}</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="bg-gradient-to-br from-indigo-100 to-blue-100 rounded-full p-4">
+                            <svg
+                              className="w-8 h-8 text-indigo-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Summary Section */}
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">
+                      Total Subjects
+                    </p>
+                    <p className="text-2xl font-bold text-indigo-600">
+                      {selectedExamForView.subjects.length}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">
+                      Total Marks
+                    </p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {selectedExamForView.subjects.reduce(
+                        (sum, s) => sum + s.marks,
+                        0,
+                      )}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">
+                      Total Duration
+                    </p>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {selectedExamForView.subjects.reduce(
+                        (sum, s) => sum + s.duration,
+                        0,
+                      )}{' '}
+                      mins
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowViewExamModal(false);
+                  setSelectedExamForView(null);
+                }}
+                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setShowViewExamModal(false);
+                  setSelectedExamForEdit(selectedExamForView);
+                  setShowEditExamModal(true);
+                  setSelectedExamForView(null);
+                }}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium flex items-center"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+                Edit Exam
               </button>
             </div>
           </div>

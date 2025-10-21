@@ -160,7 +160,7 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
       stats: 'View Info',
     },
     {
-      title: 'Exams',
+      title: 'Result',
       description: 'Manage exams, assessments, and student evaluations',
       icon: (
         <svg
