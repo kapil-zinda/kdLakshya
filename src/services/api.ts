@@ -2669,6 +2669,139 @@ export class ApiService {
     }
   }
 
+  // Get attendance for a class
+  static async getClassAttendance(
+    orgId: string,
+    classId: string,
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(
+        `/${orgId}/attendance/class/${classId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching class attendance:', error);
+      throw new Error('Failed to fetch class attendance');
+    }
+  }
+
+  // Get student attendance for a specific month
+  static async getStudentMonthlyAttendance(
+    orgId: string,
+    studentId: string,
+    month: string, // Format: MM-YYYY
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(
+        `/${orgId}/attendance/student/${studentId}/${month}`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching student monthly attendance:', error);
+      throw new Error('Failed to fetch student monthly attendance');
+    }
+  }
+
+  // Update/Submit attendance for a class
+  static async submitClassAttendance(
+    orgId: string,
+    classId: string,
+    attendanceData: Array<{
+      class_id: string;
+      student_id: string;
+      status: string;
+      date: string;
+      student_roll_no: string;
+    }>,
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        data: {
+          type: 'attaindace',
+          attributes: attendanceData,
+        },
+      };
+
+      console.log(
+        `Making POST request to: /${orgId}/attendance/class/${classId}`,
+      );
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
+      const response = await classApi.post(
+        `/${orgId}/attendance/class/${classId}`,
+        requestBody,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      console.log('Attendance submitted successfully');
+      return response.data;
+    } catch (error) {
+      console.error('Error submitting attendance:', error);
+      throw new Error('Failed to submit attendance');
+    }
+  }
+
   // Combined function to fetch all data in sequence
   static async fetchAllData(subdomainParam?: string): Promise<{
     subdomain: SubdomainResponse;
