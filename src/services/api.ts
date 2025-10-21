@@ -2431,6 +2431,299 @@ export class ApiService {
     }
   }
 
+  // Get class by ID
+  static async getClassById(orgId: string, classId: string): Promise<any> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(`/${orgId}/classes/${classId}`, {
+        headers: {
+          'Content-Type': 'application/vnd.api+json',
+          Authorization: `Bearer ${tokenItem.value}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching class:', error);
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to fetch class: ${backendMessage}`);
+    }
+  }
+
+  // Get teacher's assigned subjects in a class
+  static async getTeacherSubjectsInClass(
+    orgId: string,
+    teacherId: string,
+    classId: string,
+  ): Promise<any> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(
+        `/${orgId}/subjects/class/${classId}`,
+        {
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+            Authorization: `Bearer ${tokenItem.value}`,
+          },
+        },
+      );
+
+      // Filter subjects assigned to this teacher
+      const teacherSubjects = response.data.data.filter((subject: any) => {
+        const teachers = subject.relationships?.teachers?.data || [];
+        return teachers.some((t: any) => t.id === teacherId);
+      });
+
+      return { data: teacherSubjects };
+    } catch (error: any) {
+      console.error('Error fetching teacher subjects:', error);
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to fetch teacher subjects: ${backendMessage}`);
+    }
+  }
+
+  // Get all exams for a teacher
+  static async getTeacherExams(orgId: string, teacherId: string): Promise<any> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(
+        `/${orgId}/exams/teacher/${teacherId}`,
+        {
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+            Authorization: `Bearer ${tokenItem.value}`,
+          },
+        },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching teacher exams:', error);
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to fetch teacher exams: ${backendMessage}`);
+    }
+  }
+
+  // Get exam by ID
+  static async getExamById(orgId: string, examId: string): Promise<any> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(`/${orgId}/exams/${examId}`, {
+        headers: {
+          'Content-Type': 'application/vnd.api+json',
+          Authorization: `Bearer ${tokenItem.value}`,
+        },
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching exam:', error);
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to fetch exam: ${backendMessage}`);
+    }
+  }
+
+  // Enter marks for student(s)
+  static async createResult(
+    orgId: string,
+    resultData: {
+      student_id: string;
+      exam_id: string;
+      marks: Array<{
+        subject_id: string;
+        marks_obtained: number;
+        updated_by: string;
+      }>;
+    },
+  ): Promise<any> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.post(
+        `/${orgId}/results`,
+        {
+          data: {
+            type: 'results',
+            attributes: resultData,
+          },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+            Authorization: `Bearer ${tokenItem.value}`,
+          },
+        },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error creating result:', error);
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to create result: ${backendMessage}`);
+    }
+  }
+
+  // Update marks for a subject
+  static async updateResult(
+    orgId: string,
+    resultId: string,
+    subjectId: string,
+    marksObtained: number,
+    updatedBy: string,
+  ): Promise<any> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.put(
+        `/${orgId}/results/${resultId}/subjects/${subjectId}`,
+        {
+          data: {
+            type: 'results',
+            attributes: {
+              marks_obtained: marksObtained,
+              updated_by: updatedBy,
+            },
+          },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+            Authorization: `Bearer ${tokenItem.value}`,
+          },
+        },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error updating result:', error);
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to update result: ${backendMessage}`);
+    }
+  }
+
+  // Get results for exam and subject
+  static async getResultsForExamSubject(
+    orgId: string,
+    examId: string,
+    subjectId: string,
+  ): Promise<any> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(
+        `/${orgId}/results/exam/${examId}/subject/${subjectId}`,
+        {
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+            Authorization: `Bearer ${tokenItem.value}`,
+          },
+        },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching results:', error);
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to fetch results: ${backendMessage}`);
+    }
+  }
+
   // Get all students by organization ID
   static async getStudents(orgId: string): Promise<StudentListResponse> {
     const cacheKey = `students_${orgId}`;
