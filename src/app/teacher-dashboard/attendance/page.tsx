@@ -41,9 +41,8 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
   const [attendanceRecords, setAttendanceRecords] = useState<
     Map<string, string>
   >(new Map());
-  const [selectedDate, setSelectedDate] = useState<string>(
-    new Date().toISOString().split('T')[0],
-  );
+  const todayDate = new Date().toISOString().split('T')[0];
+  const [selectedDate] = useState<string>(todayDate);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -171,7 +170,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
     };
 
     loadAttendanceData();
-  }, [selectedClass, selectedDate, orgId]);
+  }, [selectedClass, orgId]);
 
   const formatDateForAPI = (dateString: string): string => {
     const date = new Date(dateString);
@@ -357,7 +356,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {classes.length > 0 ? (
           <div className="space-y-6">
-            {/* Class and Date Selection */}
+            {/* Class Selection */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -382,15 +381,34 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Date
+                    Date
                   </label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    max={new Date().toISOString().split('T')[0]}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                  />
+                  <div className="flex items-center px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg">
+                    <svg
+                      className="w-5 h-5 mr-2 text-gray-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <span className="text-gray-900 font-medium">
+                      {new Date(selectedDate).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </span>
+                    <span className="ml-2 px-2 py-1 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded">
+                      Today
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

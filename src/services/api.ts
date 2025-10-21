@@ -2205,7 +2205,11 @@ export class ApiService {
       exam_date: string;
       subjects: Array<{
         subject_id: string;
+        subject_name?: string;
         max_marks: number;
+        exam_date?: string;
+        duration?: number;
+        start_time?: string;
       }>;
     },
   ): Promise<any> {
@@ -2341,7 +2345,11 @@ export class ApiService {
       exam_date?: string;
       subjects?: Array<{
         subject_id: string;
+        subject_name?: string;
         max_marks: number;
+        exam_date?: string;
+        duration?: number;
+        start_time?: string;
       }>;
     },
   ): Promise<any> {

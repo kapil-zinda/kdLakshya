@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ApiService } from '@/services/api';
+import { toast } from 'react-toastify';
 
 interface Student {
   id: string;
@@ -278,11 +279,15 @@ function ClassesContent({ userData }: ClassesContentProps) {
                       );
                       return {
                         subjectId: examSubject.subject_id,
-                        subjectName: subjectDetails?.name || 'Unknown Subject',
+                        subjectName:
+                          examSubject.subject_name ||
+                          subjectDetails?.name ||
+                          'Unknown Subject',
                         marks: examSubject.max_marks,
-                        duration: 0, // Not provided by API
-                        date: e.attributes.exam_date || '',
-                        startTime: '',
+                        duration: examSubject.duration || 0,
+                        date:
+                          examSubject.exam_date || e.attributes.exam_date || '',
+                        startTime: examSubject.start_time || '',
                         endTime: '',
                       };
                     },
@@ -379,7 +384,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
   const handleCreateSubject = async () => {
     if (!selectedClass || !subjectFormData.name || !subjectFormData.code) {
-      alert('Please fill in all required fields');
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -395,7 +400,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       loadClassesData();
     } catch (error) {
       console.error('Error creating subject:', error);
-      alert('Failed to create subject');
+      toast.error('Failed to create subject');
     }
   };
 
@@ -422,7 +427,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       loadClassesData();
     } catch (error) {
       console.error('Error updating subject:', error);
-      alert('Failed to update subject');
+      toast.error('Failed to update subject');
     }
   };
 
@@ -442,7 +447,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       loadClassesData();
     } catch (error) {
       console.error('Error deleting subject:', error);
-      alert('Failed to delete subject');
+      toast.error('Failed to delete subject');
     }
   };
 
@@ -467,18 +472,30 @@ function ClassesContent({ userData }: ClassesContentProps) {
     }
   };
 
-  const handleAssignStudent = async (studentId: string) => {
+  const handleAssignStudent = async (student: any) => {
     if (!selectedClass) return;
+
+    // Prompt for roll number
+    const rollNumber = prompt('Enter roll number for this student:');
+    if (!rollNumber) {
+      toast.error('Roll number is required');
+      return;
+    }
 
     try {
       // Use orgId from userData prop (no API call needed!)
-      await ApiService.assignStudentToClass(orgId, selectedClass.id, studentId);
+      await ApiService.enrollStudentInClass(orgId, selectedClass.id, {
+        student_id: student.id,
+        roll_number: rollNumber,
+        academic_year: selectedClass.academicYear || '2024-25',
+      });
 
       setShowAddStudentModal(false);
       loadClassesData();
+      toast.success('Student enrolled successfully!');
     } catch (error) {
       console.error('Error assigning student:', error);
-      alert('Failed to assign student');
+      toast.error('Failed to assign student. Please try again.');
     }
   };
 
@@ -496,7 +513,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       loadClassesData();
     } catch (error) {
       console.error('Error removing student:', error);
-      alert('Failed to remove student');
+      toast.error('Failed to remove student');
     }
   };
 
@@ -522,7 +539,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
   const handleAddExamSubject = () => {
     if (!tempExamSubject.subjectId) {
-      alert('Please select a subject');
+      toast.error('Please select a subject');
       return;
     }
 
@@ -569,7 +586,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
       !examFormData.name ||
       examFormData.subjects.length === 0
     ) {
-      alert('Please fill in all required fields and add at least one subject');
+      toast.error(
+        'Please fill in all required fields and add at least one subject',
+      );
       return;
     }
 
@@ -581,7 +600,14 @@ function ClassesContent({ userData }: ClassesContentProps) {
         exam_date: examFormData.date || new Date().toISOString().split('T')[0],
         subjects: examFormData.subjects.map((s) => ({
           subject_id: s.subjectId,
+          subject_name: s.subjectName,
           max_marks: s.marks,
+          exam_date:
+            s.date ||
+            examFormData.date ||
+            new Date().toISOString().split('T')[0],
+          duration: s.duration || 60,
+          start_time: s.startTime || '',
         })),
       });
 
@@ -589,7 +615,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       loadClassesData();
     } catch (error) {
       console.error('Error creating exam:', error);
-      alert('Failed to create exam');
+      toast.error('Failed to create exam');
     }
   };
 
@@ -600,7 +626,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
       !examFormData.name ||
       examFormData.subjects.length === 0
     ) {
-      alert('Please fill in all required fields and add at least one subject');
+      toast.error(
+        'Please fill in all required fields and add at least one subject',
+      );
       return;
     }
 
@@ -608,20 +636,26 @@ function ClassesContent({ userData }: ClassesContentProps) {
       await ApiService.updateExam(orgId, selectedExamForEdit.id, {
         exam_name: examFormData.name,
         class_id: selectedClass.id,
-        exam_date: examFormData.date || new Date().toISOString().split('T')[0],
         subjects: examFormData.subjects.map((s) => ({
           subject_id: s.subjectId,
+          subject_name: s.subjectName,
           max_marks: s.marks,
+          exam_date:
+            s.date ||
+            examFormData.date ||
+            new Date().toISOString().split('T')[0],
+          duration: s.duration || 60,
+          start_time: s.startTime || '',
         })),
       });
 
       setShowEditExamModal(false);
       setSelectedExamForEdit(null);
       loadClassesData();
-      alert('Exam updated successfully!');
+      toast.success('Exam updated successfully!');
     } catch (error) {
       console.error('Error updating exam:', error);
-      alert('Failed to update exam');
+      toast.error('Failed to update exam');
     }
   };
 
@@ -639,10 +673,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
     try {
       await ApiService.deleteExam(orgId, exam.id);
       loadClassesData();
-      alert('Exam deleted successfully!');
+      toast.success('Exam deleted successfully!');
     } catch (error) {
       console.error('Error deleting exam:', error);
-      alert('Failed to delete exam');
+      toast.error('Failed to delete exam');
     }
   };
 
@@ -667,10 +701,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
       }
 
       setClassMonitor(student);
-      alert(`${student.name} has been assigned as class monitor`);
+      toast.success(`${student.name} has been assigned as class monitor`);
     } catch (error) {
       console.error('Error assigning class monitor:', error);
-      alert('Failed to assign class monitor');
+      toast.error('Failed to assign class monitor');
     }
   };
 
@@ -685,10 +719,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
       });
 
       setClassMonitor(null);
-      alert('Class monitor has been removed');
+      toast.success('Class monitor has been removed');
     } catch (error) {
       console.error('Error removing class monitor:', error);
-      alert('Failed to remove class monitor');
+      toast.error('Failed to remove class monitor');
     }
   };
 
@@ -1626,7 +1660,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                         </p>
                       </div>
                       <button
-                        onClick={() => handleAssignStudent(student.id)}
+                        onClick={() => handleAssignStudent(student)}
                         className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                       >
                         Add
@@ -2343,37 +2377,6 @@ function ClassesContent({ userData }: ClassesContentProps) {
                       {selectedExamForView.status}
                     </span>
                   </div>
-                  {selectedExamForView.subjects.length > 0 &&
-                    selectedExamForView.subjects[0].date && (
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-600 mb-2">
-                          Exam Date
-                        </label>
-                        <p className="text-lg font-semibold text-gray-900 flex items-center">
-                          <svg
-                            className="w-5 h-5 mr-2 text-blue-600"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                            />
-                          </svg>
-                          {new Date(
-                            selectedExamForView.subjects[0].date,
-                          ).toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
-                        </p>
-                      </div>
-                    )}
                 </div>
 
                 {selectedExamForView.instructions && (
@@ -2419,14 +2422,23 @@ function ClassesContent({ userData }: ClassesContentProps) {
                             {subject.subjectName}
                           </h5>
                           <div className="grid grid-cols-3 gap-4">
-                            <div>
-                              <span className="text-xs font-medium text-gray-500 block mb-1">
-                                Subject ID
-                              </span>
-                              <span className="text-sm text-gray-700 font-mono">
-                                {subject.subjectId.slice(-8)}
-                              </span>
-                            </div>
+                            {subject.date && (
+                              <div>
+                                <span className="text-xs font-medium text-gray-500 block mb-1">
+                                  Exam Date
+                                </span>
+                                <span className="text-sm text-gray-700">
+                                  {new Date(subject.date).toLocaleDateString(
+                                    'en-US',
+                                    {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric',
+                                    },
+                                  )}
+                                </span>
+                              </div>
+                            )}
                             <div>
                               <span className="text-xs font-medium text-gray-500 block mb-1">
                                 Maximum Marks
