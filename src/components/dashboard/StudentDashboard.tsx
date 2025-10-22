@@ -359,7 +359,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
         >
           Overview
         </button>
-        {/* <button
+        <button
           onClick={() => setActiveTab('marks')}
           className={`px-4 py-2 rounded-md ${
             activeTab === 'marks'
@@ -379,36 +379,6 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
         >
           Attendance
         </button>
-        <button
-          onClick={() => setActiveTab('calendar')}
-          className={`px-4 py-2 rounded-md ${
-            activeTab === 'calendar'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-          }`}
-        >
-          Calendar
-        </button>
-        <button
-          onClick={() => setActiveTab('results')}
-          className={`px-4 py-2 rounded-md ${
-            activeTab === 'results'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-          }`}
-        >
-          Results
-        </button>
-        <button
-          onClick={() => setActiveTab('fees')}
-          className={`px-4 py-2 rounded-md ${
-            activeTab === 'fees'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
-          }`}
-        >
-          Fees
-        </button> */}
       </div>
 
       {/* Dashboard Content */}

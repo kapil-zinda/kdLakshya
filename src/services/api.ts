@@ -2724,6 +2724,85 @@ export class ApiService {
     }
   }
 
+  // Get student result for a specific exam
+  static async getStudentResultForExam(
+    orgId: string,
+    studentId: string,
+    examId: string,
+  ): Promise<any> {
+    try {
+      // Get student authentication token
+      const studentAuthStr = localStorage.getItem('studentAuth');
+      if (!studentAuthStr) {
+        throw new Error('No student authentication found');
+      }
+
+      const studentAuth = JSON.parse(studentAuthStr);
+      const basicAuthToken = studentAuth.basicAuthToken;
+
+      if (!basicAuthToken) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await classApi.get(
+        `/${orgId}/results/student/${studentId}/exam/${examId}`,
+        {
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+            'x-api-key': basicAuthToken,
+          },
+        },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching student result for exam:', error);
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to fetch student result: ${backendMessage}`);
+    }
+  }
+
+  // Get all exams for a student's class
+  static async getExamsForStudentClass(
+    orgId: string,
+    classId: string,
+  ): Promise<any> {
+    try {
+      // Get student authentication token
+      const studentAuthStr = localStorage.getItem('studentAuth');
+      if (!studentAuthStr) {
+        throw new Error('No student authentication found');
+      }
+
+      const studentAuth = JSON.parse(studentAuthStr);
+      const basicAuthToken = studentAuth.basicAuthToken;
+
+      if (!basicAuthToken) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await classApi.get(
+        `/${orgId}/classes/${classId}/exams`,
+        {
+          headers: {
+            'Content-Type': 'application/vnd.api+json',
+            'x-api-key': basicAuthToken,
+          },
+        },
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error fetching exams for class:', error);
+      const backendMessage =
+        error.response?.data?.errors?.[0]?.detail ||
+        error.response?.data?.message ||
+        error.message;
+      throw new Error(`Failed to fetch exams: ${backendMessage}`);
+    }
+  }
+
   // Get all students by organization ID
   static async getStudents(orgId: string): Promise<StudentListResponse> {
     const cacheKey = `students_${orgId}`;
@@ -3014,25 +3093,24 @@ export class ApiService {
     month: string, // Format: MM-YYYY
   ): Promise<any> {
     try {
-      // Get authentication token
-      const tokenStr = localStorage.getItem('bearerToken');
-      if (!tokenStr) {
-        throw new Error('No authentication token found');
+      // Get student authentication token
+      const studentAuthStr = localStorage.getItem('studentAuth');
+      if (!studentAuthStr) {
+        throw new Error('No student authentication found');
       }
 
-      const tokenItem = JSON.parse(tokenStr);
-      const now = new Date().getTime();
+      const studentAuth = JSON.parse(studentAuthStr);
+      const basicAuthToken = studentAuth.basicAuthToken;
 
-      if (now > tokenItem.expiry) {
-        localStorage.removeItem('bearerToken');
-        throw new Error('Authentication token has expired');
+      if (!basicAuthToken) {
+        throw new Error('No authentication token found');
       }
 
       const response = await classApi.get(
         `/${orgId}/attendance/student/${studentId}/${month}`,
         {
           headers: {
-            Authorization: `Bearer ${tokenItem.value}`,
+            'x-api-key': basicAuthToken,
             'Content-Type': 'application/vnd.api+json',
           },
         },
@@ -3404,3 +3482,6 @@ export const transformApiDataToOrganizationConfig = (apiData: {
     },
   };
 };
+
+// Default export for backward compatibility
+export default ApiService;
