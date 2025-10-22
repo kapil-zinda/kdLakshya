@@ -523,8 +523,11 @@ export interface ClassResponse {
       section: string;
       teacher_id?: string;
       teacher_name?: string;
+      class_teacher_id?: string;
+      class_teacher_name?: string;
       room: string;
       academic_year: string;
+      academicYear?: string;
       description: string;
       createdAt: number;
       updatedAt: number;
@@ -2958,6 +2961,8 @@ export class ApiService {
       uniqueId: string;
       profile: string;
       gradeLevel: string;
+      isMonitor: boolean;
+      classId: string;
       guardianInfo: {
         fatherName: string;
         motherName: string;

@@ -206,13 +206,6 @@ function ClassesContent({ userData }: ClassesContentProps) {
       }));
       setTeachers(teachersList);
 
-      // For localhost development, show all classes for easier testing
-      const isLocalhost =
-        typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' ||
-          window.location.hostname === '127.0.0.1' ||
-          window.location.hostname.startsWith('localhost:'));
-
       // Filter classes where this teacher is class teacher
       const assignedClasses: Class[] = [];
 
@@ -224,11 +217,11 @@ function ClassesContent({ userData }: ClassesContentProps) {
         const hasPermission =
           allowedTeams.includes(teamId) || // Check if team ID is in allowedTeams array
           teamPermissions.includes(`team-${teamId}`) ||
-          (classAttrs as any).class_teacher_id === userId ||
+          classAttrs.class_teacher_id === userId ||
           classAttrs.teacher_id === userId; // Also check teacher_id field
 
         console.log(
-          `Class ${classAttrs.class || classItem.id}: hasPermission=${hasPermission}, teamId=${teamId}, inAllowedTeams=${allowedTeams.includes(teamId)}, teacher_id=${classAttrs.teacher_id}, class_teacher_id=${(classAttrs as any).class_teacher_id}, userId=${userId}`,
+          `Class ${classAttrs.class || classItem.id}: hasPermission=${hasPermission}, teamId=${teamId}, inAllowedTeams=${allowedTeams.includes(teamId)}, teacher_id=${classAttrs.teacher_id}, class_teacher_id=${classAttrs.class_teacher_id}, userId=${userId}`,
         );
 
         if (hasPermission) {
@@ -302,9 +295,12 @@ function ClassesContent({ userData }: ClassesContentProps) {
             id: teamId,
             name: classAttrs.class,
             section: classAttrs.section || 'A',
-            classTeacherId: classAttrs.class_teacher_id,
+            classTeacherId:
+              classAttrs.class_teacher_id || classAttrs.teacher_id,
             classTeacherName:
-              classAttrs.class_teacher_name || userData.firstName,
+              classAttrs.class_teacher_name ||
+              classAttrs.teacher_name ||
+              userData.firstName,
             academicYear:
               classAttrs.academic_year || classAttrs.academicYear || '2024-25',
             totalStudents: students.length,
@@ -504,13 +500,14 @@ function ClassesContent({ userData }: ClassesContentProps) {
     if (!confirm(`Remove ${student.name} from this class?`)) return;
 
     try {
-      // Use orgId from userData prop (no API call needed!)
-      await ApiService.removeStudentFromClass(
-        orgId,
-        selectedClass.id,
-        student.id,
-      );
-      loadClassesData();
+      // TODO: Implement removeStudentFromClass API method
+      // await ApiService.removeStudentFromClass(
+      //   orgId,
+      //   selectedClass.id,
+      //   student.id,
+      // );
+      toast.error('Remove student functionality not yet implemented');
+      // loadClassesData();
     } catch (error) {
       console.error('Error removing student:', error);
       toast.error('Failed to remove student');
