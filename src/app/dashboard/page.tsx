@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import StudentDashboard from '@/components/dashboard/StudentDashboard';
-import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
+import TeacherDashboardCards from '@/components/dashboard/TeacherDashboardCards';
 
 export default function DashboardPage() {
   const renderDashboardContent = (userData: any) => {
@@ -29,7 +29,7 @@ export default function DashboardPage() {
       userData.type === 'faculty' || userData.role === 'faculty';
 
     if (hasTeamPermission || isFaculty) {
-      return <TeacherDashboard userData={userData} />;
+      return <TeacherDashboardCards userData={userData} />;
     }
     console.log('rishabh"', isFaculty, userData);
     // Default to student dashboard

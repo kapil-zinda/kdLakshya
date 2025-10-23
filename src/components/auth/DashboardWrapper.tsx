@@ -93,7 +93,7 @@ export function DashboardWrapper({
     permission: cachedUserData.permissions,
     allowedTeams: Object.keys(cachedUserData.permissions || {})
       .filter((key) => key.startsWith('team-'))
-      .map((key) => key.match(/team-(\d+)/)?.[1])
+      .map((key) => key.match(/team-(.+)/)?.[1])
       .filter(Boolean) as string[],
     type: cachedUserData.type,
     role: cachedUserData.role,
