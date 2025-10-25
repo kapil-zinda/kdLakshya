@@ -63,6 +63,7 @@ export default function StudentManagement() {
   const [editFormData, setEditFormData] = useState<Partial<Student>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addFormData, setAddFormData] = useState({
     firstName: '',
@@ -210,7 +211,7 @@ export default function StudentManagement() {
     }
 
     try {
-      setLoading(true);
+      setFilterLoading(true);
       const orgId = await ApiService.getCurrentOrgId();
 
       // Fetch students for the selected class
@@ -277,7 +278,7 @@ export default function StudentManagement() {
       console.error('Error loading class students:', error);
       setStudents([]);
     } finally {
-      setLoading(false);
+      setFilterLoading(false);
     }
   };
 
@@ -683,8 +684,39 @@ export default function StudentManagement() {
           </div>
         </div>
 
+        {/* Subtle Loading Indicator */}
+        {filterLoading && (
+          <div className="mb-4 flex items-center justify-center py-2">
+            <div className="flex items-center space-x-2 text-indigo-600">
+              <svg
+                className="animate-spin h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span className="text-sm font-medium">Loading students...</span>
+            </div>
+          </div>
+        )}
+
         {/* Students Table */}
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div
+          className={`bg-white shadow-sm rounded-lg border border-gray-200 transition-opacity duration-200 ${filterLoading ? 'opacity-50' : 'opacity-100'}`}
+        >
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
