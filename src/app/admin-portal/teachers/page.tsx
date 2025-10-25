@@ -51,6 +51,7 @@ export default function TeacherManagement() {
   });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [classes, setClasses] = useState<string[]>([]);
   const router = useRouter();
 
   // Load faculty data from API
@@ -58,6 +59,14 @@ export default function TeacherManagement() {
     try {
       setLoading(true);
       const orgId = await ApiService.getCurrentOrgId();
+
+      // Fetch classes from API
+      const classesResponse = await ApiService.getClasses(orgId);
+      const classNames = classesResponse.data.map(
+        (classData) => `${classData.attributes.class}`,
+      );
+      setClasses(classNames);
+
       const facultyResponse = await ApiService.getFaculty(orgId);
 
       // Transform API data to teacher format
@@ -188,23 +197,6 @@ export default function TeacherManagement() {
     'Library',
     'Laboratory',
     'Maintenance',
-  ];
-  const classes = [
-    'Nursery',
-    'LKG',
-    'UKG',
-    'Class 1',
-    'Class 2',
-    'Class 3',
-    'Class 4',
-    'Class 5',
-    'Class 6',
-    'Class 7',
-    'Class 8',
-    'Class 9',
-    'Class 10',
-    'Class 11',
-    'Class 12',
   ];
 
   useEffect(() => {
