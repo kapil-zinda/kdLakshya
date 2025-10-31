@@ -1959,6 +1959,328 @@ export class ApiService {
     }
   }
 
+  // Get all fees for students in a class
+  static async getClassFees(
+    orgId: string,
+    classId: string,
+    params?: {
+      status?: 'pending' | 'partial' | 'completed';
+      academic_year?: string;
+    },
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(`/${orgId}/classes/${classId}/fees`, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+        },
+        params: params || {},
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching class fees:', error);
+      throw new Error('Failed to fetch class fees');
+    }
+  }
+
+  // Get all fee structures for an organization
+  static async getFeeStructures(
+    orgId: string,
+    params?: {
+      academic_year?: string;
+    },
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(`/${orgId}/fee-structures`, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+        },
+        params: params || {},
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching fee structures:', error);
+      throw new Error('Failed to fetch fee structures');
+    }
+  }
+
+  // Create fee structure for a class
+  static async createFeeStructure(
+    orgId: string,
+    classId: string,
+    feeStructureData: {
+      class_name: string;
+      academic_year: string;
+      components: {
+        admission_fee: number;
+        registration_fee: number;
+        tuition_fees: number;
+        exam_fees: number;
+        other_fees: number;
+      };
+    },
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.post(
+        `/${orgId}/classes/${classId}/fee-structures`,
+        {
+          data: {
+            attributes: feeStructureData,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error creating fee structure:', error);
+      throw new Error('Failed to create fee structure');
+    }
+  }
+
+  // Update fee structure
+  static async updateFeeStructure(
+    orgId: string,
+    feeStructureId: string,
+    feeStructureData: {
+      class_name: string;
+      academic_year: string;
+      components: {
+        admission_fee: number;
+        registration_fee: number;
+        tuition_fees: number;
+        exam_fees: number;
+        other_fees: number;
+      };
+    },
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.put(
+        `/${orgId}/fee-structures/${feeStructureId}`,
+        {
+          data: {
+            attributes: feeStructureData,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating fee structure:', error);
+      throw new Error('Failed to update fee structure');
+    }
+  }
+
+  // Update fee details
+  static async updateFee(
+    orgId: string,
+    feeId: string,
+    feeData: {
+      amount?: number;
+      due_date?: string;
+      description?: string;
+      fee_type?: string;
+    },
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.put(
+        `/${orgId}/fees/${feeId}`,
+        {
+          data: {
+            attributes: feeData,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating fee:', error);
+      throw new Error('Failed to update fee');
+    }
+  }
+
+  // Record a payment for a fee
+  static async recordPayment(
+    orgId: string,
+    feeId: string,
+    paymentData: {
+      amount: number;
+      date: string;
+      receipt_number: string;
+      method: string;
+      description: string;
+      month?: string;
+      remarks?: string;
+    },
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.post(
+        `/${orgId}/fees/${feeId}/payments`,
+        {
+          data: {
+            attributes: paymentData,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      throw new Error('Failed to record payment');
+    }
+  }
+
+  // Get all fees for a specific student
+  static async getStudentFees(
+    orgId: string,
+    studentId: string,
+    params?: {
+      status?: 'pending' | 'partial' | 'completed';
+      academic_year?: string;
+    },
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      // Build query parameters
+      const queryParams = new URLSearchParams();
+      if (params?.status) {
+        queryParams.append('status', params.status);
+      }
+      if (params?.academic_year) {
+        queryParams.append('academic_year', params.academic_year);
+      }
+
+      const queryString = queryParams.toString();
+      const url = `/${orgId}/students/${studentId}/fees${queryString ? `?${queryString}` : ''}`;
+
+      const response = await classApi.get(url, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/vnd.api+json',
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching student fees:', error);
+      throw new Error('Failed to fetch student fees');
+    }
+  }
+
   // Enroll a student in a class
   static async enrollStudentInClass(
     orgId: string,

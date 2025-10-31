@@ -75,6 +75,17 @@ interface ClassFeeSummary {
   overdueStudents: number;
 }
 
+// Helper function to map API fee types to our FeeType
+const mapFeeType = (apiType: string): FeeType => {
+  const lowerType = (apiType || '').toLowerCase();
+  if (lowerType.includes('admission')) return 'Admission Fee';
+  if (lowerType.includes('registration')) return 'Registration Fee';
+  if (lowerType.includes('monthly') || lowerType.includes('tuition'))
+    return 'Monthly Fee';
+  if (lowerType.includes('exam')) return 'Exam Fee';
+  return 'Other Fees';
+};
+
 export default function FeeManagementERP() {
   // View mode
   const [viewMode, setViewMode] = useState<'student' | 'class' | 'month'>(
@@ -187,161 +198,160 @@ export default function FeeManagementERP() {
       setClassIdMap(idMap);
       setClasses(['All', ...classNames]);
 
-      // Create fee structures for each class
-      const structures: FeeStructure[] = classNames.map((className) => {
-        const monthlyFeeAmount = 5000;
-        const monthlyFees = months.slice(1).map((month) => ({
-          month,
-          amount: monthlyFeeAmount,
-          dueDate: `2024-${months.indexOf(month).toString().padStart(2, '0')}-05`,
-        }));
+      // Fetch fee structures from API
+      const feeStructuresResponse = await ApiService.getFeeStructures(orgId, {
+        academic_year: selectedYear,
+      }).catch(() => ({ data: [] }));
 
-        return {
-          id: `struct-${className}`,
-          className,
-          academicYear: selectedYear,
-          totalAmount: 10000 + 5000 + monthlyFeeAmount * 12 + 3000,
-          components: {
-            admissionFee: 10000,
-            registrationFee: 5000,
-            monthlyFees,
-            examFees: [
-              { name: 'Mid-Term Exam', amount: 1500, dueDate: '2024-09-15' },
-              { name: 'Final Exam', amount: 1500, dueDate: '2025-02-15' },
-            ],
-            otherFees: [
-              { name: 'Library Fee', amount: 1000, dueDate: '2024-04-15' },
-              { name: 'Sports Fee', amount: 1000, dueDate: '2024-04-15' },
-              { name: 'Activity Fee', amount: 1000, dueDate: '2024-04-15' },
-            ],
-          },
-        };
+      // Fetch fees for all classes
+      const allFeesPromises = classesResponse.data.map((classData) =>
+        ApiService.getClassFees(orgId, classData.id, {
+          academic_year: selectedYear,
+        }).catch(() => ({ data: [] })),
+      );
+
+      const allFeesResponses = await Promise.all(allFeesPromises);
+      const allFees = allFeesResponses.flatMap(
+        (response) => response.data || [],
+      );
+
+      // Build map of fee structures by class
+      const structuresByClass = new Map<string, any>();
+      (feeStructuresResponse.data || []).forEach((structure: any) => {
+        const className = structure.attributes.class_name;
+        structuresByClass.set(className, structure);
+      });
+
+      // Create fee structures from API data or use defaults
+      const structures: FeeStructure[] = classNames.map((className) => {
+        const apiStructure = structuresByClass.get(className);
+
+        if (apiStructure && apiStructure.attributes.components) {
+          // Use API fee structure data
+          const components = apiStructure.attributes.components;
+          const monthlyFees = months.slice(1).map((month) => ({
+            month,
+            amount: components.tuition_fees
+              ? components.tuition_fees / 12
+              : 5000,
+            dueDate: `2024-${months.indexOf(month).toString().padStart(2, '0')}-05`,
+          }));
+
+          return {
+            id: apiStructure.id,
+            className,
+            academicYear: apiStructure.attributes.academic_year,
+            totalAmount: apiStructure.attributes.total_amount || 0,
+            components: {
+              admissionFee: components.admission_fee || 0,
+              registrationFee: components.registration_fee || 0,
+              monthlyFees,
+              examFees: [
+                {
+                  name: 'Mid-Term Exam',
+                  amount: components.exam_fees ? components.exam_fees / 2 : 0,
+                  dueDate: '2024-09-15',
+                },
+                {
+                  name: 'Final Exam',
+                  amount: components.exam_fees ? components.exam_fees / 2 : 0,
+                  dueDate: '2025-02-15',
+                },
+              ],
+              otherFees: components.other_fees
+                ? [
+                    {
+                      name: 'Other Fees',
+                      amount: components.other_fees,
+                      dueDate: '2024-04-15',
+                    },
+                  ]
+                : [],
+            },
+          };
+        } else {
+          // Use default structure if no API data available
+          const monthlyFeeAmount = 5000;
+          const monthlyFees = months.slice(1).map((month) => ({
+            month,
+            amount: monthlyFeeAmount,
+            dueDate: `2024-${months.indexOf(month).toString().padStart(2, '0')}-05`,
+          }));
+
+          return {
+            id: `struct-${className}`,
+            className,
+            academicYear: selectedYear,
+            totalAmount: 10000 + 5000 + monthlyFeeAmount * 12 + 3000,
+            components: {
+              admissionFee: 10000,
+              registrationFee: 5000,
+              monthlyFees,
+              examFees: [
+                { name: 'Mid-Term Exam', amount: 1500, dueDate: '2024-09-15' },
+                { name: 'Final Exam', amount: 1500, dueDate: '2025-02-15' },
+              ],
+              otherFees: [
+                { name: 'Library Fee', amount: 1000, dueDate: '2024-04-15' },
+                { name: 'Sports Fee', amount: 1000, dueDate: '2024-04-15' },
+                { name: 'Activity Fee', amount: 1000, dueDate: '2024-04-15' },
+              ],
+            },
+          };
+        }
       });
       setFeeStructures(structures);
 
-      // Fetch students
-      const studentsResponse = await ApiService.getStudents(orgId);
+      // Transform API fees into student fee records
+      const records: StudentFeeRecord[] = allFees.map((feeData) => {
+        const attributes = feeData.attributes;
+        const classId = attributes.class_id;
+        const className =
+          classesResponse.data.find((c) => c.id === classId)?.attributes
+            .class || 'Unknown';
+        const structure =
+          structures.find((s) => s.className === className) || structures[0];
 
-      const records: StudentFeeRecord[] = studentsResponse.data.map(
-        (studentData, index) => {
-          const className = studentData.attributes.grade_level;
-          const structure =
-            structures.find((s) => s.className === className) || structures[0];
+        // Transform API payments
+        const payments: Payment[] = (attributes.payments || []).map(
+          (payment: any) => ({
+            id: payment.id,
+            date: payment.date,
+            amount: payment.amount,
+            feeType: mapFeeType(payment.description || attributes.fee_type),
+            description: payment.description,
+            month: payment.month,
+            method: (payment.method as Payment['method']) || 'Cash',
+            receiptNumber: payment.receipt_number,
+            remarks: payment.remarks || '',
+          }),
+        );
 
-          // Generate mock payments with different fee types
-          const payments: Payment[] = [];
-          let totalPaid = 0;
+        const totalPaid = attributes.total_paid || 0;
+        const totalDue =
+          attributes.total_due || attributes.remaining_amount || 0;
 
-          // Random payment: Admission Fee
-          if (Math.random() > 0.2) {
-            totalPaid += structure.components.admissionFee;
-            payments.push({
-              id: `pay-${studentData.id}-admission`,
-              date: '2024-04-10',
-              amount: structure.components.admissionFee,
-              feeType: 'Admission Fee',
-              description: 'Admission Fee',
-              method: 'Online',
-              receiptNumber: `RCP-2024-${String(index * 10 + 1).padStart(4, '0')}`,
-              remarks: '',
-            });
-          }
+        // Determine status from API data
+        const status: StudentFeeRecord['status'] =
+          (attributes.status as StudentFeeRecord['status']) ||
+          (totalDue === 0 ? 'Paid' : totalPaid > 0 ? 'Partial' : 'Pending');
 
-          // Random payment: Registration Fee
-          if (Math.random() > 0.3) {
-            totalPaid += structure.components.registrationFee;
-            payments.push({
-              id: `pay-${studentData.id}-registration`,
-              date: '2024-04-10',
-              amount: structure.components.registrationFee,
-              feeType: 'Registration Fee',
-              description: 'Registration Fee',
-              method: 'Cash',
-              receiptNumber: `RCP-2024-${String(index * 10 + 2).padStart(4, '0')}`,
-              remarks: '',
-            });
-          }
-
-          // Random monthly fees (3-8 months paid)
-          const monthsPaid = Math.floor(Math.random() * 6) + 3;
-          for (
-            let i = 0;
-            i < monthsPaid && i < structure.components.monthlyFees.length;
-            i++
-          ) {
-            const monthlyFee = structure.components.monthlyFees[i];
-            totalPaid += monthlyFee.amount;
-            payments.push({
-              id: `pay-${studentData.id}-month-${i}`,
-              date: monthlyFee.dueDate,
-              amount: monthlyFee.amount,
-              feeType: 'Monthly Fee',
-              description: `Monthly Fee - ${monthlyFee.month}`,
-              month: monthlyFee.month,
-              method: ['Cash', 'Online', 'UPI'][
-                Math.floor(Math.random() * 3)
-              ] as Payment['method'],
-              receiptNumber: `RCP-2024-${String(index * 10 + 10 + i).padStart(4, '0')}`,
-              remarks: '',
-            });
-          }
-
-          // Random exam fees
-          if (Math.random() > 0.4) {
-            const examFee = structure.components.examFees[0];
-            totalPaid += examFee.amount;
-            payments.push({
-              id: `pay-${studentData.id}-exam-1`,
-              date: examFee.dueDate,
-              amount: examFee.amount,
-              feeType: 'Exam Fee',
-              description: examFee.name,
-              method: 'Online',
-              receiptNumber: `RCP-2024-${String(index * 10 + 100).padStart(4, '0')}`,
-              remarks: '',
-            });
-          }
-
-          // Random other fees
-          if (Math.random() > 0.5) {
-            const otherFee = structure.components.otherFees[0];
-            totalPaid += otherFee.amount;
-            payments.push({
-              id: `pay-${studentData.id}-other-1`,
-              date: otherFee.dueDate,
-              amount: otherFee.amount,
-              feeType: 'Other Fees',
-              description: otherFee.name,
-              method: 'Cash',
-              receiptNumber: `RCP-2024-${String(index * 10 + 200).padStart(4, '0')}`,
-              remarks: '',
-            });
-          }
-
-          const totalDue = structure.totalAmount - totalPaid;
-          let status: StudentFeeRecord['status'] = 'Pending';
-          if (totalDue === 0) status = 'Paid';
-          else if (totalPaid > 0 && totalPaid < structure.totalAmount)
-            status = 'Partial';
-          else if (new Date() > new Date('2025-03-31')) status = 'Overdue';
-
-          return {
-            id: studentData.id,
-            studentId: studentData.attributes.unique_id || studentData.id,
-            studentName: `${studentData.attributes.first_name} ${studentData.attributes.last_name}`,
-            class: className,
-            rollNumber: studentData.attributes.unique_id || studentData.id,
-            email: studentData.attributes.email,
-            phone: studentData.attributes.phone,
-            academicYear: selectedYear,
-            feeStructure: structure,
-            payments,
-            totalPaid,
-            totalDue,
-            status,
-          };
-        },
-      );
+        return {
+          id: feeData.id,
+          studentId: attributes.student_id,
+          studentName: attributes.student_name || 'Unknown Student',
+          class: className,
+          rollNumber: attributes.roll_number || '',
+          email: attributes.email || '',
+          phone: attributes.phone || '',
+          academicYear: attributes.academic_year || selectedYear,
+          feeStructure: structure,
+          payments,
+          totalPaid,
+          totalDue,
+          status,
+        };
+      });
 
       setFeeRecords(records);
       setAllFeeRecords(records);
@@ -408,103 +418,12 @@ export default function FeeManagementERP() {
 
       // Transform API response to fee records
       const records: StudentFeeRecord[] = classStudentsResponse.data.map(
-        (studentData: any, index: number) => {
-          // Generate mock payments with different fee types
+        (studentData: any) => {
+          // No payments - show as Pending
           const payments: Payment[] = [];
-          let totalPaid = 0;
-
-          // Random payment: Admission Fee
-          if (Math.random() > 0.2) {
-            totalPaid += structure.components.admissionFee;
-            payments.push({
-              id: `pay-${studentData.id}-admission`,
-              date: '2024-04-10',
-              amount: structure.components.admissionFee,
-              feeType: 'Admission Fee',
-              description: 'Admission Fee',
-              method: 'Online',
-              receiptNumber: `RCP-2024-${String(index * 10 + 1).padStart(4, '0')}`,
-              remarks: '',
-            });
-          }
-
-          // Random payment: Registration Fee
-          if (Math.random() > 0.3) {
-            totalPaid += structure.components.registrationFee;
-            payments.push({
-              id: `pay-${studentData.id}-registration`,
-              date: '2024-04-10',
-              amount: structure.components.registrationFee,
-              feeType: 'Registration Fee',
-              description: 'Registration Fee',
-              method: 'Cash',
-              receiptNumber: `RCP-2024-${String(index * 10 + 2).padStart(4, '0')}`,
-              remarks: '',
-            });
-          }
-
-          // Random monthly fees (3-8 months paid)
-          const monthsPaid = Math.floor(Math.random() * 6) + 3;
-          for (
-            let i = 0;
-            i < monthsPaid && i < structure.components.monthlyFees.length;
-            i++
-          ) {
-            const monthlyFee = structure.components.monthlyFees[i];
-            totalPaid += monthlyFee.amount;
-            payments.push({
-              id: `pay-${studentData.id}-month-${i}`,
-              date: monthlyFee.dueDate,
-              amount: monthlyFee.amount,
-              feeType: 'Monthly Fee',
-              description: `Monthly Fee - ${monthlyFee.month}`,
-              month: monthlyFee.month,
-              method: ['Cash', 'Online', 'UPI'][
-                Math.floor(Math.random() * 3)
-              ] as Payment['method'],
-              receiptNumber: `RCP-2024-${String(index * 10 + 10 + i).padStart(4, '0')}`,
-              remarks: '',
-            });
-          }
-
-          // Random exam fees
-          if (Math.random() > 0.4) {
-            const examFee = structure.components.examFees[0];
-            totalPaid += examFee.amount;
-            payments.push({
-              id: `pay-${studentData.id}-exam-1`,
-              date: examFee.dueDate,
-              amount: examFee.amount,
-              feeType: 'Exam Fee',
-              description: examFee.name,
-              method: 'Online',
-              receiptNumber: `RCP-2024-${String(index * 10 + 100).padStart(4, '0')}`,
-              remarks: '',
-            });
-          }
-
-          // Random other fees
-          if (Math.random() > 0.5) {
-            const otherFee = structure.components.otherFees[0];
-            totalPaid += otherFee.amount;
-            payments.push({
-              id: `pay-${studentData.id}-other-1`,
-              date: otherFee.dueDate,
-              amount: otherFee.amount,
-              feeType: 'Other Fees',
-              description: otherFee.name,
-              method: 'Cash',
-              receiptNumber: `RCP-2024-${String(index * 10 + 200).padStart(4, '0')}`,
-              remarks: '',
-            });
-          }
-
-          const totalDue = structure.totalAmount - totalPaid;
-          let status: StudentFeeRecord['status'] = 'Pending';
-          if (totalDue === 0) status = 'Paid';
-          else if (totalPaid > 0 && totalPaid < structure.totalAmount)
-            status = 'Partial';
-          else if (new Date() > new Date('2025-03-31')) status = 'Overdue';
+          const totalPaid = 0;
+          const totalDue = structure.totalAmount;
+          const status: StudentFeeRecord['status'] = 'Pending';
 
           return {
             id: studentData.id,
@@ -591,13 +510,45 @@ export default function FeeManagementERP() {
     setShowPaymentModal(true);
   };
 
-  const submitPayment = () => {
+  const submitPayment = async () => {
     if (!selectedRecord || !paymentData.amount) return;
-    alert(
-      `Payment of ₹${paymentData.amount} recorded for ${selectedRecord.studentName}`,
-    );
-    setShowPaymentModal(false);
-    loadFeeData();
+
+    try {
+      const orgId = await ApiService.getCurrentOrgId();
+
+      // We need the fee_id to record payment
+      // For now, we'll use the student's fee record ID
+      const feeId = selectedRecord.id;
+
+      // Prepare payment data for API
+      // Format date as DD/MM/YYYY
+      const today = new Date();
+      const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+
+      const paymentApiData = {
+        amount: parseFloat(paymentData.amount),
+        date: formattedDate,
+        receipt_number: paymentData.receiptNumber,
+        method: paymentData.method,
+        description: paymentData.description || paymentData.feeType,
+        month: paymentData.month || '',
+        remarks: paymentData.remarks,
+      };
+
+      // Call API to record payment
+      await ApiService.recordPayment(orgId, feeId, paymentApiData);
+
+      alert(
+        `Payment of ₹${paymentData.amount} recorded successfully for ${selectedRecord.studentName}`,
+      );
+      setShowPaymentModal(false);
+
+      // Reload fee data to show updated information
+      loadFeeData();
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      alert('Failed to record payment. Please try again.');
+    }
   };
 
   const sendReminder = (record: StudentFeeRecord) => {
@@ -990,9 +941,89 @@ export default function FeeManagementERP() {
                       </td>
                       <td className="px-6 py-4 text-sm space-x-2">
                         <button
-                          onClick={() => {
-                            setSelectedRecord(record);
-                            setShowDetailsModal(true);
+                          onClick={async () => {
+                            try {
+                              // Fetch student fees from API
+                              const orgId = await ApiService.getCurrentOrgId();
+                              const studentFeesResponse =
+                                await ApiService.getStudentFees(
+                                  orgId,
+                                  record.studentId,
+                                  {
+                                    academic_year: selectedYear,
+                                  },
+                                );
+
+                              // Update the record with fresh data from API
+                              const updatedRecord = { ...record };
+
+                              // Process the API response to update payments and fee details
+                              if (
+                                studentFeesResponse.data &&
+                                studentFeesResponse.data.length > 0
+                              ) {
+                                const feeData = studentFeesResponse.data[0];
+                                const attributes = feeData.attributes;
+
+                                // Update payment information
+                                updatedRecord.totalPaid =
+                                  attributes.amount_paid || 0;
+                                updatedRecord.totalDue =
+                                  attributes.amount_due || 0;
+
+                                // Update status based on API response
+                                const status =
+                                  attributes.payment_status?.toLowerCase();
+                                if (
+                                  status === 'completed' ||
+                                  status === 'paid'
+                                ) {
+                                  updatedRecord.status = 'Paid';
+                                } else if (status === 'partial') {
+                                  updatedRecord.status = 'Partial';
+                                } else if (status === 'overdue') {
+                                  updatedRecord.status = 'Overdue';
+                                } else {
+                                  updatedRecord.status = 'Pending';
+                                }
+
+                                // Update payments array if available
+                                if (
+                                  attributes.payments &&
+                                  Array.isArray(attributes.payments)
+                                ) {
+                                  updatedRecord.payments =
+                                    attributes.payments.map(
+                                      (p: any, idx: number) => ({
+                                        id: `payment-${idx}`,
+                                        date:
+                                          p.payment_date ||
+                                          new Date()
+                                            .toISOString()
+                                            .split('T')[0],
+                                        amount: p.amount || 0,
+                                        feeType: mapFeeType(p.fee_type || ''),
+                                        description: p.description || '',
+                                        method: p.payment_method || 'Cash',
+                                        receiptNumber:
+                                          p.receipt_number || `RCP-${idx + 1}`,
+                                        remarks: p.remarks || '',
+                                      }),
+                                    );
+                                }
+                              }
+
+                              setSelectedRecord(updatedRecord);
+                              setShowDetailsModal(true);
+                            } catch (error) {
+                              console.error(
+                                'Error fetching student fees:',
+                                error,
+                              );
+                              // Fall back to showing existing record data
+                              setSelectedRecord(record);
+                              setShowDetailsModal(true);
+                            }
                           }}
                           className="text-indigo-600 hover:text-indigo-900 font-medium"
                         >
@@ -1982,64 +2013,118 @@ export default function FeeManagementERP() {
             {/* Action Buttons */}
             <div className="flex gap-3 mt-6">
               <button
-                onClick={() => {
-                  // Calculate new total
-                  const newTotal =
-                    editingStructure.components.admissionFee +
-                    editingStructure.components.registrationFee +
-                    (editingStructure.components.monthlyFees[0]?.amount || 0) *
-                      12 +
-                    editingStructure.components.examFees.reduce(
-                      (sum, e) => sum + e.amount,
-                      0,
-                    ) +
-                    editingStructure.components.otherFees.reduce(
-                      (sum, o) => sum + o.amount,
-                      0,
-                    );
+                onClick={async () => {
+                  try {
+                    // Calculate new total
+                    const monthlyTotal =
+                      (editingStructure.components.monthlyFees[0]?.amount ||
+                        0) * 12;
+                    const examTotal =
+                      editingStructure.components.examFees.reduce(
+                        (sum, e) => sum + e.amount,
+                        0,
+                      );
+                    const otherTotal =
+                      editingStructure.components.otherFees.reduce(
+                        (sum, o) => sum + o.amount,
+                        0,
+                      );
+                    const newTotal =
+                      editingStructure.components.admissionFee +
+                      editingStructure.components.registrationFee +
+                      monthlyTotal +
+                      examTotal +
+                      otherTotal;
 
-                  // Update the fee structure in the state
-                  const updatedStructures = feeStructures.map((s) =>
-                    s.id === editingStructure.id
-                      ? { ...editingStructure, totalAmount: newTotal }
-                      : s,
-                  );
-                  setFeeStructures(updatedStructures);
+                    // Get orgId and classId
+                    const orgId = await ApiService.getCurrentOrgId();
+                    const classId = classIdMap.get(editingStructure.className);
 
-                  // Update all fee records with this class to use the new structure
-                  const updatedRecords = allFeeRecords.map((record) => {
-                    if (record.class === editingStructure.className) {
-                      const newDue = newTotal - record.totalPaid;
-                      return {
-                        ...record,
-                        feeStructure: {
-                          ...editingStructure,
-                          totalAmount: newTotal,
-                        },
-                        totalDue: newDue,
-                        status:
-                          record.totalPaid >= newTotal
-                            ? 'Paid'
-                            : record.totalPaid > 0
-                              ? 'Partial'
-                              : ('Pending' as
-                                  | 'Paid'
-                                  | 'Partial'
-                                  | 'Overdue'
-                                  | 'Pending'),
-                      };
+                    if (!classId) {
+                      alert('Class ID not found');
+                      return;
                     }
-                    return record;
-                  });
-                  setAllFeeRecords(updatedRecords);
-                  setFeeRecords(updatedRecords);
-                  setFilteredRecords(updatedRecords);
 
-                  // Close modal
-                  setShowEditFeeStructureModal(false);
-                  setEditingStructure(null);
+                    // Prepare API payload
+                    const feeStructureData = {
+                      class_name: editingStructure.className,
+                      academic_year: editingStructure.academicYear,
+                      components: {
+                        admission_fee: editingStructure.components.admissionFee,
+                        registration_fee:
+                          editingStructure.components.registrationFee,
+                        tuition_fees: monthlyTotal,
+                        exam_fees: examTotal,
+                        other_fees: otherTotal,
+                      },
+                    };
 
-                  alert('Fee structure updated successfully!');
+                    // Call API to update fee structure
+                    if (editingStructure.id.startsWith('struct-')) {
+                      // Create new fee structure
+                      await ApiService.createFeeStructure(
+                        orgId,
+                        classId,
+                        feeStructureData,
+                      );
+                      alert('Fee structure created successfully!');
+                    } else {
+                      // Update existing fee structure
+                      await ApiService.updateFeeStructure(
+                        orgId,
+                        editingStructure.id,
+                        feeStructureData,
+                      );
+                      alert('Fee structure updated successfully!');
+                    }
+
+                    // Update the fee structure in the state
+                    const updatedStructures = feeStructures.map((s) =>
+                      s.id === editingStructure.id
+                        ? { ...editingStructure, totalAmount: newTotal }
+                        : s,
+                    );
+                    setFeeStructures(updatedStructures);
+
+                    // Update all fee records with this class to use the new structure
+                    const updatedRecords = allFeeRecords.map((record) => {
+                      if (record.class === editingStructure.className) {
+                        const newDue = newTotal - record.totalPaid;
+                        return {
+                          ...record,
+                          feeStructure: {
+                            ...editingStructure,
+                            totalAmount: newTotal,
+                          },
+                          totalDue: newDue,
+                          status:
+                            record.totalPaid >= newTotal
+                              ? 'Paid'
+                              : record.totalPaid > 0
+                                ? 'Partial'
+                                : ('Pending' as
+                                    | 'Paid'
+                                    | 'Partial'
+                                    | 'Overdue'
+                                    | 'Pending'),
+                        };
+                      }
+                      return record;
+                    });
+                    setAllFeeRecords(updatedRecords);
+                    setFeeRecords(updatedRecords);
+                    setFilteredRecords(updatedRecords);
+
+                    // Close modal
+                    setShowEditFeeStructureModal(false);
+                    setEditingStructure(null);
+
+                    // Reload data to get fresh API data
+                    loadFeeData();
+                  } catch (error) {
+                    console.error('Error saving fee structure:', error);
+                    alert('Failed to save fee structure. Please try again.');
+                  }
                 }}
                 className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium"
               >
