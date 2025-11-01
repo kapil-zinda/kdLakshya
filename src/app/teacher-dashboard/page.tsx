@@ -1,12 +1,12 @@
 'use client';
 
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
-import TeacherDashboard from '@/components/dashboard/TeacherDashboard';
+import TeacherDashboardCards from '@/components/dashboard/TeacherDashboardCards';
 
 export default function TeacherDashboardPage() {
   return (
     <DashboardWrapper allowedRoles={['teacher', 'admin']}>
-      {(userData) => <TeacherDashboard userData={userData} />}
+      {(userData) => <TeacherDashboardCards userData={userData} />}
     </DashboardWrapper>
   );
 }

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
-import { dummyStudentMarks } from '@/data/studentDashboardDummyData';
+import Api from '@/services/api';
 import {
   Bar,
   BarChart,
@@ -31,20 +31,45 @@ import {
   TableRow,
 } from '../ui/table';
 
+interface ExamData {
+  examId: string;
+  examName: string;
+  examDate: string;
+  subjects: {
+    id: string;
+    name: string;
+    maxMarks: number;
+    obtainedMarks: number;
+  }[];
+  totalMarks: number;
+  totalObtained: number;
+  percentage: number;
+  grade: string;
+  rank?: number;
+}
+
 // Add global styles for print media
 const printStyles = `
   @media print {
-    /* Hide UI elements */
-    .no-print {
-      display: none !important;
+    /* Hide everything by default */
+    body * {
+      visibility: hidden;
     }
 
     /* Show only print content */
+    .print-only,
+    .print-only * {
+      visibility: visible !important;
+    }
+
+    /* Position print content at top */
     .print-only {
-      display: block !important;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
       padding: 20px !important;
       margin: 0 !important;
-      width: 100% !important;
       background: white !important;
     }
 
@@ -67,39 +92,161 @@ const printStyles = `
       text-align: left !important;
     }
 
-    /* Hide specific UI elements */
-    nav, 
-    header,
-    footer,
-    .sidebar,
-    .navigation,
-    button,
-    select {
-      display: none !important;
-    }
-
     /* Reset page margins */
     @page {
       margin: 2cm;
-    }
-
-    /* Ensure text is readable */
-    body {
-      background: white !important;
-      color: black !important;
     }
   }
 `;
 
 const StudentMarks: React.FC = () => {
-  const [selectedExam, setSelectedExam] = useState<string>(
-    dummyStudentMarks[0].examId,
-  );
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [exams, setExams] = useState<ExamData[]>([]);
+  const [studentData, setStudentData] = useState<{
+    firstName?: string;
+    lastName?: string;
+    rollNumber?: string;
+    gradeLevel?: string;
+    dateOfBirth?: string;
+    email?: string;
+    guardianInfo?: {
+      father_name?: string;
+      mother_name?: string;
+      address?: string;
+    };
+  } | null>(null);
+  const [selectedExam, setSelectedExam] = useState<string>('');
+
+  // Fetch exams and results
+  useEffect(() => {
+    const fetchExamsAndResults = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Get student data from localStorage
+        const storedStudentData = localStorage.getItem('studentAuth');
+        if (!storedStudentData) {
+          throw new Error('No student data found');
+        }
+
+        const parsed = JSON.parse(storedStudentData);
+        setStudentData(parsed);
+
+        if (!parsed.orgId || !parsed.id) {
+          throw new Error('Missing student or organization ID');
+        }
+
+        // Use classId from student data, or fallback to test classId
+        const classId = parsed.classId || '68e7e5ce000c9a6998c6aed0';
+
+        // Fetch exams for the student's class
+        const examsResponse = await Api.getExamsForStudentClass(
+          parsed.orgId,
+          classId,
+        );
+
+        if (examsResponse?.data && Array.isArray(examsResponse.data)) {
+          const examsList: ExamData[] = [];
+
+          // For each exam, fetch the student's results
+          for (const exam of examsResponse.data) {
+            try {
+              const resultResponse = await Api.getStudentResultForExam(
+                parsed.orgId,
+                parsed.id,
+                exam.id,
+              );
+
+              if (resultResponse?.data) {
+                const result = resultResponse.data;
+                const attrs = result.attributes || result;
+
+                // Build subject name mapping
+                const subjectMap: { [key: string]: string } = {};
+                if (exam.attributes?.subjects) {
+                  exam.attributes.subjects.forEach(
+                    (subj: { subject_id: string; subject_name?: string }) => {
+                      subjectMap[subj.subject_id] =
+                        subj.subject_name || subj.subject_id;
+                    },
+                  );
+                }
+
+                // Transform marks data
+                const subjects = (attrs.marks || []).map(
+                  (mark: {
+                    subject_id: string;
+                    max_marks?: number;
+                    marks_obtained?: number;
+                  }) => ({
+                    id: mark.subject_id,
+                    name: subjectMap[mark.subject_id] || mark.subject_id,
+                    maxMarks: mark.max_marks || 100,
+                    obtainedMarks: mark.marks_obtained || 0,
+                  }),
+                );
+
+                const totalMarks = subjects.reduce(
+                  (sum: number, s: { maxMarks: number }) => sum + s.maxMarks,
+                  0,
+                );
+                const totalObtained = subjects.reduce(
+                  (sum: number, s: { obtainedMarks: number }) =>
+                    sum + s.obtainedMarks,
+                  0,
+                );
+                const percentage =
+                  totalMarks > 0 ? (totalObtained / totalMarks) * 100 : 0;
+
+                // Calculate grade
+                let grade = 'F';
+                if (percentage >= 90) grade = 'A+';
+                else if (percentage >= 80) grade = 'A';
+                else if (percentage >= 70) grade = 'B';
+                else if (percentage >= 60) grade = 'C';
+                else if (percentage >= 50) grade = 'D';
+
+                examsList.push({
+                  examId: exam.id,
+                  examName: exam.attributes?.exam_name || 'Exam',
+                  examDate: exam.attributes?.exam_date || '',
+                  subjects,
+                  totalMarks,
+                  totalObtained,
+                  percentage,
+                  grade,
+                });
+              }
+            } catch (err) {
+              console.warn(`Could not fetch result for exam ${exam.id}:`, err);
+              // Continue with other exams even if one fails
+            }
+          }
+
+          setExams(examsList);
+          if (examsList.length > 0) {
+            setSelectedExam(examsList[0].examId);
+          }
+        } else {
+          setExams([]);
+        }
+      } catch (err) {
+        console.error('Error fetching exams and results:', err);
+        setError(
+          err instanceof Error ? err.message : 'Failed to load exam results',
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExamsAndResults();
+  }, []);
 
   // Get the selected exam data
-  const examData = dummyStudentMarks.find(
-    (exam) => exam.examId === selectedExam,
-  );
+  const examData = exams.find((exam) => exam.examId === selectedExam);
 
   // Prepare chart data
   const chartData = examData?.subjects.map((subject) => ({
@@ -128,16 +275,40 @@ const StudentMarks: React.FC = () => {
                 <SelectValue placeholder="Select Exam" />
               </SelectTrigger>
               <SelectContent>
-                {dummyStudentMarks.map((exam) => (
+                {exams.map((exam) => (
                   <SelectItem key={exam.examId} value={exam.examId}>
                     {exam.examName}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={handlePrint}>Print</Button>
+            <Button onClick={handlePrint} disabled={loading || !examData}>
+              Print
+            </Button>
           </div>
         </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg mt-6">
+            <p className="font-semibold">Error loading exam results</p>
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
+
+        {/* No Data State */}
+        {!loading && !error && exams.length === 0 && (
+          <div className="bg-yellow-500/10 border border-yellow-500 text-yellow-500 px-4 py-3 rounded-lg mt-6">
+            <p>No exam results available.</p>
+          </div>
+        )}
 
         {/* Regular view content - Hidden during print */}
         {examData && (
@@ -258,30 +429,34 @@ const StudentMarks: React.FC = () => {
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
               <p className="text-black">
-                <strong>Name:</strong> Rahul Kumar
+                <strong>Name:</strong> {studentData?.firstName}{' '}
+                {studentData?.lastName}
               </p>
               <p className="text-black">
-                <strong>{"Father's Name:"}</strong> Nanak Chand
+                <strong>Father&apos;s Name:</strong>{' '}
+                {studentData?.guardianInfo?.father_name || 'N/A'}
               </p>
               <p className="text-black">
-                <strong>{"Mother's Name:"}</strong> Savitri Devi
+                <strong>Mother&apos;s Name:</strong>{' '}
+                {studentData?.guardianInfo?.mother_name || 'N/A'}
               </p>
               <p className="text-black">
-                <strong>Address:</strong> Chandpur Khurd, Mant, Mathura
+                <strong>Address:</strong>{' '}
+                {studentData?.guardianInfo?.address || 'N/A'}
               </p>
             </div>
             <div>
               <p className="text-black">
-                <strong>Roll No:</strong> 2211136
+                <strong>Roll No:</strong> {studentData?.rollNumber || 'N/A'}
               </p>
               <p className="text-black">
-                <strong>Class:</strong> 11
+                <strong>Class:</strong> {studentData?.gradeLevel || 'N/A'}
               </p>
               <p className="text-black">
-                <strong>S.R.No.:</strong> 2316
+                <strong>Email:</strong> {studentData?.email || 'N/A'}
               </p>
               <p className="text-black">
-                <strong>D.O.B.:</strong> 01/01/2008
+                <strong>D.O.B.:</strong> {studentData?.dateOfBirth || 'N/A'}
               </p>
             </div>
           </div>

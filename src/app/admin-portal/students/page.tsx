@@ -63,6 +63,7 @@ export default function StudentManagement() {
   const [editFormData, setEditFormData] = useState<Partial<Student>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addFormData, setAddFormData] = useState({
     firstName: '',
@@ -81,26 +82,10 @@ export default function StudentManagement() {
       address: '',
     },
   });
+  const [classes, setClasses] = useState<string[]>(['All']);
+  const [classIdMap, setClassIdMap] = useState<Map<string, string>>(new Map());
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
   const router = useRouter();
-
-  const classes = [
-    'All',
-    'Nursery',
-    'LKG',
-    'UKG',
-    'Class 1',
-    'Class 2',
-    'Class 3',
-    'Class 4',
-    'Class 5',
-    'Class 6',
-    'Class 7',
-    'Class 8',
-    'Class 9',
-    'Class 10',
-    'Class 11',
-    'Class 12',
-  ];
 
   useEffect(() => {
     const tokenStr = localStorage.getItem('bearerToken');
@@ -122,13 +107,27 @@ export default function StudentManagement() {
       return;
     }
 
-    // Load students data from API
+    // Load students and classes data from API
     const loadStudents = async () => {
       try {
         setLoading(true);
 
         // Get organization ID
         const orgId = await ApiService.getCurrentOrgId();
+
+        // Fetch classes from API
+        const classesResponse = await ApiService.getClasses(orgId);
+        const classNames = classesResponse.data.map(
+          (classData) => `${classData.attributes.class}`,
+        );
+
+        // Build class ID mapping
+        const idMap = new Map<string, string>();
+        classesResponse.data.forEach((classData) => {
+          idMap.set(classData.attributes.class, classData.id);
+        });
+        setClassIdMap(idMap);
+        setClasses(['All', ...classNames]);
 
         // Fetch students from API
         const studentsResponse = await ApiService.getStudents(orgId);
@@ -181,6 +180,7 @@ export default function StudentManagement() {
         );
 
         setStudents(transformedStudents);
+        setAllStudents(transformedStudents);
         setLoading(false);
       } catch (error) {
         console.error('Error loading students:', error);
@@ -193,18 +193,105 @@ export default function StudentManagement() {
     loadStudents();
   }, [router]);
 
+  // Handle class filter selection
+  const handleClassSelection = async (className: string) => {
+    setSelectedClass(className);
+
+    // If "All" is selected, show all students
+    if (className === 'All') {
+      setStudents(allStudents);
+      return;
+    }
+
+    // Get the class ID from the map
+    const classId = classIdMap.get(className);
+    if (!classId) {
+      console.error(`No class ID found for class: ${className}`);
+      return;
+    }
+
+    try {
+      setFilterLoading(true);
+      const orgId = await ApiService.getCurrentOrgId();
+
+      // Fetch students for the selected class
+      console.log(
+        `🔵 Fetching students for class: ${className} (ID: ${classId})`,
+      );
+      const classStudentsResponse = await ApiService.getClassStudents(
+        orgId,
+        classId,
+      );
+
+      // Transform API response to local interface
+      const transformedStudents: Student[] = classStudentsResponse.data.map(
+        (studentData: any) => ({
+          id: studentData.id,
+          firstName: studentData.attributes.first_name,
+          lastName: studentData.attributes.last_name,
+          name: `${studentData.attributes.first_name} ${studentData.attributes.last_name}`,
+          email: studentData.attributes.email,
+          phone: studentData.attributes.phone,
+          dateOfBirth: studentData.attributes.enrollment_date || '',
+          gender: studentData.attributes.gender,
+          uniqueId: studentData.attributes.student_id,
+          profile: studentData.attributes.profile,
+          gradeLevel: className,
+          guardianInfo: {
+            fatherName: '',
+            motherName: '',
+            phone: '',
+            email: '',
+            address: '',
+          },
+          admissionDate: studentData.attributes.enrollment_date || '',
+          rollNumber: studentData.attributes.roll_number || studentData.id,
+          class: className,
+          section: 'A',
+          status:
+            studentData.attributes.status === 'active' ? 'Active' : 'Inactive',
+          photo:
+            studentData.attributes.profile ||
+            'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+          academicYear: studentData.attributes.academic_year || '2024-25',
+          fees: {
+            totalFees: 0,
+            paidFees: 0,
+            pendingFees: 0,
+            lastPaymentDate: '',
+          },
+          attendance: {
+            totalDays: 0,
+            presentDays: 0,
+            absentDays: 0,
+            percentage: 0,
+          },
+          grades: [],
+        }),
+      );
+
+      console.log(
+        `✅ Loaded ${transformedStudents.length} students for class ${className}`,
+      );
+      setStudents(transformedStudents);
+    } catch (error) {
+      console.error('Error loading class students:', error);
+      setStudents([]);
+    } finally {
+      setFilterLoading(false);
+    }
+  };
+
+  // Filter students by search term only (class filtering is done via API)
   const filteredStudents = students.filter((student) => {
-    const classMatch =
-      selectedClass === 'All' ||
-      student.class === selectedClass ||
-      student.gradeLevel === selectedClass;
     const searchMatch =
       student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (student.rollNumber && student.rollNumber.includes(searchTerm)) ||
-      student.guardianInfo.fatherName
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-    return classMatch && searchMatch;
+      (student.guardianInfo?.fatherName &&
+        student.guardianInfo.fatherName
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()));
+    return searchMatch;
   });
 
   const getStatusColor = (status: string) => {
@@ -569,7 +656,7 @@ export default function StudentManagement() {
               {classes.map((cls) => (
                 <button
                   key={cls}
-                  onClick={() => setSelectedClass(cls)}
+                  onClick={() => handleClassSelection(cls)}
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                     selectedClass === cls
                       ? 'bg-indigo-600 text-white'
@@ -597,8 +684,39 @@ export default function StudentManagement() {
           </div>
         </div>
 
+        {/* Subtle Loading Indicator */}
+        {filterLoading && (
+          <div className="mb-4 flex items-center justify-center py-2">
+            <div className="flex items-center space-x-2 text-indigo-600">
+              <svg
+                className="animate-spin h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span className="text-sm font-medium">Loading students...</span>
+            </div>
+          </div>
+        )}
+
         {/* Students Table */}
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div
+          className={`bg-white shadow-sm rounded-lg border border-gray-200 transition-opacity duration-200 ${filterLoading ? 'opacity-50' : 'opacity-100'}`}
+        >
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">

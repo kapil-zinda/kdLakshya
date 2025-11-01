@@ -39,6 +39,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
   const [profilePhoto, setProfilePhoto] = useState<string>('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [isClassTeacher, setIsClassTeacher] = useState(false);
+  const [classTeacherInfo, setClassTeacherInfo] = useState<any>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Get current date in DD/MM/YY format
