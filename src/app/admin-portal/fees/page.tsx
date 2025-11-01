@@ -31,9 +31,9 @@ interface FeeStructure {
   components: {
     admissionFee: number;
     registrationFee: number;
-    monthlyFees: { month: string; amount: number; dueDate: string }[];
-    examFees: { name: string; amount: number; dueDate: string }[];
-    otherFees: { name: string; amount: number; dueDate: string }[];
+    tuitionFees: number;
+    examFees: number;
+    otherFees: number;
   };
 }
 
@@ -166,7 +166,7 @@ export default function FeeManagementERP() {
     'March',
   ];
 
-  const academicYears = ['2024-25', '2023-24', '2022-23'];
+  const academicYears = ['2024-25'];
 
   useEffect(() => {
     const tokenStr = localStorage.getItem('bearerToken');
@@ -243,11 +243,6 @@ export default function FeeManagementERP() {
 
           const components = apiStructure.attributes.components;
           const className = apiStructure.attributes.class_name;
-          const monthlyFees = months.slice(1).map((month) => ({
-            month,
-            amount: components.tuition_fees ? components.tuition_fees / 12 : 0,
-            dueDate: `2024-${months.indexOf(month).toString().padStart(2, '0')}-05`,
-          }));
 
           return {
             id: apiStructure.id,
@@ -257,28 +252,9 @@ export default function FeeManagementERP() {
             components: {
               admissionFee: components.admission_fee || 0,
               registrationFee: components.registration_fee || 0,
-              monthlyFees,
-              examFees: [
-                {
-                  name: 'Mid-Term Exam',
-                  amount: components.exam_fees ? components.exam_fees / 2 : 0,
-                  dueDate: '2024-09-15',
-                },
-                {
-                  name: 'Final Exam',
-                  amount: components.exam_fees ? components.exam_fees / 2 : 0,
-                  dueDate: '2025-02-15',
-                },
-              ],
-              otherFees: components.other_fees
-                ? [
-                    {
-                      name: 'Other Fees',
-                      amount: components.other_fees,
-                      dueDate: '2024-04-15',
-                    },
-                  ]
-                : [],
+              tuitionFees: components.tuition_fees || 0,
+              examFees: components.exam_fees || 0,
+              otherFees: components.other_fees || 0,
             },
           };
         })
@@ -1245,7 +1221,7 @@ export default function FeeManagementERP() {
                   const feeType = e.target.value as FeeType;
                   let amount = '';
                   let description = '';
-                  let month = '';
+                  const month = '';
 
                   // Auto-fill amount based on fee type
                   if (feeType === 'Admission Fee') {
@@ -1257,40 +1233,18 @@ export default function FeeManagementERP() {
                       selectedRecord.feeStructure.components.registrationFee.toString();
                     description = 'Registration Fee';
                   } else if (feeType === 'Monthly Fee') {
-                    const firstUnpaid =
-                      selectedRecord.feeStructure.components.monthlyFees.find(
-                        (m) =>
-                          !selectedRecord.payments.some(
-                            (p) =>
-                              p.month === m.month &&
-                              p.feeType === 'Monthly Fee',
-                          ),
-                      );
-                    amount = firstUnpaid?.amount.toString() || '5000';
-                    month = firstUnpaid?.month || '';
-                    description = firstUnpaid
-                      ? `Monthly Fee - ${firstUnpaid.month}`
-                      : 'Monthly Fee';
+                    amount = (
+                      selectedRecord.feeStructure.components.tuitionFees / 12
+                    ).toFixed(2);
+                    description = 'Tuition Fee (Monthly)';
                   } else if (feeType === 'Exam Fee') {
-                    const firstUnpaid =
-                      selectedRecord.feeStructure.components.examFees.find(
-                        (e) =>
-                          !selectedRecord.payments.some(
-                            (p) => p.description === e.name,
-                          ),
-                      );
-                    amount = firstUnpaid?.amount.toString() || '1500';
-                    description = firstUnpaid?.name || 'Exam Fee';
+                    amount =
+                      selectedRecord.feeStructure.components.examFees.toString();
+                    description = 'Exam Fee';
                   } else if (feeType === 'Other Fees') {
-                    const firstUnpaid =
-                      selectedRecord.feeStructure.components.otherFees.find(
-                        (o) =>
-                          !selectedRecord.payments.some(
-                            (p) => p.description === o.name,
-                          ),
-                      );
-                    amount = firstUnpaid?.amount.toString() || '1000';
-                    description = firstUnpaid?.name || 'Other Fees';
+                    amount =
+                      selectedRecord.feeStructure.components.otherFees.toString();
+                    description = 'Other Fees';
                   }
 
                   setPaymentData({
@@ -1310,40 +1264,6 @@ export default function FeeManagementERP() {
                 <option value="Other Fees">Other Fees</option>
               </select>
             </div>
-
-            {paymentData.feeType === 'Monthly Fee' && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Month <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={paymentData.month}
-                  onChange={(e) => {
-                    const monthFee =
-                      selectedRecord.feeStructure.components.monthlyFees.find(
-                        (m) => m.month === e.target.value,
-                      );
-                    setPaymentData({
-                      ...paymentData,
-                      month: e.target.value,
-                      amount: monthFee?.amount.toString() || '',
-                      description: `Monthly Fee - ${e.target.value}`,
-                    });
-                  }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">Select Month</option>
-                  {selectedRecord.feeStructure.components.monthlyFees.map(
-                    (monthFee) => (
-                      <option key={monthFee.month} value={monthFee.month}>
-                        {monthFee.month} - ₹{monthFee.amount.toLocaleString()}{' '}
-                        (Due: {monthFee.dueDate})
-                      </option>
-                    ),
-                  )}
-                </select>
-              </div>
-            )}
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1568,107 +1488,50 @@ export default function FeeManagementERP() {
                   </div>
                 </div>
 
-                {/* Monthly Fees */}
+                {/* Tuition Fees */}
                 <div className="border-b pb-3">
-                  <p className="font-medium text-gray-900 mb-2">Monthly Fees</p>
-                  <div className="space-y-2 ml-4">
-                    {selectedRecord.feeStructure.components.monthlyFees.map(
-                      (monthFee) => {
-                        const paid = selectedRecord.payments.some(
-                          (p) =>
-                            p.month === monthFee.month &&
-                            p.feeType === 'Monthly Fee',
-                        );
-                        return (
-                          <div
-                            key={monthFee.month}
-                            className="flex justify-between items-center text-sm"
-                          >
-                            <span className="text-gray-700">
-                              {monthFee.month}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-gray-900">
-                                ₹{monthFee.amount.toLocaleString()}
-                              </span>
-                              <span
-                                className={`text-xs px-2 py-1 rounded-full ${paid ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
-                              >
-                                {paid ? 'Paid' : 'Pending'}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      },
-                    )}
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        Tuition Fees (Annual)
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">
+                        ₹
+                        {selectedRecord.feeStructure.components.tuitionFees.toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Exam Fees */}
                 <div className="border-b pb-3">
-                  <p className="font-medium text-gray-900 mb-2">Exam Fees</p>
-                  <div className="space-y-2 ml-4">
-                    {selectedRecord.feeStructure.components.examFees.map(
-                      (examFee) => {
-                        const paid = selectedRecord.payments.some(
-                          (p) => p.description === examFee.name,
-                        );
-                        return (
-                          <div
-                            key={examFee.name}
-                            className="flex justify-between items-center text-sm"
-                          >
-                            <span className="text-gray-700">
-                              {examFee.name}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-gray-900">
-                                ₹{examFee.amount.toLocaleString()}
-                              </span>
-                              <span
-                                className={`text-xs px-2 py-1 rounded-full ${paid ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
-                              >
-                                {paid ? 'Paid' : 'Pending'}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      },
-                    )}
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-gray-900">Exam Fees</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">
+                        ₹
+                        {selectedRecord.feeStructure.components.examFees.toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
                 {/* Other Fees */}
                 <div>
-                  <p className="font-medium text-gray-900 mb-2">Other Fees</p>
-                  <div className="space-y-2 ml-4">
-                    {selectedRecord.feeStructure.components.otherFees.map(
-                      (otherFee) => {
-                        const paid = selectedRecord.payments.some(
-                          (p) => p.description === otherFee.name,
-                        );
-                        return (
-                          <div
-                            key={otherFee.name}
-                            className="flex justify-between items-center text-sm"
-                          >
-                            <span className="text-gray-700">
-                              {otherFee.name}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-gray-900">
-                                ₹{otherFee.amount.toLocaleString()}
-                              </span>
-                              <span
-                                className={`text-xs px-2 py-1 rounded-full ${paid ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
-                              >
-                                {paid ? 'Paid' : 'Pending'}
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      },
-                    )}
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium text-gray-900">Other Fees</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-gray-900">
+                        ₹
+                        {selectedRecord.feeStructure.components.otherFees.toLocaleString()}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1810,53 +1673,30 @@ export default function FeeManagementERP() {
                     </p>
                   </div>
 
-                  {/* Monthly Fees */}
-                  <div className="p-2 bg-green-50 rounded">
-                    <p className="font-medium text-green-900 mb-2">
-                      Monthly Fees (₹
-                      {structure.components.monthlyFees[0]?.amount.toLocaleString()}
-                      /month)
+                  {/* Tuition Fees */}
+                  <div className="flex justify-between items-center p-2 bg-green-50 rounded">
+                    <p className="font-medium text-green-900">
+                      Tuition Fees (Annual)
                     </p>
-                    <p className="text-sm text-green-700">
-                      12 months × ₹
-                      {structure.components.monthlyFees[0]?.amount.toLocaleString()}{' '}
-                      = ₹
-                      {(
-                        structure.components.monthlyFees[0]?.amount * 12 || 0
-                      ).toLocaleString()}
+                    <p className="font-semibold text-green-900">
+                      ₹{structure.components.tuitionFees.toLocaleString()}
                     </p>
                   </div>
 
                   {/* Exam Fees */}
-                  <div className="p-2 bg-yellow-50 rounded">
-                    <p className="font-medium text-yellow-900 mb-1">
-                      Exam Fees
+                  <div className="flex justify-between items-center p-2 bg-yellow-50 rounded">
+                    <p className="font-medium text-yellow-900">Exam Fees</p>
+                    <p className="font-semibold text-yellow-900">
+                      ₹{structure.components.examFees.toLocaleString()}
                     </p>
-                    {structure.components.examFees.map((exam) => (
-                      <div
-                        key={exam.name}
-                        className="flex justify-between text-sm text-yellow-800"
-                      >
-                        <span>{exam.name}</span>
-                        <span>₹{exam.amount.toLocaleString()}</span>
-                      </div>
-                    ))}
                   </div>
 
                   {/* Other Fees */}
-                  <div className="p-2 bg-purple-50 rounded">
-                    <p className="font-medium text-purple-900 mb-1">
-                      Other Fees
+                  <div className="flex justify-between items-center p-2 bg-purple-50 rounded">
+                    <p className="font-medium text-purple-900">Other Fees</p>
+                    <p className="font-semibold text-purple-900">
+                      ₹{structure.components.otherFees.toLocaleString()}
                     </p>
-                    {structure.components.otherFees.map((other) => (
-                      <div
-                        key={other.name}
-                        className="flex justify-between text-sm text-purple-800"
-                      >
-                        <span>{other.name}</span>
-                        <span>₹{other.amount.toLocaleString()}</span>
-                      </div>
-                    ))}
                   </div>
                 </div>
               </div>
@@ -1927,42 +1767,27 @@ export default function FeeManagementERP() {
                 />
               </div>
 
-              {/* Monthly Fee Amount */}
+              {/* Tuition Fees */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Monthly Fee (per month)
+                  Tuition Fees (Annual)
                 </label>
                 <input
                   type="number"
-                  value={
-                    editingStructure.components.monthlyFees[0]?.amount || 0
-                  }
+                  value={editingStructure.components.tuitionFees}
                   onChange={(e) => {
-                    const newAmount = parseInt(e.target.value) || 0;
-                    const newMonthlyFees =
-                      editingStructure.components.monthlyFees.map((mf) => ({
-                        ...mf,
-                        amount: newAmount,
-                      }));
                     const newStructure = {
                       ...editingStructure,
                       components: {
                         ...editingStructure.components,
-                        monthlyFees: newMonthlyFees,
+                        tuitionFees: parseInt(e.target.value) || 0,
                       },
                     };
                     setEditingStructure(newStructure);
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
-                  placeholder="Enter monthly fee"
+                  placeholder="Enter annual tuition fee"
                 />
-                <p className="text-sm text-gray-600 mt-1">
-                  Total for 12 months: ₹
-                  {(
-                    (editingStructure.components.monthlyFees[0]?.amount || 0) *
-                    12
-                  ).toLocaleString()}
-                </p>
               </div>
 
               {/* Exam Fees */}
@@ -1970,56 +1795,22 @@ export default function FeeManagementERP() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Exam Fees
                 </label>
-                <div className="space-y-2">
-                  {editingStructure.components.examFees.map((exam, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={exam.name}
-                        onChange={(e) => {
-                          const newExamFees = [
-                            ...editingStructure.components.examFees,
-                          ];
-                          newExamFees[index] = {
-                            ...exam,
-                            name: e.target.value,
-                          };
-                          setEditingStructure({
-                            ...editingStructure,
-                            components: {
-                              ...editingStructure.components,
-                              examFees: newExamFees,
-                            },
-                          });
-                        }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
-                        placeholder="Exam name"
-                      />
-                      <input
-                        type="number"
-                        value={exam.amount}
-                        onChange={(e) => {
-                          const newExamFees = [
-                            ...editingStructure.components.examFees,
-                          ];
-                          newExamFees[index] = {
-                            ...exam,
-                            amount: parseInt(e.target.value) || 0,
-                          };
-                          setEditingStructure({
-                            ...editingStructure,
-                            components: {
-                              ...editingStructure.components,
-                              examFees: newExamFees,
-                            },
-                          });
-                        }}
-                        className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
-                        placeholder="Amount"
-                      />
-                    </div>
-                  ))}
-                </div>
+                <input
+                  type="number"
+                  value={editingStructure.components.examFees}
+                  onChange={(e) => {
+                    const newStructure = {
+                      ...editingStructure,
+                      components: {
+                        ...editingStructure.components,
+                        examFees: parseInt(e.target.value) || 0,
+                      },
+                    };
+                    setEditingStructure(newStructure);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  placeholder="Enter exam fees"
+                />
               </div>
 
               {/* Other Fees */}
@@ -2027,56 +1818,22 @@ export default function FeeManagementERP() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Other Fees
                 </label>
-                <div className="space-y-2">
-                  {editingStructure.components.otherFees.map((other, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={other.name}
-                        onChange={(e) => {
-                          const newOtherFees = [
-                            ...editingStructure.components.otherFees,
-                          ];
-                          newOtherFees[index] = {
-                            ...other,
-                            name: e.target.value,
-                          };
-                          setEditingStructure({
-                            ...editingStructure,
-                            components: {
-                              ...editingStructure.components,
-                              otherFees: newOtherFees,
-                            },
-                          });
-                        }}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
-                        placeholder="Fee name"
-                      />
-                      <input
-                        type="number"
-                        value={other.amount}
-                        onChange={(e) => {
-                          const newOtherFees = [
-                            ...editingStructure.components.otherFees,
-                          ];
-                          newOtherFees[index] = {
-                            ...other,
-                            amount: parseInt(e.target.value) || 0,
-                          };
-                          setEditingStructure({
-                            ...editingStructure,
-                            components: {
-                              ...editingStructure.components,
-                              otherFees: newOtherFees,
-                            },
-                          });
-                        }}
-                        className="w-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
-                        placeholder="Amount"
-                      />
-                    </div>
-                  ))}
-                </div>
+                <input
+                  type="number"
+                  value={editingStructure.components.otherFees}
+                  onChange={(e) => {
+                    const newStructure = {
+                      ...editingStructure,
+                      components: {
+                        ...editingStructure.components,
+                        otherFees: parseInt(e.target.value) || 0,
+                      },
+                    };
+                    setEditingStructure(newStructure);
+                  }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  placeholder="Enter other fees"
+                />
               </div>
 
               {/* Total Calculation */}
@@ -2090,17 +1847,9 @@ export default function FeeManagementERP() {
                     {(
                       editingStructure.components.admissionFee +
                       editingStructure.components.registrationFee +
-                      (editingStructure.components.monthlyFees[0]?.amount ||
-                        0) *
-                        12 +
-                      editingStructure.components.examFees.reduce(
-                        (sum, e) => sum + e.amount,
-                        0,
-                      ) +
-                      editingStructure.components.otherFees.reduce(
-                        (sum, o) => sum + o.amount,
-                        0,
-                      )
+                      editingStructure.components.tuitionFees +
+                      editingStructure.components.examFees +
+                      editingStructure.components.otherFees
                     ).toLocaleString()}
                   </span>
                 </div>
@@ -2113,34 +1862,20 @@ export default function FeeManagementERP() {
                 onClick={async () => {
                   try {
                     // Calculate new total
-                    const monthlyTotal =
-                      (editingStructure.components.monthlyFees[0]?.amount ||
-                        0) * 12;
-                    const examTotal =
-                      editingStructure.components.examFees.reduce(
-                        (sum, e) => sum + e.amount,
-                        0,
-                      );
-                    const otherTotal =
-                      editingStructure.components.otherFees.reduce(
-                        (sum, o) => sum + o.amount,
-                        0,
-                      );
                     const newTotal =
                       editingStructure.components.admissionFee +
                       editingStructure.components.registrationFee +
-                      monthlyTotal +
-                      examTotal +
-                      otherTotal;
+                      editingStructure.components.tuitionFees +
+                      editingStructure.components.examFees +
+                      editingStructure.components.otherFees;
 
                     // Get orgId and classId
                     const orgId = await ApiService.getCurrentOrgId();
-                    const classId = classIdMap.get(editingStructure.className);
-
-                    if (!classId) {
-                      alert('Class ID not found');
-                      return;
-                    }
+                    const classId =
+                      classIdMap.get(editingStructure.className) ||
+                      editingStructure.className
+                        .toLowerCase()
+                        .replace(/\s+/g, '-');
 
                     // Prepare API payload
                     const feeStructureData = {
@@ -2150,18 +1885,26 @@ export default function FeeManagementERP() {
                         admission_fee: editingStructure.components.admissionFee,
                         registration_fee:
                           editingStructure.components.registrationFee,
-                        tuition_fees: monthlyTotal,
-                        exam_fees: examTotal,
-                        other_fees: otherTotal,
+                        tuition_fees: editingStructure.components.tuitionFees,
+                        exam_fees: editingStructure.components.examFees,
+                        other_fees: editingStructure.components.otherFees,
                       },
                     };
 
                     // Call API to update fee structure
-                    await ApiService.updateFeeStructure(
-                      orgId,
-                      editingStructure.id,
-                      feeStructureData,
-                    );
+                    if (editingStructure.id.startsWith('struct-')) {
+                      await ApiService.createFeeStructure(
+                        orgId,
+                        classId,
+                        feeStructureData,
+                      );
+                    } else {
+                      await ApiService.updateFeeStructure(
+                        orgId,
+                        editingStructure.id,
+                        feeStructureData,
+                      );
+                    }
                     alert('Fee structure updated successfully!');
 
                     // Update the fee structure in the state
