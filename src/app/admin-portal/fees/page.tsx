@@ -118,12 +118,24 @@ export default function FeeManagementERP() {
   const [showFeeStructureModal, setShowFeeStructureModal] = useState(false);
   const [showEditFeeStructureModal, setShowEditFeeStructureModal] =
     useState(false);
+  const [showCreateFeeStructureModal, setShowCreateFeeStructureModal] =
+    useState(false);
   const [selectedRecord, setSelectedRecord] = useState<StudentFeeRecord | null>(
     null,
   );
   const [editingStructure, setEditingStructure] = useState<FeeStructure | null>(
     null,
   );
+
+  // Create fee structure form state
+  const [createFeeStructureData, setCreateFeeStructureData] = useState({
+    className: '',
+    admissionFee: 0,
+    registrationFee: 0,
+    tuitionFees: 0,
+    examFees: 0,
+    otherFees: 0,
+  });
 
   // Payment form states
   const [paymentData, setPaymentData] = useState({
@@ -222,18 +234,18 @@ export default function FeeManagementERP() {
         structuresByClass.set(className, structure);
       });
 
-      // Create fee structures from API data or use defaults
-      const structures: FeeStructure[] = classNames.map((className) => {
-        const apiStructure = structuresByClass.get(className);
+      // Create fee structures ONLY from API data (no defaults)
+      const structures: FeeStructure[] = (feeStructuresResponse.data || [])
+        .map((apiStructure: any) => {
+          if (!apiStructure || !apiStructure.attributes.components) {
+            return null;
+          }
 
-        if (apiStructure && apiStructure.attributes.components) {
-          // Use API fee structure data
           const components = apiStructure.attributes.components;
+          const className = apiStructure.attributes.class_name;
           const monthlyFees = months.slice(1).map((month) => ({
             month,
-            amount: components.tuition_fees
-              ? components.tuition_fees / 12
-              : 5000,
+            amount: components.tuition_fees ? components.tuition_fees / 12 : 0,
             dueDate: `2024-${months.indexOf(month).toString().padStart(2, '0')}-05`,
           }));
 
@@ -269,37 +281,8 @@ export default function FeeManagementERP() {
                 : [],
             },
           };
-        } else {
-          // Use default structure if no API data available
-          const monthlyFeeAmount = 5000;
-          const monthlyFees = months.slice(1).map((month) => ({
-            month,
-            amount: monthlyFeeAmount,
-            dueDate: `2024-${months.indexOf(month).toString().padStart(2, '0')}-05`,
-          }));
-
-          return {
-            id: `struct-${className}`,
-            className,
-            academicYear: selectedYear,
-            totalAmount: 10000 + 5000 + monthlyFeeAmount * 12 + 3000,
-            components: {
-              admissionFee: 10000,
-              registrationFee: 5000,
-              monthlyFees,
-              examFees: [
-                { name: 'Mid-Term Exam', amount: 1500, dueDate: '2024-09-15' },
-                { name: 'Final Exam', amount: 1500, dueDate: '2025-02-15' },
-              ],
-              otherFees: [
-                { name: 'Library Fee', amount: 1000, dueDate: '2024-04-15' },
-                { name: 'Sports Fee', amount: 1000, dueDate: '2024-04-15' },
-                { name: 'Activity Fee', amount: 1000, dueDate: '2024-04-15' },
-              ],
-            },
-          };
-        }
-      });
+        })
+        .filter((s: FeeStructure | null): s is FeeStructure => s !== null);
       setFeeStructures(structures);
 
       // Transform API fees into student fee records
@@ -517,8 +500,13 @@ export default function FeeManagementERP() {
       const orgId = await ApiService.getCurrentOrgId();
 
       // We need the fee_id to record payment
-      // For now, we'll use the student's fee record ID
       const feeId = selectedRecord.id;
+      console.log('Recording payment for:', {
+        orgId,
+        feeId,
+        studentName: selectedRecord.studentName,
+        studentId: selectedRecord.studentId,
+      });
 
       // Prepare payment data for API
       // Format date as DD/MM/YYYY
@@ -553,6 +541,87 @@ export default function FeeManagementERP() {
 
   const sendReminder = (record: StudentFeeRecord) => {
     alert(`Payment reminder sent to ${record.studentName} (${record.email})`);
+  };
+
+  // Create fee structure handler
+  const handleCreateFeeStructure = async () => {
+    try {
+      if (!createFeeStructureData.className) {
+        alert('Please select a class');
+        return;
+      }
+
+      setLoading(true);
+      const orgId = await ApiService.getCurrentOrgId();
+      const classId = classIdMap.get(createFeeStructureData.className);
+
+      if (!classId) {
+        alert('Invalid class selected');
+        setLoading(false);
+        return;
+      }
+
+      await ApiService.createFeeStructure(orgId, classId, {
+        class_name: createFeeStructureData.className,
+        academic_year: selectedYear,
+        components: {
+          admission_fee: createFeeStructureData.admissionFee,
+          registration_fee: createFeeStructureData.registrationFee,
+          tuition_fees: createFeeStructureData.tuitionFees,
+          exam_fees: createFeeStructureData.examFees,
+          other_fees: createFeeStructureData.otherFees,
+        },
+      });
+
+      alert('Fee structure created successfully!');
+      setShowCreateFeeStructureModal(false);
+      setCreateFeeStructureData({
+        className: '',
+        admissionFee: 0,
+        registrationFee: 0,
+        tuitionFees: 0,
+        examFees: 0,
+        otherFees: 0,
+      });
+
+      // Reload fee data
+      await loadFeeData();
+      setLoading(false);
+    } catch (error) {
+      console.error('Error creating fee structure:', error);
+      alert('Failed to create fee structure. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  // Delete fee structure handler
+  const handleDeleteFeeStructure = async (
+    structureId: string,
+    className: string,
+  ) => {
+    if (
+      !confirm(
+        `Are you sure you want to delete the fee structure for ${className}?`,
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const orgId = await ApiService.getCurrentOrgId();
+      await ApiService.deleteFeeStructure(orgId, structureId);
+
+      alert('Fee structure deleted successfully!');
+
+      // Reload fee data
+      await loadFeeData();
+      setLoading(false);
+    } catch (error) {
+      console.error('Error deleting fee structure:', error);
+      alert('Failed to delete fee structure. Please try again.');
+      setLoading(false);
+    }
   };
 
   // Calculate overall statistics
@@ -1668,9 +1737,26 @@ export default function FeeManagementERP() {
       {showFeeStructureModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg p-8 max-w-4xl w-full my-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
-              Fee Structure - Academic Year {selectedYear}
-            </h2>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Fee Structure - Academic Year {selectedYear}
+              </h2>
+              <button
+                onClick={() => setShowCreateFeeStructureModal(true)}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+              >
+                + Create New
+              </button>
+            </div>
+
+            {feeStructures.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-lg mb-2">No fee structures found</p>
+                <p className="text-sm">
+                  Click &quot;Create New&quot; to add a fee structure
+                </p>
+              </div>
+            ) : null}
 
             {feeStructures.map((structure) => (
               <div
@@ -1693,6 +1779,17 @@ export default function FeeManagementERP() {
                       className="px-3 py-1 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700"
                     >
                       Edit
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleDeleteFeeStructure(
+                          structure.id,
+                          structure.className,
+                        )
+                      }
+                      className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                    >
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -2060,23 +2157,12 @@ export default function FeeManagementERP() {
                     };
 
                     // Call API to update fee structure
-                    if (editingStructure.id.startsWith('struct-')) {
-                      // Create new fee structure
-                      await ApiService.createFeeStructure(
-                        orgId,
-                        classId,
-                        feeStructureData,
-                      );
-                      alert('Fee structure created successfully!');
-                    } else {
-                      // Update existing fee structure
-                      await ApiService.updateFeeStructure(
-                        orgId,
-                        editingStructure.id,
-                        feeStructureData,
-                      );
-                      alert('Fee structure updated successfully!');
-                    }
+                    await ApiService.updateFeeStructure(
+                      orgId,
+                      editingStructure.id,
+                      feeStructureData,
+                    );
+                    alert('Fee structure updated successfully!');
 
                     // Update the fee structure in the state
                     const updatedStructures = feeStructures.map((s) =>
@@ -2134,6 +2220,187 @@ export default function FeeManagementERP() {
                 onClick={() => {
                   setShowEditFeeStructureModal(false);
                   setEditingStructure(null);
+                }}
+                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Fee Structure Modal */}
+      {showCreateFeeStructureModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg p-8 max-w-2xl w-full my-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Create New Fee Structure
+            </h2>
+
+            <div className="space-y-6">
+              {/* Class Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Class *
+                </label>
+                <select
+                  value={createFeeStructureData.className}
+                  onChange={(e) =>
+                    setCreateFeeStructureData({
+                      ...createFeeStructureData,
+                      className: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Choose a class...</option>
+                  {classes
+                    .filter((c) => c !== 'All')
+                    .filter(
+                      (c) => !feeStructures.find((s) => s.className === c),
+                    )
+                    .map((className) => (
+                      <option key={className} value={className}>
+                        {className}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {/* Admission Fee */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Admission Fee (₹)
+                </label>
+                <input
+                  type="number"
+                  value={createFeeStructureData.admissionFee}
+                  onChange={(e) =>
+                    setCreateFeeStructureData({
+                      ...createFeeStructureData,
+                      admissionFee: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Registration Fee */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Registration Fee (₹)
+                </label>
+                <input
+                  type="number"
+                  value={createFeeStructureData.registrationFee}
+                  onChange={(e) =>
+                    setCreateFeeStructureData({
+                      ...createFeeStructureData,
+                      registrationFee: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Tuition Fees */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Total Tuition Fees (₹) - Annual
+                </label>
+                <input
+                  type="number"
+                  value={createFeeStructureData.tuitionFees}
+                  onChange={(e) =>
+                    setCreateFeeStructureData({
+                      ...createFeeStructureData,
+                      tuitionFees: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Monthly: ₹
+                  {(createFeeStructureData.tuitionFees / 12).toFixed(2)}
+                </p>
+              </div>
+
+              {/* Exam Fees */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Total Exam Fees (₹)
+                </label>
+                <input
+                  type="number"
+                  value={createFeeStructureData.examFees}
+                  onChange={(e) =>
+                    setCreateFeeStructureData({
+                      ...createFeeStructureData,
+                      examFees: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Other Fees */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Other Fees (₹)
+                </label>
+                <input
+                  type="number"
+                  value={createFeeStructureData.otherFees}
+                  onChange={(e) =>
+                    setCreateFeeStructureData({
+                      ...createFeeStructureData,
+                      otherFees: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              {/* Total Display */}
+              <div className="p-4 bg-indigo-50 rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-lg font-semibold text-indigo-900">
+                    Total Amount:
+                  </span>
+                  <span className="text-2xl font-bold text-indigo-600">
+                    ₹
+                    {(
+                      createFeeStructureData.admissionFee +
+                      createFeeStructureData.registrationFee +
+                      createFeeStructureData.tuitionFees +
+                      createFeeStructureData.examFees +
+                      createFeeStructureData.otherFees
+                    ).toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={handleCreateFeeStructure}
+                disabled={!createFeeStructureData.className}
+                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Create Fee Structure
+              </button>
+              <button
+                onClick={() => {
+                  setShowCreateFeeStructureModal(false);
+                  setCreateFeeStructureData({
+                    className: '',
+                    admissionFee: 0,
+                    registrationFee: 0,
+                    tuitionFees: 0,
+                    examFees: 0,
+                    otherFees: 0,
+                  });
                 }}
                 className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
               >
