@@ -120,12 +120,14 @@ export default function FeeManagementERP() {
     useState(false);
   const [showCreateFeeStructureModal, setShowCreateFeeStructureModal] =
     useState(false);
+  const [showAssignFeeModal, setShowAssignFeeModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<StudentFeeRecord | null>(
     null,
   );
   const [editingStructure, setEditingStructure] = useState<FeeStructure | null>(
     null,
   );
+  const [selectedFeeStructureId, setSelectedFeeStructureId] = useState('');
 
   // Create fee structure form state
   const [createFeeStructureData, setCreateFeeStructureData] = useState({
@@ -370,35 +372,108 @@ export default function FeeManagementERP() {
         classId,
       );
 
+      // Fetch fees for the selected class
+      const classFeesResponse = await ApiService.getClassFees(orgId, classId, {
+        academic_year: selectedYear,
+      }).catch(() => ({ data: [] }));
+
       // Find the fee structure for this class
-      const structure =
-        feeStructures.find((s) => s.className === className) ||
-        feeStructures[0];
+      const structure = feeStructures.find((s) => s.className === className) ||
+        feeStructures[0] || {
+          id: 'default',
+          className,
+          academicYear: selectedYear,
+          totalAmount: 0,
+          components: {
+            admissionFee: 0,
+            registrationFee: 0,
+            tuitionFees: 0,
+            examFees: 0,
+            otherFees: 0,
+          },
+        };
+
+      // Create a map of students with assigned fees
+      const studentsWithFees = new Map<string, any>();
+      (classFeesResponse.data || []).forEach((feeData: any) => {
+        const studentId = feeData.attributes.student_id;
+        if (studentId) {
+          studentsWithFees.set(studentId, feeData);
+        }
+      });
 
       // Transform API response to fee records
       const records: StudentFeeRecord[] = classStudentsResponse.data.map(
         (studentData: any) => {
-          // No payments - show as Pending
-          const payments: Payment[] = [];
-          const totalPaid = 0;
-          const totalDue = structure.totalAmount;
-          const status: StudentFeeRecord['status'] = 'Pending';
+          const studentId = studentData.attributes.student_id || studentData.id;
+          const feeData = studentsWithFees.get(studentId);
 
-          return {
-            id: studentData.id,
-            studentId: studentData.attributes.student_id || studentData.id,
-            studentName: `${studentData.attributes.first_name} ${studentData.attributes.last_name}`,
-            class: className,
-            rollNumber: studentData.attributes.roll_number || studentData.id,
-            email: studentData.attributes.email,
-            phone: studentData.attributes.phone,
-            academicYear: selectedYear,
-            feeStructure: structure,
-            payments,
-            totalPaid,
-            totalDue,
-            status,
-          };
+          if (feeData) {
+            // Student has fees assigned
+            const attributes = feeData.attributes;
+            const payments: Payment[] = (attributes.payments || []).map(
+              (payment: any) => ({
+                id: payment.id,
+                date: payment.date,
+                amount: payment.amount,
+                feeType: mapFeeType(payment.description || ''),
+                description: payment.description,
+                month: payment.month,
+                method: (payment.method as Payment['method']) || 'Cash',
+                receiptNumber: payment.receipt_number,
+                remarks: payment.remarks || '',
+              }),
+            );
+
+            const totalPaid = attributes.total_paid || 0;
+            const totalDue =
+              attributes.total_due || attributes.remaining_amount || 0;
+            const status: StudentFeeRecord['status'] =
+              (attributes.status as StudentFeeRecord['status']) ||
+              (totalDue === 0 ? 'Paid' : totalPaid > 0 ? 'Partial' : 'Pending');
+
+            // Build fee structure from components
+            const feeStructure: FeeStructure = {
+              id: attributes.fee_structure_id || structure.id,
+              className,
+              academicYear: attributes.academic_year || selectedYear,
+              totalAmount: attributes.amount || structure.totalAmount,
+              components: attributes.components || structure.components,
+            };
+
+            return {
+              id: feeData.id,
+              studentId,
+              studentName: `${studentData.attributes.first_name} ${studentData.attributes.last_name}`,
+              class: className,
+              rollNumber: studentData.attributes.roll_number || studentData.id,
+              email: studentData.attributes.email || attributes.email || '',
+              phone: studentData.attributes.phone || attributes.phone || '',
+              academicYear: selectedYear,
+              feeStructure,
+              payments,
+              totalPaid,
+              totalDue,
+              status,
+            };
+          } else {
+            // Student does NOT have fees assigned - show with "Not Assigned" status
+            return {
+              id: `unassigned-${studentId}`,
+              studentId,
+              studentName: `${studentData.attributes.first_name} ${studentData.attributes.last_name}`,
+              class: className,
+              rollNumber: studentData.attributes.roll_number || studentData.id,
+              email: studentData.attributes.email,
+              phone: studentData.attributes.phone,
+              academicYear: selectedYear,
+              feeStructure: structure,
+              payments: [],
+              totalPaid: 0,
+              totalDue: 0,
+              status: 'Pending' as StudentFeeRecord['status'], // We'll show "Not Assigned" in UI
+            };
+          }
         },
       );
 
@@ -969,13 +1044,15 @@ export default function FeeManagementERP() {
                         {record.class}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">
-                        ₹{record.feeStructure.totalAmount.toLocaleString()}
+                        ₹
+                        {record.feeStructure?.totalAmount?.toLocaleString() ||
+                          '0'}
                       </td>
                       <td className="px-6 py-4 text-sm text-green-600 font-medium">
-                        ₹{record.totalPaid.toLocaleString()}
+                        ₹{record.totalPaid?.toLocaleString() || '0'}
                       </td>
                       <td className="px-6 py-4 text-sm text-red-600 font-medium">
-                        ₹{record.totalDue.toLocaleString()}
+                        ₹{record.totalDue?.toLocaleString() || '0'}
                       </td>
                       <td className="px-6 py-4">
                         <span
@@ -985,109 +1062,128 @@ export default function FeeManagementERP() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm space-x-2">
-                        <button
-                          onClick={async () => {
-                            try {
-                              // Fetch student fees from API
-                              const orgId = await ApiService.getCurrentOrgId();
-                              const studentFeesResponse =
-                                await ApiService.getStudentFees(
-                                  orgId,
-                                  record.studentId,
-                                  {
-                                    academic_year: selectedYear,
-                                  },
-                                );
-
-                              // Update the record with fresh data from API
-                              const updatedRecord = { ...record };
-
-                              // Process the API response to update payments and fee details
-                              if (
-                                studentFeesResponse.data &&
-                                studentFeesResponse.data.length > 0
-                              ) {
-                                const feeData = studentFeesResponse.data[0];
-                                const attributes = feeData.attributes;
-
-                                // Update payment information
-                                updatedRecord.totalPaid =
-                                  attributes.amount_paid || 0;
-                                updatedRecord.totalDue =
-                                  attributes.amount_due || 0;
-
-                                // Update status based on API response
-                                const status =
-                                  attributes.payment_status?.toLowerCase();
-                                if (
-                                  status === 'completed' ||
-                                  status === 'paid'
-                                ) {
-                                  updatedRecord.status = 'Paid';
-                                } else if (status === 'partial') {
-                                  updatedRecord.status = 'Partial';
-                                } else if (status === 'overdue') {
-                                  updatedRecord.status = 'Overdue';
-                                } else {
-                                  updatedRecord.status = 'Pending';
-                                }
-
-                                // Update payments array if available
-                                if (
-                                  attributes.payments &&
-                                  Array.isArray(attributes.payments)
-                                ) {
-                                  updatedRecord.payments =
-                                    attributes.payments.map(
-                                      (p: any, idx: number) => ({
-                                        id: `payment-${idx}`,
-                                        date:
-                                          p.payment_date ||
-                                          new Date()
-                                            .toISOString()
-                                            .split('T')[0],
-                                        amount: p.amount || 0,
-                                        feeType: mapFeeType(p.fee_type || ''),
-                                        description: p.description || '',
-                                        method: p.payment_method || 'Cash',
-                                        receiptNumber:
-                                          p.receipt_number || `RCP-${idx + 1}`,
-                                        remarks: p.remarks || '',
-                                      }),
-                                    );
-                                }
-                              }
-
-                              setSelectedRecord(updatedRecord);
-                              setShowDetailsModal(true);
-                            } catch (error) {
-                              console.error(
-                                'Error fetching student fees:',
-                                error,
-                              );
-                              // Fall back to showing existing record data
+                        {record.id.startsWith('unassigned-') ? (
+                          // Student has NO fees assigned - show Assign Fee button
+                          <button
+                            onClick={() => {
                               setSelectedRecord(record);
-                              setShowDetailsModal(true);
-                            }
-                          }}
-                          className="text-indigo-600 hover:text-indigo-900 font-medium"
-                        >
-                          View
-                        </button>
-                        {record.status !== 'Paid' && (
+                              setShowAssignFeeModal(true);
+                            }}
+                            className="px-3 py-1 bg-indigo-600 text-white rounded hover:bg-indigo-700 font-medium"
+                          >
+                            Assign Fee
+                          </button>
+                        ) : (
                           <>
                             <button
-                              onClick={() => handlePayment(record)}
-                              className="text-green-600 hover:text-green-900 font-medium"
+                              onClick={async () => {
+                                try {
+                                  // Fetch student fees from API
+                                  const orgId =
+                                    await ApiService.getCurrentOrgId();
+                                  const studentFeesResponse =
+                                    await ApiService.getStudentFees(
+                                      orgId,
+                                      record.studentId,
+                                      {
+                                        academic_year: selectedYear,
+                                      },
+                                    );
+
+                                  // Update the record with fresh data from API
+                                  const updatedRecord = { ...record };
+
+                                  // Process the API response to update payments and fee details
+                                  if (
+                                    studentFeesResponse.data &&
+                                    studentFeesResponse.data.length > 0
+                                  ) {
+                                    const feeData = studentFeesResponse.data[0];
+                                    const attributes = feeData.attributes;
+
+                                    // Update payment information
+                                    updatedRecord.totalPaid =
+                                      attributes.amount_paid || 0;
+                                    updatedRecord.totalDue =
+                                      attributes.amount_due || 0;
+
+                                    // Update status based on API response
+                                    const status =
+                                      attributes.payment_status?.toLowerCase();
+                                    if (
+                                      status === 'completed' ||
+                                      status === 'paid'
+                                    ) {
+                                      updatedRecord.status = 'Paid';
+                                    } else if (status === 'partial') {
+                                      updatedRecord.status = 'Partial';
+                                    } else if (status === 'overdue') {
+                                      updatedRecord.status = 'Overdue';
+                                    } else {
+                                      updatedRecord.status = 'Pending';
+                                    }
+
+                                    // Update payments array if available
+                                    if (
+                                      attributes.payments &&
+                                      Array.isArray(attributes.payments)
+                                    ) {
+                                      updatedRecord.payments =
+                                        attributes.payments.map(
+                                          (p: any, idx: number) => ({
+                                            id: `payment-${idx}`,
+                                            date:
+                                              p.payment_date ||
+                                              new Date()
+                                                .toISOString()
+                                                .split('T')[0],
+                                            amount: p.amount || 0,
+                                            feeType: mapFeeType(
+                                              p.fee_type || '',
+                                            ),
+                                            description: p.description || '',
+                                            method: p.payment_method || 'Cash',
+                                            receiptNumber:
+                                              p.receipt_number ||
+                                              `RCP-${idx + 1}`,
+                                            remarks: p.remarks || '',
+                                          }),
+                                        );
+                                    }
+                                  }
+
+                                  setSelectedRecord(updatedRecord);
+                                  setShowDetailsModal(true);
+                                } catch (error) {
+                                  console.error(
+                                    'Error fetching student fees:',
+                                    error,
+                                  );
+                                  // Fall back to showing existing record data
+                                  setSelectedRecord(record);
+                                  setShowDetailsModal(true);
+                                }
+                              }}
+                              className="text-indigo-600 hover:text-indigo-900 font-medium"
                             >
-                              Pay
+                              View
                             </button>
-                            <button
-                              onClick={() => sendReminder(record)}
-                              className="text-orange-600 hover:text-orange-900 font-medium"
-                            >
-                              Remind
-                            </button>
+                            {record.status !== 'Paid' && (
+                              <>
+                                <button
+                                  onClick={() => handlePayment(record)}
+                                  className="text-green-600 hover:text-green-900 font-medium"
+                                >
+                                  Pay
+                                </button>
+                                <button
+                                  onClick={() => sendReminder(record)}
+                                  className="text-orange-600 hover:text-orange-900 font-medium"
+                                >
+                                  Remind
+                                </button>
+                              </>
+                            )}
                           </>
                         )}
                       </td>
@@ -2144,6 +2240,132 @@ export default function FeeManagementERP() {
                     examFees: 0,
                     otherFees: 0,
                   });
+                }}
+                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Assign Fee Modal */}
+      {showAssignFeeModal && selectedRecord && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Assign Fee to Student
+            </h2>
+
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">Student Name</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {selectedRecord.studentName}
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <p className="text-sm text-gray-600">Class</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {selectedRecord.class}
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Fee Structure <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedFeeStructureId}
+                onChange={(e) => setSelectedFeeStructureId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+              >
+                <option value="">Select a fee structure...</option>
+                {feeStructures
+                  .filter((s) => s.className === selectedRecord.class)
+                  .map((structure) => (
+                    <option key={structure.id} value={structure.id}>
+                      {structure.className} - ₹
+                      {structure.totalAmount.toLocaleString()} (
+                      {structure.academicYear})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    if (!selectedFeeStructureId) {
+                      alert('Please select a fee structure');
+                      return;
+                    }
+
+                    const orgId = await ApiService.getCurrentOrgId();
+                    const classId = classIdMap.get(selectedRecord.class);
+
+                    if (!classId) {
+                      alert('Class ID not found');
+                      return;
+                    }
+
+                    // Get the selected fee structure
+                    const feeStructure = feeStructures.find(
+                      (s) => s.id === selectedFeeStructureId,
+                    );
+
+                    if (!feeStructure) {
+                      alert('Fee structure not found');
+                      return;
+                    }
+
+                    // Prepare fee data
+                    const feeData = {
+                      fee_structure_id: selectedFeeStructureId,
+                      components: {
+                        admission_fee: feeStructure.components.admissionFee,
+                        registration_fee:
+                          feeStructure.components.registrationFee,
+                        tuition_fees: feeStructure.components.tuitionFees,
+                        exam_fees: feeStructure.components.examFees,
+                        other_fees: feeStructure.components.otherFees,
+                      },
+                      academic_year: selectedYear,
+                      due_date: '31/03/2025',
+                      description: `Fee for ${selectedRecord.class}`,
+                      fee_type: 'annual',
+                    };
+
+                    // Call API to assign fee
+                    await ApiService.createStudentFee(
+                      orgId,
+                      classId,
+                      selectedRecord.studentId,
+                      feeData,
+                    );
+
+                    alert('Fee assigned successfully!');
+                    setShowAssignFeeModal(false);
+                    setSelectedFeeStructureId('');
+
+                    // Reload data
+                    await handleClassSelection(selectedRecord.class);
+                  } catch (error) {
+                    console.error('Error assigning fee:', error);
+                    alert('Failed to assign fee. Please try again.');
+                  }
+                }}
+                disabled={!selectedFeeStructureId}
+                className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Assign Fee
+              </button>
+              <button
+                onClick={() => {
+                  setShowAssignFeeModal(false);
+                  setSelectedFeeStructureId('');
                 }}
                 className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
               >
