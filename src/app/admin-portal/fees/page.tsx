@@ -217,24 +217,7 @@ export default function FeeManagementERP() {
         academic_year: selectedYear,
       }).catch(() => ({ data: [] }));
 
-      // Fetch fees for all classes
-      const allFeesPromises = classesResponse.data.map((classData) =>
-        ApiService.getClassFees(orgId, classData.id, {
-          academic_year: selectedYear,
-        }).catch(() => ({ data: [] })),
-      );
-
-      const allFeesResponses = await Promise.all(allFeesPromises);
-      const allFees = allFeesResponses.flatMap(
-        (response) => response.data || [],
-      );
-
-      // Build map of fee structures by class
-      const structuresByClass = new Map<string, any>();
-      (feeStructuresResponse.data || []).forEach((structure: any) => {
-        const className = structure.attributes.class_name;
-        structuresByClass.set(className, structure);
-      });
+      // Don't fetch fees for all classes - let handleClassSelection do it per class
 
       // Create fee structures ONLY from API data (no defaults)
       const structures: FeeStructure[] = (feeStructuresResponse.data || [])
@@ -263,74 +246,21 @@ export default function FeeManagementERP() {
         .filter((s: FeeStructure | null): s is FeeStructure => s !== null);
       setFeeStructures(structures);
 
-      // Transform API fees into student fee records
-      const records: StudentFeeRecord[] = allFees.map((feeData) => {
-        const attributes = feeData.attributes;
-        const classId = attributes.class_id;
-        const className =
-          classesResponse.data.find((c) => c.id === classId)?.attributes
-            .class || 'Unknown';
-        const structure =
-          structures.find((s) => s.className === className) || structures[0];
+      // Initialize with empty records - will be populated when user selects a class
+      setFeeRecords([]);
+      setAllFeeRecords([]);
+      setFilteredRecords([]);
 
-        // Transform API payments
-        const payments: Payment[] = (attributes.payments || []).map(
-          (payment: any) => ({
-            id: payment.id,
-            date: payment.date,
-            amount: payment.amount,
-            feeType: mapFeeType(payment.description || attributes.fee_type),
-            description: payment.description,
-            month: payment.month,
-            method: (payment.method as Payment['method']) || 'Cash',
-            receiptNumber: payment.receipt_number,
-            remarks: payment.remarks || '',
-          }),
-        );
-
-        const totalPaid = attributes.total_paid || 0;
-        const totalDue =
-          attributes.total_due || attributes.remaining_amount || 0;
-
-        // Determine status from API data
-        const status: StudentFeeRecord['status'] =
-          (attributes.status as StudentFeeRecord['status']) ||
-          (totalDue === 0 ? 'Paid' : totalPaid > 0 ? 'Partial' : 'Pending');
-
-        return {
-          id: feeData.id,
-          studentId: attributes.student_id,
-          studentName: attributes.student_name || 'Unknown Student',
-          class: className,
-          rollNumber: attributes.roll_number || '',
-          email: attributes.email || '',
-          phone: attributes.phone || '',
-          academicYear: attributes.academic_year || selectedYear,
-          feeStructure: structure,
-          payments,
-          totalPaid,
-          totalDue,
-          status,
-        };
-      });
-
-      setFeeRecords(records);
-      setAllFeeRecords(records);
-      setFilteredRecords(records);
-
-      // Generate class summaries
+      // Initialize empty class summaries - will be calculated per class
       const summaries: ClassFeeSummary[] = classNames.map((className) => {
-        const classRecords = records.filter((r) => r.class === className);
         return {
           className,
-          totalStudents: classRecords.length,
-          totalCollected: classRecords.reduce((sum, r) => sum + r.totalPaid, 0),
-          totalDue: classRecords.reduce((sum, r) => sum + r.totalDue, 0),
-          paidStudents: classRecords.filter((r) => r.status === 'Paid').length,
-          pendingStudents: classRecords.filter((r) => r.status === 'Pending')
-            .length,
-          overdueStudents: classRecords.filter((r) => r.status === 'Overdue')
-            .length,
+          totalStudents: 0,
+          totalCollected: 0,
+          totalDue: 0,
+          paidStudents: 0,
+          pendingStudents: 0,
+          overdueStudents: 0,
         };
       });
       setClassSummaries(summaries);
@@ -1322,24 +1252,29 @@ export default function FeeManagementERP() {
                   // Auto-fill amount based on fee type
                   if (feeType === 'Admission Fee') {
                     amount =
-                      selectedRecord.feeStructure.components.admissionFee.toString();
+                      selectedRecord.feeStructure?.components?.admissionFee?.toString() ||
+                      '0';
                     description = 'Admission Fee';
                   } else if (feeType === 'Registration Fee') {
                     amount =
-                      selectedRecord.feeStructure.components.registrationFee.toString();
+                      selectedRecord.feeStructure?.components?.registrationFee?.toString() ||
+                      '0';
                     description = 'Registration Fee';
                   } else if (feeType === 'Monthly Fee') {
                     amount = (
-                      selectedRecord.feeStructure.components.tuitionFees / 12
+                      (selectedRecord.feeStructure?.components?.tuitionFees ||
+                        0) / 12
                     ).toFixed(2);
                     description = 'Tuition Fee (Monthly)';
                   } else if (feeType === 'Exam Fee') {
                     amount =
-                      selectedRecord.feeStructure.components.examFees.toString();
+                      selectedRecord.feeStructure?.components?.examFees?.toString() ||
+                      '0';
                     description = 'Exam Fee';
                   } else if (feeType === 'Other Fees') {
                     amount =
-                      selectedRecord.feeStructure.components.otherFees.toString();
+                      selectedRecord.feeStructure?.components?.otherFees?.toString() ||
+                      '0';
                     description = 'Other Fees';
                   }
 
@@ -1510,19 +1445,21 @@ export default function FeeManagementERP() {
                 <div className="flex justify-between">
                   <span className="text-gray-700">Total Fee:</span>
                   <span className="font-semibold text-gray-900">
-                    ₹{selectedRecord.feeStructure.totalAmount.toLocaleString()}
+                    ₹
+                    {selectedRecord.feeStructure?.totalAmount?.toLocaleString() ||
+                      '0'}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-700">Paid Amount:</span>
                   <span className="font-semibold text-green-600">
-                    ₹{selectedRecord.totalPaid.toLocaleString()}
+                    ₹{selectedRecord.totalPaid?.toLocaleString() || '0'}
                   </span>
                 </div>
                 <div className="flex justify-between border-t pt-2">
                   <span className="text-gray-700">Due Amount:</span>
                   <span className="font-semibold text-red-600">
-                    ₹{selectedRecord.totalDue.toLocaleString()}
+                    ₹{selectedRecord.totalDue?.toLocaleString() || '0'}
                   </span>
                 </div>
               </div>
@@ -1543,12 +1480,13 @@ export default function FeeManagementERP() {
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
                         ₹
-                        {selectedRecord.feeStructure.components.admissionFee.toLocaleString()}
+                        {selectedRecord.feeStructure?.components?.admissionFee?.toLocaleString() ||
+                          '0'}
                       </p>
                       <span
-                        className={`text-xs px-2 py-1 rounded-full ${selectedRecord.payments.some((p) => p.feeType === 'Admission Fee') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
+                        className={`text-xs px-2 py-1 rounded-full ${selectedRecord.payments?.some((p) => p.feeType === 'Admission Fee') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
                       >
-                        {selectedRecord.payments.some(
+                        {selectedRecord.payments?.some(
                           (p) => p.feeType === 'Admission Fee',
                         )
                           ? 'Paid'
@@ -1569,12 +1507,13 @@ export default function FeeManagementERP() {
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
                         ₹
-                        {selectedRecord.feeStructure.components.registrationFee.toLocaleString()}
+                        {selectedRecord.feeStructure?.components?.registrationFee?.toLocaleString() ||
+                          '0'}
                       </p>
                       <span
-                        className={`text-xs px-2 py-1 rounded-full ${selectedRecord.payments.some((p) => p.feeType === 'Registration Fee') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
+                        className={`text-xs px-2 py-1 rounded-full ${selectedRecord.payments?.some((p) => p.feeType === 'Registration Fee') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
                       >
-                        {selectedRecord.payments.some(
+                        {selectedRecord.payments?.some(
                           (p) => p.feeType === 'Registration Fee',
                         )
                           ? 'Paid'
@@ -1595,7 +1534,8 @@ export default function FeeManagementERP() {
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
                         ₹
-                        {selectedRecord.feeStructure.components.tuitionFees.toLocaleString()}
+                        {selectedRecord.feeStructure?.components?.tuitionFees?.toLocaleString() ||
+                          '0'}
                       </p>
                     </div>
                   </div>
@@ -1610,7 +1550,8 @@ export default function FeeManagementERP() {
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
                         ₹
-                        {selectedRecord.feeStructure.components.examFees.toLocaleString()}
+                        {selectedRecord.feeStructure?.components?.examFees?.toLocaleString() ||
+                          '0'}
                       </p>
                     </div>
                   </div>
@@ -1625,7 +1566,8 @@ export default function FeeManagementERP() {
                     <div className="text-right">
                       <p className="font-semibold text-gray-900">
                         ₹
-                        {selectedRecord.feeStructure.components.otherFees.toLocaleString()}
+                        {selectedRecord.feeStructure?.components?.otherFees?.toLocaleString() ||
+                          '0'}
                       </p>
                     </div>
                   </div>
