@@ -2361,6 +2361,94 @@ export class ApiService {
     }
   }
 
+  // Update a payment
+  static async updatePayment(
+    orgId: string,
+    feeId: string,
+    paymentId: string,
+    paymentData: {
+      amount?: number;
+      date?: string;
+      receipt_number?: string;
+      method?: string;
+      description?: string;
+      month?: string;
+      remarks?: string;
+    },
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.put(
+        `/${orgId}/fees/${feeId}/payments/${paymentId}`,
+        {
+          data: {
+            attributes: paymentData,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      throw new Error('Failed to update payment');
+    }
+  }
+
+  // Delete a payment
+  static async deletePayment(
+    orgId: string,
+    feeId: string,
+    paymentId: string,
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.delete(
+        `/${orgId}/fees/${feeId}/payments/${paymentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      throw new Error('Failed to delete payment');
+    }
+  }
+
   // Get all fees for a specific student
   static async getStudentFees(
     orgId: string,

@@ -104,7 +104,7 @@ export default function FeeManagementERP() {
   const [feeStructures, setFeeStructures] = useState<FeeStructure[]>([]);
 
   // Filter states
-  const [selectedClass, setSelectedClass] = useState('All');
+  const [selectedClass, setSelectedClass] = useState('Select Class');
   const [selectedStatus, setSelectedStatus] = useState('All');
   const [selectedMonth, setSelectedMonth] = useState('All');
   const [selectedYear, setSelectedYear] = useState('2024-25');
@@ -121,6 +121,8 @@ export default function FeeManagementERP() {
   const [showCreateFeeStructureModal, setShowCreateFeeStructureModal] =
     useState(false);
   const [showAssignFeeModal, setShowAssignFeeModal] = useState(false);
+  const [showEditPaymentModal, setShowEditPaymentModal] = useState(false);
+  const [showDeletePaymentModal, setShowDeletePaymentModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<StudentFeeRecord | null>(
     null,
   );
@@ -128,6 +130,7 @@ export default function FeeManagementERP() {
     null,
   );
   const [selectedFeeStructureId, setSelectedFeeStructureId] = useState('');
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
 
   // Create fee structure form state
   const [createFeeStructureData, setCreateFeeStructureData] = useState({
@@ -210,7 +213,7 @@ export default function FeeManagementERP() {
         idMap.set(classData.attributes.class, classData.id);
       });
       setClassIdMap(idMap);
-      setClasses(['All', ...classNames]);
+      setClasses(['Select Class', ...classNames]);
 
       // Fetch fee structures from API
       const feeStructuresResponse = await ApiService.getFeeStructures(orgId, {
@@ -277,7 +280,7 @@ export default function FeeManagementERP() {
     setSelectedClass(className);
 
     // If "All" is selected, show all students
-    if (className === 'All') {
+    if (className === 'Select Class') {
       setFeeRecords(allFeeRecords);
       return;
     }
@@ -803,7 +806,7 @@ export default function FeeManagementERP() {
               >
                 Student-wise View
               </button>
-              <button
+              {/* <button
                 onClick={() => setViewMode('class')}
                 className={`px-6 py-3 text-sm font-medium border-b-2 ${
                   viewMode === 'class'
@@ -822,7 +825,7 @@ export default function FeeManagementERP() {
                 }`}
               >
                 Month-wise Collection
-              </button>
+              </button> */}
             </nav>
           </div>
 
@@ -846,7 +849,7 @@ export default function FeeManagementERP() {
                 </select>
               </div>
 
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Filter by Status
                 </label>
@@ -878,7 +881,7 @@ export default function FeeManagementERP() {
                     </option>
                   ))}
                 </select>
-              </div>
+              </div> */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1061,18 +1064,22 @@ export default function FeeManagementERP() {
                                       updatedRecord.payments =
                                         attributes.payments.map(
                                           (p: any, idx: number) => ({
-                                            id: `payment-${idx}`,
+                                            id: p.id || `payment-${idx}`,
                                             date:
+                                              p.date ||
                                               p.payment_date ||
                                               new Date()
                                                 .toISOString()
                                                 .split('T')[0],
                                             amount: p.amount || 0,
                                             feeType: mapFeeType(
-                                              p.fee_type || '',
+                                              p.description || p.fee_type || '',
                                             ),
                                             description: p.description || '',
-                                            method: p.payment_method || 'Cash',
+                                            month: p.month || '',
+                                            method: (p.method ||
+                                              p.payment_method ||
+                                              'Cash') as Payment['method'],
                                             receiptNumber:
                                               p.receipt_number ||
                                               `RCP-${idx + 1}`,
@@ -1105,12 +1112,6 @@ export default function FeeManagementERP() {
                                   className="text-green-600 hover:text-green-900 font-medium"
                                 >
                                   Pay
-                                </button>
-                                <button
-                                  onClick={() => sendReminder(record)}
-                                  className="text-orange-600 hover:text-orange-900 font-medium"
-                                >
-                                  Remind
                                 </button>
                               </>
                             )}
@@ -1614,6 +1615,26 @@ export default function FeeManagementERP() {
                           Remarks: {payment.remarks}
                         </p>
                       )}
+                      <div className="flex gap-2 mt-3 pt-3 border-t">
+                        <button
+                          onClick={() => {
+                            setEditingPayment(payment);
+                            setShowEditPaymentModal(true);
+                          }}
+                          className="text-sm text-indigo-600 hover:text-indigo-900 font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingPayment(payment);
+                            setShowDeletePaymentModal(true);
+                          }}
+                          className="text-sm text-red-600 hover:text-red-900 font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -2308,6 +2329,246 @@ export default function FeeManagementERP() {
                 onClick={() => {
                   setShowAssignFeeModal(false);
                   setSelectedFeeStructureId('');
+                }}
+                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Payment Modal */}
+      {showEditPaymentModal && editingPayment && selectedRecord && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              Edit Payment
+            </h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Amount (₹) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  value={editingPayment.amount}
+                  onChange={(e) =>
+                    setEditingPayment({
+                      ...editingPayment,
+                      amount: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editingPayment.date}
+                  onChange={(e) =>
+                    setEditingPayment({
+                      ...editingPayment,
+                      date: e.target.value,
+                    })
+                  }
+                  placeholder="DD/MM/YYYY"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Receipt Number <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editingPayment.receiptNumber}
+                  onChange={(e) =>
+                    setEditingPayment({
+                      ...editingPayment,
+                      receiptNumber: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Payment Method
+                </label>
+                <select
+                  value={editingPayment.method}
+                  onChange={(e) =>
+                    setEditingPayment({
+                      ...editingPayment,
+                      method: e.target.value as Payment['method'],
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="Online">Online</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="UPI">UPI</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <input
+                  type="text"
+                  value={editingPayment.description}
+                  onChange={(e) =>
+                    setEditingPayment({
+                      ...editingPayment,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Month (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={editingPayment.month || ''}
+                  onChange={(e) =>
+                    setEditingPayment({
+                      ...editingPayment,
+                      month: e.target.value,
+                    })
+                  }
+                  placeholder="e.g., January 2025"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Remarks
+                </label>
+                <textarea
+                  value={editingPayment.remarks}
+                  onChange={(e) =>
+                    setEditingPayment({
+                      ...editingPayment,
+                      remarks: e.target.value,
+                    })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={async () => {
+                  try {
+                    const orgId = await ApiService.getCurrentOrgId();
+
+                    await ApiService.updatePayment(
+                      orgId,
+                      selectedRecord.id.replace('unassigned-', ''),
+                      editingPayment.id,
+                      {
+                        amount: editingPayment.amount,
+                        date: editingPayment.date,
+                        receipt_number: editingPayment.receiptNumber,
+                        method: editingPayment.method,
+                        description: editingPayment.description,
+                        month: editingPayment.month,
+                        remarks: editingPayment.remarks,
+                      },
+                    );
+
+                    alert('Payment updated successfully!');
+                    setShowEditPaymentModal(false);
+                    setEditingPayment(null);
+
+                    // Refresh the details by closing and reopening
+                    setShowDetailsModal(false);
+                  } catch (error) {
+                    console.error('Error updating payment:', error);
+                    alert('Failed to update payment. Please try again.');
+                  }
+                }}
+                className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium"
+              >
+                Save Changes
+              </button>
+              <button
+                onClick={() => {
+                  setShowEditPaymentModal(false);
+                  setEditingPayment(null);
+                }}
+                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Payment Confirmation Modal */}
+      {showDeletePaymentModal && editingPayment && selectedRecord && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Delete Payment
+            </h2>
+            <p className="text-gray-700 mb-6">
+              Are you sure you want to delete this payment of{' '}
+              <strong>₹{editingPayment.amount.toLocaleString()}</strong>? This
+              action cannot be undone.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  try {
+                    const orgId = await ApiService.getCurrentOrgId();
+
+                    await ApiService.deletePayment(
+                      orgId,
+                      selectedRecord.id.replace('unassigned-', ''),
+                      editingPayment.id,
+                    );
+
+                    alert('Payment deleted successfully!');
+                    setShowDeletePaymentModal(false);
+                    setEditingPayment(null);
+
+                    // Refresh the details by closing and reopening
+                    setShowDetailsModal(false);
+                  } catch (error) {
+                    console.error('Error deleting payment:', error);
+                    alert('Failed to delete payment. Please try again.');
+                  }
+                }}
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 font-medium"
+              >
+                Delete
+              </button>
+              <button
+                onClick={() => {
+                  setShowDeletePaymentModal(false);
+                  setEditingPayment(null);
                 }}
                 className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
               >
