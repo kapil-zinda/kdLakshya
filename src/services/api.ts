@@ -2361,13 +2361,19 @@ export class ApiService {
     }
   }
 
-  // Get all fees for a specific student
-  static async getStudentFees(
+  // Update a payment
+  static async updatePayment(
     orgId: string,
-    studentId: string,
-    params?: {
-      status?: 'pending' | 'partial' | 'completed';
-      academic_year?: string;
+    feeId: string,
+    paymentId: string,
+    paymentData: {
+      amount?: number;
+      date?: string;
+      receipt_number?: string;
+      method?: string;
+      description?: string;
+      month?: string;
+      remarks?: string;
     },
   ): Promise<any> {
     try {
@@ -2385,6 +2391,104 @@ export class ApiService {
         throw new Error('Authentication token has expired');
       }
 
+      const response = await classApi.put(
+        `/${orgId}/fees/${feeId}/payments/${paymentId}`,
+        {
+          data: {
+            attributes: paymentData,
+          },
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      throw new Error('Failed to update payment');
+    }
+  }
+
+  // Delete a payment
+  static async deletePayment(
+    orgId: string,
+    feeId: string,
+    paymentId: string,
+  ): Promise<any> {
+    try {
+      // Get authentication token
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.delete(
+        `/${orgId}/fees/${feeId}/payments/${paymentId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting payment:', error);
+      throw new Error('Failed to delete payment');
+    }
+  }
+
+  // Get all fees for a specific student
+  static async getStudentFees(
+    orgId: string,
+    studentId: string,
+    params?: {
+      status?: 'pending' | 'partial' | 'completed';
+      academic_year?: string;
+    },
+  ): Promise<any> {
+    try {
+      // Build headers - support both student (x-api-key) and admin (Bearer) authentication
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/vnd.api+json',
+      };
+
+      // Check for student authentication first
+      const studentAuthStr = localStorage.getItem('studentAuth');
+      if (studentAuthStr) {
+        const studentAuth = JSON.parse(studentAuthStr);
+        if (studentAuth.basicAuthToken) {
+          headers['x-api-key'] = studentAuth.basicAuthToken;
+        }
+      } else {
+        // Fallback to Bearer token for admin
+        const tokenStr = localStorage.getItem('bearerToken');
+        if (!tokenStr) {
+          throw new Error('No authentication token found');
+        }
+
+        const tokenItem = JSON.parse(tokenStr);
+        const now = new Date().getTime();
+
+        if (now > tokenItem.expiry) {
+          localStorage.removeItem('bearerToken');
+          throw new Error('Authentication token has expired');
+        }
+
+        headers['Authorization'] = `Bearer ${tokenItem.value}`;
+      }
+
       // Build query parameters
       const queryParams = new URLSearchParams();
       if (params?.status) {
@@ -2398,10 +2502,7 @@ export class ApiService {
       const url = `/${orgId}/students/${studentId}/fees${queryString ? `?${queryString}` : ''}`;
 
       const response = await classApi.get(url, {
-        headers: {
-          Authorization: `Bearer ${tokenItem.value}`,
-          'Content-Type': 'application/vnd.api+json',
-        },
+        headers,
       });
       return response.data;
     } catch (error) {

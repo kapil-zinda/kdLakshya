@@ -150,6 +150,15 @@ export function useUserData() {
         }
       }
 
+      // Also check permissions object in attributes for org permission
+      if (
+        userData.attributes &&
+        userData.attributes.permissions &&
+        userData.attributes.permissions['org']
+      ) {
+        role = 'admin'; // Users with org permission get admin access
+      }
+
       console.log('Determined role:', role);
 
       // For localhost development, use hardcoded orgId
