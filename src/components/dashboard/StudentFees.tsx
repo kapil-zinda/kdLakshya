@@ -981,7 +981,7 @@ const StudentFees: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {feeData.feePayments.map((payment) => (
+              {feeData.feePayments.map((payment: any) => (
                 <tr key={payment.id}>
                   <td className="border border-black p-2 text-black">
                     {payment.receiptNumber}
