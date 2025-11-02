@@ -81,6 +81,9 @@ function AdminDashboardContent({ userData }: { userData: any }) {
     window.location.replace('/');
   };
 
+  // Check if user has 'head' permission (supervisor level)
+  const hasHeadPermission = userData?.permission?.org === 'superwise';
+
   const dashboardCards = [
     {
       title: 'Student Management',
@@ -404,43 +407,55 @@ function AdminDashboardContent({ userData }: { userData: any }) {
         </div> */}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {dashboardCards.map((card, index) => (
-            <Link key={index} href={card.href} className="group">
-              <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group-hover:scale-105">
-                <div
-                  className={`h-32 bg-gradient-to-br ${card.color} p-6 flex items-center justify-center`}
-                >
-                  <div className="text-white">{card.icon}</div>
-                </div>
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {card.title}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    {card.description}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                      {card.stats}
-                    </span>
-                    <svg
-                      className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
-                      />
-                    </svg>
+          {dashboardCards
+            .filter((card) => {
+              // Hide School Settings tab for users with 'head' permission
+              if (
+                hasHeadPermission &&
+                (card.href === '/admin-portal/school-settings' ||
+                  card.href.startsWith('/admin-portal/school-settings?'))
+              ) {
+                return false;
+              }
+              return true;
+            })
+            .map((card, index) => (
+              <Link key={index} href={card.href} className="group">
+                <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group-hover:scale-105">
+                  <div
+                    className={`h-32 bg-gradient-to-br ${card.color} p-6 flex items-center justify-center`}
+                  >
+                    <div className="text-white">{card.icon}</div>
+                  </div>
+                  <div className="p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      {card.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      {card.description}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        {card.stats}
+                      </span>
+                      <svg
+                        className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))}
         </div>
       </main>
     </div>
