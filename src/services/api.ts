@@ -2459,18 +2459,34 @@ export class ApiService {
     },
   ): Promise<any> {
     try {
-      // Get authentication token
-      const tokenStr = localStorage.getItem('bearerToken');
-      if (!tokenStr) {
-        throw new Error('No authentication token found');
-      }
+      // Build headers - support both student (x-api-key) and admin (Bearer) authentication
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/vnd.api+json',
+      };
 
-      const tokenItem = JSON.parse(tokenStr);
-      const now = new Date().getTime();
+      // Check for student authentication first
+      const studentAuthStr = localStorage.getItem('studentAuth');
+      if (studentAuthStr) {
+        const studentAuth = JSON.parse(studentAuthStr);
+        if (studentAuth.basicAuthToken) {
+          headers['x-api-key'] = studentAuth.basicAuthToken;
+        }
+      } else {
+        // Fallback to Bearer token for admin
+        const tokenStr = localStorage.getItem('bearerToken');
+        if (!tokenStr) {
+          throw new Error('No authentication token found');
+        }
 
-      if (now > tokenItem.expiry) {
-        localStorage.removeItem('bearerToken');
-        throw new Error('Authentication token has expired');
+        const tokenItem = JSON.parse(tokenStr);
+        const now = new Date().getTime();
+
+        if (now > tokenItem.expiry) {
+          localStorage.removeItem('bearerToken');
+          throw new Error('Authentication token has expired');
+        }
+
+        headers['Authorization'] = `Bearer ${tokenItem.value}`;
       }
 
       // Build query parameters
@@ -2486,10 +2502,7 @@ export class ApiService {
       const url = `/${orgId}/students/${studentId}/fees${queryString ? `?${queryString}` : ''}`;
 
       const response = await classApi.get(url, {
-        headers: {
-          Authorization: `Bearer ${tokenItem.value}`,
-          'Content-Type': 'application/vnd.api+json',
-        },
+        headers,
       });
       return response.data;
     } catch (error) {

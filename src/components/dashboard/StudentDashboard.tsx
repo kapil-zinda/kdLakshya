@@ -337,7 +337,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
   return (
     <div className="container mx-auto px-4 py-6 text-white">
       {/* Header with Logout Button */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-6 no-print">
         <h2 className="text-2xl font-bold">Student Dashboard</h2>
         <button
           onClick={handleLogout}
@@ -348,7 +348,7 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap mb-6 gap-2">
+      <div className="flex flex-wrap mb-6 gap-2 no-print">
         <button
           onClick={() => setActiveTab('overview')}
           className={`px-4 py-2 rounded-md ${
@@ -378,6 +378,16 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
           }`}
         >
           Attendance
+        </button>
+        <button
+          onClick={() => setActiveTab('fees')}
+          className={`px-4 py-2 rounded-md ${
+            activeTab === 'fees'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+          }`}
+        >
+          Fees
         </button>
       </div>
 

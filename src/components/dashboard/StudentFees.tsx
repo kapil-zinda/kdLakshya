@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
-import { dummyStudentFee } from '@/data/studentDashboardDummyData';
+import { ApiService } from '@/services/api';
 import {
   Cell,
   Legend,
@@ -24,6 +24,11 @@ import {
 
 // Add global styles for print media
 const printStyles = `
+  /* Hide print-only content on screen */
+  .print-only {
+    display: none !important;
+  }
+
   @media print {
     /* Hide UI elements */
     .no-print {
@@ -59,7 +64,7 @@ const printStyles = `
     }
 
     /* Hide specific UI elements */
-    nav, 
+    nav,
     header,
     footer,
     .sidebar,
@@ -83,8 +88,111 @@ const printStyles = `
 `;
 
 const StudentFees: React.FC = () => {
-  // Get fee data
-  const feeData = dummyStudentFee;
+  const [loading, setLoading] = useState(true);
+  const [feeData, setFeeData] = useState<any>(null);
+  const [studentData, setStudentData] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchFeeData = async () => {
+      try {
+        // Get student data from localStorage
+        const storedStudentData = localStorage.getItem('studentAuth');
+        if (!storedStudentData) {
+          console.error('No student data found');
+          setLoading(false);
+          return;
+        }
+
+        const parsed = JSON.parse(storedStudentData);
+        setStudentData(parsed);
+
+        // Get org ID and student ID
+        const orgId = await ApiService.getCurrentOrgId();
+        const studentId = parsed.id;
+
+        // Fetch student fees from API
+        const response = await ApiService.getStudentFees(orgId, studentId);
+        console.log('Student fees response:', response);
+
+        if (response.data && response.data.length > 0) {
+          // Use the first fee record (or you can handle multiple)
+          const feeRecord = response.data[0];
+          const attributes = feeRecord.attributes;
+
+          // Transform API data to match component structure
+          const transformedData = {
+            academicYear: attributes.academic_year || '2024-25',
+            feeStructure: {
+              tuitionFee: attributes.components?.tuition_fees || 0,
+              developmentFee: attributes.components?.registration_fee || 0,
+              examFee: attributes.components?.exam_fees || 0,
+              transportFee: 0,
+              libraryFee: attributes.components?.admission_fee || 0,
+              otherFees: attributes.components?.other_fees || 0,
+              totalFee: attributes.amount || 0,
+            },
+            totalPaid: attributes.total_paid || 0,
+            totalDue: attributes.total_due || attributes.remaining_amount || 0,
+            feePayments: (attributes.payments || []).map((payment: any) => ({
+              id: payment.id,
+              receiptNumber: payment.receipt_number,
+              date: payment.date,
+              description: payment.description,
+              paymentMode: payment.method,
+              amount: payment.amount,
+              month: payment.month || '',
+              remarks: payment.remarks || '',
+            })),
+          };
+
+          setFeeData(transformedData);
+        } else {
+          // No fee data found
+          setFeeData({
+            academicYear: '2024-25',
+            feeStructure: {
+              tuitionFee: 0,
+              developmentFee: 0,
+              examFee: 0,
+              transportFee: 0,
+              libraryFee: 0,
+              otherFees: 0,
+              totalFee: 0,
+            },
+            totalPaid: 0,
+            totalDue: 0,
+            feePayments: [],
+          });
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching fee data:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchFeeData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-400">Loading fee details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!feeData) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <p className="text-gray-400">No fee data available</p>
+      </div>
+    );
+  }
 
   // Prepare fee structure chart data
   const feeStructureChartData = [
@@ -137,6 +245,269 @@ const StudentFees: React.FC = () => {
   // Function to handle printing
   const handlePrint = () => {
     window.print();
+  };
+
+  // Function to download payment slip
+  const handleDownloadSlip = (payment: any) => {
+    // Create a new window for the receipt
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+
+    const receiptHTML = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Payment Receipt - ${payment.receiptNumber}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              padding: 20px;
+              max-width: 800px;
+              margin: 0 auto;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 2px solid #000;
+              padding-bottom: 10px;
+              margin-bottom: 20px;
+            }
+            .header h1 {
+              margin: 0;
+              font-size: 24px;
+            }
+            .header p {
+              margin: 5px 0;
+            }
+            .receipt-info {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20px;
+              margin-bottom: 20px;
+            }
+            .info-group {
+              margin-bottom: 10px;
+            }
+            .info-label {
+              font-weight: bold;
+              display: inline-block;
+              width: 150px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 20px 0;
+            }
+            th, td {
+              border: 1px solid #000;
+              padding: 8px;
+              text-align: left;
+            }
+            th {
+              background-color: #f0f0f0;
+            }
+            .total {
+              font-weight: bold;
+              font-size: 18px;
+            }
+            .signatures {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 40px;
+              margin-top: 60px;
+            }
+            .signature {
+              text-align: center;
+              border-top: 1px solid #000;
+              padding-top: 10px;
+            }
+            @media print {
+              button {
+                display: none;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>SHREE LAHARI SINGH MEMO INTER COLLEGE</h1>
+            <p>GHANGHAULI, ALIGARH</p>
+            <p>Phone No. 9897470696</p>
+            <h2 style="margin-top: 10px;">PAYMENT RECEIPT</h2>
+          </div>
+
+          <div class="receipt-info">
+            <div>
+              <div class="info-group">
+                <span class="info-label">Receipt No:</span>
+                <span>${payment.receiptNumber}</span>
+              </div>
+              <div class="info-group">
+                <span class="info-label">Student Name:</span>
+                <span>${studentData ? `${studentData.firstName} ${studentData.lastName}` : 'N/A'}</span>
+              </div>
+              <div class="info-group">
+                <span class="info-label">Class:</span>
+                <span>${studentData?.gradeLevel || 'N/A'}</span>
+              </div>
+              <div class="info-group">
+                <span class="info-label">Roll No:</span>
+                <span>${studentData?.rollNumber || 'N/A'}</span>
+              </div>
+            </div>
+            <div>
+              <div class="info-group">
+                <span class="info-label">Payment Date:</span>
+                <span>${payment.date}</span>
+              </div>
+              <div class="info-group">
+                <span class="info-label">Academic Year:</span>
+                <span>${feeData.academicYear}</span>
+              </div>
+              <div class="info-group">
+                <span class="info-label">Payment Method:</span>
+                <span>${payment.paymentMode}</span>
+              </div>
+              ${
+                payment.month
+                  ? `
+              <div class="info-group">
+                <span class="info-label">Month:</span>
+                <span>${payment.month}</span>
+              </div>
+              `
+                  : ''
+              }
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th style="text-align: right;">Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${payment.description}</td>
+                <td style="text-align: right;">₹${payment.amount.toLocaleString()}</td>
+              </tr>
+              ${
+                payment.remarks
+                  ? `
+              <tr>
+                <td colspan="2"><strong>Remarks:</strong> ${payment.remarks}</td>
+              </tr>
+              `
+                  : ''
+              }
+              <tr class="total">
+                <td>Total Amount Paid</td>
+                <td style="text-align: right;">₹${payment.amount.toLocaleString()}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="margin: 20px 0;">
+            <p><strong>Amount in Words:</strong> ${numberToWords(payment.amount)} Rupees Only</p>
+          </div>
+
+          <div class="signatures">
+            <div class="signature">
+              <p>Accountant's Signature</p>
+            </div>
+            <div class="signature">
+              <p>Principal's Signature</p>
+            </div>
+          </div>
+
+          <div style="text-align: center; margin-top: 40px; font-size: 12px;">
+            <p>This is a computer-generated receipt</p>
+          </div>
+
+          <div style="margin-top: 20px; text-align: center;">
+            <button onclick="window.print()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px;">
+              Print Receipt
+            </button>
+          </div>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
+  };
+
+  // Helper function to convert number to words
+  const numberToWords = (num: number): string => {
+    const ones = [
+      '',
+      'One',
+      'Two',
+      'Three',
+      'Four',
+      'Five',
+      'Six',
+      'Seven',
+      'Eight',
+      'Nine',
+    ];
+    const tens = [
+      '',
+      '',
+      'Twenty',
+      'Thirty',
+      'Forty',
+      'Fifty',
+      'Sixty',
+      'Seventy',
+      'Eighty',
+      'Ninety',
+    ];
+    const teens = [
+      'Ten',
+      'Eleven',
+      'Twelve',
+      'Thirteen',
+      'Fourteen',
+      'Fifteen',
+      'Sixteen',
+      'Seventeen',
+      'Eighteen',
+      'Nineteen',
+    ];
+
+    if (num === 0) return 'Zero';
+
+    const convert = (n: number): string => {
+      if (n < 10) return ones[n];
+      if (n >= 10 && n < 20) return teens[n - 10];
+      if (n >= 20 && n < 100)
+        return (
+          tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '')
+        );
+      if (n >= 100 && n < 1000)
+        return (
+          ones[Math.floor(n / 100)] +
+          ' Hundred' +
+          (n % 100 !== 0 ? ' ' + convert(n % 100) : '')
+        );
+      if (n >= 1000 && n < 100000)
+        return (
+          convert(Math.floor(n / 1000)) +
+          ' Thousand' +
+          (n % 1000 !== 0 ? ' ' + convert(n % 1000) : '')
+        );
+      if (n >= 100000)
+        return (
+          convert(Math.floor(n / 100000)) +
+          ' Lakh' +
+          (n % 100000 !== 0 ? ' ' + convert(n % 100000) : '')
+        );
+      return '';
+    };
+
+    return convert(Math.floor(num));
   };
 
   // Custom tooltip for charts
@@ -377,54 +748,83 @@ const StudentFees: React.FC = () => {
         {/* Payment History */}
         <div className="bg-gray-800 p-6 rounded-lg mb-6">
           <h3 className="text-xl font-semibold mb-4">Payment History</h3>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-white">Receipt No.</TableHead>
-                  <TableHead className="text-white">Date</TableHead>
-                  <TableHead className="text-white">Description</TableHead>
-                  <TableHead className="text-white">Payment Mode</TableHead>
-                  <TableHead className="text-white text-right">
-                    Amount (₹)
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {feeData.feePayments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell className="font-medium text-white">
-                      {payment.receiptNumber}
-                    </TableCell>
-                    <TableCell className="text-white">
-                      {new Date(payment.date).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </TableCell>
-                    <TableCell className="text-white">
-                      {payment.description}
-                    </TableCell>
-                    <TableCell className="text-white">
-                      {payment.paymentMode}
-                    </TableCell>
-                    <TableCell className="text-right text-white">
-                      ₹{payment.amount}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                <TableRow className="bg-gray-700">
-                  <TableCell colSpan={4} className="font-bold text-white">
+          {feeData.feePayments.length > 0 ? (
+            <div className="space-y-4">
+              {feeData.feePayments.map((payment: any) => (
+                <div
+                  key={payment.id}
+                  className="bg-gray-700 p-4 rounded-lg border border-gray-600"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                          ₹{payment.amount.toLocaleString()}
+                        </span>
+                        <span className="text-gray-400 text-sm">
+                          {payment.date}
+                        </span>
+                      </div>
+                      <p className="text-white font-medium mb-1">
+                        {payment.description}
+                      </p>
+                      <div className="flex gap-4 text-sm text-gray-300">
+                        <span>
+                          <strong>Receipt:</strong> {payment.receiptNumber}
+                        </span>
+                        <span>
+                          <strong>Method:</strong> {payment.paymentMode}
+                        </span>
+                        {payment.month && (
+                          <span>
+                            <strong>Month:</strong> {payment.month}
+                          </span>
+                        )}
+                      </div>
+                      {payment.remarks && (
+                        <p className="text-sm text-gray-400 mt-2">
+                          <strong>Remarks:</strong> {payment.remarks}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDownloadSlip(payment)}
+                      className="ml-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      Download Slip
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <div className="bg-gray-700 p-4 rounded-lg border-2 border-green-600">
+                <div className="flex justify-between items-center">
+                  <span className="text-white font-bold text-lg">
                     Total Paid
-                  </TableCell>
-                  <TableCell className="text-right font-bold text-white">
-                    ₹{feeData.totalPaid}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </div>
+                  </span>
+                  <span className="text-green-400 font-bold text-xl">
+                    ₹{feeData.totalPaid.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-400 text-center py-8">
+              No payment history available
+            </p>
+          )}
         </div>
 
         {/* Due Fees */}
@@ -464,21 +864,25 @@ const StudentFees: React.FC = () => {
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
             <p className="text-white">
-              <strong>Name:</strong> Rahul Kumar
+              <strong>Name:</strong>{' '}
+              {studentData
+                ? `${studentData.firstName} ${studentData.lastName}`
+                : 'N/A'}
             </p>
             <p className="text-white">
-              <strong>{"Father's Name:"}</strong> Nanak Chand
+              <strong>{"Father's Name:"}</strong>{' '}
+              {studentData?.guardianInfo?.father_name || 'N/A'}
             </p>
             <p className="text-white">
-              <strong>Class:</strong> 11
+              <strong>Class:</strong> {studentData?.gradeLevel || 'N/A'}
             </p>
           </div>
           <div>
             <p className="text-white">
-              <strong>Roll No:</strong> 2211136
+              <strong>Roll No:</strong> {studentData?.rollNumber || 'N/A'}
             </p>
             <p className="text-white">
-              <strong>S.R.No.:</strong> 2316
+              <strong>Student ID:</strong> {studentData?.id || 'N/A'}
             </p>
             <p className="text-white">
               <strong>Academic Year:</strong> {feeData.academicYear}
