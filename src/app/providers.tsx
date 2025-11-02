@@ -6,6 +6,12 @@ import { usePathname } from 'next/navigation';
 
 import { ApiService } from '@/services/api';
 import { getAuthHeaders, isStudentUser } from '@/utils/authHeaders';
+import {
+  loadTokenFromStorage,
+  loadUserFromStorage,
+  syncTokenToRedux,
+  syncUserToRedux,
+} from '@/utils/reduxAuthSync';
 import axios from 'axios';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { type ThemeProviderProps } from 'next-themes/dist/types';
@@ -254,6 +260,9 @@ export function Providers({ children }: ThemeProviderProps) {
       setAccessTkn(token);
       setItemWithTTL('bearerToken', token, expiresInHours);
 
+      // Sync token to Redux store
+      syncTokenToRedux(token, expiresIn);
+
       // Mark code as processed temporarily
       sessionStorage.setItem('authCodeProcessed', 'true');
 
@@ -299,6 +308,22 @@ export function Providers({ children }: ThemeProviderProps) {
             userData.attributes.org;
 
           console.log('🏢 Extracted orgId:', orgId);
+
+          // Sync user data to Redux store
+          syncUserToRedux({
+            id: userData.id,
+            email: userData.attributes.email,
+            firstName:
+              userData.attributes.first_name ||
+              userData.attributes.name?.split(' ')[0] ||
+              'User',
+            lastName:
+              userData.attributes.last_name ||
+              userData.attributes.name?.split(' ').slice(1).join(' ') ||
+              '',
+            role: userData.attributes.role || 'student',
+            orgId: orgId || '',
+          });
 
           if (!orgId) {
             console.error('❌ No orgId found in user data, going to dashboard');
@@ -431,6 +456,9 @@ export function Providers({ children }: ThemeProviderProps) {
         setAccessTkn(tokenFromHash);
         setItemWithTTL('bearerToken', tokenFromHash, 24); // Store for 24 hours
 
+        // Sync token to Redux store (24 hours = 86400 seconds)
+        syncTokenToRedux(tokenFromHash, 86400);
+
         // Clean the URL by removing the hash
         window.history.replaceState(
           {},
@@ -447,6 +475,11 @@ export function Providers({ children }: ThemeProviderProps) {
       const token = getItemWithTTL('bearerToken');
       if (token) {
         setAccessTkn(token);
+
+        // Load token and user data into Redux from localStorage
+        loadTokenFromStorage();
+        loadUserFromStorage();
+
         // Only call userMeData if not on dashboard page (DashboardWrapper handles it)
         if (pathname !== '/dashboard') {
           userMeData(token, false); // Don't redirect on page load
