@@ -90,8 +90,16 @@ export const classApi = createApi({
       return headers;
     },
   }),
-  keepUnusedDataFor: 60,
-  tagTypes: ['Classes', 'Students', 'Attendance', 'Exams'],
+  keepUnusedDataFor: 30, // 30 seconds for classes
+  tagTypes: [
+    'Classes',
+    'ClassStudents',
+    'Students',
+    'Subjects',
+    'Exams',
+    'Fees',
+    'Attendance',
+  ],
   endpoints: () => ({}),
 });
 
