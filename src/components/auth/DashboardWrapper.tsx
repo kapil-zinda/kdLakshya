@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 
 import { UserData } from '@/app/interfaces/userInterface';
-import { useUserData } from '@/hooks/useUserData';
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 
 interface DashboardWrapperProps {
   children: (userData: UserData) => React.ReactNode;
@@ -17,7 +17,7 @@ export function DashboardWrapper({
   redirectTo = '/',
 }: DashboardWrapperProps) {
   const router = useRouter();
-  const { userData: cachedUserData, isLoading } = useUserData();
+  const { userData: cachedUserData, isLoading } = useUserDataRedux();
 
   // Show loading state
   if (isLoading) {

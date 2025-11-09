@@ -11,6 +11,7 @@ export interface CachedUserData {
   role: 'admin' | 'teacher' | 'student';
   permissions: Record<string, any>;
   orgId: string;
+  accessToken?: string;
   type?: string;
   phone?: string;
   designation?: string;
@@ -40,8 +41,12 @@ export function useUserDataRedux() {
     skip: !token, // Skip if no token
   });
 
-  // Use Redux user data or fetched data
-  const userData: CachedUserData | null = reduxUser || fetchedUserData || null;
+  // Merge user data with token for backward compatibility
+  const userData: CachedUserData | null = fetchedUserData
+    ? { ...fetchedUserData, accessToken: token }
+    : reduxUser
+      ? { ...reduxUser, accessToken: token, permissions: {} }
+      : null;
 
   // For backward compatibility with old code
   const clearUserData = () => {
