@@ -1,12 +1,29 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 import Link from 'next/link';
 
 import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ApiService } from '@/services/api';
+import {
+  useCreateExamMutation,
+  useCreateSubjectMutation,
+  useDeleteExamMutation,
+  useDeleteSubjectMutation,
+  useGetClassesQuery,
+  useGetClassStudentsQuery,
+  useGetExamsForClassQuery,
+  useGetSubjectsForClassQuery,
+  useUpdateExamMutation,
+  useUpdateSubjectMutation,
+} from '@/store/api/classApi';
+import { useGetFacultyQuery } from '@/store/api/facultyApi';
+import {
+  useGetStudentsQuery,
+  useUpdateStudentMutation,
+} from '@/store/api/studentApi';
 import { toast } from 'react-toastify';
 
 interface Student {
@@ -76,13 +93,22 @@ interface ClassesContentProps {
 }
 
 function ClassesContent({ userData }: ClassesContentProps) {
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  // Get org ID from userData prop
+  const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.startsWith('localhost:'));
+
+  const orgId = userData.orgId || (isLocalhost ? LOCALHOST_ORG_ID : '');
+  const userId = userData.userId || '';
+
+  // Local UI state
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     'students' | 'subjects' | 'exams' | 'monitor'
   >('students');
-  const [isLoading, setIsLoading] = useState(true);
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
   const [showEditSubjectModal, setShowEditSubjectModal] = useState(false);
   const [showDeleteSubjectModal, setShowDeleteSubjectModal] = useState(false);
@@ -103,18 +129,48 @@ function ClassesContent({ userData }: ClassesContentProps) {
   const [unassignedStudents, setUnassignedStudents] = useState<any[]>([]);
   const [classMonitor, setClassMonitor] = useState<Student | null>(null);
 
-  // Get org ID and user ID directly from userData prop (passed from DashboardWrapper)
-  // This avoids making redundant API calls to /users/me
-  // Fallback to hardcoded localhost orgId if userData.orgId is not available
-  const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
-  const isLocalhost =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' ||
-      window.location.hostname === '127.0.0.1' ||
-      window.location.hostname.startsWith('localhost:'));
+  // RTK Query hooks for data fetching
+  const { data: classesResponse, isLoading: classesLoading } =
+    useGetClassesQuery(orgId, {
+      skip: !orgId,
+    });
 
-  const orgId = userData.orgId || (isLocalhost ? LOCALHOST_ORG_ID : '');
-  const userId = userData.userId || '';
+  const { data: facultyResponse, isLoading: facultyLoading } =
+    useGetFacultyQuery(orgId, {
+      skip: !orgId,
+    });
+
+  const { data: allStudentsResponse } = useGetStudentsQuery(orgId, {
+    skip: !orgId,
+  });
+
+  // Fetch data for selected class only
+  const { data: classStudentsResponse, isLoading: studentsLoading } =
+    useGetClassStudentsQuery(
+      { orgId, classId: selectedClassId! },
+      { skip: !orgId || !selectedClassId },
+    );
+
+  const { data: subjectsResponse, isLoading: subjectsLoading } =
+    useGetSubjectsForClassQuery(
+      { orgId, classId: selectedClassId! },
+      { skip: !orgId || !selectedClassId },
+    );
+
+  const { data: examsResponse, isLoading: examsLoading } =
+    useGetExamsForClassQuery(
+      { orgId, classId: selectedClassId! },
+      { skip: !orgId || !selectedClassId },
+    );
+
+  // RTK Query mutations
+  const [createSubject] = useCreateSubjectMutation();
+  const [updateSubject] = useUpdateSubjectMutation();
+  const [deleteSubject] = useDeleteSubjectMutation();
+  const [createExam] = useCreateExamMutation();
+  const [updateExam] = useUpdateExamMutation();
+  const [deleteExam] = useDeleteExamMutation();
+  const [updateStudent] = useUpdateStudentMutation();
 
   const [subjectFormData, setSubjectFormData] = useState({
     name: '',
@@ -144,155 +200,41 @@ function ClassesContent({ userData }: ClassesContentProps) {
     endTime: '',
   });
 
-  // Get current class data
-  const currentStudents = selectedClass?.data.students || [];
-  const currentSubjects = selectedClass?.data.subjects || [];
-  const currentExams = selectedClass?.data.exams || [];
+  // Transform RTK Query data
+  const teachers: Teacher[] =
+    facultyResponse?.data.map((t: any) => ({
+      id: t.id,
+      name: t.attributes.name,
+      email: t.attributes.email,
+      subjects: t.attributes.subjects || [],
+    })) || [];
 
-  useEffect(() => {
-    console.log('🔄 useEffect triggered - loading classes data');
-    console.log('📋 userData:', userData);
-    console.log('🏢 orgId:', orgId);
-    console.log('👤 userId:', userId);
+  // Filter classes where this teacher has permission
+  // Memoize to prevent infinite loops caused by recreating the array on every render
+  const classes: Class[] = useMemo(() => {
+    const permissions = userData.permission || {};
+    const allowedTeams = userData.allowedTeams || [];
+    const teamPermissions = Object.keys(permissions).filter((key) =>
+      key.startsWith('team-'),
+    );
 
-    if (!orgId) {
-      console.error('❌ Cannot load classes - orgId is missing!');
-      console.log('Full userData object:', JSON.stringify(userData, null, 2));
-      setIsLoading(false);
-      return;
-    }
+    return (
+      classesResponse?.data
+        .filter((classItem: any) => {
+          const classAttrs = classItem.attributes;
+          const teamId = classItem.id;
 
-    loadClassesData();
-  }, [orgId, userData]);
-
-  const loadClassesData = async () => {
-    try {
-      setIsLoading(true);
-
-      // Use orgId and userId from userData prop (no API call needed!)
-      // This data is already fetched by DashboardWrapper
-      if (!orgId) {
-        console.error('❌ No orgId available from userData');
-        setIsLoading(false);
-        return;
-      }
-
-      console.log('✅ Using orgId from userData:', orgId);
-
-      const permissions = userData.permission || {};
-      const allowedTeams = userData.allowedTeams || [];
-
-      // Check if user has team permissions (class teacher permissions)
-      const teamPermissions = Object.keys(permissions).filter((key) =>
-        key.startsWith('team-'),
-      );
-
-      // Fetch all classes from org
-      const classesData = await ApiService.getClasses(orgId);
-
-      console.log('📚 Fetched classes:', classesData.data.length);
-      console.log('👤 Current userId:', userId);
-      console.log('🔑 Team permissions:', teamPermissions);
-      console.log('🔑 Allowed teams:', allowedTeams);
-      console.log('🔑 Full permission object:', permissions);
-
-      // Also fetch teachers for subjects assignment
-      const teachersData = await ApiService.getFaculty(orgId);
-      const teachersList = teachersData.data.map((t: any) => ({
-        id: t.id,
-        name: t.attributes.name,
-        email: t.attributes.email,
-        subjects: t.attributes.subjects || [],
-      }));
-      setTeachers(teachersList);
-
-      // Filter classes where this teacher is class teacher
-      const assignedClasses: Class[] = [];
-
-      for (const classItem of classesData.data) {
-        const classAttrs = classItem.attributes;
-        const teamId = classItem.id;
-
-        // Check if teacher has permission for this team/class
-        const hasPermission =
-          allowedTeams.includes(teamId) || // Check if team ID is in allowedTeams array
-          teamPermissions.includes(`team-${teamId}`) ||
-          classAttrs.class_teacher_id === userId ||
-          classAttrs.teacher_id === userId; // Also check teacher_id field
-
-        console.log(
-          `Class ${classAttrs.class || classItem.id}: hasPermission=${hasPermission}, teamId=${teamId}, inAllowedTeams=${allowedTeams.includes(teamId)}, teacher_id=${classAttrs.teacher_id}, class_teacher_id=${classAttrs.class_teacher_id}, userId=${userId}`,
-        );
-
-        if (hasPermission) {
-          // Fetch class details (students, subjects, exams) in parallel
-          // Handle errors gracefully - some endpoints may return 403 if permissions are limited
-          const [studentsData, subjectsData, examsData] =
-            await Promise.allSettled([
-              ApiService.getClassStudents(orgId, teamId),
-              ApiService.getSubjectsForClass(orgId, teamId),
-              ApiService.getExamsForClass(orgId, teamId),
-            ]);
-
-          const students: Student[] =
-            studentsData.status === 'fulfilled'
-              ? studentsData.value.data.map((s: any) => ({
-                  id: s.id,
-                  name: `${s.attributes.first_name || ''} ${s.attributes.last_name || ''}`.trim(),
-                  rollNumber: s.attributes.roll_number || 'N/A',
-                  email: s.attributes.email,
-                  phone: s.attributes.phone || 'N/A',
-                  status:
-                    s.attributes.status === 'active' ? 'Active' : 'Inactive',
-                }))
-              : [];
-
-          const subjects: Subject[] =
-            subjectsData.status === 'fulfilled'
-              ? subjectsData.value.data.map((s: any) => ({
-                  id: s.id,
-                  name: s.attributes.subject_name,
-                  code: s.attributes.subject_code || '',
-                  teacherId: s.attributes.teacher_id,
-                  teacherName: s.attributes.teacher_name,
-                  credits: s.attributes.credits || 1,
-                }))
-              : [];
-
-          const exams: Exam[] =
-            examsData.status === 'fulfilled'
-              ? examsData.value.data.map((e: any) => ({
-                  id: e.id,
-                  name: e.attributes.exam_name,
-                  subjects: (e.attributes.subjects || []).map(
-                    (examSubject: any) => {
-                      // Find the subject details from the subjects list
-                      const subjectDetails = subjects.find(
-                        (s) => s.id === examSubject.subject_id,
-                      );
-                      return {
-                        subjectId: examSubject.subject_id,
-                        subjectName:
-                          examSubject.subject_name ||
-                          subjectDetails?.name ||
-                          'Unknown Subject',
-                        marks: examSubject.max_marks,
-                        duration: examSubject.duration || 0,
-                        date:
-                          examSubject.exam_date || e.attributes.exam_date || '',
-                        startTime: examSubject.start_time || '',
-                        endTime: '',
-                      };
-                    },
-                  ),
-                  instructions: e.attributes.instructions || '',
-                  type: e.attributes.type || 'Unit Test',
-                  status: e.attributes.status || 'Scheduled',
-                }))
-              : [];
-
-          assignedClasses.push({
-            id: teamId,
+          return (
+            allowedTeams.includes(teamId) ||
+            teamPermissions.includes(`team-${teamId}`) ||
+            classAttrs.class_teacher_id === userId ||
+            classAttrs.teacher_id === userId
+          );
+        })
+        .map((classItem: any) => {
+          const classAttrs = classItem.attributes;
+          return {
+            id: classItem.id,
             name: classAttrs.class,
             section: classAttrs.section || 'A',
             classTeacherId:
@@ -303,30 +245,96 @@ function ClassesContent({ userData }: ClassesContentProps) {
               userData.firstName,
             academicYear:
               classAttrs.academic_year || classAttrs.academicYear || '2024-25',
-            totalStudents: students.length,
+            totalStudents: 0, // Will be updated when class is selected
             room: classAttrs.room || 'Not Assigned',
             data: {
-              students,
-              subjects,
-              exams,
+              students: [],
+              subjects: [],
+              exams: [],
             },
-          });
-        }
-      }
+          };
+        }) || []
+    );
+  }, [
+    classesResponse?.data,
+    userData.permission,
+    userData.allowedTeams,
+    userData.firstName,
+    userId,
+  ]);
 
-      setClasses(assignedClasses);
-      if (assignedClasses.length > 0) {
-        setSelectedClass(assignedClasses[0]);
+  // Transform class-specific data (only for selected class)
+  const currentStudents: Student[] =
+    classStudentsResponse?.data.map((s: any) => ({
+      id: s.id,
+      name: `${s.attributes.first_name || ''} ${s.attributes.last_name || ''}`.trim(),
+      rollNumber: s.attributes.roll_number || 'N/A',
+      email: s.attributes.email,
+      phone: s.attributes.phone || 'N/A',
+      status: s.attributes.status === 'active' ? 'Active' : 'Inactive',
+    })) || [];
 
-        // Load class monitor for first class
-        loadClassMonitor(orgId, assignedClasses[0].id);
+  const currentSubjects: Subject[] =
+    subjectsResponse?.data.map((s: any) => ({
+      id: s.id,
+      name: s.attributes.subject_name,
+      code: s.attributes.subject_code || '',
+      teacherId: s.attributes.teacher_id,
+      teacherName: s.attributes.teacher_name,
+      credits: s.attributes.credits || 1,
+    })) || [];
+
+  const currentExams: Exam[] =
+    examsResponse?.data.map((e: any) => ({
+      id: e.id,
+      name: e.attributes.exam_name,
+      subjects: (e.attributes.subjects || []).map((examSubject: any) => {
+        const subjectDetails = currentSubjects.find(
+          (s) => s.id === examSubject.subject_id,
+        );
+        return {
+          subjectId: examSubject.subject_id,
+          subjectName:
+            examSubject.subject_name ||
+            subjectDetails?.name ||
+            'Unknown Subject',
+          marks: examSubject.max_marks,
+          duration: examSubject.duration || 0,
+          date: examSubject.exam_date || e.attributes.exam_date || '',
+          startTime: examSubject.start_time || '',
+          endTime: '',
+        };
+      }),
+      instructions: e.attributes.instructions || '',
+      type: e.attributes.type || 'Unit Test',
+      status: e.attributes.status || 'Scheduled',
+    })) || [];
+
+  // Find selected class and update with current data
+  const selectedClass = classes.find((c) => c.id === selectedClassId) || null;
+  if (selectedClass) {
+    selectedClass.data = {
+      students: currentStudents,
+      subjects: currentSubjects,
+      exams: currentExams,
+    };
+    selectedClass.totalStudents = currentStudents.length;
+  }
+
+  // Combined loading state
+  const isLoading = classesLoading || facultyLoading;
+  const isLoadingClassData = studentsLoading || subjectsLoading || examsLoading;
+
+  // Auto-select first class when classes are loaded
+  useEffect(() => {
+    if (classes.length > 0 && !selectedClassId) {
+      setSelectedClassId(classes[0].id);
+      // Load class monitor for first class
+      if (orgId) {
+        loadClassMonitor(orgId, classes[0].id);
       }
-    } catch (error) {
-      console.error('Error fetching class info:', error);
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [classes, selectedClassId, orgId]); // classes is now memoized, so this won't cause loops
 
   const loadClassMonitor = async (orgId: string, classId: string) => {
     try {
@@ -360,10 +368,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
   };
 
   const handleClassSelect = (classItem: Class) => {
-    setSelectedClass(classItem);
+    setSelectedClassId(classItem.id);
     setActiveTab('students');
 
-    // Load class monitor when class is selected (use cached orgId from userData)
+    // Load class monitor when class is selected
     loadClassMonitor(orgId, classItem.id);
   };
 
@@ -393,7 +401,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       });
 
       setShowAddSubjectModal(false);
-      loadClassesData();
+      // Cache auto-invalidates via RTK Query
     } catch (error) {
       console.error('Error creating subject:', error);
       toast.error('Failed to create subject');
@@ -420,7 +428,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       );
 
       setShowEditSubjectModal(false);
-      loadClassesData();
+      // Cache auto-invalidates via RTK Query
     } catch (error) {
       console.error('Error updating subject:', error);
       toast.error('Failed to update subject');
@@ -440,7 +448,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       await ApiService.deleteSubject(orgId, selectedSubjectForDelete.id);
 
       setShowDeleteSubjectModal(false);
-      loadClassesData();
+      // Cache auto-invalidates via RTK Query
     } catch (error) {
       console.error('Error deleting subject:', error);
       toast.error('Failed to delete subject');
@@ -487,7 +495,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       });
 
       setShowAddStudentModal(false);
-      loadClassesData();
+      // Cache auto-invalidates via RTK Query
       toast.success('Student enrolled successfully!');
     } catch (error) {
       console.error('Error assigning student:', error);
@@ -507,7 +515,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       //   student.id,
       // );
       toast.error('Remove student functionality not yet implemented');
-      // loadClassesData();
+      // // Cache auto-invalidates via RTK Query
     } catch (error) {
       console.error('Error removing student:', error);
       toast.error('Failed to remove student');
@@ -609,7 +617,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       });
 
       setShowCreateExamModal(false);
-      loadClassesData();
+      // Cache auto-invalidates via RTK Query
     } catch (error) {
       console.error('Error creating exam:', error);
       toast.error('Failed to create exam');
@@ -648,7 +656,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
       setShowEditExamModal(false);
       setSelectedExamForEdit(null);
-      loadClassesData();
+      // Cache auto-invalidates via RTK Query
       toast.success('Exam updated successfully!');
     } catch (error) {
       console.error('Error updating exam:', error);
@@ -669,7 +677,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
     try {
       await ApiService.deleteExam(orgId, exam.id);
-      loadClassesData();
+      // Cache auto-invalidates via RTK Query
       toast.success('Exam deleted successfully!');
     } catch (error) {
       console.error('Error deleting exam:', error);

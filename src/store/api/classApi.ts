@@ -214,7 +214,7 @@ export const classApi = baseClassApi.injectEndpoints({
      * Auto-invalidated when classes are created/updated/deleted
      */
     getClasses: builder.query<ClassListResponse, string>({
-      query: (orgId) => `/${orgId}/classes`,
+      query: (orgId) => `/class/${orgId}/classes`,
       providesTags: (result, error, orgId) =>
         result
           ? [
@@ -235,7 +235,7 @@ export const classApi = baseClassApi.injectEndpoints({
       ClassResponse,
       { orgId: string; classId: string }
     >({
-      query: ({ orgId, classId }) => `/${orgId}/classes/${classId}`,
+      query: ({ orgId, classId }) => `/class/${orgId}/classes/${classId}`,
       providesTags: (result, error, { classId }) => [
         { type: 'Classes', id: classId },
       ],
@@ -250,7 +250,7 @@ export const classApi = baseClassApi.injectEndpoints({
       { orgId: string; classData: CreateClassRequest }
     >({
       query: ({ orgId, classData }) => ({
-        url: `/${orgId}/classes`,
+        url: `/class/${orgId}/classes`,
         method: 'POST',
         body: {
           data: {
@@ -271,7 +271,7 @@ export const classApi = baseClassApi.injectEndpoints({
       { orgId: string; classId: string; classData: UpdateClassRequest }
     >({
       query: ({ orgId, classId, classData }) => ({
-        url: `/${orgId}/classes/${classId}`,
+        url: `/class/${orgId}/classes/${classId}`,
         method: 'PATCH',
         body: {
           data: {
@@ -292,7 +292,7 @@ export const classApi = baseClassApi.injectEndpoints({
      */
     deleteClass: builder.mutation<void, { orgId: string; classId: string }>({
       query: ({ orgId, classId }) => ({
-        url: `/${orgId}/classes/${classId}`,
+        url: `/class/${orgId}/classes/${classId}`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, { classId }) => [
@@ -312,7 +312,8 @@ export const classApi = baseClassApi.injectEndpoints({
       ClassStudentsResponse,
       { orgId: string; classId: string }
     >({
-      query: ({ orgId, classId }) => `/${orgId}/classes/${classId}/students`,
+      query: ({ orgId, classId }) =>
+        `/class/${orgId}/classes/${classId}/students`,
       providesTags: (result, error, { classId }) => [
         { type: 'ClassStudents', id: classId },
       ],
@@ -326,7 +327,7 @@ export const classApi = baseClassApi.injectEndpoints({
       { orgId: string; classId: string; enrollment: EnrollmentRequest }
     >({
       query: ({ orgId, classId, enrollment }) => ({
-        url: `/${orgId}/classes/${classId}/students`,
+        url: `/class/${orgId}/classes/${classId}/students`,
         method: 'POST',
         body: {
           data: {
@@ -349,7 +350,7 @@ export const classApi = baseClassApi.injectEndpoints({
       { orgId: string; classId: string; studentId: string }
     >({
       query: ({ orgId, classId, studentId }) => ({
-        url: `/${orgId}/classes/${classId}/students/${studentId}`,
+        url: `/class/${orgId}/classes/${classId}/students/${studentId}`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, { classId }) => [
@@ -369,7 +370,8 @@ export const classApi = baseClassApi.injectEndpoints({
       SubjectListResponse,
       { orgId: string; classId: string }
     >({
-      query: ({ orgId, classId }) => `/${orgId}/classes/${classId}/subjects`,
+      query: ({ orgId, classId }) =>
+        `/class/${orgId}/classes/${classId}/subjects`,
       providesTags: (result, error, { classId }) => [
         { type: 'Subjects', id: classId },
       ],
@@ -383,7 +385,7 @@ export const classApi = baseClassApi.injectEndpoints({
       { orgId: string; classId: string; subjectData: CreateSubjectRequest }
     >({
       query: ({ orgId, classId, subjectData }) => ({
-        url: `/${orgId}/classes/${classId}/subjects`,
+        url: `/class/${orgId}/classes/${classId}/subjects`,
         method: 'POST',
         body: {
           data: {
@@ -410,7 +412,7 @@ export const classApi = baseClassApi.injectEndpoints({
       }
     >({
       query: ({ orgId, classId, subjectId, subjectData }) => ({
-        url: `/${orgId}/classes/${classId}/subjects/${subjectId}`,
+        url: `/class/${orgId}/classes/${classId}/subjects/${subjectId}`,
         method: 'PATCH',
         body: {
           data: {
@@ -432,7 +434,7 @@ export const classApi = baseClassApi.injectEndpoints({
       { orgId: string; classId: string; subjectId: string }
     >({
       query: ({ orgId, classId, subjectId }) => ({
-        url: `/${orgId}/classes/${classId}/subjects/${subjectId}`,
+        url: `/class/${orgId}/classes/${classId}/subjects/${subjectId}`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, { classId }) => [
@@ -451,7 +453,7 @@ export const classApi = baseClassApi.injectEndpoints({
       ExamListResponse,
       { orgId: string; classId: string }
     >({
-      query: ({ orgId, classId }) => `/${orgId}/classes/${classId}/exams`,
+      query: ({ orgId, classId }) => `/class/${orgId}/classes/${classId}/exams`,
       providesTags: (result, error, { classId }) => [
         { type: 'Exams', id: classId },
       ],
@@ -465,7 +467,7 @@ export const classApi = baseClassApi.injectEndpoints({
       { orgId: string; classId: string; examData: CreateExamRequest }
     >({
       query: ({ orgId, classId, examData }) => ({
-        url: `/${orgId}/classes/${classId}/exams`,
+        url: `/class/${orgId}/classes/${classId}/exams`,
         method: 'POST',
         body: {
           data: {
@@ -492,7 +494,7 @@ export const classApi = baseClassApi.injectEndpoints({
       }
     >({
       query: ({ orgId, classId, examId, examData }) => ({
-        url: `/${orgId}/classes/${classId}/exams/${examId}`,
+        url: `/class/${orgId}/classes/${classId}/exams/${examId}`,
         method: 'PATCH',
         body: {
           data: {
@@ -514,7 +516,7 @@ export const classApi = baseClassApi.injectEndpoints({
       { orgId: string; classId: string; examId: string }
     >({
       query: ({ orgId, classId, examId }) => ({
-        url: `/${orgId}/classes/${classId}/exams/${examId}`,
+        url: `/class/${orgId}/classes/${classId}/exams/${examId}`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, { classId }) => [
@@ -534,7 +536,7 @@ export const classApi = baseClassApi.injectEndpoints({
       { orgId: string; classId: string; params?: ClassFeesParams }
     >({
       query: ({ orgId, classId, params }) => ({
-        url: `/${orgId}/classes/${classId}/fees`,
+        url: `/class/${orgId}/classes/${classId}/fees`,
         params: params || {},
       }),
       providesTags: (result, error, { classId }) => [
@@ -548,7 +550,7 @@ export const classApi = baseClassApi.injectEndpoints({
     getFeeSummary: builder.query<any, { orgId: string; classId?: string }>({
       query: ({ orgId, classId }) =>
         classId
-          ? `/${orgId}/classes/${classId}/fees/summary`
+          ? `/class/${orgId}/classes/${classId}/fees/summary`
           : `/${orgId}/fees/summary`,
       providesTags: (result, error, { classId, orgId }) =>
         classId

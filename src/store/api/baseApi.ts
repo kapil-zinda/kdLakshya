@@ -9,7 +9,7 @@ const API_CONFIG = {
     'https://apis.testkdlakshya.uchhal.in/auth',
   CLASS_API:
     process.env.NEXT_PUBLIC_BaseURLClass ||
-    'https://apis.testkdlakshya.uchhal.in/class',
+    'https://apis.testkdlakshya.uchhal.in', // Base domain only - paths are full in endpoints
   WORKSPACE_API:
     process.env.NEXT_PUBLIC_BaseURLWorkspace ||
     'https://apis.testkdlakshya.uchhal.in',
@@ -24,7 +24,7 @@ const baseQueryWithAuth = fetchBaseQuery({
     const token = (getState() as RootState).auth.token?.token;
 
     if (token) {
-      headers.set('authorization', `Bearer ${token}`);
+      headers.set('Authorization', `Bearer ${token}`);
     }
 
     if (!headers.has('Content-Type')) {
@@ -82,7 +82,10 @@ export const classApi = createApi({
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token?.token;
       if (token) {
-        headers.set('authorization', `Bearer ${token}`);
+        headers.set('Authorization', `Bearer ${token}`);
+        console.log('🔑 [classApi] Token added to headers');
+      } else {
+        console.warn('⚠️ [classApi] No token found in Redux store');
       }
       if (!headers.has('Content-Type')) {
         headers.set('Content-Type', 'application/json');
@@ -111,7 +114,7 @@ export const workspaceApi = createApi({
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token?.token;
       if (token) {
-        headers.set('authorization', `Bearer ${token}`);
+        headers.set('Authorization', `Bearer ${token}`);
       }
       if (!headers.has('Content-Type')) {
         headers.set('Content-Type', 'application/json');
