@@ -130,7 +130,7 @@ export function Providers({ children }: ThemeProviderProps) {
         userData.user_permissions || attributes.permissions || {};
 
       // Handle both possible field names for org ID
-      const orgId = attributes.org_id || attributes.org;
+      const orgId = attributes.orgId || attributes.org_id || attributes.org;
 
       // Determine user role using same logic as authApi
       let userRole: 'admin' | 'teacher' | 'faculty' | 'student' = 'student';
@@ -173,7 +173,7 @@ export function Providers({ children }: ThemeProviderProps) {
           attributes.last_name ||
           attributes.name?.split(' ').slice(1).join(' ') ||
           '',
-        role: attributes.role || 'faculty',
+        role: userRole,
         orgId: orgId || '',
         permissions: permissions,
       });
@@ -198,6 +198,7 @@ export function Providers({ children }: ThemeProviderProps) {
           designation: attributes.designation || '',
           experience: attributes.experience || '',
           profilePhoto: attributes.profile_photo || attributes.photo || '',
+          cacheTimestamp: Date.now(), // Add timestamp for cache validation
         }),
       );
 

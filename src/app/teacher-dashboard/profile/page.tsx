@@ -228,9 +228,13 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <button
-                onClick={() => router.back()}
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.href = '/teacher-dashboard';
+                }}
                 className="mr-4 text-gray-600 hover:text-gray-900 cursor-pointer"
                 aria-label="Go back"
+                type="button"
               >
                 <svg
                   className="w-6 h-6"

@@ -531,6 +531,17 @@ export const classApi = baseClassApi.injectEndpoints({
       ],
     }),
 
+    /**
+     * Get exams for a teacher
+     * Returns all exams where the teacher is assigned
+     */
+    getTeacherExams: builder.query<any, { orgId: string; teacherId: string }>({
+      query: ({ orgId, teacherId }) => `/${orgId}/exams/teacher/${teacherId}`,
+      providesTags: (result, error, { teacherId }) => [
+        { type: 'Exams', id: `teacher-${teacherId}` },
+      ],
+    }),
+
     // ========================================================================
     // FEE OPERATIONS
     // ========================================================================
@@ -597,6 +608,7 @@ export const {
   useCreateExamMutation,
   useUpdateExamMutation,
   useDeleteExamMutation,
+  useGetTeacherExamsQuery,
 
   // Fee operations
   useGetClassFeesQuery,

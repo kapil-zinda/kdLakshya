@@ -43,11 +43,16 @@ export const syncUserToRedux = (userData: {
     orgId: userData.orgId,
   };
 
+  // Get current token from Redux state to preserve it
+  const currentState = store.getState();
+  const existingToken = currentState.auth.token?.token || '';
+  const existingExpiry = currentState.auth.token?.expiresAt || 0;
+
   store.dispatch(
     setCredentials({
       user,
-      token: '', // Token already set by syncTokenToRedux
-      expiresAt: 0, // Will be set by syncTokenToRedux
+      token: existingToken, // Preserve existing token
+      expiresAt: existingExpiry, // Preserve existing expiry
     }),
   );
 

@@ -80,23 +80,10 @@ function ExamsContent({ userData }: { userData: UserData }) {
   const teacherId = userData.userId;
 
   useEffect(() => {
-    // Only load exams if we have both orgId and teacherId
-    if (orgId && teacherId) {
-      loadExams();
-    } else {
-      console.warn('Missing orgId or teacherId:', { orgId, teacherId });
-      setIsLoading(false);
-    }
+    loadExams();
   }, [orgId, teacherId]);
 
   const loadExams = async () => {
-    // Double-check orgId and teacherId are defined
-    if (!orgId || !teacherId) {
-      console.error('Cannot load exams: missing orgId or teacherId');
-      setIsLoading(false);
-      return;
-    }
-
     try {
       setIsLoading(true);
       const response = await ApiService.getTeacherExams(orgId, teacherId);
