@@ -371,7 +371,7 @@ export const classApi = baseClassApi.injectEndpoints({
       { orgId: string; classId: string }
     >({
       query: ({ orgId, classId }) =>
-        `/class/${orgId}/classes/${classId}/subjects`,
+        `/class/${orgId}/subjects/class/${classId}`,
       providesTags: (result, error, { classId }) => [
         { type: 'Subjects', id: classId },
       ],
