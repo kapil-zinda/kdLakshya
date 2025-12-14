@@ -126,10 +126,25 @@ export function Providers({ children }: ThemeProviderProps) {
 
       const userData = res.data.data; // Extract from nested structure
       const attributes = userData.attributes;
-      const permissions = res.data.data.user_permissions || {};
+      const permissions =
+        userData.user_permissions || attributes.permissions || {};
 
       // Handle both possible field names for org ID
       const orgId = attributes.org_id || attributes.org;
+
+      // Determine user role using same logic as authApi
+      let userRole: 'admin' | 'teacher' | 'faculty' | 'student' = 'student';
+      if (attributes.role === 'faculty' || attributes.type === 'faculty') {
+        userRole = 'faculty';
+      } else if (
+        permissions['admin'] ||
+        permissions['organization_admin'] ||
+        permissions['org']
+      ) {
+        userRole = 'admin';
+      } else if (permissions['teacher'] || permissions['instructor']) {
+        userRole = 'teacher';
+      }
 
       updateUserData({
         userId: attributes.user_id || attributes.id,
@@ -158,7 +173,7 @@ export function Providers({ children }: ThemeProviderProps) {
           attributes.last_name ||
           attributes.name?.split(' ').slice(1).join(' ') ||
           '',
-        role: attributes.role || 'teacher',
+        role: attributes.role || 'faculty',
         orgId: orgId || '',
         permissions: permissions,
       });
@@ -175,7 +190,7 @@ export function Providers({ children }: ThemeProviderProps) {
             attributes.last_name ||
             attributes.name?.split(' ').slice(1).join(' ') ||
             '',
-          role: attributes.role || 'teacher',
+          role: userRole,
           orgId: orgId || '',
           permissions: permissions,
           type: attributes.type || attributes.role,

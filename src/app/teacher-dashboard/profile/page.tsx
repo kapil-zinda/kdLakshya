@@ -397,7 +397,7 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
 
 export default function TeacherProfilePage() {
   return (
-    <DashboardWrapper allowedRoles={['teacher', 'admin']}>
+    <DashboardWrapper allowedRoles={['teacher', 'faculty', 'admin']}>
       {(userData) => <TeacherProfileContent userData={userData} />}
     </DashboardWrapper>
   );

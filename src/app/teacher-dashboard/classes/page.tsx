@@ -2644,7 +2644,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
 export default function TeacherClassesPage() {
   return (
-    <DashboardWrapper allowedRoles={['teacher', 'admin']}>
+    <DashboardWrapper allowedRoles={['teacher', 'faculty', 'admin']}>
       {(userData) => <ClassesContent userData={userData} />}
     </DashboardWrapper>
   );

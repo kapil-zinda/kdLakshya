@@ -1011,7 +1011,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
 
 export default function TeacherAttendancePage() {
   return (
-    <DashboardWrapper allowedRoles={['teacher', 'admin']}>
+    <DashboardWrapper allowedRoles={['teacher', 'faculty', 'admin']}>
       {(userData) => <AttendanceContent userData={userData} />}
     </DashboardWrapper>
   );
