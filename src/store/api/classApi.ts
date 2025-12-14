@@ -384,16 +384,23 @@ export const classApi = baseClassApi.injectEndpoints({
       SubjectResponse,
       { orgId: string; classId: string; subjectData: CreateSubjectRequest }
     >({
-      query: ({ orgId, classId, subjectData }) => ({
-        url: `/class/${orgId}/classes/${classId}/subjects`,
-        method: 'POST',
-        body: {
-          data: {
-            type: 'subjects',
-            attributes: subjectData,
+      query: ({ orgId, classId, subjectData }) => {
+        const { name, ...rest } = subjectData;
+        return {
+          url: `/class/${orgId}/subjects`,
+          method: 'POST',
+          body: {
+            data: {
+              type: 'subjects',
+              attributes: {
+                ...rest,
+                subject_name: name,
+                class_id: classId,
+              },
+            },
           },
-        },
-      }),
+        };
+      },
       invalidatesTags: (result, error, { classId }) => [
         { type: 'Subjects', id: classId },
       ],
@@ -412,7 +419,7 @@ export const classApi = baseClassApi.injectEndpoints({
       }
     >({
       query: ({ orgId, classId, subjectId, subjectData }) => ({
-        url: `/class/${orgId}/classes/${classId}/subjects/${subjectId}`,
+        url: `/class/${orgId}/subjects/class/${classId}/${subjectId}`,
         method: 'PATCH',
         body: {
           data: {
@@ -434,7 +441,7 @@ export const classApi = baseClassApi.injectEndpoints({
       { orgId: string; classId: string; subjectId: string }
     >({
       query: ({ orgId, classId, subjectId }) => ({
-        url: `/class/${orgId}/classes/${classId}/subjects/${subjectId}`,
+        url: `/class/${orgId}/subjects/class/${classId}/${subjectId}`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, { classId }) => [

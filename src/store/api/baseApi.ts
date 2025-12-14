@@ -73,26 +73,45 @@ export const baseApi = createApi({
   endpoints: () => ({}),
 });
 
+// Base query for class API with auth
+const classBaseQuery = fetchBaseQuery({
+  baseUrl: API_CONFIG.CLASS_API,
+  timeout: 30000,
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.token?.token;
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+      console.log('🔑 [classApi] Token added to headers');
+    } else {
+      console.warn('⚠️ [classApi] No token found in Redux store');
+    }
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
+    return headers;
+  },
+});
+
+// Class API query with retry logic for 500 errors
+const classQueryWithRetry = async (args: any, api: any, extraOptions: any) => {
+  let result = await classBaseQuery(args, api, extraOptions);
+
+  // Retry on 500 errors (Lambda cold start)
+  if (result.error && result.error.status === 500) {
+    console.log(
+      '🔄 [classApi] Retrying request due to 500 error (Lambda cold start)...',
+    );
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1s
+    result = await classBaseQuery(args, api, extraOptions);
+  }
+
+  return result;
+};
+
 // Create separate API instances for different base URLs
 export const classApi = createApi({
   reducerPath: 'classApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: API_CONFIG.CLASS_API,
-    timeout: 30000,
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token?.token;
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-        console.log('🔑 [classApi] Token added to headers');
-      } else {
-        console.warn('⚠️ [classApi] No token found in Redux store');
-      }
-      if (!headers.has('Content-Type')) {
-        headers.set('Content-Type', 'application/json');
-      }
-      return headers;
-    },
-  }),
+  baseQuery: classQueryWithRetry,
   keepUnusedDataFor: 30, // 30 seconds for classes
   tagTypes: [
     'Classes',

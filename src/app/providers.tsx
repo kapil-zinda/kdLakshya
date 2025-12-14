@@ -148,6 +148,44 @@ export function Providers({ children }: ThemeProviderProps) {
           .filter(Boolean) as string[],
       });
 
+      // Sync user data to Redux for new components
+      syncUserToRedux({
+        id: userData.id,
+        email: attributes.email,
+        firstName:
+          attributes.first_name || attributes.name?.split(' ')[0] || '',
+        lastName:
+          attributes.last_name ||
+          attributes.name?.split(' ').slice(1).join(' ') ||
+          '',
+        role: attributes.role || 'teacher',
+        orgId: orgId || '',
+        permissions: permissions,
+      });
+
+      // Write to localStorage for backward compatibility
+      localStorage.setItem(
+        'cachedUserData',
+        JSON.stringify({
+          id: userData.id,
+          email: attributes.email,
+          firstName:
+            attributes.first_name || attributes.name?.split(' ')[0] || '',
+          lastName:
+            attributes.last_name ||
+            attributes.name?.split(' ').slice(1).join(' ') ||
+            '',
+          role: attributes.role || 'teacher',
+          orgId: orgId || '',
+          permissions: permissions,
+          type: attributes.type || attributes.role,
+          phone: attributes.phone || '',
+          designation: attributes.designation || '',
+          experience: attributes.experience || '',
+          profilePhoto: attributes.profile_photo || attributes.photo || '',
+        }),
+      );
+
       // Only redirect if explicitly requested and has org ID
       if (shouldRedirect && orgId) {
         await redirectToOrgSubdomain(orgId, bearerToken);

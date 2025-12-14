@@ -1,11 +1,30 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { ApiService } from '@/services/api';
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
+import {
+  useCreateClassMutation,
+  useCreateExamMutation,
+  useCreateSubjectMutation,
+  useDeleteClassMutation,
+  useDeleteExamMutation,
+  useDeleteSubjectMutation,
+  useEnrollStudentInClassMutation,
+  useGetClassesQuery,
+  useGetClassStudentsQuery,
+  useGetExamsForClassQuery,
+  useGetSubjectsForClassQuery,
+  useUnenrollStudentFromClassMutation,
+  useUpdateClassMutation,
+  useUpdateExamMutation,
+  useUpdateSubjectMutation,
+} from '@/store/api/classApi';
+import { useGetFacultyQuery } from '@/store/api/facultyApi';
+import { useGetStudentsQuery } from '@/store/api/studentApi';
 
 interface Student {
   id: string;
@@ -83,19 +102,179 @@ interface Class {
 }
 
 export default function ClassManagement() {
-  const [classes, setClasses] = useState<Class[]>([]);
-  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const router = useRouter();
+
+  // Get orgId from Redux
+  const { userData } = useUserDataRedux();
+  const orgId = userData?.orgId || '';
+
+  // Local UI state
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<
     'students' | 'subjects' | 'timetable' | 'exams'
   >('students');
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
 
-  // Get current class data
-  const currentStudents = selectedClass?.data.students || [];
-  const currentSubjects = selectedClass?.data.subjects || [];
-  const currentExams = selectedClass?.data.exams || [];
-  const currentTimeSlots = selectedClass?.data.timeSlots || [];
-  const [loading, setLoading] = useState(true);
+  // RTK Query hooks for data fetching
+  const { data: classesResponse, isLoading: classesLoading } =
+    useGetClassesQuery(orgId, {
+      skip: !orgId,
+    });
+
+  const { data: facultyResponse, isLoading: facultyLoading } =
+    useGetFacultyQuery(orgId, {
+      skip: !orgId,
+    });
+
+  const { data: allStudentsResponse } = useGetStudentsQuery(orgId, {
+    skip: !orgId,
+  });
+
+  // Fetch data for selected class only
+  const { data: classStudentsResponse, isLoading: studentsLoading } =
+    useGetClassStudentsQuery(
+      { orgId, classId: selectedClassId! },
+      { skip: !orgId || !selectedClassId },
+    );
+
+  const { data: subjectsResponse, isLoading: subjectsLoading } =
+    useGetSubjectsForClassQuery(
+      { orgId, classId: selectedClassId! },
+      { skip: !orgId || !selectedClassId },
+    );
+
+  const { data: examsResponse, isLoading: examsLoading } =
+    useGetExamsForClassQuery(
+      { orgId, classId: selectedClassId! },
+      { skip: !orgId || !selectedClassId },
+    );
+
+  // RTK Query mutations for class operations
+  const [createClass] = useCreateClassMutation();
+  const [updateClass] = useUpdateClassMutation();
+  const [deleteClass] = useDeleteClassMutation();
+
+  // RTK Query mutations for student operations
+  const [enrollStudent] = useEnrollStudentInClassMutation();
+  const [unenrollStudent] = useUnenrollStudentFromClassMutation();
+
+  // RTK Query mutations for subject operations
+  const [createSubject] = useCreateSubjectMutation();
+  const [updateSubject] = useUpdateSubjectMutation();
+  const [deleteSubject] = useDeleteSubjectMutation();
+
+  // RTK Query mutations for exam operations
+  const [createExam] = useCreateExamMutation();
+  const [updateExam] = useUpdateExamMutation();
+  const [deleteExam] = useDeleteExamMutation();
+
+  // Transform RTK Query data
+  const teachers: Teacher[] =
+    facultyResponse?.data.map((t: any) => ({
+      id: t.id,
+      name: t.attributes.name,
+      employeeId: t.id,
+      department: t.attributes.designation || 'N/A',
+      email: t.attributes.email,
+      phone: t.attributes.phone || 'N/A',
+    })) || [];
+
+  // Memoize classes array to prevent infinite loops
+  const classes: Class[] = useMemo(() => {
+    return (
+      classesResponse?.data.map((classItem: any) => {
+        const classAttrs = classItem.attributes;
+        return {
+          id: classItem.id,
+          name: classAttrs.class,
+          section: classAttrs.section || 'A',
+          classTeacherId: classAttrs.class_teacher_id || classAttrs.teacher_id,
+          classTeacherName:
+            classAttrs.class_teacher_name ||
+            classAttrs.teacher_name ||
+            'Not Assigned',
+          academicYear:
+            classAttrs.academic_year || classAttrs.academicYear || '2024-25',
+          totalStudents: 0, // Will be updated when class is selected
+          room: classAttrs.room || 'Not Assigned',
+          data: {
+            students: [],
+            subjects: [],
+            exams: [],
+            timeSlots: [],
+          },
+        };
+      }) || []
+    );
+  }, [classesResponse?.data]);
+
+  // Transform class-specific data (only for selected class)
+  const currentStudents: Student[] =
+    classStudentsResponse?.data.map((s: any) => ({
+      id: s.id,
+      name: `${s.attributes.first_name || ''} ${s.attributes.last_name || ''}`.trim(),
+      rollNumber: s.attributes.roll_number || 'N/A',
+      email: s.attributes.email,
+      phone: s.attributes.phone || 'N/A',
+      status: s.attributes.status === 'active' ? 'Active' : 'Inactive',
+    })) || [];
+
+  const currentSubjects: Subject[] =
+    subjectsResponse?.data.map((s: any) => ({
+      id: s.id,
+      name: s.attributes.subject_name,
+      code: s.attributes.subject_code || '',
+      teacherId: s.attributes.teacher_id,
+      teacherName: s.attributes.teacher_name,
+      credits: s.attributes.credits || 1,
+      type: 'Core' as const,
+    })) || [];
+
+  const currentExams: Exam[] =
+    examsResponse?.data.map((e: any) => ({
+      id: e.id,
+      name: e.attributes.exam_name,
+      subjects: (e.attributes.subjects || []).map((examSubject: any) => {
+        const subjectDetails = currentSubjects.find(
+          (s) => s.id === examSubject.subject_id,
+        );
+        return {
+          subjectId: examSubject.subject_id,
+          subjectName:
+            examSubject.subject_name ||
+            subjectDetails?.name ||
+            'Unknown Subject',
+          marks: examSubject.max_marks,
+          duration: examSubject.duration || 0,
+          date: examSubject.exam_date || e.attributes.exam_date || '',
+          startTime: examSubject.start_time || '',
+          endTime: '',
+          room: '',
+        };
+      }),
+      instructions: e.attributes.instructions || '',
+      type: e.attributes.type || 'Unit Test',
+      status: e.attributes.status || 'Scheduled',
+    })) || [];
+
+  const currentTimeSlots: TimeSlot[] = []; // Time slots not yet implemented in API
+
+  // Find selected class and update with current data
+  const selectedClass = classes.find((c) => c.id === selectedClassId) || null;
+  if (selectedClass) {
+    selectedClass.data = {
+      students: currentStudents,
+      subjects: currentSubjects,
+      exams: currentExams,
+      timeSlots: currentTimeSlots,
+    };
+    selectedClass.totalStudents = currentStudents.length;
+  }
+
+  // Combined loading state
+  const loading = classesLoading || facultyLoading;
+  const isLoadingClassData = studentsLoading || subjectsLoading || examsLoading;
+
+  // Modal states and form data
   const [showCreateClassModal, setShowCreateClassModal] = useState(false);
   const [showEditClassModal, setShowEditClassModal] = useState(false);
   const [showAddSubjectModal, setShowAddSubjectModal] = useState(false);
@@ -145,19 +324,6 @@ export default function ClassManagement() {
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
   const [availableClassNames, setAvailableClassNames] = useState<string[]>([]);
 
-  // Development flags
-  const SKIP_CLASS_STUDENTS_ON_LOAD = true; // Set to true to skip loading class students during initial load
-  const [cachedOrgId, setCachedOrgId] = useState<string | null>(null);
-
-  // Helper function to get org ID (with caching)
-  const getOrgId = async (): Promise<string> => {
-    if (cachedOrgId) {
-      return cachedOrgId;
-    }
-    const orgId = await ApiService.getCurrentOrgId();
-    setCachedOrgId(orgId);
-    return orgId;
-  };
   const [subjectFormData, setSubjectFormData] = useState({
     name: '',
     code: '',
@@ -197,7 +363,6 @@ export default function ClassManagement() {
     teacherId: '',
     room: '',
   });
-  const router = useRouter();
 
   const days = [
     'Monday',
@@ -208,9 +373,8 @@ export default function ClassManagement() {
     'Saturday',
   ];
 
+  // Auth checking useEffect
   useEffect(() => {
-    let isMounted = true; // Prevent state updates on unmounted component
-
     const tokenStr = localStorage.getItem('bearerToken');
     if (!tokenStr) {
       router.push('/');
@@ -229,387 +393,15 @@ export default function ClassManagement() {
       router.push('/');
       return;
     }
+    // Data is automatically fetched by RTK Query hooks when orgId is available
+  }, [router]);
 
-    // Load data from API
-    const loadData = async () => {
-      try {
-        if (!isMounted) return; // Prevent duplicate calls
-        setLoading(true);
-
-        console.log('🔄 Starting data load for /admin-portal/classes');
-
-        // First, verify user is authorized by calling users/me API
-        const tokenStr = localStorage.getItem('bearerToken');
-        if (!tokenStr) {
-          console.error('❌ No bearer token found, redirecting to login');
-          router.push('/');
-          return;
-        }
-
-        const tokenItem = JSON.parse(tokenStr);
-        console.log(
-          '✅ Bearer token found, expires:',
-          new Date(tokenItem.expiry),
-        );
-        let userData;
-
-        try {
-          console.log('📡 Calling getUserMe API...');
-          userData = await ApiService.getUserMe(tokenItem.value);
-          console.log('✅ getUserMe successful:', userData?.data?.attributes);
-        } catch (error: any) {
-          console.error('User authorization failed:', error);
-
-          // Only redirect to login on 401/403 errors (auth failures)
-          // Don't redirect on 500 errors (server issues)
-          if (
-            error.response?.status === 401 ||
-            error.response?.status === 403
-          ) {
-            console.error(
-              `❌ Auth error ${error.response?.status}, redirecting to login`,
-            );
-            localStorage.removeItem('bearerToken');
-            router.push('/');
-            return;
-          }
-
-          // For other errors (500, network issues), log but continue
-          console.warn(
-            `⚠️ getUserMe failed with status ${error.response?.status || 'unknown'}, continuing with fallback`,
-          );
-          console.error('getUserMe error details:', {
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message,
-          });
-        }
-
-        // Get organization ID from user data or fallback
-        let orgId: string;
-        try {
-          console.log('📡 Getting organization ID...');
-          orgId = userData?.data?.attributes?.org_id || (await getOrgId());
-          console.log('✅ Organization ID:', orgId);
-        } catch (error) {
-          console.error('❌ Failed to get organization ID:', error);
-          alert(
-            'Failed to get organization information. Please refresh the page.',
-          );
-          setLoading(false);
-          return;
-        }
-
-        // Now that user is authorized, load teachers, classes, and students data
-        // Use Promise.allSettled to continue even if some APIs fail
-        console.log('📡 Loading teachers, classes, and students...');
-        const [teachersResult, classesResult, studentsResult] =
-          await Promise.allSettled([
-            ApiService.getFaculty(orgId),
-            ApiService.getClasses(orgId),
-            ApiService.getStudents(orgId),
-          ]);
-        console.log('✅ Initial API calls completed');
-
-        // Extract successful responses or use empty arrays
-        const teachersResponse =
-          teachersResult.status === 'fulfilled'
-            ? teachersResult.value
-            : { data: [] };
-        const classesResponse =
-          classesResult.status === 'fulfilled'
-            ? classesResult.value
-            : { data: [] };
-        const studentsResponse =
-          studentsResult.status === 'fulfilled'
-            ? studentsResult.value
-            : { data: [] };
-
-        // Log any failed requests
-        if (teachersResult.status === 'rejected') {
-          console.error('❌ Failed to load teachers:', teachersResult.reason);
-          console.error('Teachers error details:', {
-            message: teachersResult.reason?.message,
-            response: teachersResult.reason?.response,
-          });
-        } else {
-          console.log(
-            `✅ Loaded ${teachersResponse.data?.length || 0} teachers`,
-          );
-        }
-        if (classesResult.status === 'rejected') {
-          console.error('❌ Failed to load classes:', classesResult.reason);
-          console.error('Classes error details:', {
-            message: classesResult.reason?.message,
-            response: classesResult.reason?.response,
-          });
-        } else {
-          console.log(`✅ Loaded ${classesResponse.data?.length || 0} classes`);
-        }
-        if (studentsResult.status === 'rejected') {
-          console.error('❌ Failed to load students:', studentsResult.reason);
-          console.error('Students error details:', {
-            message: studentsResult.reason?.message,
-            response: studentsResult.reason?.response,
-          });
-        } else {
-          console.log(
-            `✅ Loaded ${studentsResponse.data?.length || 0} students`,
-          );
-        }
-
-        // Transform teachers data first (needed for subject mapping)
-        const transformedTeachers: Teacher[] = teachersResponse.data.map(
-          (teacher) => ({
-            id: teacher.id,
-            name: teacher.attributes.name,
-            employeeId: teacher.attributes.id || '',
-            department: teacher.attributes.subjects?.[0] || '',
-            email: teacher.attributes.email,
-            phone: teacher.attributes.phone,
-          }),
-        );
-
-        // Transform classes data from API response
-        const transformedClasses: Class[] = await Promise.all(
-          classesResponse.data.map(async (classData) => {
-            // Fetch students for each class
-            let classStudents: Student[] = [];
-            try {
-              const studentsResponse = await ApiService.getClassStudents(
-                orgId,
-                classData.id,
-              );
-              classStudents = studentsResponse.data.map((student: any) => ({
-                id: student.id,
-                name: `${student.attributes.first_name || ''} ${student.attributes.last_name || ''}`.trim(),
-                rollNumber: student.attributes.roll_number,
-                email: student.attributes.email,
-                phone: student.attributes.phone,
-                status:
-                  student.attributes.status === 'active'
-                    ? ('Active' as const)
-                    : ('Inactive' as const),
-              }));
-            } catch (error) {
-              console.error(
-                `Error fetching students for class ${classData.id}:`,
-                error,
-              );
-            }
-
-            // Fetch subjects for each class
-            let classSubjects: Subject[] = [];
-            try {
-              const subjectsResponse = await ApiService.getSubjectsForClass(
-                orgId,
-                classData.id,
-              );
-              classSubjects = subjectsResponse.data.map((subject: any) => ({
-                id: subject.id,
-                name: subject.attributes.subject_name,
-                code: '', // API doesn't provide code, use empty string
-                teacherId: subject.attributes.teacher_id,
-                teacherName: transformedTeachers.find(
-                  (t) => t.id === subject.attributes.teacher_id,
-                )?.name,
-                credits: 1, // Default value, API doesn't provide this
-                type: 'Core' as const, // Default value, API doesn't provide this
-              }));
-            } catch (error) {
-              console.error(
-                `Error fetching subjects for class ${classData.id}:`,
-                error,
-              );
-            }
-
-            // Fetch exams for each class
-            let classExams: Exam[] = [];
-            try {
-              const examsResponse = await ApiService.getExamsForClass(
-                orgId,
-                classData.id,
-              );
-              classExams = examsResponse.data.map((exam: any) => {
-                // Map exam subjects to ExamSubject format
-                const examSubjects: ExamSubject[] =
-                  exam.attributes.subjects.map((subj: any) => {
-                    const subjectInfo = classSubjects.find(
-                      (s) => s.id === subj.subject_id,
-                    );
-                    return {
-                      subjectId: subj.subject_id,
-                      subjectName: subjectInfo?.name || 'Unknown Subject',
-                      marks: subj.max_marks,
-                      duration: 60, // Default duration, API doesn't provide this
-                      date: exam.attributes.exam_date,
-                      startTime: '09:00', // Default time, API doesn't provide this
-                      endTime: '10:00', // Default time, API doesn't provide this
-                      room: '', // API doesn't provide room per subject
-                    };
-                  });
-
-                return {
-                  id: exam.id,
-                  name: exam.attributes.exam_name,
-                  subjects: examSubjects,
-                  instructions: '', // API doesn't provide instructions
-                  type: 'Unit Test' as const, // Default type, API doesn't provide this
-                  status: 'Scheduled' as const, // Default status, API doesn't provide this
-                };
-              });
-            } catch (error) {
-              console.error(
-                `Error fetching exams for class ${classData.id}:`,
-                error,
-              );
-            }
-
-            return {
-              id: classData.id,
-              name: classData.attributes.class,
-              section: classData.attributes.section,
-              classTeacherId: classData.attributes.teacher_id,
-              classTeacherName: classData.attributes.teacher_name,
-              academicYear: classData.attributes.academic_year,
-              totalStudents: classStudents.length,
-              room: classData.attributes.room,
-              data: {
-                students: classStudents,
-                subjects: classSubjects,
-                exams: classExams,
-                timeSlots: [
-                  {
-                    id: '1',
-                    name: 'Period 1',
-                    startTime: '09:00',
-                    endTime: '09:45',
-                    duration: 45,
-                  },
-                  {
-                    id: '2',
-                    name: 'Period 2',
-                    startTime: '09:45',
-                    endTime: '10:30',
-                    duration: 45,
-                  },
-                  {
-                    id: '3',
-                    name: 'Break',
-                    startTime: '10:30',
-                    endTime: '10:45',
-                    duration: 15,
-                  },
-                  {
-                    id: '4',
-                    name: 'Period 3',
-                    startTime: '10:45',
-                    endTime: '11:30',
-                    duration: 45,
-                  },
-                  {
-                    id: '5',
-                    name: 'Period 4',
-                    startTime: '11:30',
-                    endTime: '12:15',
-                    duration: 45,
-                  },
-                  {
-                    id: '6',
-                    name: 'Lunch Break',
-                    startTime: '12:15',
-                    endTime: '01:00',
-                    duration: 45,
-                  },
-                  {
-                    id: '7',
-                    name: 'Period 5',
-                    startTime: '01:00',
-                    endTime: '01:45',
-                    duration: 45,
-                  },
-                  {
-                    id: '8',
-                    name: 'Period 6',
-                    startTime: '01:45',
-                    endTime: '02:30',
-                    duration: 45,
-                  },
-                ],
-              },
-            };
-          }),
-        );
-
-        // Transform students data
-        const allStudents = studentsResponse.data.map((student: any) => ({
-          id: student.id,
-          firstName:
-            student.attributes.firstName || student.attributes.first_name || '',
-          lastName:
-            student.attributes.lastName || student.attributes.last_name || '',
-          email: student.attributes.email || '',
-          phone: student.attributes.phone || '',
-        }));
-
-        // Get all enrolled student IDs from all classes
-        const enrolledStudentIds = new Set();
-        transformedClasses.forEach((classData) => {
-          classData.data.students.forEach((student) => {
-            enrolledStudentIds.add(student.id);
-          });
-        });
-
-        // Filter students that are not enrolled in any class
-        const unassigned = allStudents.filter(
-          (student: any) => !enrolledStudentIds.has(student.id),
-        );
-
-        if (!isMounted) return; // Don't update state if unmounted
-
-        console.log('✅ Data transformation complete, updating state');
-
-        // Extract unique class names from the transformed classes
-        const uniqueClassNames = Array.from(
-          new Set(transformedClasses.map((cls) => cls.name)),
-        ).sort();
-        setAvailableClassNames(uniqueClassNames);
-
-        setClasses(transformedClasses);
-        setTeachers(transformedTeachers);
-        setUnassignedStudents(unassigned);
-        if (transformedClasses.length > 0) {
-          setSelectedClass(transformedClasses[0]);
-          console.log('✅ Selected first class:', transformedClasses[0].name);
-        }
-        setLoading(false);
-        console.log('✅ Page load complete');
-      } catch (error: any) {
-        console.error('❌ Critical error loading classes data:', error);
-        console.error('Error details:', {
-          message: error.message,
-          stack: error.stack,
-          response: error.response,
-        });
-        if (!isMounted) return; // Don't update state if unmounted
-        // Fall back to empty arrays if API fails
-        setClasses([]);
-        setTeachers([]);
-        setLoading(false);
-        alert(
-          `Failed to load classes: ${error.message || 'Unknown error'}. Please check the console for details.`,
-        );
-      }
-    };
-
-    loadData();
-
-    // Cleanup function to prevent state updates after unmount
-    return () => {
-      isMounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty array - only run once on mount
+  // Auto-select first class when classes are loaded
+  useEffect(() => {
+    if (classes.length > 0 && !selectedClassId) {
+      setSelectedClassId(classes[0].id);
+    }
+  }, [classes, selectedClassId]);
 
   const handleCreateClass = async () => {
     if (!classFormData.name || !classFormData.section) {
@@ -617,97 +409,25 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
-
-      // Get organization ID
-      const orgId = await ApiService.getCurrentOrgId();
-
-      // Create class via API
-      const response = await ApiService.createClass(orgId, {
-        class: classFormData.name,
-        section: classFormData.section,
-        room: classFormData.room,
-        academic_year: classFormData.academicYear,
-        description: `${classFormData.name} ${classFormData.section}`,
-      });
-
-      // Create new class object for local state
-      const newClass: Class = {
-        id: response.data.id,
-        name: response.data.attributes.class,
-        section: response.data.attributes.section,
-        classTeacherId: response.data.attributes.teacher_id,
-        classTeacherName: response.data.attributes.teacher_name,
-        academicYear: response.data.attributes.academic_year,
-        totalStudents: 0,
-        room: response.data.attributes.room,
-        data: {
-          students: [],
-          subjects: [],
-          exams: [],
-          timeSlots: [
-            {
-              id: '1',
-              name: 'Period 1',
-              startTime: '09:00',
-              endTime: '09:45',
-              duration: 45,
-            },
-            {
-              id: '2',
-              name: 'Period 2',
-              startTime: '09:45',
-              endTime: '10:30',
-              duration: 45,
-            },
-            {
-              id: '3',
-              name: 'Break',
-              startTime: '10:30',
-              endTime: '10:45',
-              duration: 15,
-            },
-            {
-              id: '4',
-              name: 'Period 3',
-              startTime: '10:45',
-              endTime: '11:30',
-              duration: 45,
-            },
-            {
-              id: '5',
-              name: 'Period 4',
-              startTime: '11:30',
-              endTime: '12:15',
-              duration: 45,
-            },
-            {
-              id: '6',
-              name: 'Lunch Break',
-              startTime: '12:15',
-              endTime: '01:00',
-              duration: 45,
-            },
-            {
-              id: '7',
-              name: 'Period 5',
-              startTime: '01:00',
-              endTime: '01:45',
-              duration: 45,
-            },
-            {
-              id: '8',
-              name: 'Period 6',
-              startTime: '01:45',
-              endTime: '02:30',
-              duration: 45,
-            },
-          ],
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      await createClass({
+        orgId,
+        classData: {
+          class: classFormData.name,
+          section: classFormData.section,
+          room: classFormData.room,
+          academic_year: classFormData.academicYear,
+          description: `${classFormData.name} ${classFormData.section}`,
         },
-      };
+      }).unwrap();
 
-      setClasses((prev) => [...prev, newClass]);
+      // Close modal and reset form
       setShowCreateClassModal(false);
       setClassFormData({
         name: '',
@@ -715,11 +435,9 @@ export default function ClassManagement() {
         academicYear: '2024-25',
         room: '',
       });
-      setLoading(false);
       alert('Class created successfully!');
     } catch (error) {
       console.error('Error creating class:', error);
-      setLoading(false);
       alert('Failed to create class. Please try again.');
     }
   };
@@ -745,38 +463,26 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      await updateClass({
+        orgId,
+        classId: editingClass.id,
+        classData: {
+          class: editClassFormData.name,
+          section: editClassFormData.section,
+          room: editClassFormData.room,
+          academic_year: editClassFormData.academicYear,
+          description: `${editClassFormData.name} ${editClassFormData.section}`,
+        },
+      }).unwrap();
 
-      // Get organization ID
-      const orgId = await ApiService.getCurrentOrgId();
-
-      // Update class via API
-      const response = await ApiService.updateClass(orgId, editingClass.id, {
-        class: editClassFormData.name,
-        section: editClassFormData.section,
-        room: editClassFormData.room,
-        academic_year: editClassFormData.academicYear,
-        description: `${editClassFormData.name} ${editClassFormData.section}`,
-      });
-
-      // Update local state
-      const updatedClass: Class = {
-        ...editingClass,
-        name: response.data.attributes.class,
-        section: response.data.attributes.section,
-        academicYear: response.data.attributes.academic_year,
-        room: response.data.attributes.room,
-      };
-
-      setClasses((prev) =>
-        prev.map((c) => (c.id === editingClass.id ? updatedClass : c)),
-      );
-
-      if (selectedClass?.id === editingClass.id) {
-        setSelectedClass(updatedClass);
-      }
-
+      // Close modal and reset form
       setShowEditClassModal(false);
       setEditingClass(null);
       setEditClassFormData({
@@ -785,11 +491,9 @@ export default function ClassManagement() {
         academicYear: '',
         room: '',
       });
-      setLoading(false);
       alert('Class updated successfully!');
     } catch (error) {
       console.error('Error updating class:', error);
-      setLoading(false);
       alert('Failed to update class. Please try again.');
     }
   };
@@ -803,33 +507,26 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
-
-      // Get organization ID
-      const orgId = await ApiService.getCurrentOrgId();
-
-      // Delete class via API
-      await ApiService.deleteClass(orgId, classToDelete.id);
-
-      // Update local state
-      setClasses((prev) => prev.filter((c) => c.id !== classToDelete.id));
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      await deleteClass({
+        orgId,
+        classId: classToDelete.id,
+      }).unwrap();
 
       // If the deleted class was selected, clear selection
-      if (selectedClass?.id === classToDelete.id) {
-        const remainingClasses = classes.filter(
-          (c) => c.id !== classToDelete.id,
-        );
-        setSelectedClass(
-          remainingClasses.length > 0 ? remainingClasses[0] : null,
-        );
+      if (selectedClassId === classToDelete.id) {
+        setSelectedClassId(null);
       }
 
-      setLoading(false);
       alert('Class deleted successfully!');
     } catch (error) {
       console.error('Error deleting class:', error);
-      setLoading(false);
       alert('Failed to delete class. Please try again.');
     }
   };
@@ -849,41 +546,26 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
-
-      // Get organization ID
-      const orgId = await ApiService.getCurrentOrgId();
-
-      // Get teacher name if teacher ID is provided
-      const teacherName = assignTeacherFormData.teacherId
-        ? teachers.find((t) => t.id === assignTeacherFormData.teacherId)?.name
-        : undefined;
-
-      // Update class via API
-      const response = await ApiService.updateClass(orgId, selectedClass.id, {
-        teacher_id: assignTeacherFormData.teacherId || null,
-      });
-
-      // Update local state
-      const updatedClass: Class = {
-        ...selectedClass,
-        classTeacherId: response.data.attributes.teacher_id,
-        classTeacherName: response.data.attributes.teacher_name,
-      };
-
-      setClasses((prev) =>
-        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-      );
-      setSelectedClass(updatedClass);
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      await updateClass({
+        orgId,
+        classId: selectedClass.id,
+        classData: {
+          teacher_id: assignTeacherFormData.teacherId || null,
+        },
+      }).unwrap();
 
       setShowAssignTeacherModal(false);
       setAssignTeacherFormData({ teacherId: '' });
-      setLoading(false);
       alert('Class teacher updated successfully!');
     } catch (error) {
       console.error('Error updating class teacher:', error);
-      setLoading(false);
       alert('Failed to update class teacher. Please try again.');
     }
   };
@@ -910,49 +592,20 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
-
-      // Get organization ID
-      const orgId = await ApiService.getCurrentOrgId();
-
-      // Enroll student in class using the API
-      await ApiService.enrollStudentInClass(orgId, selectedClass.id, {
-        student_id: selectedStudentForAssignment.id,
-        roll_number: rollNumberFormData.rollNumber,
-        academic_year: selectedClass.academicYear,
-      });
-
-      // Refresh class students to get updated data
-      const studentsResponse = await ApiService.getClassStudents(
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      await enrollStudent({
         orgId,
-        selectedClass.id,
-      );
-      const updatedStudents = studentsResponse.data.map((student: any) => ({
-        id: student.id,
-        name: `${student.attributes.first_name || ''} ${student.attributes.last_name || ''}`.trim(),
-        rollNumber: student.attributes.roll_number,
-        email: student.attributes.email,
-        phone: student.attributes.phone,
-        status:
-          student.attributes.status === 'active'
-            ? ('Active' as const)
-            : ('Inactive' as const),
-      }));
-
-      const updatedClass = {
-        ...selectedClass,
-        data: {
-          ...selectedClass.data,
-          students: updatedStudents,
-        },
-        totalStudents: updatedStudents.length,
-      };
-
-      setClasses((prev) =>
-        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-      );
-      setSelectedClass(updatedClass);
+        classId: selectedClass.id,
+        enrollment: {
+          student_id: selectedStudentForAssignment.id,
+        } as any, // TODO: Update EnrollmentRequest interface to include roll_number and academic_year if needed
+      }).unwrap();
 
       // Remove student from unassigned list
       setUnassignedStudents((prev) =>
@@ -962,11 +615,9 @@ export default function ClassManagement() {
       setShowRollNumberModal(false);
       setSelectedStudentForAssignment(null);
       setRollNumberFormData({ rollNumber: '' });
-      setLoading(false);
       alert('Student added to class successfully!');
     } catch (error) {
       console.error('Error assigning student to class:', error);
-      setLoading(false);
       alert('Failed to add student to class. Please try again.');
     }
   };
@@ -985,38 +636,18 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
-
-      // Get organization ID
-      const orgId = await getOrgId();
-
-      // Unenroll student from class using the API
-      await ApiService.unenrollStudentFromClass(
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      await unenrollStudent({
         orgId,
-        selectedClass.id,
-        student.id,
-        selectedClass.academicYear,
-      );
-
-      // Update local state by removing the student from the class
-      const updatedStudents = selectedClass.data.students.filter(
-        (s) => s.id !== student.id,
-      );
-
-      const updatedClass = {
-        ...selectedClass,
-        data: {
-          ...selectedClass.data,
-          students: updatedStudents,
-        },
-        totalStudents: updatedStudents.length,
-      };
-
-      setClasses((prev) =>
-        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-      );
-      setSelectedClass(updatedClass);
+        classId: selectedClass.id,
+        studentId: student.id,
+      }).unwrap();
 
       // Add student back to unassigned list
       const unenrolledStudent = {
@@ -1029,11 +660,9 @@ export default function ClassManagement() {
 
       setUnassignedStudents((prev) => [...prev, unenrolledStudent]);
 
-      setLoading(false);
       alert('Student removed from class successfully!');
     } catch (error) {
       console.error('Error unenrolling student from class:', error);
-      setLoading(false);
       alert('Failed to remove student from class. Please try again.');
     }
   };
@@ -1049,45 +678,24 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
-
-      // Get organization ID
-      const orgId = await getOrgId();
-
-      // Create subject via API
-      const response = await ApiService.createSubject(orgId, {
-        subject_name: subjectFormData.name,
-        class_id: selectedClass.id,
-        teacher_id: subjectFormData.teacherId,
-      });
-
-      // Create the new subject object for local state
-      const newSubject: Subject = {
-        id: response.data.id,
-        name: response.data.attributes.subject_name,
-        code: subjectFormData.code || '', // Code might not be in API response
-        teacherId: response.data.attributes.teacher_id,
-        teacherName: teachers.find(
-          (t) => t.id === response.data.attributes.teacher_id,
-        )?.name,
-        credits: subjectFormData.credits,
-        type: subjectFormData.type,
-      };
-
-      // Update local state
-      const updatedClass = {
-        ...selectedClass,
-        data: {
-          ...selectedClass.data,
-          subjects: [...selectedClass.data.subjects, newSubject],
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      await createSubject({
+        orgId,
+        classId: selectedClass.id,
+        subjectData: {
+          name: subjectFormData.name,
+          code: subjectFormData.code,
+          teacher_id: subjectFormData.teacherId,
+          credits: subjectFormData.credits,
         },
-      };
+      }).unwrap();
 
-      setClasses((prev) =>
-        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-      );
-      setSelectedClass(updatedClass);
       setShowAddSubjectModal(false);
       setSubjectFormData({
         name: '',
@@ -1096,11 +704,9 @@ export default function ClassManagement() {
         credits: 1,
         type: 'Core',
       });
-      setLoading(false);
       alert('Subject added successfully!');
     } catch (error) {
       console.error('Error creating subject:', error);
-      setLoading(false);
       alert('Failed to create subject. Please try again.');
     }
   };
@@ -1116,52 +722,28 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
-
-      // Get organization ID
-      const orgId = await getOrgId();
-
-      // Update subject via API
-      await ApiService.updateSubject(
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      await updateSubject({
         orgId,
-        selectedSubjectForEdit.id,
-        editSubjectFormData.teacherId,
-      );
-
-      // Update local state
-      const updatedSubjects = selectedClass.data.subjects.map((subject) =>
-        subject.id === selectedSubjectForEdit.id
-          ? {
-              ...subject,
-              teacherId: editSubjectFormData.teacherId,
-              teacherName: teachers.find(
-                (t) => t.id === editSubjectFormData.teacherId,
-              )?.name,
-            }
-          : subject,
-      );
-
-      const updatedClass = {
-        ...selectedClass,
-        data: {
-          ...selectedClass.data,
-          subjects: updatedSubjects,
+        classId: selectedClass.id,
+        subjectId: selectedSubjectForEdit.id,
+        subjectData: {
+          teacher_id: editSubjectFormData.teacherId,
         },
-      };
+      }).unwrap();
 
-      setClasses((prev) =>
-        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-      );
-      setSelectedClass(updatedClass);
       setShowEditSubjectModal(false);
       setSelectedSubjectForEdit(null);
       setEditSubjectFormData({ teacherId: '' });
-      setLoading(false);
       alert('Subject updated successfully!');
     } catch (error) {
       console.error('Error updating subject:', error);
-      setLoading(false);
       alert('Failed to update subject. Please try again.');
     }
   };
@@ -1172,39 +754,24 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      await deleteSubject({
+        orgId,
+        classId: selectedClass.id,
+        subjectId: selectedSubjectForDelete.id,
+      }).unwrap();
 
-      // Get organization ID
-      const orgId = await getOrgId();
-
-      // Delete subject via API
-      await ApiService.deleteSubject(orgId, selectedSubjectForDelete.id);
-
-      // Update local state
-      const updatedSubjects = selectedClass.data.subjects.filter(
-        (subject) => subject.id !== selectedSubjectForDelete.id,
-      );
-
-      const updatedClass = {
-        ...selectedClass,
-        data: {
-          ...selectedClass.data,
-          subjects: updatedSubjects,
-        },
-      };
-
-      setClasses((prev) =>
-        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-      );
-      setSelectedClass(updatedClass);
       setShowDeleteSubjectModal(false);
       setSelectedSubjectForDelete(null);
-      setLoading(false);
       alert('Subject deleted successfully!');
     } catch (error) {
       console.error('Error deleting subject:', error);
-      setLoading(false);
       alert('Failed to delete subject. Please try again.');
     }
   };
@@ -1226,49 +793,26 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      // Note: The API expects a specific format, adapting from old code
+      await createExam({
+        orgId,
+        classId: selectedClass.id,
+        examData: {
+          subjectId: examFormData.subjects[0]?.subjectId || '', // Simplified for now
+          name: examFormData.name,
+          exam_type: examFormData.type,
+          exam_date: new Date(examFormData.date).getTime(),
+          max_marks: examFormData.subjects[0]?.marks || 100,
+        } as any, // TODO: API might need updating to support multiple subjects per exam
+      }).unwrap();
 
-      // Get organization ID
-      const orgId = await getOrgId();
-
-      // Prepare API data format
-      const apiData = {
-        exam_name: examFormData.name,
-        class_id: selectedClass.id,
-        exam_date: examFormData.date,
-        subjects: examFormData.subjects.map((subject) => ({
-          subject_id: subject.subjectId,
-          max_marks: subject.marks,
-        })),
-      };
-
-      // Create exam via API
-      const response = await ApiService.createExam(orgId, apiData);
-
-      // Create the new exam object for local state
-      const newExam: Exam = {
-        id: response.data.id,
-        name: response.data.attributes.exam_name,
-        subjects: examFormData.subjects,
-        instructions: examFormData.instructions,
-        type: examFormData.type,
-        status: 'Scheduled',
-      };
-
-      // Update local state
-      const updatedClass = {
-        ...selectedClass,
-        data: {
-          ...selectedClass.data,
-          exams: [...selectedClass.data.exams, newExam],
-        },
-      };
-
-      setClasses((prev) =>
-        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-      );
-      setSelectedClass(updatedClass);
       setShowCreateExamModal(false);
       setExamFormData({
         name: '',
@@ -1287,11 +831,9 @@ export default function ClassManagement() {
         endTime: '',
         room: '',
       });
-      setLoading(false);
       alert('Exam created successfully!');
     } catch (error) {
       console.error('Error creating exam:', error);
-      setLoading(false);
       alert('Failed to create exam. Please try again.');
     }
   };
@@ -1377,54 +919,25 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
-
-      // Get organization ID
-      const orgId = await getOrgId();
-
-      // Prepare API data format
-      const apiData = {
-        exam_name: examFormData.name,
-        class_id: selectedClass.id,
-        exam_date: examFormData.date,
-        subjects: examFormData.subjects.map((subject) => ({
-          subject_id: subject.subjectId,
-          max_marks: subject.marks,
-        })),
-      };
-
-      // Update exam via API
-      const response = await ApiService.updateExam(
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      await updateExam({
         orgId,
-        selectedExamForEdit.id,
-        apiData,
-      );
+        classId: selectedClass.id,
+        examId: selectedExamForEdit.id,
+        examData: {
+          name: examFormData.name,
+          exam_type: examFormData.type,
+          exam_date: new Date(examFormData.date).getTime(),
+          max_marks: examFormData.subjects[0]?.marks || 100,
+        } as any, // TODO: API might need updating to support multiple subjects per exam
+      }).unwrap();
 
-      // Update the exam object for local state
-      const updatedExam: Exam = {
-        ...selectedExamForEdit,
-        name: response.data.attributes.exam_name,
-        subjects: examFormData.subjects,
-        instructions: examFormData.instructions,
-        type: examFormData.type,
-      };
-
-      // Update local state
-      const updatedClass = {
-        ...selectedClass,
-        data: {
-          ...selectedClass.data,
-          exams: selectedClass.data.exams.map((e) =>
-            e.id === selectedExamForEdit.id ? updatedExam : e,
-          ),
-        },
-      };
-
-      setClasses((prev) =>
-        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-      );
-      setSelectedClass(updatedClass);
       setShowEditExamModal(false);
       setSelectedExamForEdit(null);
       setExamFormData({
@@ -1444,11 +957,9 @@ export default function ClassManagement() {
         endTime: '',
         room: '',
       });
-      setLoading(false);
       alert('Exam updated successfully!');
     } catch (error) {
       console.error('Error updating exam:', error);
-      setLoading(false);
       alert('Failed to update exam. Please try again.');
     }
   };
@@ -1459,37 +970,24 @@ export default function ClassManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
+      // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      await deleteExam({
+        orgId,
+        classId: selectedClass.id,
+        examId: selectedExamForDelete.id,
+      }).unwrap();
 
-      // Get organization ID
-      const orgId = await getOrgId();
-
-      // Delete exam via API
-      await ApiService.deleteExam(orgId, selectedExamForDelete.id);
-
-      // Update local state
-      const updatedClass = {
-        ...selectedClass,
-        data: {
-          ...selectedClass.data,
-          exams: selectedClass.data.exams.filter(
-            (e) => e.id !== selectedExamForDelete.id,
-          ),
-        },
-      };
-
-      setClasses((prev) =>
-        prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-      );
-      setSelectedClass(updatedClass);
       setShowDeleteExamModal(false);
       setSelectedExamForDelete(null);
-      setLoading(false);
       alert('Exam deleted successfully!');
     } catch (error) {
       console.error('Error deleting exam:', error);
-      setLoading(false);
       alert('Failed to delete exam. Please try again.');
     }
   };
@@ -1521,21 +1019,11 @@ export default function ClassManagement() {
       duration: Math.round(duration),
     };
 
-    const updatedClass = {
-      ...selectedClass,
-      data: {
-        ...selectedClass.data,
-        timeSlots: [...selectedClass.data.timeSlots, newTimeSlot],
-      },
-    };
-
-    setClasses((prev) =>
-      prev.map((c) => (c.id === selectedClass.id ? updatedClass : c)),
-    );
-    setSelectedClass(updatedClass);
+    // TODO: Timetable functionality needs API implementation
+    // For now, just close the modal
     setShowTimeSlotModal(false);
     setTimeSlotFormData({ name: '', startTime: '', endTime: '' });
-    alert('Time slot added successfully!');
+    alert('Time slot functionality is not yet fully implemented.');
   };
 
   const getStatusColor = (status: string) => {
@@ -1636,7 +1124,7 @@ export default function ClassManagement() {
                   >
                     <div className="flex items-start justify-between">
                       <div
-                        onClick={() => setSelectedClass(cls)}
+                        onClick={() => setSelectedClassId(cls.id)}
                         className="flex-1 cursor-pointer"
                       >
                         <h3 className="text-sm font-semibold text-gray-900">
@@ -3487,19 +2975,10 @@ export default function ClassManagement() {
                               const updatedTimeSlots = currentTimeSlots.filter(
                                 (t) => t.id !== slot.id,
                               );
-                              const updatedClass = {
-                                ...selectedClass,
-                                data: {
-                                  ...selectedClass.data,
-                                  timeSlots: updatedTimeSlots,
-                                },
-                              };
-                              setClasses((prev) =>
-                                prev.map((c) =>
-                                  c.id === selectedClass.id ? updatedClass : c,
-                                ),
+                              // TODO: Timetable functionality needs API implementation
+                              alert(
+                                'Time slot removal is not yet fully implemented.',
                               );
-                              setSelectedClass(updatedClass);
                             }
                           }}
                           className="text-red-600 hover:text-red-800 text-sm"

@@ -130,10 +130,14 @@ function ClassesContent({ userData }: ClassesContentProps) {
   const [classMonitor, setClassMonitor] = useState<Student | null>(null);
 
   // RTK Query hooks for data fetching
-  const { data: classesResponse, isLoading: classesLoading } =
-    useGetClassesQuery(orgId, {
-      skip: !orgId,
-    });
+  const {
+    data: classesResponse,
+    isLoading: classesLoading,
+    error: classesError,
+    isError: isClassesError,
+  } = useGetClassesQuery(orgId, {
+    skip: !orgId,
+  });
 
   const { data: facultyResponse, isLoading: facultyLoading } =
     useGetFacultyQuery(orgId, {
@@ -730,6 +734,50 @@ function ClassesContent({ userData }: ClassesContentProps) {
       toast.error('Failed to remove class monitor');
     }
   };
+
+  // Show error state if API call failed
+  if (isClassesError) {
+    const errorMessage =
+      classesError && 'status' in classesError
+        ? `API Error ${classesError.status}: ${
+            classesError.data
+              ? JSON.stringify(classesError.data)
+              : 'Failed to fetch classes'
+          }`
+        : 'Failed to fetch classes. Please try again.';
+
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-lg">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <svg
+              className="w-16 h-16 text-red-500 mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <h2 className="text-xl font-semibold text-red-900 mb-2">
+              Error Loading Classes
+            </h2>
+            <p className="text-red-700 mb-4">{errorMessage}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md font-medium transition-colors"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
