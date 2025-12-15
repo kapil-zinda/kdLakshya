@@ -78,26 +78,34 @@ export default function TeacherManagement() {
 
   // Transform API data to Teacher format
   const teachers: Teacher[] =
-    facultyResponse?.data.map((faculty) => ({
-      id: faculty.id,
-      name: faculty.attributes.name,
-      designation: faculty.attributes.designation,
-      bio: faculty.attributes.bio,
-      photo: faculty.attributes.photo,
-      subjects: faculty.attributes.subjects,
-      email: faculty.attributes.email,
-      phone: faculty.attributes.phone,
-      experience: faculty.attributes.experience,
-      createdAt: faculty.attributes.createdAt,
-      updatedAt: faculty.attributes.updatedAt,
-      role:
-        (faculty.attributes.role as 'Teacher' | 'Faculty' | 'Staff') ||
-        'Faculty',
-      status:
-        (faculty.attributes.status as 'Active' | 'Inactive' | 'On Leave') ||
-        'Active',
-      isClassTeacher: false,
-    })) || [];
+    facultyResponse?.data.map((faculty) => {
+      // Normalize role to proper case (capitalize first letter)
+      const rawRole = faculty.attributes.role || 'faculty';
+      const normalizedRole =
+        rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase();
+
+      // Normalize status to proper case (capitalize first letter)
+      const rawStatus = faculty.attributes.status || 'active';
+      const normalizedStatus =
+        rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
+
+      return {
+        id: faculty.id,
+        name: faculty.attributes.name,
+        designation: faculty.attributes.designation,
+        bio: faculty.attributes.bio,
+        photo: faculty.attributes.photo,
+        subjects: faculty.attributes.subjects,
+        email: faculty.attributes.email,
+        phone: faculty.attributes.phone,
+        experience: faculty.attributes.experience,
+        createdAt: faculty.attributes.createdAt,
+        updatedAt: faculty.attributes.updatedAt,
+        role: normalizedRole as 'Teacher' | 'Faculty' | 'Staff',
+        status: normalizedStatus as 'Active' | 'Inactive' | 'On Leave',
+        isClassTeacher: false,
+      };
+    }) || [];
 
   // Extract class names
   const classes: string[] =

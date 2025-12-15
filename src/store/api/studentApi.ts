@@ -309,7 +309,7 @@ export const studentApi = baseApi.injectEndpoints({
     >({
       query: ({ orgId, studentId, studentData }) => ({
         url: `/${orgId}/students/${studentId}`,
-        method: 'PATCH',
+        method: 'PUT',
         body: transformUpdateStudentRequest(studentData),
         headers: {
           'Content-Type': 'application/vnd.api+json',
