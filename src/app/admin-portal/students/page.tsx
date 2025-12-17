@@ -5,7 +5,16 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { ApiService } from '@/services/api';
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
+import {
+  useGetClassesQuery,
+  useGetClassStudentsQuery,
+} from '@/store/api/classApi';
+import {
+  useCreateStudentMutation,
+  useGetStudentsQuery,
+  useUpdateStudentMutation,
+} from '@/store/api/studentApi';
 
 interface Student {
   id: string;
@@ -56,14 +65,16 @@ interface Student {
 }
 
 export default function StudentManagement() {
-  const [students, setStudents] = useState<Student[]>([]);
+  // Get orgId from Redux
+  const { userData } = useUserDataRedux();
+  const orgId = userData?.orgId;
+
+  // Local UI state
   const [selectedClass, setSelectedClass] = useState('All');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Student>>({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [filterLoading, setFilterLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addFormData, setAddFormData] = useState({
     firstName: '',
@@ -82,10 +93,121 @@ export default function StudentManagement() {
       address: '',
     },
   });
-  const [classes, setClasses] = useState<string[]>(['All']);
-  const [classIdMap, setClassIdMap] = useState<Map<string, string>>(new Map());
-  const [allStudents, setAllStudents] = useState<Student[]>([]);
   const router = useRouter();
+
+  // RTK Query hooks for data fetching
+  const { data: classesResponse, isLoading: classesLoading } =
+    useGetClassesQuery(orgId!, {
+      skip: !orgId,
+    });
+
+  // Get the selected class ID
+  const classIdMap = new Map(
+    classesResponse?.data.map((cls) => [cls.attributes.class, cls.id]) || [],
+  );
+  const selectedClassId =
+    selectedClass !== 'All' ? classIdMap.get(selectedClass) : undefined;
+
+  // Fetch all students or class-specific students based on selection
+  const { data: allStudentsResponse, isLoading: allStudentsLoading } =
+    useGetStudentsQuery(orgId!, {
+      skip: !orgId || selectedClass !== 'All',
+    });
+
+  const { data: classStudentsResponse, isLoading: classStudentsLoading } =
+    useGetClassStudentsQuery(
+      { orgId: orgId!, classId: selectedClassId! },
+      {
+        skip: !orgId || !selectedClassId || selectedClass === 'All',
+      },
+    );
+
+  // RTK Query mutations
+  const [createStudent] = useCreateStudentMutation();
+  const [updateStudent] = useUpdateStudentMutation();
+
+  // Determine which data source to use
+  const studentsData =
+    selectedClass === 'All' ? allStudentsResponse : classStudentsResponse;
+  const filterLoading =
+    selectedClass === 'All' ? allStudentsLoading : classStudentsLoading;
+  const loading = classesLoading || filterLoading;
+
+  // Transform API data to Student format
+  const students: Student[] =
+    studentsData?.data.map((studentData: any) => {
+      // Handle different response formats for all students vs class students
+      const attrs = studentData.attributes;
+      const isClassStudentResponse = selectedClass !== 'All';
+
+      return {
+        id: studentData.id,
+        firstName: attrs.first_name,
+        lastName: attrs.last_name,
+        name: `${attrs.first_name} ${attrs.last_name}`,
+        email: attrs.email,
+        phone: attrs.phone,
+        dateOfBirth: isClassStudentResponse
+          ? attrs.enrollment_date || ''
+          : attrs.date_of_birth || '',
+        gender: attrs.gender,
+        uniqueId: isClassStudentResponse ? attrs.student_id : attrs.unique_id,
+        profile: attrs.profile,
+        gradeLevel: isClassStudentResponse ? selectedClass : attrs.grade_level,
+        guardianInfo: isClassStudentResponse
+          ? {
+              fatherName: '',
+              motherName: '',
+              phone: '',
+              email: '',
+              address: '',
+            }
+          : {
+              fatherName: attrs.guardian_info.father_name,
+              motherName: attrs.guardian_info.mother_name,
+              phone: attrs.guardian_info.phone,
+              email: attrs.guardian_info.email,
+              address: attrs.guardian_info.address,
+            },
+        admissionDate: isClassStudentResponse
+          ? attrs.enrollment_date || ''
+          : attrs.admission_date || '',
+        rollNumber: isClassStudentResponse
+          ? attrs.roll_number || studentData.id
+          : attrs.unique_id || studentData.id,
+        class: isClassStudentResponse ? selectedClass : attrs.grade_level,
+        section: 'A',
+        status: isClassStudentResponse
+          ? attrs.status === 'active'
+            ? 'Active'
+            : 'Inactive'
+          : 'Active',
+        photo:
+          attrs.profile ||
+          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        academicYear: attrs.academic_year || '2024-25',
+        fees: {
+          totalFees: 0,
+          paidFees: 0,
+          pendingFees: 0,
+          lastPaymentDate: '',
+        },
+        attendance: {
+          totalDays: 0,
+          presentDays: 0,
+          absentDays: 0,
+          percentage: 0,
+        },
+        grades: [],
+      };
+    }) || [];
+
+  // Extract class names
+  const classes: string[] = [
+    'All',
+    ...(classesResponse?.data.map((classData) => classData.attributes.class) ||
+      []),
+  ];
 
   useEffect(() => {
     const tokenStr = localStorage.getItem('bearerToken');
@@ -106,180 +228,12 @@ export default function StudentManagement() {
       router.push('/');
       return;
     }
-
-    // Load students and classes data from API
-    const loadStudents = async () => {
-      try {
-        setLoading(true);
-
-        // Get organization ID
-        const orgId = await ApiService.getCurrentOrgId();
-
-        // Fetch classes from API
-        const classesResponse = await ApiService.getClasses(orgId);
-        const classNames = classesResponse.data.map(
-          (classData) => `${classData.attributes.class}`,
-        );
-
-        // Build class ID mapping
-        const idMap = new Map<string, string>();
-        classesResponse.data.forEach((classData) => {
-          idMap.set(classData.attributes.class, classData.id);
-        });
-        setClassIdMap(idMap);
-        setClasses(['All', ...classNames]);
-
-        // Fetch students from API
-        const studentsResponse = await ApiService.getStudents(orgId);
-
-        // Transform API response to local interface
-        const transformedStudents: Student[] = studentsResponse.data.map(
-          (studentData) => ({
-            id: studentData.id,
-            firstName: studentData.attributes.first_name,
-            lastName: studentData.attributes.last_name,
-            name: `${studentData.attributes.first_name} ${studentData.attributes.last_name}`,
-            email: studentData.attributes.email,
-            phone: studentData.attributes.phone,
-            dateOfBirth: studentData.attributes.date_of_birth || '', // API returns DD/MM/YYYY format
-            gender: studentData.attributes.gender,
-            uniqueId: studentData.attributes.unique_id,
-            profile: studentData.attributes.profile,
-            gradeLevel: studentData.attributes.grade_level,
-            guardianInfo: {
-              fatherName: studentData.attributes.guardian_info.father_name,
-              motherName: studentData.attributes.guardian_info.mother_name,
-              phone: studentData.attributes.guardian_info.phone,
-              email: studentData.attributes.guardian_info.email,
-              address: studentData.attributes.guardian_info.address,
-            },
-            admissionDate: studentData.attributes.admission_date || '', // API returns DD/MM/YYYY format
-            // Legacy fields for UI compatibility
-            rollNumber: studentData.attributes.unique_id || studentData.id,
-            class: studentData.attributes.grade_level,
-            section: 'A', // Default section
-            status: 'Active',
-            photo:
-              studentData.attributes.profile ||
-              'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-            academicYear: '2024-25',
-            fees: {
-              totalFees: 0,
-              paidFees: 0,
-              pendingFees: 0,
-              lastPaymentDate: '',
-            },
-            attendance: {
-              totalDays: 0,
-              presentDays: 0,
-              absentDays: 0,
-              percentage: 0,
-            },
-            grades: [],
-          }),
-        );
-
-        setStudents(transformedStudents);
-        setAllStudents(transformedStudents);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error loading students:', error);
-        // Fall back to empty array if API fails
-        setStudents([]);
-        setLoading(false);
-      }
-    };
-
-    loadStudents();
+    // Data is automatically fetched by RTK Query hooks when orgId is available
   }, [router]);
 
-  // Handle class filter selection
-  const handleClassSelection = async (className: string) => {
+  // Handle class filter selection - RTK Query automatically fetches based on selectedClass
+  const handleClassSelection = (className: string) => {
     setSelectedClass(className);
-
-    // If "All" is selected, show all students
-    if (className === 'All') {
-      setStudents(allStudents);
-      return;
-    }
-
-    // Get the class ID from the map
-    const classId = classIdMap.get(className);
-    if (!classId) {
-      console.error(`No class ID found for class: ${className}`);
-      return;
-    }
-
-    try {
-      setFilterLoading(true);
-      const orgId = await ApiService.getCurrentOrgId();
-
-      // Fetch students for the selected class
-      console.log(
-        `🔵 Fetching students for class: ${className} (ID: ${classId})`,
-      );
-      const classStudentsResponse = await ApiService.getClassStudents(
-        orgId,
-        classId,
-      );
-
-      // Transform API response to local interface
-      const transformedStudents: Student[] = classStudentsResponse.data.map(
-        (studentData: any) => ({
-          id: studentData.id,
-          firstName: studentData.attributes.first_name,
-          lastName: studentData.attributes.last_name,
-          name: `${studentData.attributes.first_name} ${studentData.attributes.last_name}`,
-          email: studentData.attributes.email,
-          phone: studentData.attributes.phone,
-          dateOfBirth: studentData.attributes.enrollment_date || '',
-          gender: studentData.attributes.gender,
-          uniqueId: studentData.attributes.student_id,
-          profile: studentData.attributes.profile,
-          gradeLevel: className,
-          guardianInfo: {
-            fatherName: '',
-            motherName: '',
-            phone: '',
-            email: '',
-            address: '',
-          },
-          admissionDate: studentData.attributes.enrollment_date || '',
-          rollNumber: studentData.attributes.roll_number || studentData.id,
-          class: className,
-          section: 'A',
-          status:
-            studentData.attributes.status === 'active' ? 'Active' : 'Inactive',
-          photo:
-            studentData.attributes.profile ||
-            'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-          academicYear: studentData.attributes.academic_year || '2024-25',
-          fees: {
-            totalFees: 0,
-            paidFees: 0,
-            pendingFees: 0,
-            lastPaymentDate: '',
-          },
-          attendance: {
-            totalDays: 0,
-            presentDays: 0,
-            absentDays: 0,
-            percentage: 0,
-          },
-          grades: [],
-        }),
-      );
-
-      console.log(
-        `✅ Loaded ${transformedStudents.length} students for class ${className}`,
-      );
-      setStudents(transformedStudents);
-    } catch (error) {
-      console.error('Error loading class students:', error);
-      setStudents([]);
-    } finally {
-      setFilterLoading(false);
-    }
   };
 
   // Filter students by search term only (class filtering is done via API)
@@ -321,14 +275,9 @@ export default function StudentManagement() {
   };
 
   const handleSaveStudent = async () => {
-    if (!editingStudent || !editFormData.id) return;
+    if (!editingStudent || !editFormData.id || !orgId) return;
 
     try {
-      setLoading(true);
-
-      // Get organization ID
-      const orgId = await ApiService.getCurrentOrgId();
-
       // Convert editFormData to API format
       const updateData: any = {};
 
@@ -342,76 +291,21 @@ export default function StudentManagement() {
       if (editFormData.profile) updateData.profile = editFormData.profile;
       if (editFormData.gradeLevel)
         updateData.gradeLevel = editFormData.gradeLevel;
-
-      if (editFormData.guardianInfo) {
+      if (editFormData.guardianInfo)
         updateData.guardianInfo = editFormData.guardianInfo;
-      }
 
-      // Update student via API
-      const response = await ApiService.updateStudent(
+      // Use RTK Query mutation - cache will auto-update!
+      await updateStudent({
         orgId,
-        editingStudent.id,
-        updateData,
-      );
-
-      // Transform API response and update local state
-      const updatedStudent: Student = {
-        id: response.data.id,
-        firstName: response.data.attributes.first_name,
-        lastName: response.data.attributes.last_name,
-        name: `${response.data.attributes.first_name} ${response.data.attributes.last_name}`,
-        email: response.data.attributes.email,
-        phone: response.data.attributes.phone,
-        dateOfBirth: response.data.attributes.date_of_birth || '', // API returns DD/MM/YYYY format
-        gender: response.data.attributes.gender,
-        uniqueId: response.data.attributes.unique_id,
-        profile: response.data.attributes.profile,
-        gradeLevel: response.data.attributes.grade_level,
-        guardianInfo: {
-          fatherName: response.data.attributes.guardian_info.father_name,
-          motherName: response.data.attributes.guardian_info.mother_name,
-          phone: response.data.attributes.guardian_info.phone,
-          email: response.data.attributes.guardian_info.email,
-          address: response.data.attributes.guardian_info.address,
-        },
-        admissionDate: response.data.attributes.admission_date || '', // API returns DD/MM/YYYY format
-        // Legacy fields for UI compatibility
-        rollNumber: response.data.attributes.unique_id || response.data.id,
-        class: response.data.attributes.grade_level,
-        section: 'A',
-        status: 'Active',
-        photo:
-          response.data.attributes.profile ||
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-        academicYear: '2024-25',
-        fees: {
-          totalFees: 0,
-          paidFees: 0,
-          pendingFees: 0,
-          lastPaymentDate: '',
-        },
-        attendance: {
-          totalDays: 0,
-          presentDays: 0,
-          absentDays: 0,
-          percentage: 0,
-        },
-        grades: [],
-      };
-
-      setStudents((prev) =>
-        prev.map((student) =>
-          student.id === editingStudent.id ? updatedStudent : student,
-        ),
-      );
+        studentId: editingStudent.id,
+        studentData: updateData,
+      }).unwrap();
 
       setEditingStudent(null);
       setEditFormData({});
-      setLoading(false);
       alert('Student details updated successfully!');
     } catch (error) {
       console.error('Error updating student:', error);
-      setLoading(false);
       alert('Failed to update student. Please try again.');
     }
   };
@@ -469,68 +363,24 @@ export default function StudentManagement() {
       return;
     }
 
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
     try {
-      setLoading(true);
-
-      // Get organization ID
-      const orgId = await ApiService.getCurrentOrgId();
-
-      // Create student via API with default grade level
+      // Create student via RTK Query mutation with default grade level
       const studentDataWithDefaults = {
         ...addFormData,
         gradeLevel: '1', // Default grade level
       };
-      const response = await ApiService.createStudent(
+
+      // Use RTK Query mutation - cache will auto-update!
+      await createStudent({
         orgId,
-        studentDataWithDefaults,
-      );
+        studentData: studentDataWithDefaults,
+      }).unwrap();
 
-      // Transform API response to local interface
-      const newStudent: Student = {
-        id: response.data.id,
-        firstName: response.data.attributes.first_name,
-        lastName: response.data.attributes.last_name,
-        name: `${response.data.attributes.first_name} ${response.data.attributes.last_name}`,
-        email: response.data.attributes.email,
-        phone: response.data.attributes.phone,
-        dateOfBirth: response.data.attributes.date_of_birth || '', // API returns DD/MM/YYYY format
-        gender: response.data.attributes.gender,
-        uniqueId: response.data.attributes.unique_id,
-        profile: response.data.attributes.profile,
-        gradeLevel: response.data.attributes.grade_level,
-        guardianInfo: {
-          fatherName: response.data.attributes.guardian_info.father_name,
-          motherName: response.data.attributes.guardian_info.mother_name,
-          phone: response.data.attributes.guardian_info.phone,
-          email: response.data.attributes.guardian_info.email,
-          address: response.data.attributes.guardian_info.address,
-        },
-        admissionDate: response.data.attributes.admission_date || '', // API returns DD/MM/YYYY format
-        // Legacy fields for UI compatibility
-        rollNumber: response.data.attributes.unique_id || response.data.id,
-        class: response.data.attributes.grade_level,
-        section: 'A',
-        status: 'Active',
-        photo:
-          response.data.attributes.profile ||
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-        academicYear: '2024-25',
-        fees: {
-          totalFees: 0,
-          paidFees: 0,
-          pendingFees: 0,
-          lastPaymentDate: '',
-        },
-        attendance: {
-          totalDays: 0,
-          presentDays: 0,
-          absentDays: 0,
-          percentage: 0,
-        },
-        grades: [],
-      };
-
-      setStudents((prev) => [...prev, newStudent]);
       setShowAddModal(false);
       setAddFormData({
         firstName: '',
@@ -549,11 +399,9 @@ export default function StudentManagement() {
           address: '',
         },
       });
-      setLoading(false);
       alert('Student added successfully!');
     } catch (error) {
       console.error('Error creating student:', error);
-      setLoading(false);
       alert('Failed to create student. Please try again.');
     }
   };

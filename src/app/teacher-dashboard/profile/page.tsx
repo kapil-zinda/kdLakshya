@@ -2,20 +2,28 @@
 
 import React, { useEffect, useState } from 'react';
 
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import toast, { Toaster } from 'react-hot-toast';
 
 interface TeacherProfileContentProps {
   userData: {
     firstName: string;
     lastName: string;
-    email?: string;
+    userEmail: string;
+    type?: string;
+    role?: string;
   };
 }
 
 function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
+  const router = useRouter();
+
+  // Get full user data from Redux (includes all fields like email, type, phone, etc.)
+  const { userData: fullUserData } = useUserDataRedux();
+
   const [teacherData, setTeacherData] = useState<any>(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -23,60 +31,43 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    // Use cached data from localStorage to avoid duplicate API calls
-    const loadCachedProfileData = () => {
-      try {
-        // Check localStorage for already fetched user data
-        const cachedData = localStorage.getItem('cachedUserData');
+    // Load profile data from Redux
+    if (!fullUserData) {
+      setIsLoading(false);
+      return;
+    }
 
-        if (cachedData) {
-          const parsed = JSON.parse(cachedData);
+    try {
+      // Use full user data from Redux (has all fields including email, type, phone, etc.)
+      const profileData = {
+        id: fullUserData.id || '',
+        email: fullUserData.email || '',
+        firstName: fullUserData.firstName || userData.firstName,
+        lastName: fullUserData.lastName || userData.lastName,
+        phone: fullUserData.phone || '',
+        designation: fullUserData.designation || '',
+        experience: fullUserData.experience || '',
+        profilePhoto: fullUserData.profilePhoto || '',
+        type: fullUserData.type || '',
+        role: fullUserData.role || '',
+      };
 
-          // Use cached data - already fetched by useUserData hook or providers
-          setTeacherData({
-            id: parsed.id || '',
-            email: parsed.email || userData.email || '',
-            firstName: parsed.firstName || userData.firstName,
-            lastName: parsed.lastName || userData.lastName,
-            phone: parsed.phone || '',
-            designation: parsed.designation || '',
-            experience: parsed.experience || '',
-            profilePhoto: parsed.profilePhoto || '',
-            type: parsed.type || '',
-            role: parsed.role || '',
-          });
+      setTeacherData(profileData);
 
-          // Set profile photo URL if available
-          if (parsed.profilePhoto) {
-            setProfilePhotoUrl(parsed.profilePhoto);
-          }
-
-          setIsLoading(false);
-          return;
-        }
-
-        // Fallback to userData from props
-        setTeacherData({
-          id: '',
-          email: userData.email || '',
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          phone: '',
-          designation: '',
-          experience: '',
-          profilePhoto: '',
-          type: '',
-          role: '',
-        });
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Error loading cached profile data:', error);
-        setIsLoading(false);
+      // Set profile photo URL if available
+      if (profileData.profilePhoto) {
+        setProfilePhotoUrl(profileData.profilePhoto);
       }
-    };
 
-    loadCachedProfileData();
-  }, [userData]);
+      // Sync to localStorage for backward compatibility
+      localStorage.setItem('cachedUserData', JSON.stringify(profileData));
+
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error loading profile data:', error);
+      setIsLoading(false);
+    }
+  }, [fullUserData, userData]);
 
   const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -236,9 +227,14 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <Link
-                href="/teacher-dashboard"
-                className="mr-4 text-gray-600 hover:text-gray-900"
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.href = '/teacher-dashboard';
+                }}
+                className="mr-4 text-gray-600 hover:text-gray-900 cursor-pointer"
+                aria-label="Go back"
+                type="button"
               >
                 <svg
                   className="w-6 h-6"
@@ -253,7 +249,7 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
                     d="M15 19l-7-7 7-7"
                   />
                 </svg>
-              </Link>
+              </button>
               <h1 className="text-xl font-semibold text-gray-900">
                 Teacher Profile
               </h1>
@@ -405,7 +401,7 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
 
 export default function TeacherProfilePage() {
   return (
-    <DashboardWrapper allowedRoles={['teacher', 'admin']}>
+    <DashboardWrapper allowedRoles={['teacher', 'faculty', 'admin']}>
       {(userData) => <TeacherProfileContent userData={userData} />}
     </DashboardWrapper>
   );

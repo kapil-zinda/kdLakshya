@@ -9,6 +9,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
+import { ReduxProvider } from '@/store/ReduxProvider';
 
 import { Providers } from './providers';
 
@@ -42,9 +43,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <Providers>
-          <ConditionalLayout>{children}</ConditionalLayout>
-        </Providers>
+        <ReduxProvider>
+          <Providers>
+            <ConditionalLayout>{children}</ConditionalLayout>
+          </Providers>
+        </ReduxProvider>
         <Analytics />
         <ToastContainer />
       </body>

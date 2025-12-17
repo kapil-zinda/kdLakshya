@@ -3,21 +3,21 @@
 import { useRouter } from 'next/navigation';
 
 import { UserData } from '@/app/interfaces/userInterface';
-import { useUserData } from '@/hooks/useUserData';
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 
 interface DashboardWrapperProps {
   children: (userData: UserData) => React.ReactNode;
-  allowedRoles?: ('admin' | 'teacher' | 'student')[];
+  allowedRoles?: string[];
   redirectTo?: string;
 }
 
 export function DashboardWrapper({
   children,
-  allowedRoles = ['admin', 'teacher', 'student'],
+  allowedRoles = ['admin', 'teacher', 'faculty', 'student'],
   redirectTo = '/',
 }: DashboardWrapperProps) {
   const router = useRouter();
-  const { userData: cachedUserData, isLoading } = useUserData();
+  const { userData: cachedUserData, isLoading } = useUserDataRedux();
 
   // Show loading state
   if (isLoading) {
