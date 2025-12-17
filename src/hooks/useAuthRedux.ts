@@ -12,8 +12,8 @@ export interface UserData {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'admin' | 'teacher' | 'student';
-  permissions: Record<string, any>;
+  role: string;
+  permissions?: Record<string, any>;
   orgId: string;
 }
 

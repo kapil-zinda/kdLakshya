@@ -7,6 +7,7 @@ export interface User {
   lastName: string;
   role: string;
   orgId: string;
+  permissions?: Record<string, any>;
   organizationName?: string;
   profilePicture?: string;
 }

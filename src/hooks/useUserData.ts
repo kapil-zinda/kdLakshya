@@ -9,7 +9,7 @@ export interface CachedUserData {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'admin' | 'teacher' | 'student';
+  role: string;
   permissions: Record<string, any>;
   orgId: string;
   accessToken: string;

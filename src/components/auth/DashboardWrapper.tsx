@@ -7,7 +7,7 @@ import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 
 interface DashboardWrapperProps {
   children: (userData: UserData) => React.ReactNode;
-  allowedRoles?: ('admin' | 'teacher' | 'faculty' | 'student')[];
+  allowedRoles?: string[];
   redirectTo?: string;
 }
 

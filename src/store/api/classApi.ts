@@ -66,7 +66,7 @@ export interface UpdateClassRequest {
   description?: string;
 }
 
-export interface Student {
+export interface ClassStudent {
   id: string;
   name: string;
   email: string;
@@ -79,7 +79,7 @@ export interface ClassStudentsResponse {
   data: {
     type: 'students';
     id: string;
-    attributes: Student;
+    attributes: ClassStudent;
   }[];
 }
 
