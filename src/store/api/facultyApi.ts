@@ -96,11 +96,11 @@ export const facultyApi = baseApi.injectEndpoints({
     getFaculty: builder.query<FacultyListResponse, string>({
       query: (orgId) => `/${orgId}/faculty`,
       transformResponse: (response: FacultyListResponse) => {
-        // Filter to return only faculty members (exclude staff)
+        // Filter to return only faculty members (exclude staff) - case insensitive
         const filteredData = {
           ...response,
           data: response.data.filter(
-            (member) => member.attributes.role === 'faculty',
+            (member) => member.attributes.role?.toLowerCase() === 'faculty',
           ),
         };
         console.log(
