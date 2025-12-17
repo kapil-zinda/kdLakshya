@@ -55,7 +55,7 @@ interface StudentMark {
 
 export default function TeacherExamsPage() {
   return (
-    <DashboardWrapper allowedRoles={['teacher', 'admin']}>
+    <DashboardWrapper allowedRoles={['teacher', 'faculty', 'admin']}>
       {(userData) => <ExamsContent userData={userData} />}
     </DashboardWrapper>
   );

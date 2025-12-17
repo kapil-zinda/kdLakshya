@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { AboutSection } from '@/components/template/AboutSection';
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
-import { useUserData } from '@/hooks/useUserData';
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import {
   ApiService,
   transformApiDataToOrganizationConfig,
@@ -17,7 +17,7 @@ export default function AboutPage() {
   const [organizationData, setOrganizationData] =
     useState<OrganizationConfig | null>(null);
   const [loading, setLoading] = useState(true);
-  const { userData } = useUserData();
+  const { userData } = useUserDataRedux();
 
   useEffect(() => {
     const loadDataFromAPI = async () => {

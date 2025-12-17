@@ -5,7 +5,7 @@ import TeacherDashboardCards from '@/components/dashboard/TeacherDashboardCards'
 
 export default function TeacherDashboardPage() {
   return (
-    <DashboardWrapper allowedRoles={['teacher', 'admin']}>
+    <DashboardWrapper allowedRoles={['teacher', 'faculty', 'admin']}>
       {(userData) => <TeacherDashboardCards userData={userData} />}
     </DashboardWrapper>
   );

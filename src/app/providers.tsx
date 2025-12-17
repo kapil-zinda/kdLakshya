@@ -6,6 +6,12 @@ import { usePathname } from 'next/navigation';
 
 import { ApiService } from '@/services/api';
 import { getAuthHeaders, isStudentUser } from '@/utils/authHeaders';
+import {
+  loadTokenFromStorage,
+  loadUserFromStorage,
+  syncTokenToRedux,
+  syncUserToRedux,
+} from '@/utils/reduxAuthSync';
 import axios from 'axios';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { type ThemeProviderProps } from 'next-themes/dist/types';
@@ -120,10 +126,25 @@ export function Providers({ children }: ThemeProviderProps) {
 
       const userData = res.data.data; // Extract from nested structure
       const attributes = userData.attributes;
-      const permissions = res.data.data.user_permissions || {};
+      const permissions =
+        userData.user_permissions || attributes.permissions || {};
 
       // Handle both possible field names for org ID
-      const orgId = attributes.org_id || attributes.org;
+      const orgId = attributes.orgId || attributes.org_id || attributes.org;
+
+      // Determine user role using same logic as authApi
+      let userRole: 'admin' | 'teacher' | 'faculty' | 'student' = 'student';
+      if (attributes.role === 'faculty' || attributes.type === 'faculty') {
+        userRole = 'faculty';
+      } else if (
+        permissions['admin'] ||
+        permissions['organization_admin'] ||
+        permissions['org']
+      ) {
+        userRole = 'admin';
+      } else if (permissions['teacher'] || permissions['instructor']) {
+        userRole = 'teacher';
+      }
 
       updateUserData({
         userId: attributes.user_id || attributes.id,
@@ -141,6 +162,45 @@ export function Providers({ children }: ThemeProviderProps) {
           .map((key) => key.match(/team-(\d+)/)?.[1])
           .filter(Boolean) as string[],
       });
+
+      // Sync user data to Redux for new components
+      syncUserToRedux({
+        id: userData.id,
+        email: attributes.email,
+        firstName:
+          attributes.first_name || attributes.name?.split(' ')[0] || '',
+        lastName:
+          attributes.last_name ||
+          attributes.name?.split(' ').slice(1).join(' ') ||
+          '',
+        role: userRole,
+        orgId: orgId || '',
+        permissions: permissions,
+      });
+
+      // Write to localStorage for backward compatibility
+      localStorage.setItem(
+        'cachedUserData',
+        JSON.stringify({
+          id: userData.id,
+          email: attributes.email,
+          firstName:
+            attributes.first_name || attributes.name?.split(' ')[0] || '',
+          lastName:
+            attributes.last_name ||
+            attributes.name?.split(' ').slice(1).join(' ') ||
+            '',
+          role: userRole,
+          orgId: orgId || '',
+          permissions: permissions,
+          type: attributes.type || attributes.role,
+          phone: attributes.phone || '',
+          designation: attributes.designation || '',
+          experience: attributes.experience || '',
+          profilePhoto: attributes.profile_photo || attributes.photo || '',
+          cacheTimestamp: Date.now(), // Add timestamp for cache validation
+        }),
+      );
 
       // Only redirect if explicitly requested and has org ID
       if (shouldRedirect && orgId) {
@@ -254,6 +314,9 @@ export function Providers({ children }: ThemeProviderProps) {
       setAccessTkn(token);
       setItemWithTTL('bearerToken', token, expiresInHours);
 
+      // Sync token to Redux store
+      syncTokenToRedux(token, expiresIn);
+
       // Mark code as processed temporarily
       sessionStorage.setItem('authCodeProcessed', 'true');
 
@@ -299,6 +362,22 @@ export function Providers({ children }: ThemeProviderProps) {
             userData.attributes.org;
 
           console.log('🏢 Extracted orgId:', orgId);
+
+          // Sync user data to Redux store
+          syncUserToRedux({
+            id: userData.id,
+            email: userData.attributes.email,
+            firstName:
+              userData.attributes.first_name ||
+              userData.attributes.name?.split(' ')[0] ||
+              'User',
+            lastName:
+              userData.attributes.last_name ||
+              userData.attributes.name?.split(' ').slice(1).join(' ') ||
+              '',
+            role: userData.attributes.role || 'student',
+            orgId: orgId || '',
+          });
 
           if (!orgId) {
             console.error('❌ No orgId found in user data, going to dashboard');
@@ -431,6 +510,9 @@ export function Providers({ children }: ThemeProviderProps) {
         setAccessTkn(tokenFromHash);
         setItemWithTTL('bearerToken', tokenFromHash, 24); // Store for 24 hours
 
+        // Sync token to Redux store (24 hours = 86400 seconds)
+        syncTokenToRedux(tokenFromHash, 86400);
+
         // Clean the URL by removing the hash
         window.history.replaceState(
           {},
@@ -447,6 +529,11 @@ export function Providers({ children }: ThemeProviderProps) {
       const token = getItemWithTTL('bearerToken');
       if (token) {
         setAccessTkn(token);
+
+        // Load token and user data into Redux from localStorage
+        loadTokenFromStorage();
+        loadUserFromStorage();
+
         // Only call userMeData if not on dashboard page (DashboardWrapper handles it)
         if (pathname !== '/dashboard') {
           userMeData(token, false); // Don't redirect on page load

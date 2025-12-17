@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 
 import { OrganizationTemplate } from '@/components/template/OrganizationTemplate';
-import { useUserData } from '@/hooks/useUserData';
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import {
   ApiService,
   transformApiDataToOrganizationConfig,
@@ -18,8 +18,9 @@ export default function Home() {
     useState<OrganizationConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { userData } = useUserData();
+  const { userData } = useUserDataRedux();
+  const hasInitialized = useRef(false);
+  const isLoadingData = useRef(false);
 
   const handleAuth0Callback = async () => {
     try {
@@ -227,7 +228,14 @@ export default function Home() {
   };
 
   const loadDataFromAPI = async () => {
+    // Prevent concurrent API calls
+    if (isLoadingData.current) {
+      console.log('⏸️ Skipping API call - already loading');
+      return;
+    }
+
     try {
+      isLoadingData.current = true;
       setLoading(true);
       console.log('Fetching data from APIs...');
 
@@ -250,11 +258,19 @@ export default function Home() {
       console.error('Failed to load API data:', error);
     } finally {
       setLoading(false);
+      isLoadingData.current = false;
     }
   };
 
   useEffect(() => {
+    // Prevent infinite loop - only run once on mount
+    if (hasInitialized.current) {
+      return;
+    }
+
     const initializeAuth = async () => {
+      hasInitialized.current = true;
+
       // Check if student is already authenticated
       if (checkStudentAuth()) {
         return;
@@ -275,7 +291,22 @@ export default function Home() {
     };
 
     initializeAuth();
-  }, [userData]); // Reload when user data changes
+  }, []); // Empty deps - run only once on mount
+
+  // Separate effect to reload data when userData changes (but don't redirect)
+  useEffect(() => {
+    if (
+      hasInitialized.current &&
+      userData?.orgId &&
+      !window.location.hash &&
+      !organizationData &&
+      !isLoadingData.current
+    ) {
+      console.log('📊 Loading data for orgId:', userData.orgId);
+      loadDataFromAPI();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userData?.orgId]); // Only when orgId changes, not on every userData change
 
   if (loading) {
     return (

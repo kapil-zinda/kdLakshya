@@ -5,7 +5,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
+import { useGetClassesQuery } from '@/store/api/classApi';
+import {
+  useCreateFacultyMutation,
+  useGetFacultyQuery,
+  useUpdateFacultyMutation,
+} from '@/store/api/facultyApi';
 
 interface Teacher {
   id: string;
@@ -32,13 +39,34 @@ interface Teacher {
 }
 
 export default function TeacherManagement() {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  // Get orgId from Redux
+  const { userData } = useUserDataRedux();
+  const orgId = userData?.orgId;
+
+  // RTK Query hooks for data fetching
+  const {
+    data: facultyResponse,
+    isLoading: facultyLoading,
+    refetch,
+  } = useGetFacultyQuery(orgId!, {
+    skip: !orgId,
+    refetchOnMountOrArgChange: true, // Always fetch fresh data on mount
+  });
+  const { data: classesResponse, isLoading: classesLoading } =
+    useGetClassesQuery(orgId!, {
+      skip: !orgId,
+    });
+
+  // RTK Query mutations
+  const [createFaculty] = useCreateFacultyMutation();
+  const [updateFaculty] = useUpdateFacultyMutation();
+
+  // Local UI state
   const [selectedRole, setSelectedRole] = useState('All');
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<Teacher>>({});
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addFormData, setAddFormData] = useState<Partial<Teacher>>({
     name: '',
@@ -50,27 +78,22 @@ export default function TeacherManagement() {
     phone: '',
   });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [classes, setClasses] = useState<string[]>([]);
   const router = useRouter();
 
-  // Load faculty data from API
-  const loadFaculty = async () => {
-    try {
-      setLoading(true);
-      const orgId = await ApiService.getCurrentOrgId();
+  // Transform API data to Teacher format
+  const teachers: Teacher[] =
+    facultyResponse?.data.map((faculty) => {
+      // Normalize role to proper case (capitalize first letter)
+      const rawRole = faculty.attributes.role || 'faculty';
+      const normalizedRole =
+        rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase();
 
-      // Fetch classes from API
-      const classesResponse = await ApiService.getClasses(orgId);
-      const classNames = classesResponse.data.map(
-        (classData) => `${classData.attributes.class}`,
-      );
-      setClasses(classNames);
+      // Normalize status to proper case (capitalize first letter)
+      const rawStatus = faculty.attributes.status || 'active';
+      const normalizedStatus =
+        rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1).toLowerCase();
 
-      const facultyResponse = await ApiService.getFaculty(orgId);
-
-      // Transform API data to teacher format
-      const apiTeachers: Teacher[] = facultyResponse.data.map((faculty) => ({
+      return {
         id: faculty.id,
         name: faculty.attributes.name,
         designation: faculty.attributes.designation,
@@ -79,30 +102,24 @@ export default function TeacherManagement() {
         subjects: faculty.attributes.subjects,
         email: faculty.attributes.email,
         phone: faculty.attributes.phone,
-        experience: faculty.attributes.experience, // Map experience from API
+        experience: faculty.attributes.experience,
         createdAt: faculty.attributes.createdAt,
         updatedAt: faculty.attributes.updatedAt,
-        // Cast role and status to expected types
-        role:
-          (faculty.attributes.role as 'Teacher' | 'Faculty' | 'Staff') ||
-          'Faculty',
-        status:
-          (faculty.attributes.status as 'Active' | 'Inactive' | 'On Leave') ||
-          'Active',
+        role: normalizedRole as 'Teacher' | 'Faculty' | 'Staff',
+        status: normalizedStatus as 'Active' | 'Inactive' | 'On Leave',
         isClassTeacher: false,
-      }));
+      };
+    }) || [];
 
-      setTeachers(apiTeachers);
-    } catch (error) {
-      console.error('Failed to load faculty:', error);
-      // Keep empty array if API fails
-      setTeachers([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Extract class names
+  const classes: string[] =
+    classesResponse?.data.map((classData) => `${classData.attributes.class}`) ||
+    [];
 
-  // Add new faculty member
+  // Combined loading state
+  const loading = facultyLoading || classesLoading;
+
+  // Add new faculty member using RTK Query mutation
   const handleAddFaculty = async () => {
     try {
       if (
@@ -115,14 +132,16 @@ export default function TeacherManagement() {
         return;
       }
 
-      setLoading(true);
-      const orgId = await ApiService.getCurrentOrgId();
+      if (!orgId) {
+        alert('Organization ID not found');
+        return;
+      }
 
       const facultyData = {
         name: addFormData.name!,
         designation: addFormData.designation!,
-        experience: addFormData.experience || 1, // Include experience field
-        role: addFormData.role || 'faculty', // Include role field
+        experience: addFormData.experience || 1,
+        role: addFormData.role || 'faculty',
         bio: addFormData.bio || '',
         photo:
           addFormData.photo ||
@@ -132,34 +151,9 @@ export default function TeacherManagement() {
         phone: addFormData.phone!,
       };
 
-      const response = await ApiService.createFaculty(orgId, facultyData);
+      // Use RTK Query mutation - cache will auto-update!
+      await createFaculty({ orgId, facultyData }).unwrap();
 
-      // Add new faculty to local state
-      const newTeacher: Teacher = {
-        id: response.data.id,
-        name: response.data.attributes.name,
-        designation: response.data.attributes.designation,
-        bio: response.data.attributes.bio,
-        photo: response.data.attributes.photo,
-        subjects: response.data.attributes.subjects,
-        email: response.data.attributes.email,
-        phone: response.data.attributes.phone,
-        experience: response.data.attributes.experience, // Include experience from API response
-        createdAt: response.data.attributes.createdAt,
-        updatedAt: response.data.attributes.updatedAt,
-        // Cast role and status to expected types
-        role:
-          (response.data.attributes.role as 'Teacher' | 'Faculty' | 'Staff') ||
-          'Faculty',
-        status:
-          (response.data.attributes.status as
-            | 'Active'
-            | 'Inactive'
-            | 'On Leave') || 'Active',
-        isClassTeacher: false,
-      };
-
-      setTeachers((prev) => [newTeacher, ...prev]);
       setShowAddModal(false);
 
       // Reset form
@@ -177,8 +171,6 @@ export default function TeacherManagement() {
     } catch (error) {
       console.error('Error adding faculty:', error);
       alert('Failed to add faculty member. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -218,9 +210,7 @@ export default function TeacherManagement() {
       router.push('/');
       return;
     }
-
-    // Load faculty data from API
-    loadFaculty();
+    // Data is automatically fetched by RTK Query hooks when orgId is available
   }, [router]);
 
   const filteredTeachers = teachers.filter((teacher) => {
@@ -268,20 +258,40 @@ export default function TeacherManagement() {
     setSelectedTeacher(null);
   };
 
-  const handleSaveTeacher = () => {
-    if (!editingTeacher || !editFormData.id) return;
+  const handleSaveTeacher = async () => {
+    if (!editingTeacher || !editFormData.id || !orgId) return;
 
-    setTeachers((prev) =>
-      prev.map((teacher) =>
-        teacher.id === editFormData.id
-          ? ({ ...teacher, ...editFormData } as Teacher)
-          : teacher,
-      ),
-    );
+    try {
+      const facultyData: any = {};
 
-    setEditingTeacher(null);
-    setEditFormData({});
-    alert('Teacher details updated successfully!');
+      // Only include fields that were actually changed
+      if (editFormData.name) facultyData.name = editFormData.name;
+      if (editFormData.designation)
+        facultyData.designation = editFormData.designation;
+      if (editFormData.bio) facultyData.bio = editFormData.bio;
+      if (editFormData.photo) facultyData.photo = editFormData.photo;
+      if (editFormData.subjects) facultyData.subjects = editFormData.subjects;
+      if (editFormData.email) facultyData.email = editFormData.email;
+      if (editFormData.phone) facultyData.phone = editFormData.phone;
+      if (editFormData.experience !== undefined)
+        facultyData.experience = editFormData.experience;
+      if (editFormData.role) facultyData.role = editFormData.role;
+      if (editFormData.status) facultyData.status = editFormData.status;
+
+      // Use RTK Query mutation - cache will auto-update!
+      await updateFaculty({
+        orgId,
+        facultyId: editFormData.id,
+        facultyData,
+      }).unwrap();
+
+      setEditingTeacher(null);
+      setEditFormData({});
+      alert('Teacher details updated successfully!');
+    } catch (error) {
+      console.error('Error updating teacher:', error);
+      alert('Failed to update teacher. Please try again.');
+    }
   };
 
   const handleCancelEdit = () => {
@@ -322,8 +332,6 @@ export default function TeacherManagement() {
 
       // Step 3: Update form data with the file path
       updateFormField('photo', signedUrlResponse.data.file_path);
-
-      setSelectedFile(null);
     } catch (error) {
       console.error('Error uploading photo:', error);
       alert('Failed to upload photo. Please try again.');
@@ -1292,7 +1300,6 @@ export default function TeacherManagement() {
                               onChange={(e) => {
                                 const file = e.target.files?.[0];
                                 if (file) {
-                                  setSelectedFile(file);
                                   handlePhotoUpload(file);
                                 }
                               }}
