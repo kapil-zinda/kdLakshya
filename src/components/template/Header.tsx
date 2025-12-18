@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { OrganizationConfig } from '@/types/organization';
 import { Menu, X } from 'lucide-react';
 
@@ -139,10 +140,7 @@ export function Header({ organization }: HeaderProps) {
   };
 
   return (
-    <header
-      className="bg-white shadow-sm sticky top-0 z-50 border-b border-gray-100"
-      style={{ backgroundColor: 'rgba(255, 255, 255, 0.98)' }}
-    >
+    <header className="bg-background/98 shadow-sm sticky top-0 z-50 border-b border-border backdrop-blur-sm">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 md:h-20">
           {/* Logo and Name */}
@@ -174,9 +172,8 @@ export function Header({ organization }: HeaderProps) {
                 {organization.name}
               </h1>
               <p
-                className="text-sm font-light"
+                className="text-sm font-light text-muted-foreground"
                 style={{
-                  color: '#6b7280',
                   transition: 'none !important',
                   transform: 'translateZ(0)',
                   backfaceVisibility: 'hidden',
@@ -200,12 +197,12 @@ export function Header({ organization }: HeaderProps) {
                     <button
                       onClick={() => handleNavigation(item.href)}
                       className={`font-medium transition-all duration-200 hover:scale-105 cursor-pointer px-2 py-1 rounded-md ${
-                        isActive ? 'border-b-2' : ''
+                        isActive ? 'border-b-2' : 'text-foreground'
                       }`}
                       style={{
                         color: isActive
                           ? organization.branding.primaryColor
-                          : '#374151',
+                          : undefined,
                         borderBottomColor: isActive
                           ? organization.branding.primaryColor
                           : 'transparent',
@@ -222,7 +219,7 @@ export function Header({ organization }: HeaderProps) {
                       }}
                       onMouseLeave={(e) => {
                         if (!isActive) {
-                          e.currentTarget.style.color = '#374151';
+                          e.currentTarget.style.color = '';
                         }
                       }}
                     >
@@ -234,47 +231,50 @@ export function Header({ organization }: HeaderProps) {
             </ul>
           </nav>
 
-          {/* Auth Buttons */}
-          <div className="hidden md:block">
-            {isAuthenticated ? (
-              <div className="flex items-center space-x-3">
-                <Button
-                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white"
-                  variant="outline"
-                  onClick={() => handleNavigation('/dashboard')}
-                >
-                  Dashboard
-                </Button>
+          {/* Theme Toggle & Auth Buttons */}
+          <div className="hidden md:flex items-center space-x-2">
+            <ThemeToggle />
+            <div>
+              {isAuthenticated ? (
+                <div className="flex items-center space-x-3">
+                  <Button
+                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white"
+                    variant="outline"
+                    onClick={() => handleNavigation('/dashboard')}
+                  >
+                    Dashboard
+                  </Button>
+                  <Button
+                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white"
+                    style={{
+                      backgroundColor: '#ef4444',
+                      borderColor: '#ef4444',
+                      color: 'white',
+                    }}
+                    onClick={handleLogout}
+                  >
+                    Logout
+                  </Button>
+                </div>
+              ) : (
                 <Button
                   className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white"
                   style={{
-                    backgroundColor: '#ef4444',
-                    borderColor: '#ef4444',
+                    backgroundColor: organization.branding.primaryColor,
+                    borderColor: organization.branding.primaryColor,
                     color: 'white',
                   }}
-                  onClick={handleLogout}
+                  onClick={handleAuthLogin}
                 >
-                  Logout
+                  Sign in
                 </Button>
-              </div>
-            ) : (
-              <Button
-                className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white"
-                style={{
-                  backgroundColor: organization.branding.primaryColor,
-                  borderColor: organization.branding.primaryColor,
-                  color: 'white',
-                }}
-                onClick={handleAuthLogin}
-              >
-                Sign in
-              </Button>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
           <button
-            className="lg:hidden p-1.5 sm:p-2 rounded-lg hover:bg-gray-50 transition-colors duration-200"
+            className="lg:hidden p-1.5 sm:p-2 rounded-lg hover:bg-accent transition-colors duration-200"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -294,10 +294,7 @@ export function Header({ organization }: HeaderProps) {
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div
-            className="lg:hidden border-t border-gray-100 bg-white"
-            style={{ backgroundColor: 'rgba(255, 255, 255, 0.98)' }}
-          >
+          <div className="lg:hidden border-t border-border bg-background/98 backdrop-blur-sm">
             <nav className="py-3 sm:py-4">
               <ul className="space-y-3 sm:space-y-4 px-2 sm:px-0">
                 {navigationItems.map((item) => {
@@ -309,13 +306,13 @@ export function Header({ organization }: HeaderProps) {
                           handleNavigation(item.href);
                           setIsMenuOpen(false);
                         }}
-                        className={`block py-2 sm:py-3 px-2 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg hover:bg-gray-50 w-full text-left ${
-                          isActive ? 'bg-gray-100' : ''
+                        className={`block py-2 sm:py-3 px-2 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg hover:bg-accent w-full text-left ${
+                          isActive ? '' : 'text-foreground'
                         }`}
                         style={{
                           color: isActive
                             ? organization.branding.primaryColor
-                            : '#374151',
+                            : undefined,
                           backgroundColor: isActive
                             ? `${organization.branding.primaryColor}15`
                             : 'transparent',
@@ -329,7 +326,7 @@ export function Header({ organization }: HeaderProps) {
                         }}
                         onMouseLeave={(e) => {
                           if (!isActive) {
-                            e.currentTarget.style.color = '#374151';
+                            e.currentTarget.style.color = '';
                           }
                         }}
                       >
@@ -338,7 +335,13 @@ export function Header({ organization }: HeaderProps) {
                     </li>
                   );
                 })}
-                <li className="pt-3 sm:pt-4 px-2 sm:px-0">
+                <li className="pt-3 sm:pt-4 px-2 sm:px-0 flex items-center justify-between">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Theme
+                  </span>
+                  <ThemeToggle />
+                </li>
+                <li className="px-2 sm:px-0">
                   {isAuthenticated ? (
                     <div className="space-y-3">
                       <Button
