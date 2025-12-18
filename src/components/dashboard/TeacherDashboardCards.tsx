@@ -27,24 +27,18 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
         }
 
         const parsed = JSON.parse(tokenData);
-        const BaseURLAuth =
-          process.env.NEXT_PUBLIC_BaseURLAuth ||
-          'https://apis.testkdlakshya.uchhal.in/auth';
-
         // Fetch user/me to check for class teacher info
-        const response = await fetch(
-          `${BaseURLAuth}/users/me?include=permission`,
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${parsed.value}`,
-              'Content-Type': 'application/vnd.api+json',
-            },
-          },
-        );
+        const { makeApiCall } = await import('@/utils/ApiRequest');
 
-        if (response.ok) {
-          const data = await response.json();
+        try {
+          const data = await makeApiCall({
+            path: '/users/me?include=permission',
+            method: 'GET',
+            baseUrl: 'auth',
+            customAuthHeaders: {
+              Authorization: `Bearer ${parsed.value}`,
+            },
+          });
           const attrs = data.data.attributes;
 
           // Check if user has class_teacher_of or assigned_class field
@@ -95,6 +89,8 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
             classInfo: classTeacherOf || teamPermissions,
             permissions: permissions,
           });
+        } catch (error) {
+          console.error('Failed to fetch user data:', error);
         }
       } catch (error) {
         console.error('Error checking class teacher status:', error);

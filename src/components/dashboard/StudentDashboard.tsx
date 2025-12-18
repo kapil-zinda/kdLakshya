@@ -48,23 +48,17 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
         setStudentData(parsed);
 
         // Fetch complete profile from /users/me API
-        const BaseURLAuth =
-          process.env.NEXT_PUBLIC_BaseURLAuth ||
-          'https://apis.testkdlakshya.uchhal.in/auth';
+        const { makeApiCall } = await import('@/utils/ApiRequest');
 
-        const response = await fetch(
-          `${BaseURLAuth}/users/me?include=permission`,
-          {
+        try {
+          const data = await makeApiCall({
+            path: '/users/me?include=permission',
             method: 'GET',
-            headers: {
+            baseUrl: 'auth',
+            customAuthHeaders: {
               'x-api-key': parsed.basicAuthToken,
-              'Content-Type': 'application/vnd.api+json',
             },
-          },
-        );
-
-        if (response.ok) {
-          const data = await response.json();
+          });
           console.log('Users/me response:', data);
 
           if (data.data) {
@@ -100,8 +94,8 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
             console.log('Updated student data from API:', updatedStudentData);
             console.log('Profile photo URL:', updatedStudentData.profilePhoto);
           }
-        } else {
-          console.error('Failed to fetch user profile:', response.status);
+        } catch (error) {
+          console.error('Failed to fetch user profile:', error);
           // Still use cached data
           setProfilePhoto(parsed.profilePhoto || '');
         }
@@ -146,39 +140,36 @@ const StudentDashboard: React.FC<StudentDashboardProps> = ({ userData }) => {
 
       // Step 1: Get S3 signed URL from API
       console.log('Getting S3 signed URL...');
-      const authHeaders: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
 
-      // Add authentication header
+      // Get authentication token
       const studentAuth = localStorage.getItem('studentAuth');
+      let basicAuthToken = '';
       if (studentAuth) {
         const parsed = JSON.parse(studentAuth);
-        authHeaders['x-api-key'] = parsed.basicAuthToken;
+        basicAuthToken = parsed.basicAuthToken;
       }
 
-      const BaseURL =
-        process.env.NEXT_PUBLIC_BaseURLWorkspace ||
-        'https://apis.testkdlakshya.uchhal.in/workspace';
+      const { makeApiCall } = await import('@/utils/ApiRequest');
 
-      const signedUrlResponse = await fetch(`${BaseURL}/s3/signed-url`, {
+      const signedUrlData = await makeApiCall({
+        path: '/s3/signed-url',
         method: 'POST',
-        headers: authHeaders,
-        body: JSON.stringify({
+        baseUrl: 'workspace',
+        customAuthHeaders: {
+          'x-api-key': basicAuthToken,
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        payload: {
           type: 'upload',
           id: studentData.id,
           attributes: {
             title: 'profile_photo',
             role: 'student',
           },
-        }),
+        },
       });
-
-      if (!signedUrlResponse.ok) {
-        throw new Error('Failed to get signed URL');
-      }
-
-      const signedUrlData = await signedUrlResponse.json();
       console.log('Signed URL response:', signedUrlData);
 
       // Extract data from response

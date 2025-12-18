@@ -5,12 +5,21 @@ import { getAuthHeaders } from '@/utils/authHeaders';
 import axios from 'axios';
 
 const BaseURL = process.env.NEXT_PUBLIC_BaseURL || '';
+const BaseURLAuth =
+  process.env.NEXT_PUBLIC_BaseURLAuth ||
+  'https://apis.testkdlakshya.uchhal.in/auth';
+const BaseURLWorkspace =
+  process.env.NEXT_PUBLIC_BaseURLWorkspace ||
+  'https://apis.testkdlakshya.uchhal.in/workspace';
 
 interface ApiRequest {
   path: string;
   headers?: Record<string, string>;
   payload?: Record<string, unknown>;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  baseUrl?: 'default' | 'auth' | 'workspace' | string; // Allow custom base URLs
+  customAuthHeaders?: Record<string, string>; // Allow custom auth headers (e.g., x-api-key)
+  skipAuth?: boolean; // Skip automatic auth header injection
 }
 
 const replacePathAndQueryParams = (
@@ -63,6 +72,9 @@ export const makeApiCall = async ({
   headers = {},
   payload = {},
   method = 'GET',
+  baseUrl = 'default',
+  customAuthHeaders,
+  skipAuth = false,
 }: ApiRequest) => {
   const pathParams = {
     org_id: userData.orgId,
@@ -74,17 +86,39 @@ export const makeApiCall = async ({
 
   const updatedPayload = replacePayloadParams(payload, pathParams);
 
-  const fullUrl = `${BaseURL}${updatedPath}`;
+  // Determine which base URL to use
+  let selectedBaseUrl: string;
+  if (baseUrl === 'auth') {
+    selectedBaseUrl = BaseURLAuth;
+  } else if (baseUrl === 'workspace') {
+    selectedBaseUrl = BaseURLWorkspace;
+  } else if (baseUrl === 'default') {
+    selectedBaseUrl = BaseURL;
+  } else {
+    // Custom base URL provided
+    selectedBaseUrl = baseUrl;
+  }
+
+  const fullUrl = `${selectedBaseUrl}${updatedPath}`;
 
   try {
     // Get auth headers based on user type (student or admin/teacher)
-    const authHeaders = getAuthHeaders();
+    // Use custom auth headers if provided, otherwise use default
+    let authHeaders: Record<string, string> = {};
+    if (!skipAuth) {
+      if (customAuthHeaders) {
+        authHeaders = customAuthHeaders;
+      } else {
+        authHeaders = getAuthHeaders();
+      }
+    }
 
     const config = {
       url: fullUrl,
       method,
       headers: {
-        ...headers,
+        'Content-Type': 'application/vnd.api+json', // Default header
+        ...headers, // Custom headers can override default
         ...authHeaders,
       },
       ...(method === 'POST' || method === 'PUT' || method === 'PATCH'

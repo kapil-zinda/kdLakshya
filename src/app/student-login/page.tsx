@@ -64,91 +64,87 @@ export default function StudentLoginPage() {
       });
 
       // Call external API directly
-      const BaseURL =
-        process.env.NEXT_PUBLIC_BaseURLAuth ||
-        'https://apis.testkdlakshya.uchhal.in/auth';
-      const apiUrl = `${BaseURL}/students/auth`;
+      console.log('Calling student auth API');
 
-      console.log('Calling external API at:', apiUrl);
+      try {
+        const { makeApiCall } = await import('@/utils/ApiRequest');
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/vnd.api+json',
-        },
-        body: JSON.stringify({
-          data: {
-            type: 'student_auth',
-            attributes: {
-              username: username.trim(),
-              password: password,
+        const data = await makeApiCall({
+          path: '/students/auth',
+          method: 'POST',
+          baseUrl: 'auth',
+          skipAuth: true, // No auth needed for login
+          payload: {
+            data: {
+              type: 'student_auth',
+              attributes: {
+                username: username.trim(),
+                password: password,
+              },
             },
           },
-        }),
-      });
+        });
 
-      const data = await response.json();
+        console.log('Login response:', data);
 
-      console.log('Login response:', data); // Debug log
+        // API returns data directly in the response
+        if (data.data) {
+          // Store student authentication data
+          const attrs = data.data.attributes;
+          const basicAuthToken =
+            attrs.credentials?.basic_auth_token ||
+            attrs.basic_auth_token ||
+            btoa(`${username}:${password}`); // Fallback: create basic auth token
 
-      if (!response.ok) {
-        // Handle error response
+          const studentData = {
+            id: data.data.id,
+            studentId: attrs.student_id || data.data.id,
+            orgId: attrs.org_id,
+            firstName: attrs.first_name,
+            lastName: attrs.last_name,
+            email: attrs.email,
+            gradeLevel: attrs.grade_level,
+            rollNumber: attrs.roll_number,
+            phone: attrs.phone,
+            dateOfBirth: attrs.date_of_birth,
+            admissionDate: attrs.admission_date,
+            guardianInfo: attrs.guardian_info,
+            role: 'student',
+            basicAuthToken: basicAuthToken,
+            permissions: attrs.permissions || { role: 'student' },
+            authenticatedAt: attrs.authenticated_at || new Date().toISOString(),
+          };
+
+          console.log('Storing student data:', studentData); // Debug log
+
+          // Store in localStorage
+          localStorage.setItem('studentAuth', JSON.stringify(studentData));
+
+          // Also create a basic auth token entry for compatibility
+          localStorage.setItem(
+            'bearerToken',
+            JSON.stringify({
+              value: basicAuthToken,
+              expiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+            }),
+          );
+
+          // Redirect to dashboard
+          console.log('Student login successful, redirecting to dashboard');
+          router.push('/dashboard');
+        } else {
+          setError(
+            'Invalid credentials. Please check your username and date of birth.',
+          );
+          setLoading(false);
+        }
+      } catch (apiError: any) {
+        console.error('API call failed:', apiError);
+        // Handle API errors
         const errorMessage =
-          data.errors?.[0]?.detail || 'Invalid credentials. Please try again.';
+          apiError.response?.data?.errors?.[0]?.detail ||
+          'Invalid credentials. Please try again.';
         setError(errorMessage);
-        setLoading(false);
-        return;
-      }
-
-      // API returns data directly in the response
-      if (data.data) {
-        // Store student authentication data
-        const attrs = data.data.attributes;
-        const basicAuthToken =
-          attrs.credentials?.basic_auth_token ||
-          attrs.basic_auth_token ||
-          btoa(`${username}:${password}`); // Fallback: create basic auth token
-
-        const studentData = {
-          id: data.data.id,
-          studentId: attrs.student_id || data.data.id,
-          orgId: attrs.org_id,
-          firstName: attrs.first_name,
-          lastName: attrs.last_name,
-          email: attrs.email,
-          gradeLevel: attrs.grade_level,
-          rollNumber: attrs.roll_number,
-          phone: attrs.phone,
-          dateOfBirth: attrs.date_of_birth,
-          admissionDate: attrs.admission_date,
-          guardianInfo: attrs.guardian_info,
-          role: 'student',
-          basicAuthToken: basicAuthToken,
-          permissions: attrs.permissions || { role: 'student' },
-          authenticatedAt: attrs.authenticated_at || new Date().toISOString(),
-        };
-
-        console.log('Storing student data:', studentData); // Debug log
-
-        // Store in localStorage
-        localStorage.setItem('studentAuth', JSON.stringify(studentData));
-
-        // Also create a basic auth token entry for compatibility
-        localStorage.setItem(
-          'bearerToken',
-          JSON.stringify({
-            value: basicAuthToken,
-            expiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-          }),
-        );
-
-        // Redirect to dashboard
-        console.log('Student login successful, redirecting to dashboard');
-        router.push('/dashboard');
-      } else {
-        setError(
-          'Invalid credentials. Please check your username and date of birth.',
-        );
         setLoading(false);
       }
     } catch (err) {

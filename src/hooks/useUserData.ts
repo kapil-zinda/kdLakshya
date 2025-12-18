@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react';
 
-import { getAuthHeaders } from '@/utils/authHeaders';
-
 export interface CachedUserData {
   id: string;
   email: string;
@@ -84,39 +82,15 @@ export function useUserData() {
   // Fetch user data from backend API
   const fetchUserDataFromBackend = async (accessToken: string) => {
     try {
-      const BaseURLAuth = process.env.NEXT_PUBLIC_BaseURLAuth || '';
+      const { makeApiCall } = await import('@/utils/ApiRequest');
 
-      // Get auth headers based on user type
-      const authHeaders = getAuthHeaders();
+      console.log('Fetching user data from API...');
 
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/vnd.api+json',
-        ...authHeaders,
-      };
-
-      console.log('Fetching user data with headers:', {
-        ...headers,
-        Authorization: '[REDACTED]',
-        'x-api-key': '[REDACTED]',
+      const data = await makeApiCall({
+        path: '/users/me?include=permission',
+        method: 'GET',
+        baseUrl: 'auth',
       });
-
-      const response = await fetch(
-        `${BaseURLAuth}/users/me?include=permission`,
-        {
-          method: 'GET',
-          headers,
-        },
-      );
-
-      if (!response.ok) {
-        console.error(
-          `Backend API error: ${response.status}`,
-          await response.text(),
-        );
-        throw new Error(`Backend API error: ${response.status}`);
-      }
-
-      const data = await response.json();
       const userData = data.data;
 
       console.log(

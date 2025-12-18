@@ -85,23 +85,17 @@ export async function getUserData(
  * Fetch user data from backend API
  */
 async function fetchUserDataFromAPI(token: string): Promise<UserMeData> {
-  const BaseURLAuth =
-    process.env.NEXT_PUBLIC_BaseURLAuth ||
-    'https://apis.testkdlakshya.uchhal.in/auth';
+  const { makeApiCall } = await import('@/utils/ApiRequest');
 
-  const response = await fetch(`${BaseURLAuth}/users/me?include=permission`, {
+  const data = await makeApiCall({
+    path: '/users/me?include=permission',
     method: 'GET',
-    headers: {
+    baseUrl: 'auth',
+    customAuthHeaders: {
       Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/vnd.api+json',
     },
   });
 
-  if (!response.ok) {
-    throw new Error(`API error: ${response.status}`);
-  }
-
-  const data = await response.json();
   const userData = data.data;
   const attrs = userData.attributes;
 

@@ -88,82 +88,73 @@ export default function Home() {
         // Fetch and cache user data before reload
         console.log('👤 Fetching and caching user data...');
         try {
-          const BaseURLAuth =
-            process.env.NEXT_PUBLIC_BaseURLAuth ||
-            'https://apis.testkdlakshya.uchhal.in/auth';
+          const { makeApiCall } = await import('@/utils/ApiRequest');
 
-          const response = await fetch(
-            `${BaseURLAuth}/users/me?include=permission`,
-            {
-              method: 'GET',
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/vnd.api+json',
-              },
+          const data = await makeApiCall({
+            path: '/users/me?include=permission',
+            method: 'GET',
+            baseUrl: 'auth',
+            customAuthHeaders: {
+              Authorization: `Bearer ${accessToken}`,
             },
-          );
+          });
 
-          if (response.ok) {
-            const data = await response.json();
-            const userData = data.data;
+          const userData = data.data;
 
-            console.log('👤 Successfully fetched user data:', userData);
+          console.log('👤 Successfully fetched user data:', userData);
 
-            // Determine user role
-            let role = 'student';
-            if (userData.attributes && userData.attributes.role === 'faculty') {
-              role = 'teacher';
+          // Determine user role
+          let role = 'student';
+          if (userData.attributes && userData.attributes.role === 'faculty') {
+            role = 'teacher';
+          } else if (
+            userData.attributes &&
+            userData.attributes.type === 'faculty'
+          ) {
+            role = 'teacher';
+          } else if (userData.user_permissions) {
+            if (
+              userData.user_permissions['admin'] ||
+              userData.user_permissions['organization_admin'] ||
+              userData.user_permissions['org']
+            ) {
+              role = 'admin';
             } else if (
-              userData.attributes &&
-              userData.attributes.type === 'faculty'
+              userData.user_permissions['teacher'] ||
+              userData.user_permissions['instructor']
             ) {
               role = 'teacher';
-            } else if (userData.user_permissions) {
-              if (
-                userData.user_permissions['admin'] ||
-                userData.user_permissions['organization_admin'] ||
-                userData.user_permissions['org']
-              ) {
-                role = 'admin';
-              } else if (
-                userData.user_permissions['teacher'] ||
-                userData.user_permissions['instructor']
-              ) {
-                role = 'teacher';
-              }
             }
-
-            // Cache user data in localStorage
-            const processedUserData = {
-              id: userData.id,
-              email: userData.attributes.email,
-              firstName:
-                userData.attributes.first_name ||
-                userData.attributes.name?.split(' ')[0] ||
-                'User',
-              lastName:
-                userData.attributes.last_name ||
-                userData.attributes.name?.split(' ').slice(1).join(' ') ||
-                '',
-              role: role as 'admin' | 'teacher' | 'student',
-              permissions:
-                userData.attributes.permissions ||
-                userData.user_permissions ||
-                {},
-              orgId: userData.attributes.org_id || userData.attributes.org,
-              accessToken,
-              cacheTimestamp: Date.now(),
-              type: userData.attributes.type || userData.attributes.role,
-            };
-
-            localStorage.setItem(
-              'cachedUserData',
-              JSON.stringify(processedUserData),
-            );
-            console.log('💾 User data cached successfully');
-          } else {
-            console.error('❌ Failed to fetch user data:', response.status);
           }
+
+          // Cache user data in localStorage
+          const processedUserData = {
+            id: userData.id,
+            email: userData.attributes.email,
+            firstName:
+              userData.attributes.first_name ||
+              userData.attributes.name?.split(' ')[0] ||
+              'User',
+            lastName:
+              userData.attributes.last_name ||
+              userData.attributes.name?.split(' ').slice(1).join(' ') ||
+              '',
+            role: role as 'admin' | 'teacher' | 'student',
+            permissions:
+              userData.attributes.permissions ||
+              userData.user_permissions ||
+              {},
+            orgId: userData.attributes.org_id || userData.attributes.org,
+            accessToken,
+            cacheTimestamp: Date.now(),
+            type: userData.attributes.type || userData.attributes.role,
+          };
+
+          localStorage.setItem(
+            'cachedUserData',
+            JSON.stringify(processedUserData),
+          );
+          console.log('💾 User data cached successfully');
         } catch (userDataError) {
           console.error('❌ Error fetching user data:', userDataError);
         }

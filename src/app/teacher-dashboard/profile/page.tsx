@@ -98,37 +98,27 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
         throw new Error('No bearer token found');
       }
       const parsed = JSON.parse(tokenData);
+      const { makeApiCall } = await import('@/utils/ApiRequest');
 
-      const BaseURL =
-        process.env.NEXT_PUBLIC_BaseURL ||
-        'https://apis.testkdlakshya.uchhal.in';
-
-      const signedUrlResponse = await fetch(
-        `${BaseURL}/workspace/s3/signed-url`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${parsed.value}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'upload',
-            id: teacherData.id,
-            attributes: {
-              title: 'profile_photo',
-              role: 'faculty',
-            },
-          }),
+      const signedData = await makeApiCall({
+        path: '/s3/signed-url',
+        method: 'POST',
+        baseUrl: 'workspace',
+        customAuthHeaders: {
+          Authorization: `Bearer ${parsed.value}`,
         },
-      );
-
-      if (!signedUrlResponse.ok) {
-        throw new Error(
-          `Failed to get signed URL: ${signedUrlResponse.status}`,
-        );
-      }
-
-      const signedData = await signedUrlResponse.json();
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        payload: {
+          type: 'upload',
+          id: teacherData.id,
+          attributes: {
+            title: 'profile_photo',
+            role: 'faculty',
+          },
+        },
+      });
       const signedUrl = signedData.data.signed_url;
       const filePath = signedData.data.file_path;
       const bucket = signedData.data.bucket || 'workspace-test-org-data-v1';
@@ -149,32 +139,26 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
       const photoUrl = `https://${bucket}.s3.${region}.amazonaws.com/${filePath}`;
 
       // Update the profile photo in the backend
-      const BaseURLAuth =
-        process.env.NEXT_PUBLIC_BaseURLAuth ||
-        'https://apis.testkdlakshya.uchhal.in/auth';
-
-      const updateResponse = await fetch(`${BaseURLAuth}/users/me`, {
-        method: 'PATCH',
-        headers: {
-          Authorization: `Bearer ${parsed.value}`,
-          'Content-Type': 'application/vnd.api+json',
-        },
-        body: JSON.stringify({
-          data: {
-            type: 'users',
-            id: teacherData.id,
-            attributes: {
-              profile_photo: photoUrl,
+      try {
+        await makeApiCall({
+          path: '/users/me',
+          method: 'PATCH',
+          baseUrl: 'auth',
+          customAuthHeaders: {
+            Authorization: `Bearer ${parsed.value}`,
+          },
+          payload: {
+            data: {
+              type: 'users',
+              id: teacherData.id,
+              attributes: {
+                profile_photo: photoUrl,
+              },
             },
           },
-        }),
-      });
-
-      if (!updateResponse.ok) {
-        console.warn(
-          'Failed to update profile photo in backend:',
-          updateResponse.status,
-        );
+        });
+      } catch (error) {
+        console.warn('Failed to update profile photo in backend:', error);
         // Don't throw error, photo is uploaded to S3 successfully
       }
 
