@@ -115,9 +115,6 @@ export function Providers({ children }: ThemeProviderProps) {
         path: '/users/me?include=permission',
         method: 'GET',
         baseUrl: 'auth',
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
       const userData = res.data; // Extract from nested structure

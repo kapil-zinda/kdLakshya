@@ -113,7 +113,7 @@ export const makeApiCall = async ({
       }
     }
 
-    const config = {
+    const config: any = {
       url: fullUrl,
       method,
       headers: {
@@ -123,13 +123,43 @@ export const makeApiCall = async ({
       },
       ...(method === 'POST' || method === 'PUT' || method === 'PATCH'
         ? { data: updatedPayload }
-        : {}),
+        : { data: {} }), // Force empty data object for GET/DELETE to preserve Content-Type header
+      transformRequest: [
+        (data: any, headers: any) => {
+          // Ensure Content-Type is always vnd.api+json and never gets overridden by axios
+          if (headers && !headers['Content-Type']?.includes('vnd.api+json')) {
+            headers['Content-Type'] = 'application/vnd.api+json';
+          }
+          return JSON.stringify(data);
+        },
+      ],
     };
 
+    console.log('🔵 API Request:', {
+      url: fullUrl,
+      method,
+      headers: config.headers,
+      payload: updatedPayload,
+    });
+
     const response = await axios(config);
+
+    console.log('🟢 API Response:', {
+      url: fullUrl,
+      status: response.status,
+      data: response.data,
+    });
+
     return response.data;
-  } catch (error) {
-    console.error('API call failed:', error);
+  } catch (error: any) {
+    console.error('🔴 API call failed:', {
+      url: fullUrl,
+      method,
+      error: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      headers: error.response?.headers,
+    });
     throw error;
   }
 };

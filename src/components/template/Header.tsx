@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { OrganizationConfig } from '@/types/organization';
@@ -24,6 +24,7 @@ export function Header({ organization }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     // Check authentication status
@@ -77,7 +78,7 @@ export function Header({ organization }: HeaderProps) {
   }, []);
 
   const handleNavigation = (href: string) => {
-    window.location.href = href;
+    router.push(href);
   };
 
   const handleAuthLogin = () => {

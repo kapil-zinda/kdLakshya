@@ -28,7 +28,7 @@ const baseQueryWithAuth = fetchBaseQuery({
     }
 
     if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
+      headers.set('Content-Type', 'application/vnd.api+json');
     }
 
     return headers;
@@ -37,13 +37,35 @@ const baseQueryWithAuth = fetchBaseQuery({
 
 // Base query with retry logic for 500 errors (Lambda cold starts)
 const baseQueryWithRetry = async (args: any, api: any, extraOptions: any) => {
+  console.log('🔵 [RTK Query] Request:', args);
+
   let result = await baseQueryWithAuth(args, api, extraOptions);
 
+  if (result.error) {
+    console.error('🔴 [RTK Query] Error:', {
+      args,
+      error: result.error,
+      status: (result.error as any).status,
+      data: (result.error as any).data,
+    });
+  } else {
+    console.log('🟢 [RTK Query] Success:', {
+      args,
+      data: result.data,
+    });
+  }
+
   // Retry on 500 errors (Lambda cold start)
-  if (result.error && result.error.status === 500) {
+  if (result.error && (result.error as any).status === 500) {
     console.log('🔄 Retrying request due to 500 error (Lambda cold start)...');
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1s
     result = await baseQueryWithAuth(args, api, extraOptions);
+
+    if (result.error) {
+      console.error('🔴 [RTK Query] Retry failed:', result.error);
+    } else {
+      console.log('🟢 [RTK Query] Retry succeeded:', result.data);
+    }
   }
 
   return result;
