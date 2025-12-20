@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ApiService } from '@/services/api';
 import {
   useCreateExamMutation,
@@ -747,9 +748,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
         : 'Failed to fetch classes. Please try again.';
 
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center max-w-lg">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6">
             <svg
               className="w-16 h-16 text-red-500 mx-auto mb-4"
               fill="none"
@@ -781,10 +782,12 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-muted flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading class information...</p>
+          <p className="mt-4 text-muted-foreground">
+            Loading class information...
+          </p>
         </div>
       </div>
     );
@@ -792,15 +795,15 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
   if (classes.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-background">
         {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
+        <header className="bg-card shadow-sm border-b border-border">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-4">
               <div className="flex items-center">
                 <Link
                   href="/teacher-dashboard"
-                  className="mr-4 text-gray-600 hover:text-gray-900"
+                  className="mr-4 text-muted-foreground hover:text-foreground"
                 >
                   <svg
                     className="w-6 h-6"
@@ -816,12 +819,15 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     />
                   </svg>
                 </Link>
-                <h1 className="text-xl font-semibold text-gray-900">
+                <h1 className="text-xl font-semibold text-foreground">
                   Class Management
                 </h1>
               </div>
-              <div className="text-sm text-gray-500">
-                {userData.firstName} {userData.lastName}
+              <div className="flex items-center gap-4">
+                <div className="text-sm text-muted-foreground">
+                  {userData.firstName} {userData.lastName}
+                </div>
+                <ThemeToggle />
               </div>
             </div>
           </div>
@@ -829,9 +835,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
         {/* Empty State */}
         <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+          <div className="bg-card rounded-lg shadow-sm p-12 text-center">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-muted-foreground/60"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -843,10 +849,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <h3 className="mt-2 text-sm font-medium text-foreground">
               Not a class teacher
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               You are not assigned as a class teacher for any class.
             </p>
           </div>
@@ -856,15 +862,15 @@ function ClassesContent({ userData }: ClassesContentProps) {
   }
   console.log(classes);
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link
                 href="/teacher-dashboard"
-                className="mr-4 text-gray-600 hover:text-gray-900"
+                className="mr-4 text-muted-foreground hover:text-foreground"
               >
                 <svg
                   className="w-6 h-6"
@@ -880,12 +886,15 @@ function ClassesContent({ userData }: ClassesContentProps) {
                   />
                 </svg>
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 Class Management
               </h1>
             </div>
-            <div className="text-sm text-gray-500">
-              {userData.firstName} {userData.lastName}
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                {userData.firstName} {userData.lastName}
+              </div>
+              <ThemeToggle />
             </div>
           </div>
         </div>
@@ -896,20 +905,20 @@ function ClassesContent({ userData }: ClassesContentProps) {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Sidebar - Classes List */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                <h3 className="text-sm font-semibold text-gray-900">
+            <div className="bg-card rounded-lg shadow-sm border border-border overflow-hidden">
+              <div className="px-4 py-3 bg-muted border-b border-border">
+                <h3 className="text-sm font-semibold text-foreground">
                   My Classes
                 </h3>
               </div>
-              <div className="divide-y divide-gray-200">
+              <div className="divide-y divide-border">
                 {classes.map((classItem) => (
                   <button
                     key={classItem.id}
                     onClick={() => handleClassSelect(classItem)}
-                    className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                    className={`w-full text-left px-4 py-3 hover:bg-muted transition-colors ${
                       selectedClass?.id === classItem.id
-                        ? 'bg-indigo-50 border-l-4 border-indigo-600'
+                        ? 'bg-indigo-500/10 border-l-4 border-indigo-600'
                         : 'border-l-4 border-transparent'
                     }`}
                   >
@@ -919,16 +928,16 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           className={`text-sm font-medium ${
                             selectedClass?.id === classItem.id
                               ? 'text-indigo-600'
-                              : 'text-gray-900'
+                              : 'text-foreground'
                           }`}
                         >
                           {classItem.name}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           Section {classItem.section}
                         </p>
                       </div>
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-muted text-foreground">
                         {classItem.totalStudents}
                       </span>
                     </div>
@@ -943,7 +952,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
             {selectedClass && (
               <div className="space-y-6">
                 {/* Class Header */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100 p-6">
+                <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 rounded-xl shadow-sm border border-blue-500/20 p-6">
                   <div className="flex items-center space-x-3 mb-4">
                     <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
                       <svg
@@ -961,7 +970,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                       </svg>
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900">
+                      <h2 className="text-2xl font-bold text-foreground">
                         {selectedClass.name} - Section {selectedClass.section}
                       </h2>
                       <p className="text-sm text-blue-600 font-medium">
@@ -971,7 +980,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="bg-card rounded-lg p-4 border border-border">
                       <div className="flex items-center space-x-2">
                         <svg
                           className="w-5 h-5 text-purple-500"
@@ -986,16 +995,16 @@ function ClassesContent({ userData }: ClassesContentProps) {
                             d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
                           />
                         </svg>
-                        <span className="text-sm font-medium text-gray-500">
+                        <span className="text-sm font-medium text-muted-foreground">
                           Students
                         </span>
                       </div>
-                      <p className="text-lg font-semibold text-gray-900 mt-1">
+                      <p className="text-lg font-semibold text-foreground mt-1">
                         {selectedClass.totalStudents}
                       </p>
                     </div>
 
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="bg-card rounded-lg p-4 border border-border">
                       <div className="flex items-center space-x-2">
                         <svg
                           className="w-5 h-5 text-green-500"
@@ -1016,16 +1025,16 @@ function ClassesContent({ userData }: ClassesContentProps) {
                             d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
                           />
                         </svg>
-                        <span className="text-sm font-medium text-gray-500">
+                        <span className="text-sm font-medium text-muted-foreground">
                           Room
                         </span>
                       </div>
-                      <p className="text-lg font-semibold text-gray-900 mt-1">
+                      <p className="text-lg font-semibold text-foreground mt-1">
                         {selectedClass.room}
                       </p>
                     </div>
 
-                    <div className="bg-white rounded-lg p-4 border border-gray-200">
+                    <div className="bg-card rounded-lg p-4 border border-border">
                       <div className="flex items-center space-x-2">
                         <svg
                           className="w-5 h-5 text-blue-500"
@@ -1040,11 +1049,11 @@ function ClassesContent({ userData }: ClassesContentProps) {
                             d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                           />
                         </svg>
-                        <span className="text-sm font-medium text-gray-500">
+                        <span className="text-sm font-medium text-muted-foreground">
                           Subjects
                         </span>
                       </div>
-                      <p className="text-lg font-semibold text-gray-900 mt-1">
+                      <p className="text-lg font-semibold text-foreground mt-1">
                         {currentSubjects.length}
                       </p>
                     </div>
@@ -1052,8 +1061,8 @@ function ClassesContent({ userData }: ClassesContentProps) {
                 </div>
 
                 {/* Tabs */}
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                  <div className="border-b border-gray-200">
+                <div className="bg-card rounded-lg shadow-sm border border-border">
+                  <div className="border-b border-border">
                     <nav className="-mb-px flex space-x-8 px-6">
                       {[
                         { id: 'students', label: 'Students', icon: '👥' },
@@ -1067,7 +1076,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                             activeTab === tab.id
                               ? 'border-indigo-500 text-indigo-600'
-                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                           }`}
                         >
                           <span>{tab.icon}</span>
@@ -1083,11 +1092,11 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     {activeTab === 'students' && (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold text-gray-900">
+                          <h3 className="text-lg font-semibold text-foreground">
                             Student List
                           </h3>
                           <div className="flex items-center space-x-3">
-                            <span className="text-sm text-gray-500">
+                            <span className="text-sm text-muted-foreground">
                               {currentStudents.length} students
                             </span>
                             <button
@@ -1114,42 +1123,42 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
                         {currentStudents.length > 0 ? (
                           <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
+                            <table className="min-w-full divide-y divide-border">
+                              <thead className="bg-muted">
                                 <tr>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Student
                                   </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Roll Number
                                   </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Contact
                                   </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Status
                                   </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Actions
                                   </th>
                                 </tr>
                               </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
+                              <tbody className="bg-card divide-y divide-border">
                                 {currentStudents.map((student) => (
                                   <tr key={student.id}>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                      <div className="text-sm font-medium text-gray-900">
+                                      <div className="text-sm font-medium text-foreground">
                                         {student.name}
                                       </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                       {student.rollNumber}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                      <div className="text-sm text-gray-900">
+                                      <div className="text-sm text-foreground">
                                         {student.email}
                                       </div>
-                                      <div className="text-sm text-gray-500">
+                                      <div className="text-sm text-muted-foreground">
                                         {student.phone}
                                       </div>
                                     </td>
@@ -1157,8 +1166,8 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                       <span
                                         className={`px-2 py-1 text-xs font-medium rounded-full ${
                                           student.status === 'Active'
-                                            ? 'bg-green-100 text-green-800'
-                                            : 'bg-red-100 text-red-800'
+                                            ? 'bg-green-500/20 text-green-700 border border-green-500/30'
+                                            : 'bg-red-500/20 text-red-700 border border-red-500/30'
                                         }`}
                                       >
                                         {student.status}
@@ -1169,7 +1178,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                         onClick={() =>
                                           handleRemoveStudent(student)
                                         }
-                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                                       >
                                         <svg
                                           className="w-4 h-4 mr-1"
@@ -1193,9 +1202,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
                             </table>
                           </div>
                         ) : (
-                          <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                          <div className="text-center py-12 border-2 border-dashed border-border rounded-lg">
                             <svg
-                              className="mx-auto h-12 w-12 text-gray-400"
+                              className="mx-auto h-12 w-12 text-muted-foreground/60"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1207,10 +1216,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                 d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
                               />
                             </svg>
-                            <h3 className="mt-2 text-sm font-medium text-gray-900">
+                            <h3 className="mt-2 text-sm font-medium text-foreground">
                               No students
                             </h3>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                               Get started by adding students to this class.
                             </p>
                           </div>
@@ -1222,7 +1231,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     {activeTab === 'subjects' && (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold text-gray-900">
+                          <h3 className="text-lg font-semibold text-foreground">
                             Subject List
                           </h3>
                           <button
@@ -1248,41 +1257,41 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
                         {currentSubjects.length > 0 ? (
                           <div className="overflow-x-auto">
-                            <table className="min-w-full divide-y divide-gray-200">
-                              <thead className="bg-gray-50">
+                            <table className="min-w-full divide-y divide-border">
+                              <thead className="bg-muted">
                                 <tr>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Subject Name
                                   </th>
-                                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  {/* <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Code
                                   </th> */}
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Assigned Teacher
                                   </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Credits
                                   </th>
-                                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                     Actions
                                   </th>
                                 </tr>
                               </thead>
-                              <tbody className="bg-white divide-y divide-gray-200">
+                              <tbody className="bg-card divide-y divide-border">
                                 {currentSubjects.map((subject) => (
                                   <tr key={subject.id}>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                      <div className="text-sm font-medium text-gray-900">
+                                      <div className="text-sm font-medium text-foreground">
                                         {subject.name}
                                       </div>
                                     </td>
-                                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                       {subject.code}
                                     </td> */}
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                       {subject.teacherName || 'Not Assigned'}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                                       {subject.credits}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
@@ -1290,7 +1299,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                         onClick={() =>
                                           handleEditSubject(subject)
                                         }
-                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-blue-700 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
                                       >
                                         <svg
                                           className="w-4 h-4 mr-1"
@@ -1311,7 +1320,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                         onClick={() =>
                                           handleDeleteSubject(subject)
                                         }
-                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                        className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
                                       >
                                         <svg
                                           className="w-4 h-4 mr-1"
@@ -1335,9 +1344,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
                             </table>
                           </div>
                         ) : (
-                          <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                          <div className="text-center py-12 border-2 border-dashed border-border rounded-lg">
                             <svg
-                              className="mx-auto h-12 w-12 text-gray-400"
+                              className="mx-auto h-12 w-12 text-muted-foreground/60"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1349,10 +1358,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                 d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                               />
                             </svg>
-                            <h3 className="mt-2 text-sm font-medium text-gray-900">
+                            <h3 className="mt-2 text-sm font-medium text-foreground">
                               No subjects
                             </h3>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                               Get started by creating subjects for this class.
                             </p>
                           </div>
@@ -1364,7 +1373,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     {activeTab === 'exams' && (
                       <div className="space-y-4">
                         <div className="flex items-center justify-between">
-                          <h3 className="text-lg font-semibold text-gray-900">
+                          <h3 className="text-lg font-semibold text-foreground">
                             Exam List
                           </h3>
                           <button
@@ -1393,20 +1402,20 @@ function ClassesContent({ userData }: ClassesContentProps) {
                             {currentExams.map((exam) => (
                               <div
                                 key={exam.id}
-                                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                                className="border border-border rounded-lg p-4 hover:shadow-md transition-shadow"
                               >
                                 <div className="flex items-center justify-between mb-3">
                                   <div className="flex-1">
-                                    <h4 className="text-lg font-semibold text-gray-900">
+                                    <h4 className="text-lg font-semibold text-foreground">
                                       {exam.name}
                                     </h4>
                                     <div className="flex items-center space-x-3 mt-1">
-                                      <span className="text-sm text-gray-500">
+                                      <span className="text-sm text-muted-foreground">
                                         {exam.type}
                                       </span>
                                       {exam.subjects.length > 0 &&
                                         exam.subjects[0].date && (
-                                          <span className="text-sm text-gray-500 flex items-center">
+                                          <span className="text-sm text-muted-foreground flex items-center">
                                             <svg
                                               className="w-4 h-4 mr-1"
                                               fill="none"
@@ -1428,12 +1437,12 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                       <span
                                         className={`px-2 py-1 text-xs font-medium rounded-full ${
                                           exam.status === 'Scheduled'
-                                            ? 'bg-blue-100 text-blue-800'
+                                            ? 'bg-blue-500/20 text-blue-700 border border-blue-500/30'
                                             : exam.status === 'Ongoing'
-                                              ? 'bg-yellow-100 text-yellow-800'
+                                              ? 'bg-yellow-500/20 text-yellow-700 border border-yellow-500/30'
                                               : exam.status === 'Completed'
-                                                ? 'bg-green-100 text-green-800'
-                                                : 'bg-red-100 text-red-800'
+                                                ? 'bg-green-500/20 text-green-700 border border-green-500/30'
+                                                : 'bg-red-500/20 text-red-700 border border-red-500/30'
                                         }`}
                                       >
                                         {exam.status}
@@ -1446,7 +1455,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                         setSelectedExamForView(exam);
                                         setShowViewExamModal(true);
                                       }}
-                                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                                      className="p-2 text-blue-600 hover:bg-blue-500/10 rounded-lg transition-colors"
                                       title="View Exam"
                                     >
                                       <svg
@@ -1484,7 +1493,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                         });
                                         setShowEditExamModal(true);
                                       }}
-                                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                      className="p-2 text-indigo-600 hover:bg-indigo-500/10 rounded-lg transition-colors"
                                       title="Edit Exam"
                                     >
                                       <svg
@@ -1503,7 +1512,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                     </button>
                                     <button
                                       onClick={() => handleDeleteExam(exam)}
-                                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                      className="p-2 text-red-600 hover:bg-red-500/10 rounded-lg transition-colors"
                                       title="Delete Exam"
                                     >
                                       <svg
@@ -1523,19 +1532,19 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                   </div>
                                 </div>
                                 {exam.instructions && (
-                                  <p className="text-sm text-gray-600 mb-3">
+                                  <p className="text-sm text-muted-foreground mb-3">
                                     {exam.instructions}
                                   </p>
                                 )}
                                 <div className="mt-3">
-                                  <p className="text-sm font-medium text-gray-700 mb-2">
+                                  <p className="text-sm font-medium text-foreground mb-2">
                                     Subjects ({exam.subjects.length}):
                                   </p>
                                   <div className="flex flex-wrap gap-2">
                                     {exam.subjects.map((subject, idx) => (
                                       <span
                                         key={idx}
-                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800"
+                                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-muted text-foreground"
                                       >
                                         {subject.subjectName} ({subject.marks}{' '}
                                         marks)
@@ -1547,9 +1556,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
                             ))}
                           </div>
                         ) : (
-                          <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg">
+                          <div className="text-center py-12 border-2 border-dashed border-border rounded-lg">
                             <svg
-                              className="mx-auto h-12 w-12 text-gray-400"
+                              className="mx-auto h-12 w-12 text-muted-foreground/60"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1561,10 +1570,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                               />
                             </svg>
-                            <h3 className="mt-2 text-sm font-medium text-gray-900">
+                            <h3 className="mt-2 text-sm font-medium text-foreground">
                               No exams
                             </h3>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-muted-foreground">
                               Get started by creating exams for this class.
                             </p>
                           </div>
@@ -1575,7 +1584,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     {/* Class Monitor Tab */}
                     {activeTab === 'monitor' && (
                       <div className="space-y-4">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                        <h3 className="text-lg font-semibold text-foreground">
                           Class Monitor
                         </h3>
 
@@ -1583,7 +1592,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           <div className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg p-6">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center space-x-4">
-                                <div className="w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center">
+                                <div className="w-16 h-16 bg-yellow-500 rounded-full flex items-center justify-center">
                                   <svg
                                     className="w-8 h-8 text-white"
                                     fill="none"
@@ -1599,13 +1608,13 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                   </svg>
                                 </div>
                                 <div>
-                                  <h4 className="text-xl font-bold text-gray-900">
+                                  <h4 className="text-xl font-bold text-foreground">
                                     {classMonitor.name}
                                   </h4>
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-sm text-muted-foreground">
                                     Roll Number: {classMonitor.rollNumber}
                                   </p>
-                                  <p className="text-sm text-gray-600">
+                                  <p className="text-sm text-muted-foreground">
                                     {classMonitor.email}
                                   </p>
                                 </div>
@@ -1619,8 +1628,8 @@ function ClassesContent({ userData }: ClassesContentProps) {
                             </div>
                           </div>
                         ) : (
-                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-6">
-                            <p className="text-center text-sm text-gray-500 mb-4">
+                          <div className="border-2 border-dashed border-border rounded-lg p-6">
+                            <p className="text-center text-sm text-muted-foreground mb-4">
                               No class monitor assigned. Select a student from
                               the list below to assign as class monitor.
                             </p>
@@ -1628,7 +1637,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                         )}
 
                         <div className="mt-6">
-                          <h4 className="text-md font-semibold text-gray-900 mb-3">
+                          <h4 className="text-md font-semibold text-foreground mb-3">
                             Select a student to assign as monitor:
                           </h4>
                           {currentStudents.length > 0 ? (
@@ -1641,19 +1650,19 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                     onClick={() =>
                                       handleAssignClassMonitor(student)
                                     }
-                                    className="text-left p-4 border border-gray-200 rounded-lg hover:border-yellow-400 hover:bg-yellow-50 transition-all"
+                                    className="text-left p-4 border border-border rounded-lg hover:border-yellow-500 hover:bg-yellow-500/100/10 transition-all"
                                   >
                                     <div className="flex items-center justify-between">
                                       <div>
-                                        <p className="text-sm font-medium text-gray-900">
+                                        <p className="text-sm font-medium text-foreground">
                                           {student.name}
                                         </p>
-                                        <p className="text-xs text-gray-500">
+                                        <p className="text-xs text-muted-foreground">
                                           Roll: {student.rollNumber}
                                         </p>
                                       </div>
                                       <svg
-                                        className="w-5 h-5 text-gray-400"
+                                        className="w-5 h-5 text-muted-foreground/60"
                                         fill="none"
                                         stroke="currentColor"
                                         viewBox="0 0 24 24"
@@ -1670,7 +1679,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                 ))}
                             </div>
                           ) : (
-                            <p className="text-center text-sm text-gray-500 py-4">
+                            <p className="text-center text-sm text-muted-foreground py-4">
                               No students available in this class.
                             </p>
                           )}
@@ -1688,10 +1697,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
       {/* Modals */}
       {/* Add Student Modal */}
       {showAddStudentModal && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">
                 Add Student to Class
               </h3>
             </div>
@@ -1701,14 +1710,14 @@ function ClassesContent({ userData }: ClassesContentProps) {
                   {unassignedStudents.map((student: any) => (
                     <div
                       key={student.id}
-                      className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
+                      className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted"
                     >
                       <div>
-                        <p className="text-sm font-medium text-gray-900">
+                        <p className="text-sm font-medium text-foreground">
                           {student.attributes.name ||
                             `${student.attributes.firstName || ''} ${student.attributes.lastName || ''}`.trim()}
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           {student.attributes.email}
                         </p>
                       </div>
@@ -1722,15 +1731,15 @@ function ClassesContent({ userData }: ClassesContentProps) {
                   ))}
                 </div>
               ) : (
-                <p className="text-center text-sm text-gray-500 py-8">
+                <p className="text-center text-sm text-muted-foreground py-8">
                   No unassigned students available.
                 </p>
               )}
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+            <div className="px-6 py-4 border-t border-border flex justify-end">
               <button
                 onClick={() => setShowAddStudentModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Close
               </button>
@@ -1741,16 +1750,16 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
       {/* Add Subject Modal */}
       {showAddSubjectModal && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl max-w-md w-full">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">
                 Create Subject
               </h3>
             </div>
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Subject Name *
                 </label>
                 <input
@@ -1762,12 +1771,12 @@ function ClassesContent({ userData }: ClassesContentProps) {
                       name: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="e.g., Mathematics"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Subject Code *
                 </label>
                 <input
@@ -1779,12 +1788,12 @@ function ClassesContent({ userData }: ClassesContentProps) {
                       code: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="e.g., MATH101"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Assign Teacher (Optional)
                 </label>
                 <select
@@ -1795,7 +1804,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                       teacherId: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Select Teacher</option>
                   {teachers.map((teacher) => (
@@ -1806,7 +1815,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Credits
                 </label>
                 <input
@@ -1820,14 +1829,14 @@ function ClassesContent({ userData }: ClassesContentProps) {
                   }
                   min="1"
                   max="10"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+            <div className="px-6 py-4 border-t border-border flex justify-end space-x-3">
               <button
                 onClick={() => setShowAddSubjectModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Cancel
               </button>
@@ -1844,15 +1853,15 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
       {/* Edit Subject Modal */}
       {showEditSubjectModal && selectedSubjectForEdit && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl max-w-md w-full">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">
                 Assign Teacher to {selectedSubjectForEdit.name}
               </h3>
             </div>
             <div className="px-6 py-4">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 Select Teacher
               </label>
               <select
@@ -1863,7 +1872,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     teacherId: e.target.value,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Select Teacher</option>
                 {teachers.map((teacher) => (
@@ -1873,10 +1882,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
                 ))}
               </select>
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+            <div className="px-6 py-4 border-t border-border flex justify-end space-x-3">
               <button
                 onClick={() => setShowEditSubjectModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Cancel
               </button>
@@ -1893,22 +1902,22 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
       {/* Delete Subject Modal */}
       {showDeleteSubjectModal && selectedSubjectForDelete && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl max-w-md w-full">
             <div className="px-6 py-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-foreground">
                 Delete Subject
               </h3>
-              <p className="mt-2 text-sm text-gray-600">
+              <p className="mt-2 text-sm text-muted-foreground">
                 Are you sure you want to delete &quot;
                 {selectedSubjectForDelete.name}
                 &quot;? This action cannot be undone.
               </p>
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+            <div className="px-6 py-4 border-t border-border flex justify-end space-x-3">
               <button
                 onClick={() => setShowDeleteSubjectModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Cancel
               </button>
@@ -1925,16 +1934,16 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
       {/* Create Exam Modal */}
       {showCreateExamModal && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">
                 Create Exam
               </h3>
             </div>
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Exam Name *
                 </label>
                 <input
@@ -1943,14 +1952,14 @@ function ClassesContent({ userData }: ClassesContentProps) {
                   onChange={(e) =>
                     setExamFormData({ ...examFormData, name: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="e.g., Mid Term Examination"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Exam Type *
                   </label>
                   <select
@@ -1965,7 +1974,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           | 'Assignment',
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Unit Test">Unit Test</option>
                     <option value="Mid Term">Mid Term</option>
@@ -1976,7 +1985,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Instructions
                 </label>
                 <textarea
@@ -1988,19 +1997,19 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     })
                   }
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="Enter exam instructions..."
                 />
               </div>
 
-              <div className="border-t border-gray-200 pt-4">
-                <h4 className="text-sm font-semibold text-gray-900 mb-3">
+              <div className="border-t border-border pt-4">
+                <h4 className="text-sm font-semibold text-foreground mb-3">
                   Add Subjects to Exam
                 </h4>
 
                 <div className="grid grid-cols-2 gap-4 mb-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-foreground mb-1">
                       Subject
                     </label>
                     <select
@@ -2011,7 +2020,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           subjectId: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="">Select Subject</option>
                       {currentSubjects.map((subject) => (
@@ -2022,7 +2031,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-foreground mb-1">
                       Marks
                     </label>
                     <input
@@ -2034,14 +2043,14 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           marks: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-4 mb-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-foreground mb-1">
                       Date
                     </label>
                     <input
@@ -2053,11 +2062,11 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           date: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-foreground mb-1">
                       Start Time
                     </label>
                     <input
@@ -2069,11 +2078,11 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           startTime: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-foreground mb-1">
                       Duration (min)
                     </label>
                     <input
@@ -2085,34 +2094,34 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           duration: parseInt(e.target.value) || 60,
                         })
                       }
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     />
                   </div>
                 </div>
 
                 <button
                   onClick={handleAddExamSubject}
-                  className="w-full px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-100 border border-indigo-300 rounded-md hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-2 text-sm font-medium text-indigo-700 bg-indigo-500/20 border border-indigo-300 rounded-md hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   Add Subject to Exam
                 </button>
 
                 {examFormData.subjects.length > 0 && (
                   <div className="mt-4">
-                    <h5 className="text-xs font-semibold text-gray-700 mb-2">
+                    <h5 className="text-xs font-semibold text-foreground mb-2">
                       Added Subjects ({examFormData.subjects.length}):
                     </h5>
                     <div className="space-y-2">
                       {examFormData.subjects.map((subject, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-md border border-gray-200"
+                          className="flex items-center justify-between p-3 bg-muted rounded-md border border-border"
                         >
                           <div>
-                            <p className="text-sm font-medium text-gray-900">
+                            <p className="text-sm font-medium text-foreground">
                               {subject.subjectName}
                             </p>
-                            <p className="text-xs text-gray-500">
+                            <p className="text-xs text-muted-foreground">
                               {subject.marks} marks • {subject.duration} min •{' '}
                               {subject.date} • {subject.startTime}
                             </p>
@@ -2142,10 +2151,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
                 )}
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+            <div className="px-6 py-4 border-t border-border flex justify-end space-x-3">
               <button
                 onClick={() => setShowCreateExamModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Cancel
               </button>
@@ -2162,14 +2171,16 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
       {/* Edit Exam Modal */}
       {showEditExamModal && selectedExamForEdit && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Edit Exam</h3>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="px-6 py-4 border-b border-border">
+              <h3 className="text-lg font-semibold text-foreground">
+                Edit Exam
+              </h3>
             </div>
             <div className="px-6 py-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Exam Name *
                 </label>
                 <input
@@ -2178,14 +2189,14 @@ function ClassesContent({ userData }: ClassesContentProps) {
                   onChange={(e) =>
                     setExamFormData({ ...examFormData, name: e.target.value })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="e.g., Mid Term Examination"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Exam Type *
                   </label>
                   <select
@@ -2200,7 +2211,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           | 'Assignment',
                       })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="Unit Test">Unit Test</option>
                     <option value="Mid Term">Mid Term</option>
@@ -2210,7 +2221,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Exam Date
                   </label>
                   <input
@@ -2219,13 +2230,13 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     onChange={(e) =>
                       setExamFormData({ ...examFormData, date: e.target.value })
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Instructions
                 </label>
                 <textarea
@@ -2237,14 +2248,14 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     })
                   }
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="Enter exam instructions..."
                 />
               </div>
 
-              <div className="border-t border-gray-200 pt-4">
+              <div className="border-t border-border pt-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-gray-900">
+                  <h4 className="text-sm font-semibold text-foreground">
                     Subjects ({examFormData.subjects.length})
                   </h4>
                 </div>
@@ -2254,19 +2265,19 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     {examFormData.subjects.map((subject, index) => (
                       <div
                         key={index}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-md"
+                        className="flex items-center justify-between p-3 bg-muted rounded-md"
                       >
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-foreground">
                             {subject.subjectName}
                           </p>
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-muted-foreground">
                             Max Marks: {subject.marks}
                           </p>
                         </div>
                         <button
                           onClick={() => handleRemoveExamSubject(index)}
-                          className="ml-2 p-1 text-red-600 hover:bg-red-50 rounded"
+                          className="ml-2 p-1 text-red-600 hover:bg-red-500/10 rounded"
                         >
                           <svg
                             className="w-4 h-4"
@@ -2289,7 +2300,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-foreground mb-1">
                       Subject *
                     </label>
                     <select
@@ -2300,7 +2311,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           subjectId: e.target.value,
                         })
                       }
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="">Select Subject</option>
                       {currentSubjects.map((subject) => (
@@ -2312,7 +2323,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                    <label className="block text-xs font-medium text-foreground mb-1">
                       Max Marks *
                     </label>
                     <input
@@ -2324,7 +2335,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           marks: parseInt(e.target.value) || 0,
                         })
                       }
-                      className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-3 py-2 text-sm border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       placeholder="100"
                     />
                   </div>
@@ -2332,19 +2343,19 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
                 <button
                   onClick={handleAddExamSubject}
-                  className="mt-3 w-full px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  className="mt-3 w-full px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-500/10 border border-indigo-200 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   + Add Subject
                 </button>
               </div>
             </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+            <div className="px-6 py-4 border-t border-border flex justify-end space-x-3">
               <button
                 onClick={() => {
                   setShowEditExamModal(false);
                   setSelectedExamForEdit(null);
                 }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                className="px-4 py-2 text-sm font-medium text-foreground bg-card border border-border rounded-md hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Cancel
               </button>
@@ -2361,10 +2372,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
       {/* View Exam Modal */}
       {showViewExamModal && selectedExamForView && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600">
+            <div className="px-6 py-4 border-b border-border bg-gradient-to-r from-blue-600 to-indigo-600">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white">Exam Details</h3>
                 <button
@@ -2372,7 +2383,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     setShowViewExamModal(false);
                     setSelectedExamForView(null);
                   }}
-                  className="text-white hover:text-gray-200 transition-colors"
+                  className="text-white hover:text-white/80 transition-colors"
                 >
                   <svg
                     className="w-6 h-6"
@@ -2397,34 +2408,34 @@ function ClassesContent({ userData }: ClassesContentProps) {
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
                 <div className="grid grid-cols-2 gap-6">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                    <label className="block text-sm font-semibold text-muted-foreground mb-2">
                       Exam Name
                     </label>
-                    <p className="text-lg font-bold text-gray-900">
+                    <p className="text-lg font-bold text-foreground">
                       {selectedExamForView.name}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                    <label className="block text-sm font-semibold text-muted-foreground mb-2">
                       Exam Type
                     </label>
-                    <p className="text-lg font-semibold text-gray-900">
+                    <p className="text-lg font-semibold text-foreground">
                       {selectedExamForView.type}
                     </p>
                   </div>
                   <div>
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                    <label className="block text-sm font-semibold text-muted-foreground mb-2">
                       Status
                     </label>
                     <span
                       className={`inline-flex px-3 py-1 text-sm font-medium rounded-full ${
                         selectedExamForView.status === 'Scheduled'
-                          ? 'bg-blue-100 text-blue-800'
+                          ? 'bg-blue-500/20 text-blue-700 border border-blue-500/30'
                           : selectedExamForView.status === 'Ongoing'
-                            ? 'bg-yellow-100 text-yellow-800'
+                            ? 'bg-yellow-500/20 text-yellow-700 border border-yellow-500/30'
                             : selectedExamForView.status === 'Completed'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-red-100 text-red-800'
+                              ? 'bg-green-500/20 text-green-700 border border-green-500/30'
+                              : 'bg-red-500/20 text-red-700 border border-red-500/30'
                       }`}
                     >
                       {selectedExamForView.status}
@@ -2434,10 +2445,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
                 {selectedExamForView.instructions && (
                   <div className="mt-4 pt-4 border-t border-blue-200">
-                    <label className="block text-sm font-semibold text-gray-600 mb-2">
+                    <label className="block text-sm font-semibold text-muted-foreground mb-2">
                       Instructions
                     </label>
-                    <p className="text-gray-700 leading-relaxed">
+                    <p className="text-foreground leading-relaxed">
                       {selectedExamForView.instructions}
                     </p>
                   </div>
@@ -2446,7 +2457,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
               {/* Subjects Details */}
               <div>
-                <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                <h4 className="text-lg font-bold text-foreground mb-4 flex items-center">
                   <svg
                     className="w-6 h-6 mr-2 text-indigo-600"
                     fill="none"
@@ -2467,20 +2478,20 @@ function ClassesContent({ userData }: ClassesContentProps) {
                   {selectedExamForView.subjects.map((subject, idx) => (
                     <div
                       key={idx}
-                      className="bg-white border-2 border-gray-200 rounded-lg p-4 hover:border-indigo-300 transition-colors"
+                      className="bg-card border-2 border-border rounded-lg p-4 hover:border-indigo-300 transition-colors"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
-                          <h5 className="text-base font-bold text-gray-900 mb-2">
+                          <h5 className="text-base font-bold text-foreground mb-2">
                             {subject.subjectName}
                           </h5>
                           <div className="grid grid-cols-3 gap-4">
                             {subject.date && (
                               <div>
-                                <span className="text-xs font-medium text-gray-500 block mb-1">
+                                <span className="text-xs font-medium text-muted-foreground block mb-1">
                                   Exam Date
                                 </span>
-                                <span className="text-sm text-gray-700">
+                                <span className="text-sm text-foreground">
                                   {new Date(subject.date).toLocaleDateString(
                                     'en-US',
                                     {
@@ -2493,7 +2504,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                               </div>
                             )}
                             <div>
-                              <span className="text-xs font-medium text-gray-500 block mb-1">
+                              <span className="text-xs font-medium text-muted-foreground block mb-1">
                                 Maximum Marks
                               </span>
                               <span className="text-sm font-bold text-indigo-600">
@@ -2502,17 +2513,17 @@ function ClassesContent({ userData }: ClassesContentProps) {
                             </div>
                             {subject.duration > 0 && (
                               <div>
-                                <span className="text-xs font-medium text-gray-500 block mb-1">
+                                <span className="text-xs font-medium text-muted-foreground block mb-1">
                                   Duration
                                 </span>
-                                <span className="text-sm text-gray-700">
+                                <span className="text-sm text-foreground">
                                   {subject.duration} mins
                                 </span>
                               </div>
                             )}
                           </div>
                           {(subject.startTime || subject.endTime) && (
-                            <div className="mt-2 flex items-center text-sm text-gray-600">
+                            <div className="mt-2 flex items-center text-sm text-muted-foreground">
                               <svg
                                 className="w-4 h-4 mr-1"
                                 fill="none"
@@ -2562,10 +2573,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
               </div>
 
               {/* Summary Section */}
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <div className="bg-muted rounded-lg p-4 border border-border">
                 <div className="grid grid-cols-3 gap-4 text-center">
                   <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
                       Total Subjects
                     </p>
                     <p className="text-2xl font-bold text-indigo-600">
@@ -2573,7 +2584,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
                       Total Marks
                     </p>
                     <p className="text-2xl font-bold text-green-600">
@@ -2584,7 +2595,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                     </p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">
                       Total Duration
                     </p>
                     <p className="text-2xl font-bold text-blue-600">
@@ -2600,13 +2611,13 @@ function ClassesContent({ userData }: ClassesContentProps) {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end space-x-3">
+            <div className="px-6 py-4 border-t border-border bg-muted flex justify-end space-x-3">
               <button
                 onClick={() => {
                   setShowViewExamModal(false);
                   setSelectedExamForView(null);
                 }}
-                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-muted transition-colors font-medium"
               >
                 Close
               </button>

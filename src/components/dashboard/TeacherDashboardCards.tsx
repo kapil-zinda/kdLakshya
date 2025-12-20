@@ -273,7 +273,7 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
               <div className="text-sm text-muted-foreground">
                 Welcome, {userData.firstName} {userData.lastName}
                 {isClassTeacher && classTeacherInfo && (
-                  <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                  <span className="ml-2 text-xs bg-purple-500/20 border border-purple-500/30 text-foreground px-2 py-1 rounded-full">
                     Class Teacher - {classTeacherInfo.className}
                   </span>
                 )}

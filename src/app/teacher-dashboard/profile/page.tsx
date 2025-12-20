@@ -271,7 +271,7 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
                   <img
                     src={profilePhotoUrl}
                     alt="Profile"
-                    className="w-24 h-24 rounded-full object-cover border-4 border-gray-200"
+                    className="w-24 h-24 rounded-full object-cover border-4 border-border"
                     onError={(e) => {
                       console.error(
                         'Failed to load profile photo:',
@@ -284,7 +284,7 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
                     }}
                   />
                 ) : (
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-3xl font-bold border-4 border-gray-200">
+                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white text-3xl font-bold border-4 border-border">
                     {userData.firstName?.[0]}
                     {userData.lastName?.[0]}
                   </div>

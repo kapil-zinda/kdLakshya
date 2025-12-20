@@ -279,22 +279,16 @@ export function Header({ organization }: HeaderProps) {
             aria-label="Toggle menu"
           >
             {isMenuOpen ? (
-              <X
-                className="h-5 w-5 sm:h-6 sm:w-6"
-                style={{ color: organization.branding.primaryColor }}
-              />
+              <X className="h-5 w-5 sm:h-6 sm:w-6 text-foreground" />
             ) : (
-              <Menu
-                className="h-5 w-5 sm:h-6 sm:w-6"
-                style={{ color: organization.branding.primaryColor }}
-              />
+              <Menu className="h-5 w-5 sm:h-6 sm:w-6 text-foreground" />
             )}
           </button>
         </div>
 
         {/* Mobile Navigation */}
         {isMenuOpen && (
-          <div className="lg:hidden border-t border-border bg-background/98 backdrop-blur-sm">
+          <div className="lg:hidden border-t border-border bg-background backdrop-blur-sm">
             <nav className="py-3 sm:py-4">
               <ul className="space-y-3 sm:space-y-4 px-2 sm:px-0">
                 {navigationItems.map((item) => {
@@ -306,28 +300,15 @@ export function Header({ organization }: HeaderProps) {
                           handleNavigation(item.href);
                           setIsMenuOpen(false);
                         }}
-                        className={`block py-2 sm:py-3 px-2 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg hover:bg-accent w-full text-left ${
-                          isActive ? '' : 'text-foreground'
-                        }`}
+                        className={`block py-2 sm:py-3 px-2 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg w-full text-left text-foreground hover:bg-muted/50`}
                         style={{
                           color: isActive
                             ? organization.branding.primaryColor
                             : undefined,
                           backgroundColor: isActive
                             ? `${organization.branding.primaryColor}15`
-                            : 'transparent',
+                            : undefined,
                           fontWeight: isActive ? '600' : '500',
-                        }}
-                        onMouseEnter={(e) => {
-                          if (!isActive) {
-                            e.currentTarget.style.color =
-                              organization.branding.primaryColor;
-                          }
-                        }}
-                        onMouseLeave={(e) => {
-                          if (!isActive) {
-                            e.currentTarget.style.color = '';
-                          }
                         }}
                       >
                         {item.label}
@@ -345,11 +326,11 @@ export function Header({ organization }: HeaderProps) {
                   {isAuthenticated ? (
                     <div className="space-y-3">
                       <Button
-                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm"
-                        variant="outline"
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white"
                         style={{
+                          backgroundColor: organization.branding.primaryColor,
                           borderColor: organization.branding.primaryColor,
-                          color: organization.branding.primaryColor,
+                          color: 'white',
                         }}
                         onClick={() => {
                           handleNavigation('/dashboard');
