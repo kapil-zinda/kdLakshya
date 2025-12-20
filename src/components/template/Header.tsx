@@ -238,17 +238,21 @@ export function Header({ organization }: HeaderProps) {
               {isAuthenticated ? (
                 <div className="flex items-center space-x-3">
                   <Button
-                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white"
-                    variant="outline"
+                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white border-2"
+                    style={{
+                      backgroundColor: organization.branding.primaryColor,
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                      color: 'white',
+                    }}
                     onClick={() => handleNavigation('/dashboard')}
                   >
                     Dashboard
                   </Button>
                   <Button
-                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white"
+                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white border-2"
                     style={{
                       backgroundColor: '#ef4444',
-                      borderColor: '#ef4444',
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
                       color: 'white',
                     }}
                     onClick={handleLogout}
@@ -258,10 +262,10 @@ export function Header({ organization }: HeaderProps) {
                 </div>
               ) : (
                 <Button
-                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white"
+                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white border-2"
                   style={{
                     backgroundColor: organization.branding.primaryColor,
-                    borderColor: organization.branding.primaryColor,
+                    borderColor: 'rgba(255, 255, 255, 0.2)',
                     color: 'white',
                   }}
                   onClick={handleAuthLogin}
@@ -326,10 +330,10 @@ export function Header({ organization }: HeaderProps) {
                   {isAuthenticated ? (
                     <div className="space-y-3">
                       <Button
-                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white"
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md text-white hover:text-white border-2"
                         style={{
                           backgroundColor: organization.branding.primaryColor,
-                          borderColor: organization.branding.primaryColor,
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
                           color: 'white',
                         }}
                         onClick={() => {
@@ -340,10 +344,10 @@ export function Header({ organization }: HeaderProps) {
                         Dashboard
                       </Button>
                       <Button
-                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white"
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md text-white hover:text-white border-2"
                         style={{
                           backgroundColor: '#ef4444',
-                          borderColor: '#ef4444',
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
                           color: 'white',
                         }}
                         onClick={() => {
@@ -356,10 +360,10 @@ export function Header({ organization }: HeaderProps) {
                     </div>
                   ) : (
                     <Button
-                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-sm text-white hover:text-white"
+                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md text-white hover:text-white border-2"
                       style={{
                         backgroundColor: organization.branding.primaryColor,
-                        borderColor: organization.branding.primaryColor,
+                        borderColor: 'rgba(255, 255, 255, 0.2)',
                         color: 'white',
                       }}
                       onClick={() => {
