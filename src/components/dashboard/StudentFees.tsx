@@ -179,8 +179,8 @@ const StudentFees: React.FC = () => {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-400">Loading fee details...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading fee details...</p>
         </div>
       </div>
     );
@@ -189,7 +189,7 @@ const StudentFees: React.FC = () => {
   if (!feeData) {
     return (
       <div className="flex items-center justify-center py-12">
-        <p className="text-gray-400">No fee data available</p>
+        <p className="text-muted-foreground">No fee data available</p>
       </div>
     );
   }
@@ -514,8 +514,8 @@ const StudentFees: React.FC = () => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-gray-800 p-2 rounded shadow-md">
-          <p className="text-white">{`${payload[0].name}: ₹${payload[0].value}`}</p>
+        <div className="bg-card border border-border p-2 rounded shadow-md">
+          <p className="text-foreground">{`${payload[0].name}: ₹${payload[0].value}`}</p>
         </div>
       );
     }
@@ -530,29 +530,39 @@ const StudentFees: React.FC = () => {
       {/* UI Controls - Hidden during print */}
       <div className="no-print">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Fee Details</h2>
+          <h2 className="text-2xl font-bold text-foreground">Fee Details</h2>
           <Button onClick={handlePrint}>Print</Button>
         </div>
 
         {/* Fee Summary */}
-        <div className="bg-gray-800 p-6 rounded-lg mb-6">
-          <h3 className="text-xl font-semibold mb-4">
+        <div className="bg-card border border-border p-6 rounded-lg mb-6">
+          <h3 className="text-xl font-semibold text-foreground mb-4">
             Fee Summary - {feeData.academicYear}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <h4 className="text-sm font-medium mb-1">Total Fee</h4>
-              <p className="text-2xl font-bold">
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                Total Fee
+              </h4>
+              <p className="text-2xl font-bold text-foreground">
                 ₹{feeData.feeStructure.totalFee}
               </p>
             </div>
-            <div className="bg-green-700 p-4 rounded-lg">
-              <h4 className="text-sm font-medium mb-1">Total Paid</h4>
-              <p className="text-2xl font-bold">₹{feeData.totalPaid}</p>
+            <div className="bg-green-500/20 border border-green-500/30 p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                Total Paid
+              </h4>
+              <p className="text-2xl font-bold text-foreground">
+                ₹{feeData.totalPaid}
+              </p>
             </div>
-            <div className="bg-red-700 p-4 rounded-lg">
-              <h4 className="text-sm font-medium mb-1">Total Due</h4>
-              <p className="text-2xl font-bold">₹{feeData.totalDue}</p>
+            <div className="bg-red-500/20 border border-red-500/30 p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                Total Due
+              </h4>
+              <p className="text-2xl font-bold text-foreground">
+                ₹{feeData.totalDue}
+              </p>
             </div>
           </div>
         </div>
@@ -560,8 +570,10 @@ const StudentFees: React.FC = () => {
         {/* Fee Structure and Payment Status */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* Fee Structure Chart */}
-          <div className="bg-gray-800 p-6 rounded-lg">
-            <h3 className="text-xl font-semibold mb-4">Fee Structure</h3>
+          <div className="bg-card border border-border p-6 rounded-lg">
+            <h3 className="text-xl font-semibold text-foreground mb-4">
+              Fee Structure
+            </h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -616,8 +628,10 @@ const StudentFees: React.FC = () => {
           </div>
 
           {/* Payment Status Chart */}
-          <div className="bg-gray-800 p-6 rounded-lg">
-            <h3 className="text-xl font-semibold mb-4">Payment Status</h3>
+          <div className="bg-card border border-border p-6 rounded-lg">
+            <h3 className="text-xl font-semibold text-foreground mb-4">
+              Payment Status
+            </h3>
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
@@ -673,70 +687,74 @@ const StudentFees: React.FC = () => {
         </div>
 
         {/* Fee Structure Details */}
-        <div className="bg-gray-800 p-6 rounded-lg mb-6">
-          <h3 className="text-xl font-semibold mb-4">Fee Structure Details</h3>
+        <div className="bg-card border border-border p-6 rounded-lg mb-6">
+          <h3 className="text-xl font-semibold text-foreground mb-4">
+            Fee Structure Details
+          </h3>
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-white">Fee Type</TableHead>
-                  <TableHead className="text-white text-right">
+                  <TableHead className="text-foreground">Fee Type</TableHead>
+                  <TableHead className="text-foreground text-right">
                     Amount (₹)
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 <TableRow>
-                  <TableCell className="font-medium text-white">
+                  <TableCell className="font-medium text-foreground">
                     Tuition Fee
                   </TableCell>
-                  <TableCell className="text-right text-white">
+                  <TableCell className="text-right text-foreground">
                     ₹{feeData.feeStructure.tuitionFee}
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell className="font-medium text-white">
+                  <TableCell className="font-medium text-foreground">
                     Development Fee
                   </TableCell>
-                  <TableCell className="text-right text-white">
+                  <TableCell className="text-right text-foreground">
                     ₹{feeData.feeStructure.developmentFee}
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell className="font-medium text-white">
+                  <TableCell className="font-medium text-foreground">
                     Exam Fee
                   </TableCell>
-                  <TableCell className="text-right text-white">
+                  <TableCell className="text-right text-foreground">
                     ₹{feeData.feeStructure.examFee}
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell className="font-medium text-white">
+                  <TableCell className="font-medium text-foreground">
                     Transport Fee
                   </TableCell>
-                  <TableCell className="text-right text-white">
+                  <TableCell className="text-right text-foreground">
                     ₹{feeData.feeStructure.transportFee}
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell className="font-medium text-white">
+                  <TableCell className="font-medium text-foreground">
                     Library Fee
                   </TableCell>
-                  <TableCell className="text-right text-white">
+                  <TableCell className="text-right text-foreground">
                     ₹{feeData.feeStructure.libraryFee}
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell className="font-medium text-white">
+                  <TableCell className="font-medium text-foreground">
                     Other Fees
                   </TableCell>
-                  <TableCell className="text-right text-white">
+                  <TableCell className="text-right text-foreground">
                     ₹{feeData.feeStructure.otherFees}
                   </TableCell>
                 </TableRow>
-                <TableRow className="bg-gray-700">
-                  <TableCell className="font-bold text-white">Total</TableCell>
-                  <TableCell className="text-right font-bold text-white">
+                <TableRow className="bg-muted">
+                  <TableCell className="font-bold text-foreground">
+                    Total
+                  </TableCell>
+                  <TableCell className="text-right font-bold text-foreground">
                     ₹{feeData.feeStructure.totalFee}
                   </TableCell>
                 </TableRow>
@@ -746,14 +764,16 @@ const StudentFees: React.FC = () => {
         </div>
 
         {/* Payment History */}
-        <div className="bg-gray-800 p-6 rounded-lg mb-6">
-          <h3 className="text-xl font-semibold mb-4">Payment History</h3>
+        <div className="bg-card border border-border p-6 rounded-lg mb-6">
+          <h3 className="text-xl font-semibold text-foreground mb-4">
+            Payment History
+          </h3>
           {feeData.feePayments.length > 0 ? (
             <div className="space-y-4">
               {feeData.feePayments.map((payment: any) => (
                 <div
                   key={payment.id}
-                  className="bg-gray-700 p-4 rounded-lg border border-gray-600"
+                  className="bg-muted p-4 rounded-lg border border-border"
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div className="flex-1">
@@ -761,14 +781,14 @@ const StudentFees: React.FC = () => {
                         <span className="bg-green-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
                           ₹{payment.amount.toLocaleString()}
                         </span>
-                        <span className="text-gray-400 text-sm">
+                        <span className="text-muted-foreground text-sm">
                           {payment.date}
                         </span>
                       </div>
-                      <p className="text-white font-medium mb-1">
+                      <p className="text-foreground font-medium mb-1">
                         {payment.description}
                       </p>
-                      <div className="flex gap-4 text-sm text-gray-300">
+                      <div className="flex gap-4 text-sm text-muted-foreground">
                         <span>
                           <strong>Receipt:</strong> {payment.receiptNumber}
                         </span>
@@ -782,14 +802,14 @@ const StudentFees: React.FC = () => {
                         )}
                       </div>
                       {payment.remarks && (
-                        <p className="text-sm text-gray-400 mt-2">
+                        <p className="text-sm text-muted-foreground mt-2">
                           <strong>Remarks:</strong> {payment.remarks}
                         </p>
                       )}
                     </div>
                     <button
                       onClick={() => handleDownloadSlip(payment)}
-                      className="ml-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors"
+                      className="ml-4 bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors"
                     >
                       <svg
                         className="w-4 h-4"
@@ -809,9 +829,9 @@ const StudentFees: React.FC = () => {
                   </div>
                 </div>
               ))}
-              <div className="bg-gray-700 p-4 rounded-lg border-2 border-green-600">
+              <div className="bg-muted p-4 rounded-lg border-2 border-green-600">
                 <div className="flex justify-between items-center">
-                  <span className="text-white font-bold text-lg">
+                  <span className="text-foreground font-bold text-lg">
                     Total Paid
                   </span>
                   <span className="text-green-400 font-bold text-xl">
@@ -821,29 +841,41 @@ const StudentFees: React.FC = () => {
               </div>
             </div>
           ) : (
-            <p className="text-gray-400 text-center py-8">
+            <p className="text-muted-foreground text-center py-8">
               No payment history available
             </p>
           )}
         </div>
 
         {/* Due Fees */}
-        <div className="bg-gray-800 p-6 rounded-lg">
-          <h3 className="text-xl font-semibold mb-4">Due Fees</h3>
+        <div className="bg-card border border-border p-6 rounded-lg">
+          <h3 className="text-xl font-semibold text-foreground mb-4">
+            Due Fees
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <h4 className="text-sm font-medium mb-1">Total Fee</h4>
-              <p className="text-2xl font-bold">
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                Total Fee
+              </h4>
+              <p className="text-2xl font-bold text-foreground">
                 ₹{feeData.feeStructure.totalFee}
               </p>
             </div>
-            <div className="bg-gray-700 p-4 rounded-lg">
-              <h4 className="text-sm font-medium mb-1">Total Paid</h4>
-              <p className="text-2xl font-bold">₹{feeData.totalPaid}</p>
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                Total Paid
+              </h4>
+              <p className="text-2xl font-bold text-foreground">
+                ₹{feeData.totalPaid}
+              </p>
             </div>
-            <div className="bg-red-700 p-4 rounded-lg col-span-1 md:col-span-2">
-              <h4 className="text-sm font-medium mb-1">Balance Due</h4>
-              <p className="text-2xl font-bold">₹{feeData.totalDue}</p>
+            <div className="bg-red-500/20 border border-red-500/30 p-4 rounded-lg col-span-1 md:col-span-2">
+              <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                Balance Due
+              </h4>
+              <p className="text-2xl font-bold text-foreground">
+                ₹{feeData.totalDue}
+              </p>
             </div>
           </div>
         </div>

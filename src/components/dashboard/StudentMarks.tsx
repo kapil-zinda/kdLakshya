@@ -268,7 +268,7 @@ const StudentMarks: React.FC = () => {
       {/* UI Controls - Hidden during print */}
       <div className="no-print mb-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Mark Sheet</h2>
+          <h2 className="text-2xl font-bold text-foreground">Mark Sheet</h2>
           <div className="flex items-center gap-4">
             <Select value={selectedExam} onValueChange={setSelectedExam}>
               <SelectTrigger className="w-[200px]">
@@ -291,7 +291,7 @@ const StudentMarks: React.FC = () => {
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         )}
 
@@ -313,8 +313,8 @@ const StudentMarks: React.FC = () => {
         {/* Regular view content - Hidden during print */}
         {examData && (
           <div className="mt-6">
-            <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-4">
+            <div className="bg-card border border-border p-6 rounded-lg">
+              <h3 className="text-xl font-semibold text-foreground mb-4">
                 {examData.examName}
               </h3>
 
@@ -322,14 +322,14 @@ const StudentMarks: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="text-white">Subject</TableHead>
-                      <TableHead className="text-white text-right">
+                      <TableHead className="text-foreground">Subject</TableHead>
+                      <TableHead className="text-foreground text-right">
                         Max Marks
                       </TableHead>
-                      <TableHead className="text-white text-right">
+                      <TableHead className="text-foreground text-right">
                         Obtained Marks
                       </TableHead>
-                      <TableHead className="text-white text-right">
+                      <TableHead className="text-foreground text-right">
                         Percentage
                       </TableHead>
                     </TableRow>
@@ -337,16 +337,16 @@ const StudentMarks: React.FC = () => {
                   <TableBody>
                     {examData.subjects.map((subject) => (
                       <TableRow key={subject.id}>
-                        <TableCell className="font-medium text-white">
+                        <TableCell className="font-medium text-foreground">
                           {subject.name}
                         </TableCell>
-                        <TableCell className="text-right text-white">
+                        <TableCell className="text-right text-foreground">
                           {subject.maxMarks}
                         </TableCell>
-                        <TableCell className="text-right text-white">
+                        <TableCell className="text-right text-foreground">
                           {subject.obtainedMarks}
                         </TableCell>
-                        <TableCell className="text-right text-white">
+                        <TableCell className="text-right text-foreground">
                           {(
                             (subject.obtainedMarks / subject.maxMarks) *
                             100
@@ -355,17 +355,17 @@ const StudentMarks: React.FC = () => {
                         </TableCell>
                       </TableRow>
                     ))}
-                    <TableRow className="bg-gray-700">
-                      <TableCell className="font-bold text-white">
+                    <TableRow className="bg-muted">
+                      <TableCell className="font-bold text-foreground">
                         Total
                       </TableCell>
-                      <TableCell className="text-right font-bold text-white">
+                      <TableCell className="text-right font-bold text-foreground">
                         {examData.totalMarks}
                       </TableCell>
-                      <TableCell className="text-right font-bold text-white">
+                      <TableCell className="text-right font-bold text-foreground">
                         {examData.totalObtained}
                       </TableCell>
-                      <TableCell className="text-right font-bold text-white">
+                      <TableCell className="text-right font-bold text-foreground">
                         {examData.percentage.toFixed(2)}%
                       </TableCell>
                     </TableRow>
@@ -374,32 +374,61 @@ const StudentMarks: React.FC = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <h4 className="text-lg font-medium mb-2">Grade</h4>
-                  <p className="text-3xl font-bold">{examData.grade}</p>
+                <div className="bg-muted p-4 rounded-lg">
+                  <h4 className="text-lg font-medium text-muted-foreground mb-2">
+                    Grade
+                  </h4>
+                  <p className="text-3xl font-bold text-foreground">
+                    {examData.grade}
+                  </p>
                 </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <h4 className="text-lg font-medium mb-2">Percentage</h4>
-                  <p className="text-3xl font-bold">
+                <div className="bg-muted p-4 rounded-lg">
+                  <h4 className="text-lg font-medium text-muted-foreground mb-2">
+                    Percentage
+                  </h4>
+                  <p className="text-3xl font-bold text-foreground">
                     {examData.percentage.toFixed(2)}%
                   </p>
                 </div>
-                <div className="bg-gray-700 p-4 rounded-lg">
-                  <h4 className="text-lg font-medium mb-2">Rank</h4>
-                  <p className="text-3xl font-bold">{examData.rank}</p>
+                <div className="bg-muted p-4 rounded-lg">
+                  <h4 className="text-lg font-medium text-muted-foreground mb-2">
+                    Rank
+                  </h4>
+                  <p className="text-3xl font-bold text-foreground">
+                    {examData.rank}
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-gray-800 p-6 rounded-lg mt-6">
-              <h3 className="text-xl font-semibold mb-4">Performance Chart</h3>
+            <div className="bg-card border border-border p-6 rounded-lg mt-6">
+              <h3 className="text-xl font-semibold text-foreground mb-4">
+                Performance Chart
+              </h3>
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" tick={{ fill: 'white' }} />
-                  <YAxis tick={{ fill: 'white' }} />
-                  <Tooltip />
-                  <Legend />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="hsl(var(--border))"
+                  />
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fill: 'hsl(var(--foreground))' }}
+                    stroke="hsl(var(--border))"
+                  />
+                  <YAxis
+                    tick={{ fill: 'hsl(var(--foreground))' }}
+                    stroke="hsl(var(--border))"
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px',
+                      color: 'hsl(var(--foreground))',
+                    }}
+                  />
+                  <Legend wrapperStyle={{ color: 'hsl(var(--foreground))' }} />
                   <Bar
                     dataKey="obtained"
                     name="Obtained Marks"
