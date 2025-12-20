@@ -1,3 +1,4 @@
+import { makeApiCall } from '@/utils/ApiRequest';
 import axios from 'axios';
 
 // Cache configuration
@@ -89,32 +90,164 @@ const API_CONFIG = {
       : 'http://localhost:3000',
 };
 
+// Create wrapper axios instances that use makeApiCall internally
+// This maintains backward compatibility while using centralized API logic
+
 // External API instance (for real endpoints like users/me)
-const externalApi = axios.create({
-  baseURL: API_CONFIG.EXTERNAL_API,
-  timeout: 30000, // 30s timeout for Lambda cold starts
-  headers: {
-    'Content-Type': 'application/json',
+const externalApi = {
+  get: async (url: string, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'GET',
+      baseUrl: 'auth',
+      headers: config?.headers,
+    });
+    return { data: response };
   },
-});
+  post: async (url: string, data?: any, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'POST',
+      baseUrl: 'auth',
+      payload: data,
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+  put: async (url: string, data?: any, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'PUT',
+      baseUrl: 'auth',
+      payload: data,
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+  patch: async (url: string, data?: any, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'PATCH',
+      baseUrl: 'auth',
+      payload: data,
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+  delete: async (url: string, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'DELETE',
+      baseUrl: 'auth',
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+};
 
 // Class API instance (for class endpoints)
-const classApi = axios.create({
-  baseURL: API_CONFIG.CLASS_API,
-  timeout: 30000, // 30s timeout for Lambda cold starts
-  headers: {
-    'Content-Type': 'application/vnd.api+json',
+const classApi = {
+  get: async (url: string, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'GET',
+      baseUrl: 'default',
+      headers: config?.headers,
+    });
+    return { data: response };
   },
-});
+  post: async (url: string, data?: any, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'POST',
+      baseUrl: 'default',
+      payload: data,
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+  put: async (url: string, data?: any, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'PUT',
+      baseUrl: 'default',
+      payload: data,
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+  patch: async (url: string, data?: any, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'PATCH',
+      baseUrl: 'default',
+      payload: data,
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+  delete: async (url: string, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'DELETE',
+      baseUrl: 'default',
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+};
 
 // Workspace API instance (for workspace endpoints like S3)
-const workspaceApi = axios.create({
-  baseURL: API_CONFIG.WORKSPACE_API,
-  timeout: 30000, // 30s timeout for Lambda cold starts
-  headers: {
-    'Content-Type': 'application/json',
+const workspaceApi = {
+  get: async (url: string, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'GET',
+      baseUrl: 'workspace',
+      headers: config?.headers,
+    });
+    return { data: response };
   },
-});
+  post: async (url: string, data?: any, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'POST',
+      baseUrl: 'workspace',
+      payload: data,
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+  put: async (url: string, data?: any, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'PUT',
+      baseUrl: 'workspace',
+      payload: data,
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+  patch: async (url: string, data?: any, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'PATCH',
+      baseUrl: 'workspace',
+      payload: data,
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+  delete: async (url: string, config?: any) => {
+    const response = await makeApiCall({
+      path: url,
+      method: 'DELETE',
+      baseUrl: 'workspace',
+      headers: config?.headers,
+    });
+    return { data: response };
+  },
+};
 
 // Retry helper for handling intermittent 500 errors (Lambda cold starts)
 const retryRequest = async <T>(

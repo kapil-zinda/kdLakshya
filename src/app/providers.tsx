@@ -5,7 +5,7 @@ import * as React from 'react';
 import { usePathname } from 'next/navigation';
 
 import { ApiService } from '@/services/api';
-import { getAuthHeaders, isStudentUser } from '@/utils/authHeaders';
+import { isStudentUser } from '@/utils/authHeaders';
 import {
   loadTokenFromStorage,
   loadUserFromStorage,
@@ -109,22 +109,18 @@ export function Providers({ children }: ThemeProviderProps) {
 
     try {
       // Get auth headers (will use Bearer for admin/teachers)
-      const authHeaders = getAuthHeaders();
-      const BaseURLAuth =
-        process.env.NEXT_PUBLIC_BaseURLAuth ||
-        'https://apis.testkdlakshya.uchhal.in/auth';
+      const { makeApiCall } = await import('@/utils/ApiRequest');
 
-      const res = await axios.get(
-        `${BaseURLAuth}/users/me?include=permission`,
-        {
-          headers: {
-            ...authHeaders,
-            'Content-Type': 'application/json',
-          },
+      const res = await makeApiCall({
+        path: '/users/me?include=permission',
+        method: 'GET',
+        baseUrl: 'auth',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      );
+      });
 
-      const userData = res.data.data; // Extract from nested structure
+      const userData = res.data; // Extract from nested structure
       const attributes = userData.attributes;
       const permissions =
         userData.user_permissions || attributes.permissions || {};
@@ -206,13 +202,11 @@ export function Providers({ children }: ThemeProviderProps) {
       if (shouldRedirect && orgId) {
         await redirectToOrgSubdomain(orgId, bearerToken);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching user data:', error);
       // If we get a 401 or 403, the token is invalid
-      if (
-        axios.isAxiosError(error) &&
-        (error.response?.status === 401 || error.response?.status === 403)
-      ) {
+      const status = error.response?.status;
+      if (status === 401 || status === 403) {
         localStorage.removeItem('bearerToken');
         setAccessTkn(null);
         loginHandler();
@@ -339,20 +333,21 @@ export function Providers({ children }: ThemeProviderProps) {
         try {
           // Step 1: Call /users/me to get orgId
           console.log('📞 Step 1: Calling /users/me to get orgId...');
-          const BaseURLAuth =
-            process.env.NEXT_PUBLIC_BaseURLAuth ||
-            'https://apis.testkdlakshya.uchhal.in/auth';
-          const userResponse = await axios.get(
-            `${BaseURLAuth}/users/me?include=permission`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
-            },
-          );
+          const { makeApiCall } = await import('@/utils/ApiRequest');
 
-          const userData = userResponse.data.data;
+          const userResponse = await makeApiCall({
+            path: '/users/me?include=permission',
+            method: 'GET',
+            baseUrl: 'auth',
+            customAuthHeaders: {
+              Authorization: `Bearer ${token}`,
+            },
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+
+          const userData = userResponse.data;
           console.log('👤 User data received:', userData);
 
           // Extract orgId from attributes
@@ -391,17 +386,19 @@ export function Providers({ children }: ThemeProviderProps) {
               orgId +
               ' to get subdomain...',
           );
-          const orgResponse = await axios.get(
-            `${BaseURLAuth}/organizations/${orgId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json',
-              },
+          const orgResponse = await makeApiCall({
+            path: `/organizations/${orgId}`,
+            method: 'GET',
+            baseUrl: 'auth',
+            customAuthHeaders: {
+              Authorization: `Bearer ${token}`,
             },
-          );
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
 
-          const orgData = orgResponse.data.data;
+          const orgData = orgResponse.data;
           const targetSubdomain = orgData.attributes.subdomain;
 
           console.log('🏢 Organization data received:', orgData);
@@ -455,9 +452,9 @@ export function Providers({ children }: ThemeProviderProps) {
         console.log('⚠️ Not an auth callback, calling userMeData normally');
         await userMeData(token, false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching auth token:', error);
-      if (axios.isAxiosError(error)) {
+      if (error.response) {
         console.error('Response data:', error.response?.data);
         console.error('Response status:', error.response?.status);
       }
