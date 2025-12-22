@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 import { UserData } from '@/app/interfaces/userInterface';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface TeacherDashboardCardsProps {
   userData: UserData;
@@ -233,19 +234,19 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-background shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
@@ -264,22 +265,23 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
                   />
                 </svg>
               </div>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 Teacher Portal
               </h1>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-muted-foreground">
                 Welcome, {userData.firstName} {userData.lastName}
                 {isClassTeacher && classTeacherInfo && (
-                  <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                  <span className="ml-2 text-xs bg-purple-500/20 border border-purple-500/30 text-foreground px-2 py-1 rounded-full">
                     Class Teacher - {classTeacherInfo.className}
                   </span>
                 )}
               </div>
+              <ThemeToggle />
               <button
                 onClick={handleLogout}
-                className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                className="bg-accent hover:bg-accent/80 text-foreground px-3 py-2 rounded-md text-sm font-medium transition-colors"
               >
                 Logout
               </button>
@@ -292,10 +294,10 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Dashboard Overview
           </h2>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Manage your classes, track student progress, and handle academic
             tasks.
           </p>
@@ -305,25 +307,25 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {dashboardCards.map((card, index) => (
             <Link key={index} href={card.href} className="group">
-              <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group-hover:scale-105">
+              <div className="bg-card rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group-hover:scale-105">
                 <div
                   className={`h-32 bg-gradient-to-br ${card.color} p-6 flex items-center justify-center`}
                 >
                   <div className="text-white">{card.icon}</div>
                 </div>
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     {card.title}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-muted-foreground mb-4">
                     {card.description}
                   </p>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded">
                       {card.stats}
                     </span>
                     <svg
-                      className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors"
+                      className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
