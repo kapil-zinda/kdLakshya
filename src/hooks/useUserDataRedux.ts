@@ -1,5 +1,7 @@
 'use client';
 
+import { useMemo } from 'react';
+
 import { useGetUserProfileQuery } from '@/store/api/authApi';
 import { useAppSelector } from '@/store/hooks';
 
@@ -41,12 +43,16 @@ export function useUserDataRedux() {
     skip: !token, // Skip if no token
   });
 
-  // Merge user data with token for backward compatibility
-  const userData: CachedUserData | null = fetchedUserData
-    ? { ...fetchedUserData, accessToken: token }
-    : reduxUser
-      ? { ...reduxUser, accessToken: token, permissions: {} }
-      : null;
+  // Merge user data with token for backward compatibility - memoized to prevent infinite re-renders
+  const userData: CachedUserData | null = useMemo(() => {
+    if (fetchedUserData) {
+      return { ...fetchedUserData, accessToken: token };
+    }
+    if (reduxUser) {
+      return { ...reduxUser, accessToken: token, permissions: {} };
+    }
+    return null;
+  }, [fetchedUserData, reduxUser, token]);
 
   // For backward compatibility with old code
   const clearUserData = () => {

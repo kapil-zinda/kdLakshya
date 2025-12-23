@@ -1,44 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
 import { AboutSection } from '@/components/template/AboutSection';
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
-import { useUserDataRedux } from '@/hooks/useUserDataRedux';
-import {
-  ApiService,
-  transformApiDataToOrganizationConfig,
-} from '@/services/api';
-import { OrganizationConfig } from '@/types/organization';
-import { getTargetSubdomain } from '@/utils/subdomainUtils';
+import { useOrganizationData } from '@/hooks/useOrganizationData';
 
 export default function AboutPage() {
-  const [organizationData, setOrganizationData] =
-    useState<OrganizationConfig | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { userData } = useUserDataRedux();
-
-  useEffect(() => {
-    const loadDataFromAPI = async () => {
-      try {
-        setLoading(true);
-        const targetSubdomain = await getTargetSubdomain(
-          userData?.orgId,
-          userData?.accessToken,
-        );
-        const apiData = await ApiService.fetchAllData(targetSubdomain);
-        const transformedData = transformApiDataToOrganizationConfig(apiData);
-        setOrganizationData(transformedData);
-      } catch (error) {
-        console.error('Failed to load API data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDataFromAPI();
-  }, [userData]);
+  const { organizationData, loading } = useOrganizationData();
 
   if (loading) {
     return (

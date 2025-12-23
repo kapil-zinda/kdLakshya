@@ -1,26 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { useRouter } from 'next/navigation';
 
 import { OrganizationTemplate } from '@/components/template/OrganizationTemplate';
-import { useUserDataRedux } from '@/hooks/useUserDataRedux';
-import {
-  ApiService,
-  transformApiDataToOrganizationConfig,
-} from '@/services/api';
-import { OrganizationConfig } from '@/types/organization';
-import { getTargetSubdomain } from '@/utils/subdomainUtils';
+import { useOrganizationData } from '@/hooks/useOrganizationData';
 
 export default function Home() {
-  const [organizationData, setOrganizationData] =
-    useState<OrganizationConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { organizationData, loading } = useOrganizationData();
   const router = useRouter();
-  const { userData } = useUserDataRedux();
   const hasInitialized = useRef(false);
-  const isLoadingData = useRef(false);
 
   const handleAuth0Callback = async () => {
     try {
@@ -72,9 +62,6 @@ export default function Home() {
         console.log(
           '🔑 Found access token in URL hash, storing in localStorage',
         );
-
-        // Show loading state while processing authentication
-        setLoading(true);
 
         // Store token in localStorage with TTL
         localStorage.setItem(
@@ -218,41 +205,6 @@ export default function Home() {
     return false;
   };
 
-  const loadDataFromAPI = async () => {
-    // Prevent concurrent API calls
-    if (isLoadingData.current) {
-      console.log('⏸️ Skipping API call - already loading');
-      return;
-    }
-
-    try {
-      isLoadingData.current = true;
-      setLoading(true);
-      console.log('Fetching data from APIs...');
-
-      // Get the correct subdomain to use
-      const targetSubdomain = await getTargetSubdomain(
-        userData?.orgId,
-        userData?.accessToken,
-      );
-
-      // Fetch all API data using the determined subdomain
-      const apiData = await ApiService.fetchAllData(targetSubdomain);
-      console.log('API Data received for subdomain:', targetSubdomain, apiData);
-
-      // Transform API data to OrganizationConfig format
-      const transformedData = transformApiDataToOrganizationConfig(apiData);
-      console.log('Transformed data:', transformedData);
-
-      setOrganizationData(transformedData);
-    } catch (error) {
-      console.error('Failed to load API data:', error);
-    } finally {
-      setLoading(false);
-      isLoadingData.current = false;
-    }
-  };
-
   useEffect(() => {
     // Prevent infinite loop - only run once on mount
     if (hasInitialized.current) {
@@ -277,27 +229,12 @@ export default function Home() {
         return;
       }
 
-      // Try to load data from API first
-      loadDataFromAPI();
+      // Organization data will be loaded by useOrganizationData hook
+      console.log('✅ Auth initialization complete');
     };
 
     initializeAuth();
   }, []); // Empty deps - run only once on mount
-
-  // Separate effect to reload data when userData changes (but don't redirect)
-  useEffect(() => {
-    if (
-      hasInitialized.current &&
-      userData?.orgId &&
-      !window.location.hash &&
-      !organizationData &&
-      !isLoadingData.current
-    ) {
-      console.log('📊 Loading data for orgId:', userData.orgId);
-      loadDataFromAPI();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData?.orgId]); // Only when orgId changes, not on every userData change
 
   if (loading) {
     return (

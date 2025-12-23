@@ -9,23 +9,53 @@ import {
   REGISTER,
   REHYDRATE,
 } from 'redux-persist';
-import storage from 'redux-persist/lib/storage'; // defaults to localStorage for web
+import createWebStorage from 'redux-persist/lib/storage/createWebStorage';
 
 import { baseApi, classApi, workspaceApi } from './api/baseApi';
 import authReducer from './slices/authSlice';
+import organizationReducer from './slices/organizationSlice';
 
-// Persist configuration
+// Create a noop storage for SSR
+const createNoopStorage = () => {
+  return {
+    getItem(_key: string) {
+      return Promise.resolve(null);
+    },
+    setItem(_key: string, value: any) {
+      return Promise.resolve(value);
+    },
+    removeItem(_key: string) {
+      return Promise.resolve();
+    },
+  };
+};
+
+// Use localStorage on client, noop on server
+const storage =
+  typeof window !== 'undefined'
+    ? createWebStorage('local')
+    : createNoopStorage();
+
+// Organization persist config - exclude loading state
+const organizationPersistConfig = {
+  key: 'organization',
+  storage,
+  blacklist: ['loading'], // Don't persist loading state
+};
+
+// Root persist configuration
 const persistConfig = {
   key: 'root',
   version: 1,
   storage,
-  // Only persist auth state (not API cache)
-  whitelist: ['auth'],
+  // Persist auth and organization data (not API cache)
+  whitelist: ['auth', 'organization'],
 };
 
 // Combine reducers
 const rootReducer = combineReducers({
   auth: authReducer,
+  organization: persistReducer(organizationPersistConfig, organizationReducer),
   [baseApi.reducerPath]: baseApi.reducer,
   [classApi.reducerPath]: classApi.reducer,
   [workspaceApi.reducerPath]: workspaceApi.reducer,
