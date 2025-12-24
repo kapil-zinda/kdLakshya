@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ApiService } from '@/services/api';
 
 // Types
@@ -457,9 +458,9 @@ export default function FeeManagementERP() {
       case 'Overdue':
         return 'bg-red-100 text-red-800';
       case 'Pending':
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 
@@ -619,25 +620,27 @@ export default function FeeManagementERP() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading fee management system...</p>
+          <p className="mt-4 text-muted-foreground">
+            Loading fee management system...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link
                 href="/admin-portal/dashboard"
-                className="text-gray-500 hover:text-gray-700 mr-4"
+                className="text-muted-foreground hover:text-foreground mr-4"
               >
                 <svg
                   className="w-6 h-6"
@@ -653,7 +656,7 @@ export default function FeeManagementERP() {
                   />
                 </svg>
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 Fee Management System
               </h1>
             </div>
@@ -661,7 +664,7 @@ export default function FeeManagementERP() {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
                 {academicYears.map((year) => (
                   <option key={year} value={year}>
@@ -671,10 +674,11 @@ export default function FeeManagementERP() {
               </select>
               <button
                 onClick={() => setShowFeeStructureModal(true)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-200 transition-colors"
+                className="px-4 py-2 bg-muted text-foreground text-sm font-medium rounded-md hover:bg-muted/80 transition-colors"
               >
                 Fee Structure
               </button>
+              <ThemeToggle />
               <button
                 onClick={() => window.print()}
                 className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors"
@@ -689,9 +693,9 @@ export default function FeeManagementERP() {
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Statistics Dashboard */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-sm font-medium text-muted-foreground">
                 Total Collected
               </p>
               <div className="bg-green-100 p-2 rounded-lg">
@@ -710,7 +714,7 @@ export default function FeeManagementERP() {
                 </svg>
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-foreground">
               ₹{totalCollected.toLocaleString()}
             </p>
             <p className="text-sm text-green-600 mt-1">
@@ -718,9 +722,11 @@ export default function FeeManagementERP() {
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-600">Total Due</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Total Due
+              </p>
               <div className="bg-red-100 p-2 rounded-lg">
                 <svg
                   className="w-5 h-5 text-red-600"
@@ -737,15 +743,19 @@ export default function FeeManagementERP() {
                 </svg>
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-foreground">
               ₹{totalDue.toLocaleString()}
             </p>
-            <p className="text-sm text-gray-600 mt-1">Pending collection</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Pending collection
+            </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-600">Fully Paid</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                Fully Paid
+              </p>
               <div className="bg-blue-100 p-2 rounded-lg">
                 <svg
                   className="w-5 h-5 text-blue-600"
@@ -762,13 +772,15 @@ export default function FeeManagementERP() {
                 </svg>
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{paidCount}</p>
-            <p className="text-sm text-gray-600 mt-1">Students paid in full</p>
+            <p className="text-2xl font-bold text-foreground">{paidCount}</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Students paid in full
+            </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-card rounded-lg shadow-sm border border-border p-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium text-gray-600">
+              <p className="text-sm font-medium text-muted-foreground">
                 Overdue Alerts
               </p>
               <div className="bg-orange-100 p-2 rounded-lg">
@@ -787,21 +799,21 @@ export default function FeeManagementERP() {
                 </svg>
               </div>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{overdueCount}</p>
-            <p className="text-sm text-gray-600 mt-1">Need follow-up</p>
+            <p className="text-2xl font-bold text-foreground">{overdueCount}</p>
+            <p className="text-sm text-muted-foreground mt-1">Need follow-up</p>
           </div>
         </div>
 
         {/* View Mode Tabs */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="border-b border-gray-200">
+        <div className="bg-card rounded-lg shadow-sm border border-border mb-6">
+          <div className="border-b border-border">
             <nav className="flex -mb-px">
               <button
                 onClick={() => setViewMode('student')}
                 className={`px-6 py-3 text-sm font-medium border-b-2 ${
                   viewMode === 'student'
                     ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                 }`}
               >
                 Student-wise View
@@ -811,7 +823,7 @@ export default function FeeManagementERP() {
                 className={`px-6 py-3 text-sm font-medium border-b-2 ${
                   viewMode === 'class'
                     ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                 }`}
               >
                 Class-wise Summary
@@ -821,7 +833,7 @@ export default function FeeManagementERP() {
                 className={`px-6 py-3 text-sm font-medium border-b-2 ${
                   viewMode === 'month'
                     ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                 }`}
               >
                 Month-wise Collection
@@ -833,13 +845,13 @@ export default function FeeManagementERP() {
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Filter by Class
                 </label>
                 <select
                   value={selectedClass}
                   onChange={(e) => handleClassSelection(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   {classes.map((cls) => (
                     <option key={cls} value={cls}>
@@ -850,13 +862,13 @@ export default function FeeManagementERP() {
               </div>
 
               {/* <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Filter by Status
                 </label>
                 <select
                   value={selectedStatus}
                   onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="All">All Status</option>
                   <option value="Paid">Paid</option>
@@ -867,13 +879,13 @@ export default function FeeManagementERP() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Filter by Month
                 </label>
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   {months.map((month) => (
                     <option key={month} value={month}>
@@ -884,7 +896,7 @@ export default function FeeManagementERP() {
               </div> */}
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Search
                 </label>
                 <input
@@ -892,7 +904,7 @@ export default function FeeManagementERP() {
                   placeholder="Name, Roll No..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 />
               </div>
             </div>
@@ -933,50 +945,50 @@ export default function FeeManagementERP() {
         {/* Content based on view mode */}
         {viewMode === 'student' && (
           <div
-            className={`bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden transition-opacity duration-200 ${filterLoading ? 'opacity-50' : 'opacity-100'}`}
+            className={`bg-card shadow-sm rounded-lg border border-border overflow-hidden transition-opacity duration-200 ${filterLoading ? 'opacity-50' : 'opacity-100'}`}
           >
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-border">
+                <thead className="bg-muted/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                       Student
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                       Class
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                       Total Fee
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                       Paid
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                       Due
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
                       Actions
                     </th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-card divide-y divide-border">
                   {filteredRecords.map((record) => (
-                    <tr key={record.id} className="hover:bg-gray-50">
+                    <tr key={record.id} className="hover:bg-muted/50">
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium text-foreground">
                           {record.studentName}
                         </div>
-                        <div className="text-sm text-gray-500">
+                        <div className="text-sm text-muted-foreground">
                           Roll: {record.rollNumber}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-foreground">
                         {record.class}
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-900">
+                      <td className="px-6 py-4 text-sm text-foreground">
                         ₹
                         {record.feeStructure?.totalAmount?.toLocaleString() ||
                           '0'}
@@ -1125,7 +1137,7 @@ export default function FeeManagementERP() {
             </div>
             {filteredRecords.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-gray-500">No records found</p>
+                <p className="text-muted-foreground">No records found</p>
               </div>
             )}
           </div>
@@ -1140,14 +1152,14 @@ export default function FeeManagementERP() {
               .map((summary) => (
                 <div
                   key={summary.className}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+                  className="bg-card rounded-lg shadow-sm border border-border p-6"
                 >
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  <h3 className="text-lg font-semibold text-foreground mb-4">
                     {summary.className}
                   </h3>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">
+                      <span className="text-sm text-muted-foreground">
                         Total Students:
                       </span>
                       <span className="text-sm font-semibold">
@@ -1155,23 +1167,27 @@ export default function FeeManagementERP() {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Collected:</span>
+                      <span className="text-sm text-muted-foreground">
+                        Collected:
+                      </span>
                       <span className="text-sm font-semibold text-green-600">
                         ₹{summary.totalCollected.toLocaleString()}
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Due:</span>
+                      <span className="text-sm text-muted-foreground">
+                        Due:
+                      </span>
                       <span className="text-sm font-semibold text-red-600">
                         ₹{summary.totalDue.toLocaleString()}
                       </span>
                     </div>
-                    <div className="pt-3 border-t border-gray-200">
+                    <div className="pt-3 border-t border-border">
                       <div className="flex justify-between text-xs">
                         <span className="text-green-600">
                           Paid: {summary.paidStudents}
                         </span>
-                        <span className="text-gray-600">
+                        <span className="text-muted-foreground">
                           Pending: {summary.pendingStudents}
                         </span>
                         <span className="text-red-600">
@@ -1186,8 +1202,8 @@ export default function FeeManagementERP() {
         )}
 
         {viewMode === 'month' && (
-          <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          <div className="bg-card shadow-sm rounded-lg border border-border p-6">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               Month-wise Collection Report
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1204,15 +1220,15 @@ export default function FeeManagementERP() {
                 return (
                   <div
                     key={month}
-                    className="border border-gray-200 rounded-lg p-4"
+                    className="border border-border rounded-lg p-4"
                   >
-                    <h4 className="font-semibold text-gray-900 mb-2">
+                    <h4 className="font-semibold text-foreground mb-2">
                       {month}
                     </h4>
                     <p className="text-2xl font-bold text-green-600">
                       ₹{monthTotal.toLocaleString()}
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       {monthCount} transactions
                     </p>
                   </div>
@@ -1227,19 +1243,19 @@ export default function FeeManagementERP() {
       {showPaymentModal && selectedRecord && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg p-8 max-w-md w-full my-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-6">
               Record Payment
             </h2>
 
             <div className="mb-4">
-              <p className="text-sm text-gray-600">Student</p>
+              <p className="text-sm text-muted-foreground">Student</p>
               <p className="text-lg font-semibold">
                 {selectedRecord.studentName} ({selectedRecord.class})
               </p>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Fee Type <span className="text-red-500">*</span>
               </label>
               <select
@@ -1287,7 +1303,7 @@ export default function FeeManagementERP() {
                     month,
                   });
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="Monthly Fee">Monthly Fee</option>
                 <option value="Exam Fee">Exam Fee</option>
@@ -1298,7 +1314,7 @@ export default function FeeManagementERP() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Description
               </label>
               <input
@@ -1310,13 +1326,13 @@ export default function FeeManagementERP() {
                     description: e.target.value,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Payment description"
               />
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Amount <span className="text-red-500">*</span>
               </label>
               <input
@@ -1325,13 +1341,13 @@ export default function FeeManagementERP() {
                 onChange={(e) =>
                   setPaymentData({ ...paymentData, amount: e.target.value })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder="Enter amount"
               />
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Payment Method
               </label>
               <select
@@ -1342,7 +1358,7 @@ export default function FeeManagementERP() {
                     method: e.target.value as Payment['method'],
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               >
                 <option value="Cash">Cash</option>
                 <option value="Online">Online Transfer</option>
@@ -1353,7 +1369,7 @@ export default function FeeManagementERP() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Receipt Number
               </label>
               <input
@@ -1365,12 +1381,12 @@ export default function FeeManagementERP() {
                     receiptNumber: e.target.value,
                   })
                 }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Remarks
               </label>
               <textarea
@@ -1379,7 +1395,7 @@ export default function FeeManagementERP() {
                   setPaymentData({ ...paymentData, remarks: e.target.value })
                 }
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
             </div>
 
@@ -1392,7 +1408,7 @@ export default function FeeManagementERP() {
               </button>
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
+                className="flex-1 bg-muted text-foreground px-4 py-2 rounded-md hover:bg-muted font-medium"
               >
                 Cancel
               </button>
@@ -1405,60 +1421,60 @@ export default function FeeManagementERP() {
       {showDetailsModal && selectedRecord && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg p-8 max-w-3xl w-full my-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-6">
               Fee Details - {selectedRecord.studentName}
             </h2>
 
             {/* Student Info */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 grid grid-cols-2 gap-4">
+            <div className="bg-muted/50 rounded-lg p-4 mb-6 grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-600">Roll Number</p>
-                <p className="font-semibold text-gray-900">
+                <p className="text-sm text-muted-foreground">Roll Number</p>
+                <p className="font-semibold text-foreground">
                   {selectedRecord.rollNumber}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Class</p>
-                <p className="font-semibold text-gray-900">
+                <p className="text-sm text-muted-foreground">Class</p>
+                <p className="font-semibold text-foreground">
                   {selectedRecord.class}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Email</p>
-                <p className="font-semibold text-gray-900">
+                <p className="text-sm text-muted-foreground">Email</p>
+                <p className="font-semibold text-foreground">
                   {selectedRecord.email}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">Phone</p>
-                <p className="font-semibold text-gray-900">
+                <p className="text-sm text-muted-foreground">Phone</p>
+                <p className="font-semibold text-foreground">
                   {selectedRecord.phone}
                 </p>
               </div>
             </div>
 
             {/* Fee Summary */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold text-lg text-gray-900 mb-3">
+            <div className="bg-muted/50 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-lg text-foreground mb-3">
                 Fee Summary
               </h3>
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-gray-700">Total Fee:</span>
-                  <span className="font-semibold text-gray-900">
+                  <span className="text-muted-foreground">Total Fee:</span>
+                  <span className="font-semibold text-foreground">
                     ₹
                     {selectedRecord.feeStructure?.totalAmount?.toLocaleString() ||
                       '0'}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-700">Paid Amount:</span>
+                  <span className="text-muted-foreground">Paid Amount:</span>
                   <span className="font-semibold text-green-600">
                     ₹{selectedRecord.totalPaid?.toLocaleString() || '0'}
                   </span>
                 </div>
                 <div className="flex justify-between border-t pt-2">
-                  <span className="text-gray-700">Due Amount:</span>
+                  <span className="text-muted-foreground">Due Amount:</span>
                   <span className="font-semibold text-red-600">
                     ₹{selectedRecord.totalDue?.toLocaleString() || '0'}
                   </span>
@@ -1468,7 +1484,7 @@ export default function FeeManagementERP() {
 
             {/* Fee Components Breakdown */}
             <div className="mb-6">
-              <h3 className="font-semibold text-lg text-gray-900 mb-3">
+              <h3 className="font-semibold text-lg text-foreground mb-3">
                 Fee Components Status
               </h3>
               <div className="space-y-4">
@@ -1476,16 +1492,18 @@ export default function FeeManagementERP() {
                 <div className="border-b pb-3">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-medium text-gray-900">Admission Fee</p>
+                      <p className="font-medium text-foreground">
+                        Admission Fee
+                      </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-foreground">
                         ₹
                         {selectedRecord.feeStructure?.components?.admissionFee?.toLocaleString() ||
                           '0'}
                       </p>
                       <span
-                        className={`text-xs px-2 py-1 rounded-full ${selectedRecord.payments?.some((p) => p.feeType === 'Admission Fee') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
+                        className={`text-xs px-2 py-1 rounded-full ${selectedRecord.payments?.some((p) => p.feeType === 'Admission Fee') ? 'bg-green-100 text-green-800' : 'bg-muted text-foreground'}`}
                       >
                         {selectedRecord.payments?.some(
                           (p) => p.feeType === 'Admission Fee',
@@ -1501,18 +1519,18 @@ export default function FeeManagementERP() {
                 <div className="border-b pb-3">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-foreground">
                         Registration Fee
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-foreground">
                         ₹
                         {selectedRecord.feeStructure?.components?.registrationFee?.toLocaleString() ||
                           '0'}
                       </p>
                       <span
-                        className={`text-xs px-2 py-1 rounded-full ${selectedRecord.payments?.some((p) => p.feeType === 'Registration Fee') ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}
+                        className={`text-xs px-2 py-1 rounded-full ${selectedRecord.payments?.some((p) => p.feeType === 'Registration Fee') ? 'bg-green-100 text-green-800' : 'bg-muted text-foreground'}`}
                       >
                         {selectedRecord.payments?.some(
                           (p) => p.feeType === 'Registration Fee',
@@ -1528,12 +1546,12 @@ export default function FeeManagementERP() {
                 <div className="border-b pb-3">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-foreground">
                         Tuition Fees (Annual)
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-foreground">
                         ₹
                         {selectedRecord.feeStructure?.components?.tuitionFees?.toLocaleString() ||
                           '0'}
@@ -1546,10 +1564,10 @@ export default function FeeManagementERP() {
                 <div className="border-b pb-3">
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-medium text-gray-900">Exam Fees</p>
+                      <p className="font-medium text-foreground">Exam Fees</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-foreground">
                         ₹
                         {selectedRecord.feeStructure?.components?.examFees?.toLocaleString() ||
                           '0'}
@@ -1562,10 +1580,10 @@ export default function FeeManagementERP() {
                 <div>
                   <div className="flex justify-between items-center">
                     <div>
-                      <p className="font-medium text-gray-900">Other Fees</p>
+                      <p className="font-medium text-foreground">Other Fees</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-gray-900">
+                      <p className="font-semibold text-foreground">
                         ₹
                         {selectedRecord.feeStructure?.components?.otherFees?.toLocaleString() ||
                           '0'}
@@ -1578,7 +1596,7 @@ export default function FeeManagementERP() {
 
             {/* Payment History */}
             <div className="mb-6">
-              <h3 className="font-semibold text-lg text-gray-900 mb-3">
+              <h3 className="font-semibold text-lg text-foreground mb-3">
                 Payment History
               </h3>
               {selectedRecord.payments.length > 0 ? (
@@ -1590,7 +1608,7 @@ export default function FeeManagementERP() {
                           <p className="font-semibold text-green-600">
                             ₹{payment.amount.toLocaleString()}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-muted-foreground">
                             {payment.date}
                             {payment.month ? ` - ${payment.month}` : ''}
                           </p>
@@ -1599,19 +1617,19 @@ export default function FeeManagementERP() {
                           <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded font-medium">
                             {payment.feeType}
                           </span>
-                          <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">
+                          <span className="px-2 py-1 bg-muted text-foreground text-xs rounded">
                             {payment.method}
                           </span>
                         </div>
                       </div>
-                      <p className="text-sm text-gray-700 font-medium">
+                      <p className="text-sm text-muted-foreground font-medium">
                         {payment.description}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted-foreground">
                         Receipt: {payment.receiptNumber}
                       </p>
                       {payment.remarks && (
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                           Remarks: {payment.remarks}
                         </p>
                       )}
@@ -1639,7 +1657,7 @@ export default function FeeManagementERP() {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 text-center py-4">
+                <p className="text-muted-foreground text-center py-4">
                   No payments recorded yet
                 </p>
               )}
@@ -1647,7 +1665,7 @@ export default function FeeManagementERP() {
 
             <button
               onClick={() => setShowDetailsModal(false)}
-              className="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
+              className="w-full bg-muted text-foreground px-4 py-2 rounded-md hover:bg-muted font-medium"
             >
               Close
             </button>
@@ -1660,7 +1678,7 @@ export default function FeeManagementERP() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg p-8 max-w-4xl w-full my-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
+              <h2 className="text-2xl font-bold text-foreground">
                 Fee Structure - Academic Year {selectedYear}
               </h2>
               <button
@@ -1672,7 +1690,7 @@ export default function FeeManagementERP() {
             </div>
 
             {feeStructures.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
+              <div className="text-center py-12 text-muted-foreground">
                 <p className="text-lg mb-2">No fee structures found</p>
                 <p className="text-sm">
                   Click &quot;Create New&quot; to add a fee structure
@@ -1683,10 +1701,10 @@ export default function FeeManagementERP() {
             {feeStructures.map((structure) => (
               <div
                 key={structure.id}
-                className="mb-6 border border-gray-200 rounded-lg p-4"
+                className="mb-6 border border-border rounded-lg p-4"
               >
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-foreground">
                     {structure.className}
                   </h3>
                   <div className="flex items-center gap-3">
@@ -1775,14 +1793,14 @@ export default function FeeManagementERP() {
       {showEditFeeStructureModal && editingStructure && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg p-8 max-w-2xl w-full my-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-6">
               Edit Fee Structure - {editingStructure.className}
             </h2>
 
             <div className="space-y-6">
               {/* Admission Fee */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Admission Fee
                 </label>
                 <input
@@ -1798,14 +1816,14 @@ export default function FeeManagementERP() {
                     };
                     setEditingStructure(newStructure);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                   placeholder="Enter admission fee"
                 />
               </div>
 
               {/* Registration Fee */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Registration Fee
                 </label>
                 <input
@@ -1821,14 +1839,14 @@ export default function FeeManagementERP() {
                     };
                     setEditingStructure(newStructure);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                   placeholder="Enter registration fee"
                 />
               </div>
 
               {/* Tuition Fees */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Tuition Fees (Annual)
                 </label>
                 <input
@@ -1844,14 +1862,14 @@ export default function FeeManagementERP() {
                     };
                     setEditingStructure(newStructure);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                   placeholder="Enter annual tuition fee"
                 />
               </div>
 
               {/* Exam Fees */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Exam Fees
                 </label>
                 <input
@@ -1867,14 +1885,14 @@ export default function FeeManagementERP() {
                     };
                     setEditingStructure(newStructure);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                   placeholder="Enter exam fees"
                 />
               </div>
 
               {/* Other Fees */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Other Fees
                 </label>
                 <input
@@ -1890,7 +1908,7 @@ export default function FeeManagementERP() {
                     };
                     setEditingStructure(newStructure);
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                   placeholder="Enter other fees"
                 />
               </div>
@@ -1898,7 +1916,7 @@ export default function FeeManagementERP() {
               {/* Total Calculation */}
               <div className="bg-indigo-50 rounded-lg p-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-gray-900">
+                  <span className="text-lg font-semibold text-foreground">
                     New Total Amount:
                   </span>
                   <span className="text-2xl font-bold text-indigo-600">
@@ -2023,7 +2041,7 @@ export default function FeeManagementERP() {
                   setShowEditFeeStructureModal(false);
                   setEditingStructure(null);
                 }}
-                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
+                className="flex-1 bg-muted text-foreground px-4 py-2 rounded-md hover:bg-muted font-medium"
               >
                 Cancel
               </button>
@@ -2036,14 +2054,14 @@ export default function FeeManagementERP() {
       {showCreateFeeStructureModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg p-8 max-w-2xl w-full my-8 max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-6">
               Create New Fee Structure
             </h2>
 
             <div className="space-y-6">
               {/* Class Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Select Class *
                 </label>
                 <select
@@ -2054,7 +2072,7 @@ export default function FeeManagementERP() {
                       className: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Choose a class...</option>
                   {classes
@@ -2072,7 +2090,7 @@ export default function FeeManagementERP() {
 
               {/* Admission Fee */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Admission Fee (₹)
                 </label>
                 <input
@@ -2084,13 +2102,13 @@ export default function FeeManagementERP() {
                       admissionFee: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               {/* Registration Fee */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Registration Fee (₹)
                 </label>
                 <input
@@ -2102,13 +2120,13 @@ export default function FeeManagementERP() {
                       registrationFee: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               {/* Tuition Fees */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Total Tuition Fees (₹) - Annual
                 </label>
                 <input
@@ -2120,9 +2138,9 @@ export default function FeeManagementERP() {
                       tuitionFees: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Monthly: ₹
                   {(createFeeStructureData.tuitionFees / 12).toFixed(2)}
                 </p>
@@ -2130,7 +2148,7 @@ export default function FeeManagementERP() {
 
               {/* Exam Fees */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Total Exam Fees (₹)
                 </label>
                 <input
@@ -2142,13 +2160,13 @@ export default function FeeManagementERP() {
                       examFees: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               {/* Other Fees */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Other Fees (₹)
                 </label>
                 <input
@@ -2160,7 +2178,7 @@ export default function FeeManagementERP() {
                       otherFees: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
@@ -2188,7 +2206,7 @@ export default function FeeManagementERP() {
               <button
                 onClick={handleCreateFeeStructure}
                 disabled={!createFeeStructureData.className}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-medium disabled:bg-muted disabled:cursor-not-allowed"
               >
                 Create Fee Structure
               </button>
@@ -2204,7 +2222,7 @@ export default function FeeManagementERP() {
                     otherFees: 0,
                   });
                 }}
-                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
+                className="flex-1 bg-muted text-foreground px-4 py-2 rounded-md hover:bg-muted font-medium"
               >
                 Cancel
               </button>
@@ -2217,32 +2235,32 @@ export default function FeeManagementERP() {
       {showAssignFeeModal && selectedRecord && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-6">
               Assign Fee to Student
             </h2>
 
             <div className="mb-4">
-              <p className="text-sm text-gray-600">Student Name</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-sm text-muted-foreground">Student Name</p>
+              <p className="text-lg font-semibold text-foreground">
                 {selectedRecord.studentName}
               </p>
             </div>
 
             <div className="mb-4">
-              <p className="text-sm text-gray-600">Class</p>
-              <p className="text-lg font-semibold text-gray-900">
+              <p className="text-sm text-muted-foreground">Class</p>
+              <p className="text-lg font-semibold text-foreground">
                 {selectedRecord.class}
               </p>
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Select Fee Structure <span className="text-red-500">*</span>
               </label>
               <select
                 value={selectedFeeStructureId}
                 onChange={(e) => setSelectedFeeStructureId(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
               >
                 <option value="">Select a fee structure...</option>
                 {feeStructures
@@ -2321,7 +2339,7 @@ export default function FeeManagementERP() {
                   }
                 }}
                 disabled={!selectedFeeStructureId}
-                className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium disabled:bg-muted disabled:cursor-not-allowed"
               >
                 Assign Fee
               </button>
@@ -2330,7 +2348,7 @@ export default function FeeManagementERP() {
                   setShowAssignFeeModal(false);
                   setSelectedFeeStructureId('');
                 }}
-                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
+                className="flex-1 bg-muted text-foreground px-4 py-2 rounded-md hover:bg-muted font-medium"
               >
                 Cancel
               </button>
@@ -2343,13 +2361,13 @@ export default function FeeManagementERP() {
       {showEditPaymentModal && editingPayment && selectedRecord && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            <h2 className="text-2xl font-bold text-foreground mb-6">
               Edit Payment
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Amount (₹) <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -2361,12 +2379,12 @@ export default function FeeManagementERP() {
                       amount: parseFloat(e.target.value) || 0,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Date <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -2379,12 +2397,12 @@ export default function FeeManagementERP() {
                     })
                   }
                   placeholder="DD/MM/YYYY"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Receipt Number <span className="text-red-500">*</span>
                 </label>
                 <input
@@ -2396,12 +2414,12 @@ export default function FeeManagementERP() {
                       receiptNumber: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Payment Method
                 </label>
                 <select
@@ -2412,7 +2430,7 @@ export default function FeeManagementERP() {
                       method: e.target.value as Payment['method'],
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                 >
                   <option value="Cash">Cash</option>
                   <option value="Online">Online</option>
@@ -2423,7 +2441,7 @@ export default function FeeManagementERP() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Description
                 </label>
                 <input
@@ -2435,12 +2453,12 @@ export default function FeeManagementERP() {
                       description: e.target.value,
                     })
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Month (Optional)
                 </label>
                 <input
@@ -2453,12 +2471,12 @@ export default function FeeManagementERP() {
                     })
                   }
                   placeholder="e.g., January 2025"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Remarks
                 </label>
                 <textarea
@@ -2470,7 +2488,7 @@ export default function FeeManagementERP() {
                     })
                   }
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 bg-white"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
                 />
               </div>
             </div>
@@ -2516,7 +2534,7 @@ export default function FeeManagementERP() {
                   setShowEditPaymentModal(false);
                   setEditingPayment(null);
                 }}
-                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
+                className="flex-1 bg-muted text-foreground px-4 py-2 rounded-md hover:bg-muted font-medium"
               >
                 Cancel
               </button>
@@ -2529,10 +2547,10 @@ export default function FeeManagementERP() {
       {showDeletePaymentModal && editingPayment && selectedRecord && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-8 max-w-md w-full">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl font-bold text-foreground mb-4">
               Delete Payment
             </h2>
-            <p className="text-gray-700 mb-6">
+            <p className="text-muted-foreground mb-6">
               Are you sure you want to delete this payment of{' '}
               <strong>₹{editingPayment.amount.toLocaleString()}</strong>? This
               action cannot be undone.
@@ -2570,7 +2588,7 @@ export default function FeeManagementERP() {
                   setShowDeletePaymentModal(false);
                   setEditingPayment(null);
                 }}
-                className="flex-1 bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 font-medium"
+                className="flex-1 bg-muted text-foreground px-4 py-2 rounded-md hover:bg-muted font-medium"
               >
                 Cancel
               </button>

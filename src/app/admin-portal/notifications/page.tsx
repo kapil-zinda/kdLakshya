@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ApiService } from '@/services/api';
 
 interface Notification {
@@ -214,15 +215,15 @@ export default function NotificationManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link
                 href="/dashboard"
-                className="text-gray-500 hover:text-gray-700 mr-4"
+                className="text-muted-foreground hover:text-foreground mr-4"
               >
                 <svg
                   className="w-6 h-6"
@@ -238,29 +239,32 @@ export default function NotificationManagement() {
                   />
                 </svg>
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 Notification Management
               </h1>
             </div>
-            <button
-              onClick={() => setShowForm(true)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
-            >
-              <svg
-                className="w-4 h-4 mr-2"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="flex items-center space-x-2">
+              <ThemeToggle />
+              <button
+                onClick={() => setShowForm(true)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium flex items-center"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              Create Notification
-            </button>
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Create Notification
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -269,17 +273,17 @@ export default function NotificationManagement() {
         {/* Form Modal */}
         {showForm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto">
-              <div className="px-6 py-4 border-b border-gray-200">
+            <div className="bg-card rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto">
+              <div className="px-6 py-4 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-foreground">
                     {editingNotification
                       ? 'Edit Notification'
                       : 'Create New Notification'}
                   </h3>
                   <button
                     onClick={resetForm}
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-muted-foreground hover:text-foreground"
                   >
                     <svg
                       className="w-6 h-6"
@@ -299,13 +303,13 @@ export default function NotificationManagement() {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Title
                   </label>
                   <input
                     type="text"
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     value={formData.title}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -316,13 +320,13 @@ export default function NotificationManagement() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Content
                   </label>
                   <textarea
                     required
                     rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     value={formData.content}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -333,12 +337,12 @@ export default function NotificationManagement() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Image URL
                   </label>
                   <input
                     type="url"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     value={formData.image}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -350,11 +354,11 @@ export default function NotificationManagement() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-muted-foreground mb-1">
                     Category
                   </label>
                   <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     value={formData.category}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -384,9 +388,9 @@ export default function NotificationManagement() {
                           isNew: e.target.checked,
                         }))
                       }
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="rounded border-border text-indigo-600 focus:ring-indigo-500"
                     />
-                    <span className="ml-2 text-sm text-gray-700">
+                    <span className="ml-2 text-sm text-muted-foreground">
                       Mark as New
                     </span>
                   </label>
@@ -400,16 +404,18 @@ export default function NotificationManagement() {
                           isActive: e.target.checked,
                         }))
                       }
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="rounded border-border text-indigo-600 focus:ring-indigo-500"
                     />
-                    <span className="ml-2 text-sm text-gray-700">Active</span>
+                    <span className="ml-2 text-sm text-muted-foreground">
+                      Active
+                    </span>
                   </label>
                 </div>
                 <div className="flex justify-end space-x-3 pt-4">
                   <button
                     type="button"
                     onClick={resetForm}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                    className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
                   >
                     Cancel
                   </button>
@@ -430,7 +436,9 @@ export default function NotificationManagement() {
           <div className="flex items-center justify-center py-12">
             <div className="flex flex-col items-center space-y-4">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-              <p className="text-gray-600">Loading notifications from API...</p>
+              <p className="text-muted-foreground">
+                Loading notifications from API...
+              </p>
             </div>
           </div>
         ) : (
@@ -440,7 +448,7 @@ export default function NotificationManagement() {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`bg-white rounded-lg shadow-sm border p-6 ${!notification.isActive ? 'opacity-60' : ''}`}
+                  className={`bg-card rounded-lg shadow-sm border border-border p-6 ${!notification.isActive ? 'opacity-60' : ''}`}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -460,16 +468,16 @@ export default function NotificationManagement() {
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
                             notification.isActive
                               ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
+                              : 'bg-muted text-muted-foreground'
                           }`}
                         >
                           {notification.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
                         {notification.title}
                       </h3>
-                      <p className="text-gray-600 text-sm">
+                      <p className="text-muted-foreground text-sm">
                         {notification.content}
                       </p>
                     </div>
@@ -479,7 +487,7 @@ export default function NotificationManagement() {
                         className={`p-2 rounded-md ${
                           notification.isActive
                             ? 'text-green-600 hover:bg-green-50'
-                            : 'text-gray-400 hover:bg-gray-50'
+                            : 'text-muted-foreground hover:bg-muted/50'
                         }`}
                         title={
                           notification.isActive ? 'Deactivate' : 'Activate'
@@ -546,7 +554,7 @@ export default function NotificationManagement() {
             {notifications.length === 0 && (
               <div className="text-center py-12">
                 <svg
-                  className="w-16 h-16 mx-auto text-gray-400 mb-4"
+                  className="w-16 h-16 mx-auto text-muted-foreground mb-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -558,10 +566,10 @@ export default function NotificationManagement() {
                     d="M15 17h5l-5 5v-5zm-5-8h5m-5-4h5m-1 8h-4m4-4h-4m-2-4v16l8-8-8-8z"
                   />
                 </svg>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="text-lg font-medium text-foreground mb-2">
                   No notifications from API
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-muted-foreground mb-4">
                   No notifications found in the API endpoint.
                 </p>
                 <button

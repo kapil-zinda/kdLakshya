@@ -303,7 +303,9 @@ const StudentAttendance: React.FC = () => {
       {/* UI Controls - Hidden during print */}
       <div className="no-print">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">Attendance Report</h2>
+          <h2 className="text-2xl font-bold text-foreground">
+            Attendance Report
+          </h2>
           <div className="flex items-center gap-4">
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
               <SelectTrigger className="w-[200px]">
@@ -326,7 +328,7 @@ const StudentAttendance: React.FC = () => {
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
           </div>
         )}
 
@@ -349,32 +351,48 @@ const StudentAttendance: React.FC = () => {
           <div className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Attendance Summary */}
-              <div className="bg-gray-800 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold mb-4">
+              <div className="bg-card border border-border p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-foreground mb-4">
                   Attendance Summary
                 </h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-700 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium mb-1">Total Days</h4>
-                    <p className="text-2xl font-bold">{monthData.totalDays}</p>
+                  <div className="bg-muted p-4 rounded-lg">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                      Total Days
+                    </h4>
+                    <p className="text-2xl font-bold text-foreground">
+                      {monthData.totalDays}
+                    </p>
                   </div>
-                  <div className="bg-gray-700 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium mb-1">Present Days</h4>
-                    <p className="text-2xl font-bold">
+                  <div className="bg-muted p-4 rounded-lg">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                      Present Days
+                    </h4>
+                    <p className="text-2xl font-bold text-foreground">
                       {monthData.presentDays}
                     </p>
                   </div>
-                  <div className="bg-gray-700 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium mb-1">Absent Days</h4>
-                    <p className="text-2xl font-bold">{monthData.absentDays}</p>
+                  <div className="bg-muted p-4 rounded-lg">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                      Absent Days
+                    </h4>
+                    <p className="text-2xl font-bold text-foreground">
+                      {monthData.absentDays}
+                    </p>
                   </div>
-                  <div className="bg-gray-700 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium mb-1">Late Days</h4>
-                    <p className="text-2xl font-bold">{monthData.lateDays}</p>
+                  <div className="bg-muted p-4 rounded-lg">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                      Late Days
+                    </h4>
+                    <p className="text-2xl font-bold text-foreground">
+                      {monthData.lateDays}
+                    </p>
                   </div>
-                  <div className="bg-gray-700 p-4 rounded-lg">
-                    <h4 className="text-sm font-medium mb-1">Holiday Days</h4>
-                    <p className="text-2xl font-bold">
+                  <div className="bg-muted p-4 rounded-lg">
+                    <h4 className="text-sm font-medium text-muted-foreground mb-1">
+                      Holiday Days
+                    </h4>
+                    <p className="text-2xl font-bold text-foreground">
                       {monthData.holidayDays}
                     </p>
                   </div>
@@ -382,8 +400,8 @@ const StudentAttendance: React.FC = () => {
               </div>
 
               {/* Attendance Chart */}
-              <div className="bg-gray-800 p-6 rounded-lg">
-                <h3 className="text-xl font-semibold mb-4">
+              <div className="bg-card border border-border p-6 rounded-lg">
+                <h3 className="text-xl font-semibold text-foreground mb-4">
                   Attendance Distribution
                 </h3>
                 <div className="relative">
@@ -412,7 +430,7 @@ const StudentAttendance: React.FC = () => {
                   </ResponsiveContainer>
 
                   {/* Legend at bottom right */}
-                  <div className="absolute bottom-4 right-4 bg-gray-900/80 backdrop-blur-sm p-3 rounded-lg space-y-2">
+                  <div className="absolute bottom-4 right-4 bg-card/90 border border-border backdrop-blur-sm p-3 rounded-lg space-y-2">
                     {pieChartData.map((entry, index) => (
                       <div
                         key={index}
@@ -422,7 +440,7 @@ const StudentAttendance: React.FC = () => {
                           className="w-3 h-3 rounded-full"
                           style={{ backgroundColor: entry.color }}
                         ></div>
-                        <span className="text-white">
+                        <span className="text-foreground">
                           {entry.name}: {entry.value}
                         </span>
                       </div>
@@ -433,16 +451,32 @@ const StudentAttendance: React.FC = () => {
             </div>
 
             {/* Calendar View */}
-            <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-4">Calendar View</h3>
+            <div className="bg-card border border-border p-6 rounded-lg">
+              <h3 className="text-xl font-semibold text-foreground mb-4">
+                Calendar View
+              </h3>
               <div className="grid grid-cols-7 gap-2">
-                <div className="text-center font-medium p-2">Sun</div>
-                <div className="text-center font-medium p-2">Mon</div>
-                <div className="text-center font-medium p-2">Tue</div>
-                <div className="text-center font-medium p-2">Wed</div>
-                <div className="text-center font-medium p-2">Thu</div>
-                <div className="text-center font-medium p-2">Fri</div>
-                <div className="text-center font-medium p-2">Sat</div>
+                <div className="text-center font-medium text-foreground p-2">
+                  Sun
+                </div>
+                <div className="text-center font-medium text-foreground p-2">
+                  Mon
+                </div>
+                <div className="text-center font-medium text-foreground p-2">
+                  Tue
+                </div>
+                <div className="text-center font-medium text-foreground p-2">
+                  Wed
+                </div>
+                <div className="text-center font-medium text-foreground p-2">
+                  Thu
+                </div>
+                <div className="text-center font-medium text-foreground p-2">
+                  Fri
+                </div>
+                <div className="text-center font-medium text-foreground p-2">
+                  Sat
+                </div>
 
                 {/* Empty cells for alignment */}
                 {Array.from({
@@ -470,26 +504,28 @@ const StudentAttendance: React.FC = () => {
               <div className="mt-4 flex flex-wrap gap-4">
                 <div className="flex items-center">
                   <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
-                  <span>Present</span>
+                  <span className="text-foreground">Present</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
-                  <span>Absent</span>
+                  <span className="text-foreground">Absent</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-4 h-4 bg-yellow-500 rounded-full mr-2"></div>
-                  <span>Late</span>
+                  <span className="text-foreground">Late</span>
                 </div>
                 <div className="flex items-center">
                   <div className="w-4 h-4 bg-gray-500 rounded-full mr-2"></div>
-                  <span>Holiday</span>
+                  <span className="text-foreground">Holiday</span>
                 </div>
               </div>
             </div>
 
             {/* Daily Status */}
-            <div className="bg-gray-800 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-4">Daily Status</h3>
+            <div className="bg-card border border-border p-6 rounded-lg">
+              <h3 className="text-xl font-semibold text-foreground mb-4">
+                Daily Status
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                 {monthData.dailyStatus.map((day) => {
                   const date = new Date(day.date);
@@ -498,25 +534,27 @@ const StudentAttendance: React.FC = () => {
                       key={day.date}
                       className={`p-3 rounded-lg flex justify-between items-center ${
                         day.status === 'present'
-                          ? 'bg-green-900'
+                          ? 'bg-green-500/20 border border-green-500/30'
                           : day.status === 'absent'
-                            ? 'bg-red-900'
+                            ? 'bg-red-500/20 border border-red-500/30'
                             : day.status === 'late'
-                              ? 'bg-yellow-900'
-                              : 'bg-gray-700'
+                              ? 'bg-yellow-500/20 border border-yellow-500/30'
+                              : 'bg-muted border border-border'
                       }`}
                     >
                       <div>
-                        <div className="font-medium">
+                        <div className="font-medium text-foreground">
                           {date.toLocaleDateString('en-US', {
                             weekday: 'short',
                             month: 'short',
                             day: 'numeric',
                           })}
                         </div>
-                        <div className="text-xs opacity-80">{day.day}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {day.day}
+                        </div>
                       </div>
-                      <div className="text-sm font-medium capitalize">
+                      <div className="text-sm font-medium text-foreground capitalize">
                         {day.status}
                       </div>
                     </div>

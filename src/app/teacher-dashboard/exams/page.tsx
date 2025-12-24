@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ApiService } from '@/services/api';
 import { toast } from 'react-toastify';
 
@@ -283,25 +284,25 @@ function ExamsContent({ userData }: { userData: UserData }) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading exams...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading exams...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-background shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link
                 href="/teacher-dashboard"
-                className="mr-4 text-gray-600 hover:text-gray-900"
+                className="mr-4 text-muted-foreground hover:text-foreground"
               >
                 <svg
                   className="w-6 h-6"
@@ -317,12 +318,15 @@ function ExamsContent({ userData }: { userData: UserData }) {
                   />
                 </svg>
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 Exams & Results
               </h1>
             </div>
-            <div className="text-sm text-gray-500">
-              {userData.firstName} {userData.lastName}
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-muted-foreground">
+                {userData.firstName} {userData.lastName}
+              </div>
+              <ThemeToggle />
             </div>
           </div>
         </div>
@@ -331,16 +335,16 @@ function ExamsContent({ userData }: { userData: UserData }) {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Your Exams</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className="text-2xl font-bold text-foreground">Your Exams</h2>
+          <p className="text-muted-foreground mt-1">
             Click on an exam to view your assigned subjects and enter marks
           </p>
         </div>
 
         {exams.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+          <div className="bg-card border border-border rounded-lg shadow-sm p-12 text-center">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -352,10 +356,10 @@ function ExamsContent({ userData }: { userData: UserData }) {
                 d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
               />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <h3 className="mt-2 text-sm font-medium text-foreground">
               No exams available
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               You don&apos;t have any exams assigned yet.
             </p>
           </div>
@@ -365,30 +369,30 @@ function ExamsContent({ userData }: { userData: UserData }) {
               <div
                 key={exam.id}
                 onClick={() => handleExamClick(exam)}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-lg hover:border-blue-300 transition-all cursor-pointer"
+                className="bg-card border border-border rounded-lg shadow-sm hover:shadow-lg hover:border-primary/50 transition-all cursor-pointer"
               >
                 <div className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900">
+                      <h3 className="text-lg font-bold text-foreground">
                         {exam.exam_name}
                       </h3>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         {exam.class_name}
                       </p>
                       {exam.academic_year && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           {exam.academic_year}
                         </p>
                       )}
                     </div>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 border border-blue-500/30 text-foreground">
                       {exam.subjects.length} Subjects
                     </span>
                   </div>
 
                   <div className="mt-4">
-                    <div className="flex items-center text-sm text-gray-500">
+                    <div className="flex items-center text-sm text-muted-foreground">
                       <svg
                         className="w-4 h-4 mr-1"
                         fill="none"
@@ -410,27 +414,27 @@ function ExamsContent({ userData }: { userData: UserData }) {
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <p className="text-xs font-semibold text-gray-700 mb-2">
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2">
                       Subjects:
                     </p>
                     <div className="space-y-1">
                       {exam.subjects.slice(0, 3).map((subject, idx) => (
                         <div key={idx} className="flex items-center">
-                          <span className="text-sm text-gray-600">
+                          <span className="text-sm text-foreground">
                             • {subject.subject_name || `Subject ${idx + 1}`}
                           </span>
                         </div>
                       ))}
                       {exam.subjects.length > 3 && (
-                        <p className="text-xs text-gray-500 italic">
+                        <p className="text-xs text-muted-foreground italic">
                           +{exam.subjects.length - 3} more
                         </p>
                       )}
                     </div>
                   </div>
 
-                  <div className="mt-4 flex items-center text-blue-600 text-sm font-medium">
+                  <div className="mt-4 flex items-center text-primary text-sm font-medium">
                     Click to view details
                     <svg
                       className="w-4 h-4 ml-1"
@@ -455,10 +459,10 @@ function ExamsContent({ userData }: { userData: UserData }) {
 
       {/* Exam Details Modal */}
       {showExamModal && selectedExam && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-indigo-600">
+            <div className="px-6 py-4 border-b border-border bg-gradient-to-r from-blue-600 to-indigo-600">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-white">
@@ -496,10 +500,10 @@ function ExamsContent({ userData }: { userData: UserData }) {
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="mb-4">
-                <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                <h4 className="text-lg font-semibold text-foreground mb-2">
                   Your Assigned Subjects
                 </h4>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Click on a subject to enter marks for students
                 </p>
               </div>
@@ -508,14 +512,14 @@ function ExamsContent({ userData }: { userData: UserData }) {
                 {teacherSubjects.map((subject, idx) => (
                   <div
                     key={idx}
-                    className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-4 hover:border-blue-400 transition-colors"
+                    className="bg-blue-500/10 border-2 border-blue-500/30 rounded-lg p-4 hover:border-blue-500/50 transition-colors"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
-                        <h5 className="text-base font-bold text-gray-900">
+                        <h5 className="text-base font-bold text-foreground">
                           {subject.subject_name}
                         </h5>
-                        <div className="mt-2 flex items-center space-x-4 text-sm text-gray-600">
+                        <div className="mt-2 flex items-center space-x-4 text-sm text-muted-foreground">
                           <span className="flex items-center">
                             <svg
                               className="w-4 h-4 mr-1"
@@ -590,7 +594,7 @@ function ExamsContent({ userData }: { userData: UserData }) {
               {teacherSubjects.length === 0 && (
                 <div className="text-center py-12">
                   <svg
-                    className="mx-auto h-12 w-12 text-gray-400"
+                    className="mx-auto h-12 w-12 text-muted-foreground"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -602,10 +606,10 @@ function ExamsContent({ userData }: { userData: UserData }) {
                       d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                     />
                   </svg>
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  <h3 className="mt-2 text-sm font-medium text-foreground">
                     No subjects assigned
                   </h3>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-muted-foreground">
                     You are not assigned to any subjects in this exam.
                   </p>
                 </div>
@@ -613,7 +617,7 @@ function ExamsContent({ userData }: { userData: UserData }) {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div className="px-6 py-4 border-t border-border bg-muted">
               <div className="flex justify-end">
                 <button
                   onClick={() => {
@@ -621,7 +625,7 @@ function ExamsContent({ userData }: { userData: UserData }) {
                     setSelectedExam(null);
                     setTeacherSubjects([]);
                   }}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                  className="px-4 py-2 bg-accent hover:bg-accent/80 text-foreground rounded-md transition-colors"
                 >
                   Close
                 </button>
@@ -633,10 +637,10 @@ function ExamsContent({ userData }: { userData: UserData }) {
 
       {/* Marks Entry Modal */}
       {showMarksModal && selectedExam && selectedSubject && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-600 to-teal-600">
+            <div className="px-6 py-4 border-b border-border bg-gradient-to-r from-green-600 to-teal-600">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-white">
@@ -674,30 +678,33 @@ function ExamsContent({ userData }: { userData: UserData }) {
             {/* Modal Body */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Roll No.
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Student Name
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Marks Obtained
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Action
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="divide-y divide-border">
                     {students.map((student) => (
-                      <tr key={student.student_id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <tr
+                        key={student.student_id}
+                        className="hover:bg-muted/50"
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                           {student.roll_number}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                           {student.student_name}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -712,10 +719,10 @@ function ExamsContent({ userData }: { userData: UserData }) {
                                 parseFloat(e.target.value),
                               )
                             }
-                            className="w-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                            className="w-24 px-3 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-foreground"
                             placeholder="0"
                           />
-                          <span className="ml-2 text-sm text-gray-500">
+                          <span className="ml-2 text-sm text-muted-foreground">
                             / {selectedSubject.max_marks}
                           </span>
                         </td>
@@ -725,7 +732,7 @@ function ExamsContent({ userData }: { userData: UserData }) {
                             disabled={
                               editingMarks[student.student_id] === undefined
                             }
-                            className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                            className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-colors"
                           >
                             Save
                           </button>
@@ -738,7 +745,7 @@ function ExamsContent({ userData }: { userData: UserData }) {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div className="px-6 py-4 border-t border-border bg-muted">
               <div className="flex justify-between">
                 <button
                   onClick={() => {
@@ -746,7 +753,7 @@ function ExamsContent({ userData }: { userData: UserData }) {
                     setSelectedSubject(null);
                     setEditingMarks({});
                   }}
-                  className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+                  className="px-4 py-2 bg-accent hover:bg-accent/80 text-foreground rounded-md transition-colors"
                 >
                   Back to Subjects
                 </button>

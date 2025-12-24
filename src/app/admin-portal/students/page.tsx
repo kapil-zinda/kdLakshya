@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import {
   useGetClassesQuery,
@@ -436,15 +437,15 @@ export default function StudentManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link
                 href="/dashboard"
-                className="text-gray-500 hover:text-gray-700 mr-4"
+                className="text-muted-foreground hover:text-foreground mr-4"
               >
                 <svg
                   className="w-6 h-6"
@@ -460,11 +461,12 @@ export default function StudentManagement() {
                   />
                 </svg>
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 Student Management
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <button
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors"
@@ -484,7 +486,7 @@ export default function StudentManagement() {
                 </svg>
                 Add New Student
               </button>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-muted-foreground">
                 Total Students: {filteredStudents.length}
               </div>
             </div>
@@ -497,7 +499,7 @@ export default function StudentManagement() {
         <div className="mb-6 space-y-4">
           {/* Class Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Filter by Class
             </label>
             <div className="flex flex-wrap gap-2">
@@ -508,7 +510,7 @@ export default function StudentManagement() {
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                     selectedClass === cls
                       ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-muted text-foreground hover:bg-accent'
                   }`}
                 >
                   {cls}
@@ -519,13 +521,13 @@ export default function StudentManagement() {
 
           {/* Search */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Search Students
             </label>
             <input
               type="text"
               placeholder="Search by name, roll number, or father's name..."
-              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full max-w-md px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -563,29 +565,29 @@ export default function StudentManagement() {
 
         {/* Students Table */}
         <div
-          className={`bg-white shadow-sm rounded-lg border border-gray-200 transition-opacity duration-200 ${filterLoading ? 'opacity-50' : 'opacity-100'}`}
+          className={`bg-card shadow-sm rounded-lg border border-border transition-opacity duration-200 ${filterLoading ? 'opacity-50' : 'opacity-100'}`}
         >
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Student Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Phone Number
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {filteredStudents.map((student) => (
-                  <tr key={student.id} className="hover:bg-gray-50">
+                  <tr key={student.id} className="hover:bg-muted/50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <img
@@ -594,22 +596,22 @@ export default function StudentManagement() {
                           className="w-10 h-10 rounded-full object-cover mr-3"
                         />
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-foreground">
                             {student.firstName} {student.lastName}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-muted-foreground">
                             {student.guardianInfo.fatherName}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-foreground">
                         {student.phone}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-foreground">
                         {student.email}
                       </div>
                     </td>
@@ -637,7 +639,7 @@ export default function StudentManagement() {
         {filteredStudents.length === 0 && (
           <div className="text-center py-12">
             <svg
-              className="w-16 h-16 mx-auto text-gray-400 mb-4"
+              className="w-16 h-16 mx-auto text-muted-foreground mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -649,10 +651,10 @@ export default function StudentManagement() {
                 d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
               />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-foreground mb-2">
               No students found
             </h3>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Try adjusting your filters or search terms.
             </p>
           </div>
@@ -661,9 +663,9 @@ export default function StudentManagement() {
         {/* Student Details Modal */}
         {selectedStudent && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div className="bg-card rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
               {/* Modal Header */}
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center">
                   <img
                     src={selectedStudent.photo}
@@ -671,10 +673,10 @@ export default function StudentManagement() {
                     className="w-16 h-16 rounded-full object-cover mr-4"
                   />
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900">
+                    <h3 className="text-xl font-semibold text-foreground">
                       {selectedStudent.name}
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {selectedStudent.class}-{selectedStudent.section} | Roll:{' '}
                       {selectedStudent.rollNumber}
                     </p>
@@ -682,7 +684,7 @@ export default function StudentManagement() {
                 </div>
                 <button
                   onClick={() => setSelectedStudent(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
                     className="w-6 h-6"
@@ -706,69 +708,69 @@ export default function StudentManagement() {
                   {/* Personal Information */}
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Personal Information
                       </h4>
                       <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               First Name
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedStudent.firstName}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Last Name
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedStudent.lastName}
                             </p>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Date of Birth
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedStudent.dateOfBirth}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Gender
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedStudent.gender || 'Not specified'}
                             </p>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Email
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedStudent.email}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Phone
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedStudent.phone}
                             </p>
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Admission Date
                           </label>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-sm text-foreground">
                             {selectedStudent.admissionDate}
                           </p>
                         </div>
@@ -776,49 +778,49 @@ export default function StudentManagement() {
                     </div>
 
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Family Details
                       </h4>
                       <div className="space-y-3">
                         <div>
-                          <label className="text-sm font-medium text-gray-500">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Father&apos;s Name
                           </label>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-sm text-foreground">
                             {selectedStudent.guardianInfo.fatherName}
                           </p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Mother&apos;s Name
                           </label>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-sm text-foreground">
                             {selectedStudent.guardianInfo.motherName}
                           </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Guardian Phone
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedStudent.guardianInfo.phone}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Guardian Email
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedStudent.guardianInfo.email}
                             </p>
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Address
                           </label>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-sm text-foreground">
                             {selectedStudent.guardianInfo.address}
                           </p>
                         </div>
@@ -829,10 +831,10 @@ export default function StudentManagement() {
               </div>
 
               {/* Modal Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <div className="px-6 py-4 border-t border-border flex justify-end space-x-3">
                 <button
                   onClick={() => setSelectedStudent(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
                 >
                   Close
                 </button>
@@ -850,9 +852,9 @@ export default function StudentManagement() {
         {/* Edit Student Modal */}
         {editingStudent && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div className="bg-card rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
               {/* Edit Modal Header */}
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center">
                   <img
                     src={editFormData.photo || editingStudent.photo}
@@ -860,17 +862,17 @@ export default function StudentManagement() {
                     className="w-16 h-16 rounded-full object-cover mr-4"
                   />
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900">
+                    <h3 className="text-xl font-semibold text-foreground">
                       Edit Student Details
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {editFormData.name || editingStudent.name}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={handleCancelEdit}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
                     className="w-6 h-6"
@@ -894,13 +896,13 @@ export default function StudentManagement() {
                   {/* Personal Information */}
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Personal Information
                       </h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               First Name <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -909,12 +911,12 @@ export default function StudentManagement() {
                               onChange={(e) =>
                                 updateFormField('firstName', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                               placeholder="Enter first name"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Last Name <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -923,14 +925,14 @@ export default function StudentManagement() {
                               onChange={(e) =>
                                 updateFormField('lastName', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                               placeholder="Enter last name"
                             />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Date of Birth{' '}
                               <span className="text-red-500">*</span>
                             </label>
@@ -940,11 +942,11 @@ export default function StudentManagement() {
                               onChange={(e) =>
                                 updateFormField('dateOfBirth', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Gender
                             </label>
                             <select
@@ -952,7 +954,7 @@ export default function StudentManagement() {
                               onChange={(e) =>
                                 updateFormField('gender', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             >
                               <option value="Male">Male</option>
                               <option value="Female">Female</option>
@@ -961,7 +963,7 @@ export default function StudentManagement() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Email <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -970,12 +972,12 @@ export default function StudentManagement() {
                               onChange={(e) =>
                                 updateFormField('email', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                               placeholder="Enter email address"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Phone <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -984,13 +986,13 @@ export default function StudentManagement() {
                               onChange={(e) =>
                                 updateFormField('phone', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                               placeholder="Enter phone number"
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Profile Photo URL
                           </label>
                           <input
@@ -999,7 +1001,7 @@ export default function StudentManagement() {
                             onChange={(e) =>
                               updateFormField('profile', e.target.value)
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="https://example.com/photo.jpg"
                           />
                         </div>
@@ -1010,12 +1012,12 @@ export default function StudentManagement() {
                   {/* Guardian Information */}
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Guardian Information
                       </h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Father&apos;s Name{' '}
                             <span className="text-red-500">*</span>
                           </label>
@@ -1029,12 +1031,12 @@ export default function StudentManagement() {
                                 e.target.value,
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="Enter father's name"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Mother&apos;s Name{' '}
                             <span className="text-red-500">*</span>
                           </label>
@@ -1048,12 +1050,12 @@ export default function StudentManagement() {
                                 e.target.value,
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="Enter mother's name"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Guardian Phone{' '}
                             <span className="text-red-500">*</span>
                           </label>
@@ -1067,12 +1069,12 @@ export default function StudentManagement() {
                                 e.target.value,
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="Enter guardian phone number"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Guardian Email{' '}
                             <span className="text-red-500">*</span>
                           </label>
@@ -1086,12 +1088,12 @@ export default function StudentManagement() {
                                 e.target.value,
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="Enter guardian email address"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Address <span className="text-red-500">*</span>
                           </label>
                           <textarea
@@ -1104,7 +1106,7 @@ export default function StudentManagement() {
                               )
                             }
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="Enter home address"
                           />
                         </div>
@@ -1115,10 +1117,10 @@ export default function StudentManagement() {
               </div>
 
               {/* Edit Modal Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <div className="px-6 py-4 border-t border-border flex justify-end space-x-3">
                 <button
                   onClick={handleCancelEdit}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
                 >
                   Cancel
                 </button>
@@ -1136,20 +1138,20 @@ export default function StudentManagement() {
         {/* Add Student Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div className="bg-card rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
               {/* Add Modal Header */}
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900">
+                  <h3 className="text-xl font-semibold text-foreground">
                     Add New Student
                   </h3>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     Fill in the student details below
                   </p>
                 </div>
                 <button
                   onClick={handleCancelAdd}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
                     className="w-6 h-6"
@@ -1173,13 +1175,13 @@ export default function StudentManagement() {
                   {/* Personal Information */}
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Personal Information
                       </h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               First Name <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -1191,12 +1193,12 @@ export default function StudentManagement() {
                                   firstName: e.target.value,
                                 }))
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                               placeholder="Enter first name"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Last Name <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -1208,14 +1210,14 @@ export default function StudentManagement() {
                                   lastName: e.target.value,
                                 }))
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                               placeholder="Enter last name"
                             />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Date of Birth{' '}
                               <span className="text-red-500">*</span>
                             </label>
@@ -1228,11 +1230,11 @@ export default function StudentManagement() {
                                   dob: e.target.value,
                                 }))
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Gender
                             </label>
                             <select
@@ -1243,7 +1245,7 @@ export default function StudentManagement() {
                                   gender: e.target.value,
                                 }))
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             >
                               <option value="Male">Male</option>
                               <option value="Female">Female</option>
@@ -1252,7 +1254,7 @@ export default function StudentManagement() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Email <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -1264,12 +1266,12 @@ export default function StudentManagement() {
                                   email: e.target.value,
                                 }))
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                               placeholder="Enter email address"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Phone <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -1281,13 +1283,13 @@ export default function StudentManagement() {
                                   phone: e.target.value,
                                 }))
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                               placeholder="Enter phone number"
                             />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Profile Photo URL
                           </label>
                           <input
@@ -1299,7 +1301,7 @@ export default function StudentManagement() {
                                 profile: e.target.value,
                               }))
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="https://example.com/photo.jpg"
                           />
                         </div>
@@ -1310,12 +1312,12 @@ export default function StudentManagement() {
                   {/* Guardian Information */}
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Guardian Information
                       </h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Father&apos;s Name{' '}
                             <span className="text-red-500">*</span>
                           </label>
@@ -1331,12 +1333,12 @@ export default function StudentManagement() {
                                 },
                               }))
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="Enter father's name"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Mother&apos;s Name{' '}
                             <span className="text-red-500">*</span>
                           </label>
@@ -1352,12 +1354,12 @@ export default function StudentManagement() {
                                 },
                               }))
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="Enter mother's name"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Guardian Phone{' '}
                             <span className="text-red-500">*</span>
                           </label>
@@ -1373,12 +1375,12 @@ export default function StudentManagement() {
                                 },
                               }))
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="Enter guardian phone number"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Guardian Email{' '}
                             <span className="text-red-500">*</span>
                           </label>
@@ -1394,12 +1396,12 @@ export default function StudentManagement() {
                                 },
                               }))
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="Enter guardian email address"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Address <span className="text-red-500">*</span>
                           </label>
                           <textarea
@@ -1414,7 +1416,7 @@ export default function StudentManagement() {
                               }))
                             }
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                             placeholder="Enter home address"
                           />
                         </div>
@@ -1425,10 +1427,10 @@ export default function StudentManagement() {
               </div>
 
               {/* Add Modal Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <div className="px-6 py-4 border-t border-border flex justify-end space-x-3">
                 <button
                   onClick={handleCancelAdd}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
                 >
                   Cancel
                 </button>
