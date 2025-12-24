@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
 
 interface Notification {
@@ -40,13 +41,20 @@ export default function NotificationManagement() {
     isActive: true,
   });
   const router = useRouter();
+  const { userData } = useUserDataRedux();
 
   const loadNotifications = async () => {
     try {
       setLoading(true);
 
-      // Get organization ID using the cached method
-      const orgId = await ApiService.getCurrentOrgId();
+      // Get organization ID from Redux
+      const orgId = userData?.orgId;
+      if (!orgId) {
+        console.error('Organization ID not found');
+        setNotifications([]);
+        setLoading(false);
+        return;
+      }
 
       // Get news/notifications
       const newsResponse = await ApiService.getNews(orgId);
@@ -102,7 +110,12 @@ export default function NotificationManagement() {
     setLoading(true);
 
     try {
-      const orgId = await ApiService.getCurrentOrgId();
+      const orgId = userData?.orgId;
+      if (!orgId) {
+        alert('Organization ID not found. Please refresh the page.');
+        setLoading(false);
+        return;
+      }
 
       if (editingNotification) {
         // Update existing notification
@@ -185,7 +198,11 @@ export default function NotificationManagement() {
   const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this notification?')) {
       try {
-        const orgId = await ApiService.getCurrentOrgId();
+        const orgId = userData?.orgId;
+        if (!orgId) {
+          alert('Organization ID not found. Please refresh the page.');
+          return;
+        }
         await ApiService.deleteNews(orgId, id);
         setNotifications((prev) => prev.filter((notif) => notif.id !== id));
       } catch (error) {
