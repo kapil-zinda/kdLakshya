@@ -104,26 +104,21 @@ export default function LoginPage() {
       const subdomainToFetch = hasSubdomain ? subdomain : 'default';
 
       try {
-        const BaseURL =
-          process.env.NEXT_PUBLIC_BaseURLAuth ||
-          'https://apis.testkdlakshya.uchhal.in/auth';
-        const apiUrl = `${BaseURL}/organizations/subdomain/${subdomainToFetch}`;
-
         console.log(
           '🌐 Fetching org_id from API for subdomain:',
           subdomainToFetch,
         );
-        console.log('📡 API URL:', apiUrl);
 
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/vnd.api+json',
-          },
-        });
+        try {
+          const { makeApiCall } = await import('@/utils/ApiRequest');
 
-        if (response.ok) {
-          const data = await response.json();
+          const data = await makeApiCall({
+            path: `/organizations/subdomain/${subdomainToFetch}`,
+            method: 'GET',
+            baseUrl: 'auth',
+            skipAuth: true, // No auth needed for org lookup
+          });
+
           console.log('📥 API Response:', data);
           const fetchedOrgId = data.data?.id || data.data?.attributes?.id;
 
@@ -140,12 +135,9 @@ export default function LoginPage() {
             localStorage.setItem('cachedSubdomain', subdomain);
             return;
           }
+        } catch (error) {
+          console.error('❌ Failed to fetch org_id from subdomain API:', error);
         }
-
-        console.error(
-          '❌ Failed to fetch org_id from subdomain API, response status:',
-          response.status,
-        );
         // Fallback to default if API fails
         const fallbackOrgId = '68d6b128d88f00c8b1b4a89a';
         setOrgId(fallbackOrgId);
@@ -200,180 +192,174 @@ export default function LoginPage() {
       });
 
       // Call external API directly
-      const BaseURL =
-        process.env.NEXT_PUBLIC_BaseURLAuth ||
-        'https://apis.testkdlakshya.uchhal.in/auth';
-      const apiUrl = `${BaseURL}/students/auth`;
+      console.log('📡 Calling student auth API');
 
-      console.log('📡 Calling student auth API at:', apiUrl);
+      try {
+        const { makeApiCall } = await import('@/utils/ApiRequest');
 
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/vnd.api+json',
-        },
-        body: JSON.stringify({
-          data: {
-            type: 'student_auth',
-            attributes: {
-              username: username,
-              password: password,
+        const data = await makeApiCall({
+          path: '/students/auth',
+          method: 'POST',
+          baseUrl: 'auth',
+          skipAuth: true, // No auth needed for login
+          payload: {
+            data: {
+              type: 'student_auth',
+              attributes: {
+                username: username,
+                password: password,
+              },
             },
           },
-        }),
-      });
-
-      const data = await response.json();
-      console.log('📥 Login response status:', response.status);
-      console.log('📥 Login response data:', JSON.stringify(data, null, 2));
-
-      if (!response.ok) {
-        const errorMessage =
-          data.errors?.[0]?.detail ||
-          data.errors?.[0]?.title ||
-          data.message ||
-          'Invalid credentials. Please try again.';
-        console.error('❌ Login failed:', errorMessage, data);
-        setError(errorMessage);
-        setIsLoading(false);
-        return;
-      }
-
-      if (data.data) {
-        // Store student authentication data
-        const attrs = data.data.attributes;
-        const basicAuthToken =
-          attrs.credentials?.basic_auth_token ||
-          attrs.basic_auth_token ||
-          btoa(`${username}:${password}`);
-
-        const studentAuthData = {
-          id: data.data.id,
-          studentId: attrs.student_id || data.data.id,
-          orgId: attrs.org_id,
-          firstName: attrs.first_name,
-          lastName: attrs.last_name,
-          email: attrs.email,
-          gradeLevel: attrs.grade_level,
-          rollNumber: attrs.roll_number,
-          phone: attrs.phone,
-          dateOfBirth: attrs.date_of_birth,
-          admissionDate: attrs.admission_date,
-          guardianInfo: attrs.guardian_info,
-          role: 'student',
-          basicAuthToken: basicAuthToken,
-          permissions: attrs.permissions || { role: 'student' },
-          authenticatedAt: attrs.authenticated_at || new Date().toISOString(),
-        };
-
-        console.log('💾 Storing student data:', studentAuthData);
-
-        // Store in localStorage
-        localStorage.setItem('studentAuth', JSON.stringify(studentAuthData));
-
-        // Also create a basic auth token entry for compatibility
-        localStorage.setItem(
-          'bearerToken',
-          JSON.stringify({
-            value: basicAuthToken,
-            expiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-          }),
-        );
-
-        // Check if we need to redirect back to original subdomain
-        const currentHost = window.location.host;
-        const currentSubdomain = currentHost.split('.')[0];
-        const isLocalhost = currentHost.includes('localhost');
-
-        // Get return subdomain from sessionStorage (stored when user clicked login from org subdomain)
-        const returnToSubdomain = sessionStorage.getItem(
-          'loginOriginSubdomain',
-        );
-
-        console.log('🔄 Post-student-login redirect check:', {
-          currentHost,
-          currentSubdomain,
-          returnToSubdomain,
-          isLocalhost,
         });
 
-        // If we're on 'auth' subdomain, redirect to appropriate org subdomain
-        if (currentSubdomain === 'auth') {
-          // Try to get return subdomain from sessionStorage first
-          let targetSubdomain = returnToSubdomain;
+        console.log('📥 Login response data:', JSON.stringify(data, null, 2));
 
-          // If no return subdomain, try to fetch student's org subdomain from API
-          if (!targetSubdomain || targetSubdomain === 'auth') {
-            console.log(
-              '🔍 No return subdomain found, fetching org subdomain from API...',
-            );
-            try {
-              // Use ApiService to fetch organization data with student x-api-key auth
-              const orgData = await ApiService.getOrganizationById(
-                studentAuthData.orgId,
-                studentAuthData.basicAuthToken,
-                true, // isStudentAuth = true to use x-api-key header
-              );
-              targetSubdomain = orgData.data?.attributes?.subdomain;
+        if (data.data) {
+          // Store student authentication data
+          const attrs = data.data.attributes;
+          const basicAuthToken =
+            attrs.credentials?.basic_auth_token ||
+            attrs.basic_auth_token ||
+            btoa(`${username}:${password}`);
+
+          const studentAuthData = {
+            id: data.data.id,
+            studentId: attrs.student_id || data.data.id,
+            orgId: attrs.org_id,
+            firstName: attrs.first_name,
+            lastName: attrs.last_name,
+            email: attrs.email,
+            gradeLevel: attrs.grade_level,
+            rollNumber: attrs.roll_number,
+            phone: attrs.phone,
+            dateOfBirth: attrs.date_of_birth,
+            admissionDate: attrs.admission_date,
+            guardianInfo: attrs.guardian_info,
+            role: 'student',
+            basicAuthToken: basicAuthToken,
+            permissions: attrs.permissions || { role: 'student' },
+            authenticatedAt: attrs.authenticated_at || new Date().toISOString(),
+          };
+
+          console.log('💾 Storing student data:', studentAuthData);
+
+          // Store in localStorage
+          localStorage.setItem('studentAuth', JSON.stringify(studentAuthData));
+
+          // Also create a basic auth token entry for compatibility
+          localStorage.setItem(
+            'bearerToken',
+            JSON.stringify({
+              value: basicAuthToken,
+              expiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+            }),
+          );
+
+          // Check if we need to redirect back to original subdomain
+          const currentHost = window.location.host;
+          const currentSubdomain = currentHost.split('.')[0];
+          const isLocalhost = currentHost.includes('localhost');
+
+          // Get return subdomain from sessionStorage (stored when user clicked login from org subdomain)
+          const returnToSubdomain = sessionStorage.getItem(
+            'loginOriginSubdomain',
+          );
+
+          console.log('🔄 Post-student-login redirect check:', {
+            currentHost,
+            currentSubdomain,
+            returnToSubdomain,
+            isLocalhost,
+          });
+
+          // If we're on 'auth' subdomain, redirect to appropriate org subdomain
+          if (currentSubdomain === 'auth') {
+            // Try to get return subdomain from sessionStorage first
+            let targetSubdomain = returnToSubdomain;
+
+            // If no return subdomain, try to fetch student's org subdomain from API
+            if (!targetSubdomain || targetSubdomain === 'auth') {
               console.log(
-                '✅ Fetched org subdomain from API:',
+                '🔍 No return subdomain found, fetching org subdomain from API...',
+              );
+              try {
+                // Use ApiService to fetch organization data with student x-api-key auth
+                const orgData = await ApiService.getOrganizationById(
+                  studentAuthData.orgId,
+                  studentAuthData.basicAuthToken,
+                  true, // isStudentAuth = true to use x-api-key header
+                );
+                targetSubdomain = orgData.data?.attributes?.subdomain;
+                console.log(
+                  '✅ Fetched org subdomain from API:',
+                  targetSubdomain,
+                );
+              } catch (error) {
+                console.error('❌ Error fetching org subdomain:', error);
+              }
+            }
+
+            // If we have a target subdomain, redirect there
+            if (targetSubdomain && targetSubdomain !== 'auth') {
+              console.log(
+                '↩️ Student authenticated on auth subdomain, redirecting to org:',
                 targetSubdomain,
               );
-            } catch (error) {
-              console.error('❌ Error fetching org subdomain:', error);
-            }
-          }
 
-          // If we have a target subdomain, redirect there
-          if (targetSubdomain && targetSubdomain !== 'auth') {
-            console.log(
-              '↩️ Student authenticated on auth subdomain, redirecting to org:',
-              targetSubdomain,
-            );
-
-            // Encode student auth data to pass it to the org subdomain via URL hash
-            const encodedAuthData = encodeURIComponent(
-              JSON.stringify(studentAuthData),
-            );
-
-            if (isLocalhost) {
-              const port = currentHost.split(':')[1] || '3000';
-              // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
-              const redirectUrl = `http://${targetSubdomain}.localhost:${port}/#student_auth=${encodedAuthData}`;
-              console.log('🔗 Student redirect URL (dev):', redirectUrl);
-              console.log(
-                '📦 Passing student auth data via URL hash for cross-subdomain auth',
+              // Encode student auth data to pass it to the org subdomain via URL hash
+              const encodedAuthData = encodeURIComponent(
+                JSON.stringify(studentAuthData),
               );
-              window.location.href = redirectUrl;
+
+              if (isLocalhost) {
+                const port = currentHost.split(':')[1] || '3000';
+                // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
+                const redirectUrl = `http://${targetSubdomain}.localhost:${port}/#student_auth=${encodedAuthData}`;
+                console.log('🔗 Student redirect URL (dev):', redirectUrl);
+                console.log(
+                  '📦 Passing student auth data via URL hash for cross-subdomain auth',
+                );
+                window.location.href = redirectUrl;
+              } else {
+                const domain = currentHost.split('.').slice(1).join('.');
+                // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
+                const redirectUrl = `https://${targetSubdomain}.${domain}/#student_auth=${encodedAuthData}`;
+                console.log('🔗 Student redirect URL (prod):', redirectUrl);
+                console.log(
+                  '📦 Passing student auth data via URL hash for cross-subdomain auth',
+                );
+                window.location.href = redirectUrl;
+              }
+              sessionStorage.removeItem('loginOriginSubdomain');
             } else {
-              const domain = currentHost.split('.').slice(1).join('.');
-              // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
-              const redirectUrl = `https://${targetSubdomain}.${domain}/#student_auth=${encodedAuthData}`;
-              console.log('🔗 Student redirect URL (prod):', redirectUrl);
+              // No org subdomain found, stay on auth subdomain dashboard
               console.log(
-                '📦 Passing student auth data via URL hash for cross-subdomain auth',
+                '⚠️ No org subdomain available, redirecting to dashboard on auth subdomain',
               );
-              window.location.href = redirectUrl;
+              router.push('/dashboard');
             }
-            sessionStorage.removeItem('loginOriginSubdomain');
           } else {
-            // No org subdomain found, stay on auth subdomain dashboard
+            // Normal redirect to dashboard on same subdomain
             console.log(
-              '⚠️ No org subdomain available, redirecting to dashboard on auth subdomain',
+              '✅ Student login successful, redirecting to dashboard on same subdomain',
             );
             router.push('/dashboard');
           }
         } else {
-          // Normal redirect to dashboard on same subdomain
-          console.log(
-            '✅ Student login successful, redirecting to dashboard on same subdomain',
+          setError(
+            'Invalid credentials. Please check your username and date of birth.',
           );
-          router.push('/dashboard');
+          setIsLoading(false);
         }
-      } else {
-        setError(
-          'Invalid credentials. Please check your username and date of birth.',
-        );
+      } catch (apiError: any) {
+        console.error('❌ API call failed:', apiError);
+        // Handle API errors
+        const errorMessage =
+          apiError.response?.data?.errors?.[0]?.detail ||
+          apiError.response?.data?.errors?.[0]?.title ||
+          'Invalid credentials. Please try again.';
+        setError(errorMessage);
         setIsLoading(false);
       }
     } catch (error) {

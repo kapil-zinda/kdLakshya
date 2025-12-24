@@ -45,14 +45,11 @@ export default function TeacherManagement() {
   const orgId = userData?.orgId;
 
   // RTK Query hooks for data fetching
-  const {
-    data: facultyResponse,
-    isLoading: facultyLoading,
-    refetch,
-  } = useGetFacultyQuery(orgId!, {
-    skip: !orgId,
-    refetchOnMountOrArgChange: true, // Always fetch fresh data on mount
-  });
+  const { data: facultyResponse, isLoading: facultyLoading } =
+    useGetFacultyQuery(orgId!, {
+      skip: !orgId,
+      // Removed refetchOnMountOrArgChange to use RTK Query caching
+    });
   const { data: classesResponse, isLoading: classesLoading } =
     useGetClassesQuery(orgId!, {
       skip: !orgId,

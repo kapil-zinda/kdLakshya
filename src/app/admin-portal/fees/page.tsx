@@ -5,8 +5,10 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
+import { useGetClassesQuery } from '@/store/api/classApi';
+import { makeApiCall } from '@/utils/ApiRequest';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { ApiService } from '@/services/api';
 
 // Types
 type FeeType =
@@ -88,6 +90,16 @@ const mapFeeType = (apiType: string): FeeType => {
 };
 
 export default function FeeManagementERP() {
+  // Get orgId from Redux
+  const { userData } = useUserDataRedux();
+  const orgId = userData?.orgId;
+
+  // Fetch classes using RTK Query
+  const { data: classesResponse, isLoading: classesLoading } =
+    useGetClassesQuery(orgId!, {
+      skip: !orgId,
+    });
+
   // View mode
   const [viewMode, setViewMode] = useState<'student' | 'class' | 'month'>(
     'student',
@@ -195,15 +207,19 @@ export default function FeeManagementERP() {
     }
 
     loadFeeData();
-  }, [router, selectedYear]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, selectedYear, orgId, classesResponse]);
 
   const loadFeeData = async () => {
     try {
       setLoading(true);
-      const orgId = await ApiService.getCurrentOrgId();
 
-      // Fetch classes
-      const classesResponse = await ApiService.getClasses(orgId);
+      if (!orgId || !classesResponse) {
+        console.log('⏳ Waiting for orgId or classes data...');
+        return;
+      }
+
+      // Use classes from RTK Query
       const classNames = classesResponse.data.map(
         (classData) => `${classData.attributes.class}`,
       );
@@ -217,8 +233,11 @@ export default function FeeManagementERP() {
       setClasses(['Select Class', ...classNames]);
 
       // Fetch fee structures from API
-      const feeStructuresResponse = await ApiService.getFeeStructures(orgId, {
-        academic_year: selectedYear,
+      const queryString = `?academic_year=${encodeURIComponent(selectedYear)}`;
+      const feeStructuresResponse = await makeApiCall({
+        path: `/class/${orgId}/fee-structures${queryString}`,
+        method: 'GET',
+        baseUrl: 'default',
       }).catch(() => ({ data: [] }));
 
       // Don't fetch fees for all classes - let handleClassSelection do it per class
@@ -295,20 +314,23 @@ export default function FeeManagementERP() {
 
     try {
       setFilterLoading(true);
-      const orgId = await ApiService.getCurrentOrgId();
 
       // Fetch students for the selected class
       console.log(
         `🔵 Fetching fee records for class: ${className} (ID: ${classId})`,
       );
-      const classStudentsResponse = await ApiService.getClassStudents(
-        orgId,
-        classId,
-      );
+      const classStudentsResponse = await makeApiCall({
+        path: `/class/${orgId}/classes/${classId}/students`,
+        method: 'GET',
+        baseUrl: 'default',
+      });
 
       // Fetch fees for the selected class
-      const classFeesResponse = await ApiService.getClassFees(orgId, classId, {
-        academic_year: selectedYear,
+      const feeQueryString = `?academic_year=${encodeURIComponent(selectedYear)}`;
+      const classFeesResponse = await makeApiCall({
+        path: `/class/${orgId}/classes/${classId}/fees${feeQueryString}`,
+        method: 'GET',
+        baseUrl: 'default',
       }).catch(() => ({ data: [] }));
 
       // Find the fee structure for this class
@@ -482,7 +504,7 @@ export default function FeeManagementERP() {
     if (!selectedRecord || !paymentData.amount) return;
 
     try {
-      const orgId = await ApiService.getCurrentOrgId();
+      // orgId already available from useUserDataRedux
 
       // We need the fee_id to record payment
       const feeId = selectedRecord.id;
@@ -509,7 +531,16 @@ export default function FeeManagementERP() {
       };
 
       // Call API to record payment
-      await ApiService.recordPayment(orgId, feeId, paymentApiData);
+      await makeApiCall({
+        path: `/class/${orgId}/fees/${feeId}/payments`,
+        method: 'POST',
+        baseUrl: 'default',
+        payload: {
+          data: {
+            attributes: paymentApiData,
+          },
+        },
+      });
 
       alert(
         `Payment of ₹${paymentData.amount} recorded successfully for ${selectedRecord.studentName}`,
@@ -537,7 +568,7 @@ export default function FeeManagementERP() {
       }
 
       setLoading(true);
-      const orgId = await ApiService.getCurrentOrgId();
+      // orgId already available from useUserDataRedux
       const classId = classIdMap.get(createFeeStructureData.className);
 
       if (!classId) {
@@ -546,15 +577,24 @@ export default function FeeManagementERP() {
         return;
       }
 
-      await ApiService.createFeeStructure(orgId, classId, {
-        class_name: createFeeStructureData.className,
-        academic_year: selectedYear,
-        components: {
-          admission_fee: createFeeStructureData.admissionFee,
-          registration_fee: createFeeStructureData.registrationFee,
-          tuition_fees: createFeeStructureData.tuitionFees,
-          exam_fees: createFeeStructureData.examFees,
-          other_fees: createFeeStructureData.otherFees,
+      await makeApiCall({
+        path: `/class/${orgId}/classes/${classId}/fee-structures`,
+        method: 'POST',
+        baseUrl: 'default',
+        payload: {
+          data: {
+            attributes: {
+              class_name: createFeeStructureData.className,
+              academic_year: selectedYear,
+              components: {
+                admission_fee: createFeeStructureData.admissionFee,
+                registration_fee: createFeeStructureData.registrationFee,
+                tuition_fees: createFeeStructureData.tuitionFees,
+                exam_fees: createFeeStructureData.examFees,
+                other_fees: createFeeStructureData.otherFees,
+              },
+            },
+          },
         },
       });
 
@@ -594,8 +634,12 @@ export default function FeeManagementERP() {
 
     try {
       setLoading(true);
-      const orgId = await ApiService.getCurrentOrgId();
-      await ApiService.deleteFeeStructure(orgId, structureId);
+      // orgId already available from useUserDataRedux
+      await makeApiCall({
+        path: `/class/${orgId}/fee-structures/${structureId}`,
+        method: 'DELETE',
+        baseUrl: 'default',
+      });
 
       alert('Fee structure deleted successfully!');
 
@@ -626,6 +670,18 @@ export default function FeeManagementERP() {
           <p className="mt-4 text-muted-foreground">
             Loading fee management system...
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state while classes are being fetched
+  if (classesLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+          <p className="text-gray-600">Loading fee management...</p>
         </div>
       </div>
     );
@@ -1024,16 +1080,14 @@ export default function FeeManagementERP() {
                               onClick={async () => {
                                 try {
                                   // Fetch student fees from API
-                                  const orgId =
-                                    await ApiService.getCurrentOrgId();
-                                  const studentFeesResponse =
-                                    await ApiService.getStudentFees(
-                                      orgId,
-                                      record.studentId,
-                                      {
-                                        academic_year: selectedYear,
-                                      },
-                                    );
+                                  const feeQueryStr = `?academic_year=${encodeURIComponent(selectedYear)}`;
+                                  const studentFeesResponse = await makeApiCall(
+                                    {
+                                      path: `/class/${orgId}/students/${record.studentId}/fees${feeQueryStr}`,
+                                      method: 'GET',
+                                      baseUrl: 'default',
+                                    },
+                                  );
 
                                   // Update the record with fresh data from API
                                   const updatedRecord = { ...record };
@@ -1947,7 +2001,7 @@ export default function FeeManagementERP() {
                       editingStructure.components.otherFees;
 
                     // Get orgId and classId
-                    const orgId = await ApiService.getCurrentOrgId();
+                    // orgId already available from useUserDataRedux
                     const classId =
                       classIdMap.get(editingStructure.className) ||
                       editingStructure.className
@@ -1970,17 +2024,27 @@ export default function FeeManagementERP() {
 
                     // Call API to update fee structure
                     if (editingStructure.id.startsWith('struct-')) {
-                      await ApiService.createFeeStructure(
-                        orgId,
-                        classId,
-                        feeStructureData,
-                      );
+                      await makeApiCall({
+                        path: `/class/${orgId}/classes/${classId}/fee-structures`,
+                        method: 'POST',
+                        baseUrl: 'default',
+                        payload: {
+                          data: {
+                            attributes: feeStructureData,
+                          },
+                        },
+                      });
                     } else {
-                      await ApiService.updateFeeStructure(
-                        orgId,
-                        editingStructure.id,
-                        feeStructureData,
-                      );
+                      await makeApiCall({
+                        path: `/class/${orgId}/fee-structures/${editingStructure.id}`,
+                        method: 'PATCH',
+                        baseUrl: 'default',
+                        payload: {
+                          data: {
+                            attributes: feeStructureData,
+                          },
+                        },
+                      });
                     }
                     alert('Fee structure updated successfully!');
 
@@ -2284,7 +2348,7 @@ export default function FeeManagementERP() {
                       return;
                     }
 
-                    const orgId = await ApiService.getCurrentOrgId();
+                    // orgId already available from useUserDataRedux
                     const classId = classIdMap.get(selectedRecord.class);
 
                     if (!classId) {
@@ -2320,12 +2384,16 @@ export default function FeeManagementERP() {
                     };
 
                     // Call API to assign fee
-                    await ApiService.createStudentFee(
-                      orgId,
-                      classId,
-                      selectedRecord.studentId,
-                      feeData,
-                    );
+                    await makeApiCall({
+                      path: `/class/${orgId}/classes/${classId}/students/${selectedRecord.studentId}/fees`,
+                      method: 'POST',
+                      baseUrl: 'default',
+                      payload: {
+                        data: {
+                          attributes: feeData,
+                        },
+                      },
+                    });
 
                     alert('Fee assigned successfully!');
                     setShowAssignFeeModal(false);
@@ -2497,22 +2565,27 @@ export default function FeeManagementERP() {
               <button
                 onClick={async () => {
                   try {
-                    const orgId = await ApiService.getCurrentOrgId();
+                    // orgId already available from useUserDataRedux
+                    const feeId = selectedRecord.id.replace('unassigned-', '');
 
-                    await ApiService.updatePayment(
-                      orgId,
-                      selectedRecord.id.replace('unassigned-', ''),
-                      editingPayment.id,
-                      {
-                        amount: editingPayment.amount,
-                        date: editingPayment.date,
-                        receipt_number: editingPayment.receiptNumber,
-                        method: editingPayment.method,
-                        description: editingPayment.description,
-                        month: editingPayment.month,
-                        remarks: editingPayment.remarks,
+                    await makeApiCall({
+                      path: `/class/${orgId}/fees/${feeId}/payments/${editingPayment.id}`,
+                      method: 'PATCH',
+                      baseUrl: 'default',
+                      payload: {
+                        data: {
+                          attributes: {
+                            amount: editingPayment.amount,
+                            date: editingPayment.date,
+                            receipt_number: editingPayment.receiptNumber,
+                            method: editingPayment.method,
+                            description: editingPayment.description,
+                            month: editingPayment.month,
+                            remarks: editingPayment.remarks,
+                          },
+                        },
                       },
-                    );
+                    });
 
                     alert('Payment updated successfully!');
                     setShowEditPaymentModal(false);
@@ -2560,13 +2633,14 @@ export default function FeeManagementERP() {
               <button
                 onClick={async () => {
                   try {
-                    const orgId = await ApiService.getCurrentOrgId();
+                    // orgId already available from useUserDataRedux
+                    const feeId = selectedRecord.id.replace('unassigned-', '');
 
-                    await ApiService.deletePayment(
-                      orgId,
-                      selectedRecord.id.replace('unassigned-', ''),
-                      editingPayment.id,
-                    );
+                    await makeApiCall({
+                      path: `/class/${orgId}/fees/${feeId}/payments/${editingPayment.id}`,
+                      method: 'DELETE',
+                      baseUrl: 'default',
+                    });
 
                     alert('Payment deleted successfully!');
                     setShowDeletePaymentModal(false);
