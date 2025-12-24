@@ -18,7 +18,7 @@ const API_CONFIG = {
 // Base query with automatic token injection
 const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: API_CONFIG.EXTERNAL_API,
-  timeout: 30000, // 30s timeout for Lambda cold starts
+  timeout: 60000, // 60s timeout increased to prevent timeout errors
   prepareHeaders: (headers, { getState }) => {
     // Get token from Redux store
     const token = (getState() as RootState).auth.token?.token;
@@ -28,7 +28,7 @@ const baseQueryWithAuth = fetchBaseQuery({
     }
 
     if (!headers.has('Content-Type')) {
-      headers.set('Content-Type', 'application/json');
+      headers.set('Content-Type', 'application/vnd.api+json');
     }
 
     return headers;
@@ -37,13 +37,35 @@ const baseQueryWithAuth = fetchBaseQuery({
 
 // Base query with retry logic for 500 errors (Lambda cold starts)
 const baseQueryWithRetry = async (args: any, api: any, extraOptions: any) => {
+  console.log('🔵 [RTK Query] Request:', args);
+
   let result = await baseQueryWithAuth(args, api, extraOptions);
 
+  if (result.error) {
+    console.error('🔴 [RTK Query] Error:', {
+      args,
+      error: result.error,
+      status: (result.error as any).status,
+      data: (result.error as any).data,
+    });
+  } else {
+    console.log('🟢 [RTK Query] Success:', {
+      args,
+      data: result.data,
+    });
+  }
+
   // Retry on 500 errors (Lambda cold start)
-  if (result.error && result.error.status === 500) {
+  if (result.error && (result.error as any).status === 500) {
     console.log('🔄 Retrying request due to 500 error (Lambda cold start)...');
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1s
     result = await baseQueryWithAuth(args, api, extraOptions);
+
+    if (result.error) {
+      console.error('🔴 [RTK Query] Retry failed:', result.error);
+    } else {
+      console.log('🟢 [RTK Query] Retry succeeded:', result.data);
+    }
   }
 
   return result;
@@ -53,8 +75,12 @@ const baseQueryWithRetry = async (args: any, api: any, extraOptions: any) => {
 export const baseApi = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithRetry,
-  // Default cache time: 60 seconds
-  keepUnusedDataFor: 60,
+  // Keep data for 5 minutes (300 seconds) - data persists in Redux store beyond this
+  keepUnusedDataFor: 300,
+  // Prevent automatic refetching on mount/focus/reconnect - only refetch when explicitly needed
+  refetchOnMountOrArgChange: false,
+  refetchOnFocus: false,
+  refetchOnReconnect: false,
   // Tag types for cache invalidation
   tagTypes: [
     'User',
@@ -112,7 +138,10 @@ const classQueryWithRetry = async (args: any, api: any, extraOptions: any) => {
 export const classApi = createApi({
   reducerPath: 'classApi',
   baseQuery: classQueryWithRetry,
-  keepUnusedDataFor: 30, // 30 seconds for classes
+  keepUnusedDataFor: 300, // 5 minutes for classes
+  refetchOnMountOrArgChange: false,
+  refetchOnFocus: false,
+  refetchOnReconnect: false,
   tagTypes: [
     'Classes',
     'ClassStudents',
@@ -141,7 +170,10 @@ export const workspaceApi = createApi({
       return headers;
     },
   }),
-  keepUnusedDataFor: 60,
+  keepUnusedDataFor: 300, // 5 minutes
+  refetchOnMountOrArgChange: false,
+  refetchOnFocus: false,
+  refetchOnReconnect: false,
   tagTypes: ['Files', 'S3'],
   endpoints: () => ({}),
 });

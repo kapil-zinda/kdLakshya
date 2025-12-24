@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 import Link from 'next/link';
 
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
 
 interface NotificationItem {
@@ -22,13 +23,20 @@ export default function NotificationsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedNotification, setSelectedNotification] =
     useState<NotificationItem | null>(null);
+  const { userData } = useUserDataRedux();
 
   const loadNotifications = async () => {
     try {
       setLoading(true);
 
-      // Get organization ID using the cached method
-      const orgId = await ApiService.getCurrentOrgId();
+      // Get organization ID from Redux
+      const orgId = userData?.orgId;
+      if (!orgId) {
+        console.error('Organization ID not found');
+        setAllNotifications([]);
+        setLoading(false);
+        return;
+      }
 
       // Then get news/notifications
       const newsResponse = await ApiService.getNews(orgId);

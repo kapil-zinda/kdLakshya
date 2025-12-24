@@ -1,22 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
 import { Button } from '@/components/ui/button';
-import {
-  ApiService,
-  transformApiDataToOrganizationConfig,
-} from '@/services/api';
-import { OrganizationConfig } from '@/types/organization';
-import { getSubdomain } from '@/utils/subdomainUtils';
+import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { Mail, MapPin, Phone } from 'lucide-react';
 
 export default function ContactPage() {
-  const [organizationData, setOrganizationData] =
-    useState<OrganizationConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { organizationData, loading } = useOrganizationData();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -24,24 +17,6 @@ export default function ContactPage() {
     subject: '',
     message: '',
   });
-
-  useEffect(() => {
-    const loadDataFromAPI = async () => {
-      try {
-        setLoading(true);
-        const subdomain = getSubdomain();
-        const apiData = await ApiService.fetchAllData(subdomain || 'auth');
-        const transformedData = transformApiDataToOrganizationConfig(apiData);
-        setOrganizationData(transformedData);
-      } catch (error) {
-        console.error('Failed to load API data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDataFromAPI();
-  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

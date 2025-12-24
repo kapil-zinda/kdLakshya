@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
 import {
   Cell,
@@ -91,6 +92,7 @@ const StudentFees: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [feeData, setFeeData] = useState<any>(null);
   const [studentData, setStudentData] = useState<any>(null);
+  const { userData } = useUserDataRedux();
 
   useEffect(() => {
     const fetchFeeData = async () => {
@@ -106,8 +108,13 @@ const StudentFees: React.FC = () => {
         const parsed = JSON.parse(storedStudentData);
         setStudentData(parsed);
 
-        // Get org ID and student ID
-        const orgId = await ApiService.getCurrentOrgId();
+        // Get org ID from Redux and student ID
+        const orgId = userData?.orgId;
+        if (!orgId) {
+          console.error('Organization ID not found');
+          setLoading(false);
+          return;
+        }
         const studentId = parsed.id;
 
         // Fetch student fees from API

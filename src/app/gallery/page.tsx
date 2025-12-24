@@ -1,15 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
-import {
-  ApiService,
-  transformApiDataToOrganizationConfig,
-} from '@/services/api';
-import { OrganizationConfig } from '@/types/organization';
-import { getSubdomain } from '@/utils/subdomainUtils';
+import { useOrganizationData } from '@/hooks/useOrganizationData';
 
 const galleryImages = [
   {
@@ -80,29 +75,9 @@ const categories = [
 ];
 
 export default function GalleryPage() {
-  const [organizationData, setOrganizationData] =
-    useState<OrganizationConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { organizationData, loading } = useOrganizationData();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedImage, setSelectedImage] = useState<any>(null);
-
-  useEffect(() => {
-    const loadDataFromAPI = async () => {
-      try {
-        setLoading(true);
-        const subdomain = getSubdomain();
-        const apiData = await ApiService.fetchAllData(subdomain || 'auth');
-        const transformedData = transformApiDataToOrganizationConfig(apiData);
-        setOrganizationData(transformedData);
-      } catch (error) {
-        console.error('Failed to load API data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadDataFromAPI();
-  }, []);
 
   if (loading) {
     return (

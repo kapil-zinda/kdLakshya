@@ -1,26 +1,16 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { useRouter } from 'next/navigation';
 
 import { OrganizationTemplate } from '@/components/template/OrganizationTemplate';
-import { useUserDataRedux } from '@/hooks/useUserDataRedux';
-import {
-  ApiService,
-  transformApiDataToOrganizationConfig,
-} from '@/services/api';
-import { OrganizationConfig } from '@/types/organization';
-import { getTargetSubdomain } from '@/utils/subdomainUtils';
+import { useOrganizationData } from '@/hooks/useOrganizationData';
 
 export default function Home() {
-  const [organizationData, setOrganizationData] =
-    useState<OrganizationConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { organizationData, loading } = useOrganizationData();
   const router = useRouter();
-  const { userData } = useUserDataRedux();
   const hasInitialized = useRef(false);
-  const isLoadingData = useRef(false);
 
   const handleAuth0Callback = async () => {
     try {
@@ -73,9 +63,6 @@ export default function Home() {
           '🔑 Found access token in URL hash, storing in localStorage',
         );
 
-        // Show loading state while processing authentication
-        setLoading(true);
-
         // Store token in localStorage with TTL
         localStorage.setItem(
           'bearerToken',
@@ -88,82 +75,73 @@ export default function Home() {
         // Fetch and cache user data before reload
         console.log('👤 Fetching and caching user data...');
         try {
-          const BaseURLAuth =
-            process.env.NEXT_PUBLIC_BaseURLAuth ||
-            'https://apis.testkdlakshya.uchhal.in/auth';
+          const { makeApiCall } = await import('@/utils/ApiRequest');
 
-          const response = await fetch(
-            `${BaseURLAuth}/users/me?include=permission`,
-            {
-              method: 'GET',
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                'Content-Type': 'application/vnd.api+json',
-              },
+          const data = await makeApiCall({
+            path: '/users/me?include=permission',
+            method: 'GET',
+            baseUrl: 'auth',
+            customAuthHeaders: {
+              Authorization: `Bearer ${accessToken}`,
             },
-          );
+          });
 
-          if (response.ok) {
-            const data = await response.json();
-            const userData = data.data;
+          const userData = data.data;
 
-            console.log('👤 Successfully fetched user data:', userData);
+          console.log('👤 Successfully fetched user data:', userData);
 
-            // Determine user role
-            let role = 'student';
-            if (userData.attributes && userData.attributes.role === 'faculty') {
-              role = 'teacher';
+          // Determine user role
+          let role = 'student';
+          if (userData.attributes && userData.attributes.role === 'faculty') {
+            role = 'teacher';
+          } else if (
+            userData.attributes &&
+            userData.attributes.type === 'faculty'
+          ) {
+            role = 'teacher';
+          } else if (userData.user_permissions) {
+            if (
+              userData.user_permissions['admin'] ||
+              userData.user_permissions['organization_admin'] ||
+              userData.user_permissions['org']
+            ) {
+              role = 'admin';
             } else if (
-              userData.attributes &&
-              userData.attributes.type === 'faculty'
+              userData.user_permissions['teacher'] ||
+              userData.user_permissions['instructor']
             ) {
               role = 'teacher';
-            } else if (userData.user_permissions) {
-              if (
-                userData.user_permissions['admin'] ||
-                userData.user_permissions['organization_admin'] ||
-                userData.user_permissions['org']
-              ) {
-                role = 'admin';
-              } else if (
-                userData.user_permissions['teacher'] ||
-                userData.user_permissions['instructor']
-              ) {
-                role = 'teacher';
-              }
             }
-
-            // Cache user data in localStorage
-            const processedUserData = {
-              id: userData.id,
-              email: userData.attributes.email,
-              firstName:
-                userData.attributes.first_name ||
-                userData.attributes.name?.split(' ')[0] ||
-                'User',
-              lastName:
-                userData.attributes.last_name ||
-                userData.attributes.name?.split(' ').slice(1).join(' ') ||
-                '',
-              role: role as 'admin' | 'teacher' | 'student',
-              permissions:
-                userData.attributes.permissions ||
-                userData.user_permissions ||
-                {},
-              orgId: userData.attributes.org_id || userData.attributes.org,
-              accessToken,
-              cacheTimestamp: Date.now(),
-              type: userData.attributes.type || userData.attributes.role,
-            };
-
-            localStorage.setItem(
-              'cachedUserData',
-              JSON.stringify(processedUserData),
-            );
-            console.log('💾 User data cached successfully');
-          } else {
-            console.error('❌ Failed to fetch user data:', response.status);
           }
+
+          // Cache user data in localStorage
+          const processedUserData = {
+            id: userData.id,
+            email: userData.attributes.email,
+            firstName:
+              userData.attributes.first_name ||
+              userData.attributes.name?.split(' ')[0] ||
+              'User',
+            lastName:
+              userData.attributes.last_name ||
+              userData.attributes.name?.split(' ').slice(1).join(' ') ||
+              '',
+            role: role as 'admin' | 'teacher' | 'student',
+            permissions:
+              userData.attributes.permissions ||
+              userData.user_permissions ||
+              {},
+            orgId: userData.attributes.org_id || userData.attributes.org,
+            accessToken,
+            cacheTimestamp: Date.now(),
+            type: userData.attributes.type || userData.attributes.role,
+          };
+
+          localStorage.setItem(
+            'cachedUserData',
+            JSON.stringify(processedUserData),
+          );
+          console.log('💾 User data cached successfully');
         } catch (userDataError) {
           console.error('❌ Error fetching user data:', userDataError);
         }
@@ -227,41 +205,6 @@ export default function Home() {
     return false;
   };
 
-  const loadDataFromAPI = async () => {
-    // Prevent concurrent API calls
-    if (isLoadingData.current) {
-      console.log('⏸️ Skipping API call - already loading');
-      return;
-    }
-
-    try {
-      isLoadingData.current = true;
-      setLoading(true);
-      console.log('Fetching data from APIs...');
-
-      // Get the correct subdomain to use
-      const targetSubdomain = await getTargetSubdomain(
-        userData?.orgId,
-        userData?.accessToken,
-      );
-
-      // Fetch all API data using the determined subdomain
-      const apiData = await ApiService.fetchAllData(targetSubdomain);
-      console.log('API Data received for subdomain:', targetSubdomain, apiData);
-
-      // Transform API data to OrganizationConfig format
-      const transformedData = transformApiDataToOrganizationConfig(apiData);
-      console.log('Transformed data:', transformedData);
-
-      setOrganizationData(transformedData);
-    } catch (error) {
-      console.error('Failed to load API data:', error);
-    } finally {
-      setLoading(false);
-      isLoadingData.current = false;
-    }
-  };
-
   useEffect(() => {
     // Prevent infinite loop - only run once on mount
     if (hasInitialized.current) {
@@ -286,27 +229,12 @@ export default function Home() {
         return;
       }
 
-      // Try to load data from API first
-      loadDataFromAPI();
+      // Organization data will be loaded by useOrganizationData hook
+      console.log('✅ Auth initialization complete');
     };
 
     initializeAuth();
   }, []); // Empty deps - run only once on mount
-
-  // Separate effect to reload data when userData changes (but don't redirect)
-  useEffect(() => {
-    if (
-      hasInitialized.current &&
-      userData?.orgId &&
-      !window.location.hash &&
-      !organizationData &&
-      !isLoadingData.current
-    ) {
-      console.log('📊 Loading data for orgId:', userData.orgId);
-      loadDataFromAPI();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData?.orgId]); // Only when orgId changes, not on every userData change
 
   if (loading) {
     return (

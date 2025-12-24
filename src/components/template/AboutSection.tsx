@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
 import { OrganizationConfig } from '@/types/organization';
 
@@ -30,6 +31,7 @@ export function AboutSection({
     }>
   >([]);
   const [loading, setLoading] = useState(false);
+  const { userData } = useUserDataRedux();
 
   // Helper function to truncate text if it exceeds 60 words
   const truncateText = (text: string, maxWords: number = 45): string => {
@@ -46,7 +48,12 @@ export function AboutSection({
 
     try {
       setLoading(true);
-      const orgId = await ApiService.getCurrentOrgId();
+      const orgId = userData?.orgId;
+      if (!orgId) {
+        console.error('Organization ID not found');
+        setLoading(false);
+        return;
+      }
       const newsResponse = await ApiService.getNews(orgId);
 
       // Transform API data to notification format

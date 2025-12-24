@@ -71,23 +71,18 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
         }
 
         const parsed = JSON.parse(tokenData);
-        const BaseURLAuth =
-          process.env.NEXT_PUBLIC_BaseURLAuth ||
-          'https://apis.testkdlakshya.uchhal.in/auth';
+        const { makeApiCall } = await import('@/utils/ApiRequest');
 
-        const response = await fetch(
-          `${BaseURLAuth}/users/me?include=permission`,
-          {
+        try {
+          const data = await makeApiCall({
+            path: '/users/me?include=permission',
             method: 'GET',
-            headers: {
+            baseUrl: 'auth',
+            customAuthHeaders: {
               Authorization: `Bearer ${parsed.value}`,
-              'Content-Type': 'application/vnd.api+json',
             },
-          },
-        );
+          });
 
-        if (response.ok) {
-          const data = await response.json();
           console.log('Teacher users/me response:', data);
 
           if (data.data) {
@@ -116,8 +111,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
             console.log('Updated teacher data from API:', updatedTeacherData);
             console.log('Profile photo URL:', updatedTeacherData.profilePhoto);
           }
-        } else {
-          console.error('Failed to fetch teacher profile:', response.status);
+        } catch (error) {
+          console.error('Failed to fetch teacher profile:', error);
         }
       } catch (error) {
         console.error('Error fetching teacher profile:', error);
@@ -156,36 +151,27 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
       const parsed = JSON.parse(tokenData);
 
       console.log('Getting S3 signed URL...');
-      const BaseURL =
-        process.env.NEXT_PUBLIC_BaseURL ||
-        'https://apis.testkdlakshya.uchhal.in';
+      const { makeApiCall } = await import('@/utils/ApiRequest');
 
-      const signedUrlResponse = await fetch(
-        `${BaseURL}/workspace/s3/signed-url`,
-        {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${parsed.value}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            type: 'upload',
-            id: teacherData.id,
-            attributes: {
-              title: 'profile_photo',
-              role: 'faculty',
-            },
-          }),
+      const signedData = await makeApiCall({
+        path: '/s3/signed-url',
+        method: 'POST',
+        baseUrl: 'workspace',
+        customAuthHeaders: {
+          Authorization: `Bearer ${parsed.value}`,
         },
-      );
-
-      if (!signedUrlResponse.ok) {
-        throw new Error(
-          `Failed to get signed URL: ${signedUrlResponse.status}`,
-        );
-      }
-
-      const signedData = await signedUrlResponse.json();
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        payload: {
+          type: 'upload',
+          id: teacherData.id,
+          attributes: {
+            title: 'profile_photo',
+            role: 'faculty',
+          },
+        },
+      });
       console.log('S3 signed URL response:', signedData);
 
       const signedUrl = signedData.data.signed_url;

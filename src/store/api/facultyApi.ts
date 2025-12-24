@@ -118,7 +118,7 @@ export const facultyApi = baseApi.injectEndpoints({
               { type: 'Teachers', id: 'LIST' },
             ]
           : [{ type: 'Teachers', id: 'LIST' }],
-      keepUnusedDataFor: 60, // 60 seconds cache
+      // Removed keepUnusedDataFor override - uses base API's 300 seconds (5 minutes)
     }),
 
     /**
@@ -137,7 +137,7 @@ export const facultyApi = baseApi.injectEndpoints({
               { type: 'Teachers', id: 'ALL' },
             ]
           : [{ type: 'Teachers', id: 'ALL' }],
-      keepUnusedDataFor: 60,
+      // Removed keepUnusedDataFor override - uses base API's 300 seconds (5 minutes)
     }),
 
     /**
