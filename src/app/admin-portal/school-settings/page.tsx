@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { useOrganizationData } from '@/hooks/useOrganizationData';
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
 
 interface Statistic {
@@ -131,6 +133,10 @@ export default function SchoolSettings() {
     useState<SchoolSettings | null>(null);
   const router = useRouter();
 
+  // Use Redux-cached organization data
+  const { organizationData } = useOrganizationData();
+  const { userData } = useUserDataRedux();
+
   useEffect(() => {
     const tokenStr = localStorage.getItem('bearerToken');
     if (!tokenStr) {
@@ -175,28 +181,74 @@ export default function SchoolSettings() {
     if (savedSettings) {
       setSettings(JSON.parse(savedSettings));
     }
-
-    // Load data from all APIs
-    const loadAllData = async () => {
-      setDataLoading(true);
-      try {
-        await Promise.all([
-          loadOrganizationSection(),
-          loadAboutSection(),
-          loadHeroSection(),
-          loadBrandingSection(),
-          loadSiteConfigSection(),
-          loadStatisticsSection(),
-        ]);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setDataLoading(false);
-      }
-    };
-
-    loadAllData();
   }, [router]);
+
+  // Populate settings from cached organization data
+  useEffect(() => {
+    if (organizationData) {
+      console.log('Populating settings from cached organization data');
+      setDataLoading(true);
+
+      setSettings((prev) => ({
+        ...prev,
+        // Basic information
+        name: organizationData.name || prev.name,
+        description: organizationData.description || prev.description,
+        buildingStreet:
+          organizationData.contact?.address?.street || prev.buildingStreet,
+        city: organizationData.contact?.address?.city || prev.city,
+        state: organizationData.contact?.address?.state || prev.state,
+        country: organizationData.contact?.address?.country || prev.country,
+        pincode: organizationData.contact?.address?.zipCode || prev.pincode,
+        pocEmail: organizationData.contact?.email || prev.pocEmail,
+        phone: organizationData.contact?.phone || prev.phone,
+        establishedYear:
+          organizationData.founded?.toString() || prev.establishedYear,
+
+        // Branding
+        logo: organizationData.branding?.logo || prev.logo,
+        primaryColor:
+          organizationData.branding?.primaryColor || prev.primaryColor,
+        secondaryColor:
+          organizationData.branding?.secondaryColor || prev.secondaryColor,
+        accentColor: organizationData.branding?.accentColor || prev.accentColor,
+
+        // About section
+        aboutTitle: organizationData.about?.title || prev.aboutTitle,
+        aboutContent: organizationData.about?.content || prev.aboutContent,
+        mission: organizationData.about?.mission || prev.mission,
+        vision: organizationData.about?.vision || prev.vision,
+        values: organizationData.about?.values || prev.values,
+        aboutImages: organizationData.about?.images || prev.aboutImages,
+
+        // Hero section
+        heroTitle: organizationData.hero?.title || prev.heroTitle,
+        heroSubtitle: organizationData.hero?.subtitle || prev.heroSubtitle,
+        heroDescription:
+          organizationData.hero?.ctaButtons?.primary?.text ||
+          prev.heroDescription,
+        heroImage: organizationData.hero?.backgroundImage || prev.heroImage,
+
+        // Social media
+        facebookUrl: organizationData.social?.facebook || prev.facebookUrl,
+        twitterUrl: organizationData.social?.twitter || prev.twitterUrl,
+        instagramUrl: organizationData.social?.instagram || prev.instagramUrl,
+        linkedinUrl: organizationData.social?.linkedin || prev.linkedinUrl,
+        youtubeUrl: organizationData.social?.youtube || prev.youtubeUrl,
+
+        // Statistics
+        statistics:
+          organizationData.stats?.items?.map((stat: any) => ({
+            id: stat.id,
+            label: stat.label,
+            value: stat.value,
+            icon: stat.icon || '📊',
+          })) || prev.statistics,
+      }));
+
+      setDataLoading(false);
+    }
+  }, [organizationData]);
 
   // Store original settings after data is loaded
   useEffect(() => {
@@ -206,244 +258,6 @@ export default function SchoolSettings() {
       setModifiedFields(new Set());
     }
   }, [dataLoading, settings, originalSettings]);
-
-  const loadOrganizationSection = async () => {
-    try {
-      // Get authentication token for the API call
-      const tokenStr = localStorage.getItem('bearerToken');
-      let accessToken = null;
-      let orgIdFromToken = null;
-
-      if (tokenStr) {
-        try {
-          const tokenItem = JSON.parse(tokenStr);
-          const now = new Date().getTime();
-          if (now <= tokenItem.expiry) {
-            accessToken = tokenItem.value;
-
-            // Try to get org ID from /users/me first
-            try {
-              const userResponse = await ApiService.getUserMe(tokenItem.value);
-              orgIdFromToken =
-                userResponse.data.attributes.org_id ||
-                userResponse.data.attributes.org;
-
-              if (orgIdFromToken) {
-                // Cache it for future use
-                sessionStorage.setItem('currentOrgId', orgIdFromToken);
-                console.log(
-                  'Successfully fetched org ID from /users/me:',
-                  orgIdFromToken,
-                );
-              }
-            } catch (userError) {
-              console.error(
-                'Could not fetch org ID from /users/me:',
-                userError,
-              );
-            }
-          }
-        } catch (e) {
-          console.error('Error parsing token:', e);
-        }
-      }
-
-      // Get org ID using our helper (will use cached value if available)
-      const orgId = orgIdFromToken || (await ApiService.getCurrentOrgId());
-
-      const response = await ApiService.getOrganizationById(orgId, accessToken);
-      const orgData = response.data.attributes;
-
-      // Update settings with API data
-      setSettings((prev) => ({
-        ...prev,
-        name: orgData.name || prev.name,
-        subdomain: orgData.subdomain || prev.subdomain,
-        description: orgData.description || prev.description,
-        // Address mapping
-        buildingStreet: orgData.address?.building_street || prev.buildingStreet,
-        city: orgData.address?.city || prev.city,
-        state: orgData.address?.state || prev.state,
-        country: orgData.address?.country || prev.country,
-        pincode: orgData.address?.pincode || prev.pincode,
-        // Contact mapping
-        pocName: orgData.contact?.poc_name || prev.pocName,
-        pocEmail: orgData.contact?.poc_email || prev.pocEmail,
-        phone: orgData.contact?.phone || prev.phone,
-      }));
-
-      console.log('Loaded organization data:', orgData);
-      console.log('Updated settings:', settings);
-    } catch (error) {
-      console.error('Failed to load organization section:', error);
-      // Show specific error message for organization ID issues
-      if (
-        error instanceof Error &&
-        error.message.includes('Failed to get current organization ID')
-      ) {
-        setError(
-          'Unable to determine organization. Please check your URL or try refreshing the page.',
-        );
-      } else if (
-        error instanceof Error &&
-        !error.message.includes('Failed to fetch organization data') &&
-        !error.message.includes('404')
-      ) {
-        setError('Failed to load organization data. Please try again.');
-      }
-    }
-  };
-
-  const loadAboutSection = async () => {
-    try {
-      const orgId = await ApiService.getCurrentOrgId();
-      const response = await ApiService.getAbout(orgId);
-      const aboutData = response.data.attributes;
-
-      // Update settings with API data
-      setSettings((prev) => ({
-        ...prev,
-        aboutTitle: aboutData.title,
-        aboutContent: aboutData.content,
-        mission: aboutData.mission,
-        vision: aboutData.vision,
-        values: aboutData.values,
-        aboutImages: aboutData.images || [],
-        facebookUrl: aboutData.social?.facebook || '',
-        twitterUrl: aboutData.social?.twitter || '',
-        instagramUrl: aboutData.social?.instagram || '',
-        linkedinUrl: aboutData.social?.linkedin || '',
-        youtubeUrl: aboutData.social?.youtube || '',
-      }));
-    } catch (error) {
-      console.error('Failed to load about section:', error);
-      // Don't show error for 404 (no about section exists yet) or expected "about section data" errors
-      if (
-        error instanceof Error &&
-        !error.message.includes('Failed to fetch about section data') &&
-        !error.message.includes('404')
-      ) {
-        // Show specific error for organization ID issues
-        if (error.message.includes('Failed to get current organization ID')) {
-          setError(
-            'Unable to determine organization. Please check your URL or try refreshing the page.',
-          );
-        } else {
-          setError('Failed to load about section data. Please try again.');
-        }
-      }
-    }
-  };
-
-  const loadHeroSection = async () => {
-    try {
-      const orgId = await ApiService.getCurrentOrgId();
-      const response = await ApiService.getHero(orgId);
-      const heroData = response.data.attributes;
-
-      // Update settings with API data
-      setSettings((prev) => ({
-        ...prev,
-        heroTitle: heroData.headline,
-        heroSubtitle: heroData.subheadline,
-        heroDescription: heroData.ctaText, // Map ctaText to description
-        heroImage: heroData.image,
-      }));
-    } catch (error) {
-      console.error('Failed to load hero section:', error);
-      // Don't show error for 404 (no hero section exists yet)
-      if (
-        error instanceof Error &&
-        !error.message.includes('Failed to fetch hero section data') &&
-        !error.message.includes('404')
-      ) {
-        console.log('Hero section not found, using defaults');
-      }
-    }
-  };
-
-  const loadBrandingSection = async () => {
-    try {
-      const orgId = await ApiService.getCurrentOrgId();
-      const response = await ApiService.getBranding(orgId);
-      const brandingData = response.data.attributes;
-
-      // Update settings with API data
-      setSettings((prev) => ({
-        ...prev,
-        logo: brandingData.logo,
-        // Add other branding fields when available
-      }));
-    } catch (error) {
-      console.error('Failed to load branding section:', error);
-      // Don't show error for 404 (no branding section exists yet)
-      if (
-        error instanceof Error &&
-        !error.message.includes('Failed to fetch branding data') &&
-        !error.message.includes('404')
-      ) {
-        console.log('Branding section not found, using defaults');
-      }
-    }
-  };
-
-  const loadSiteConfigSection = async () => {
-    try {
-      const orgId = await ApiService.getCurrentOrgId();
-      const response = await ApiService.getSiteConfig(orgId);
-      const siteConfigData = response.data.attributes;
-
-      // Update settings with API data
-      setSettings((prev) => ({
-        ...prev,
-        primaryColor: siteConfigData.theme?.primaryColor || prev.primaryColor,
-        secondaryColor:
-          siteConfigData.theme?.secondaryColor || prev.secondaryColor,
-        // Note: accentColor is not in siteconfig API, keeping local value
-      }));
-    } catch (error) {
-      console.error('Failed to load site config section:', error);
-      // Don't show error for 404 (no site config exists yet)
-      if (
-        error instanceof Error &&
-        !error.message.includes('Failed to fetch site configuration') &&
-        !error.message.includes('404')
-      ) {
-        console.log('Site config section not found, using defaults');
-      }
-    }
-  };
-
-  const loadStatisticsSection = async () => {
-    try {
-      const orgId = await ApiService.getCurrentOrgId();
-      const response = await ApiService.getStats(orgId);
-
-      // Transform API data to statistics format
-      const statistics: Statistic[] = response.data.map((stat) => ({
-        id: stat.id,
-        label: stat.attributes.label,
-        value: stat.attributes.value,
-        icon: stat.attributes.icon,
-      }));
-
-      // Update settings with API data
-      setSettings((prev) => ({
-        ...prev,
-        statistics,
-      }));
-    } catch (error) {
-      console.error('Failed to load statistics section:', error);
-      // Don't show error for 404 (no statistics exist yet)
-      if (
-        error instanceof Error &&
-        !error.message.includes('Failed to fetch stats data') &&
-        !error.message.includes('404')
-      ) {
-        console.log('Statistics section not found, using defaults');
-      }
-    }
-  };
 
   const handleSave = async () => {
     if (dataLoading) {
@@ -456,7 +270,13 @@ export default function SchoolSettings() {
     setSuccessMessage(null);
 
     try {
-      const orgId = await ApiService.getCurrentOrgId();
+      // Get orgId from Redux instead of making API call
+      const orgId = userData?.orgId;
+      if (!orgId) {
+        setError('Organization ID not found. Please refresh the page.');
+        setLoading(false);
+        return;
+      }
 
       // Call different APIs based on the active tab
       switch (activeTab) {
@@ -649,8 +469,7 @@ export default function SchoolSettings() {
           });
 
           await Promise.all(savePromises);
-          // Reload statistics to get IDs for newly created ones
-          await loadStatisticsSection();
+          // Statistics will be reloaded when organization data is refetched
           setSuccessMessage('Statistics saved successfully!');
           break;
 

@@ -2175,27 +2175,16 @@ export class ApiService {
     },
   ): Promise<any> {
     try {
-      // Get authentication token
-      const tokenStr = localStorage.getItem('bearerToken');
-      if (!tokenStr) {
-        throw new Error('No authentication token found');
-      }
+      // Build query string from params
+      const queryString = params?.academic_year
+        ? `?academic_year=${encodeURIComponent(params.academic_year)}`
+        : '';
 
-      const tokenItem = JSON.parse(tokenStr);
-      const now = new Date().getTime();
-
-      if (now > tokenItem.expiry) {
-        localStorage.removeItem('bearerToken');
-        throw new Error('Authentication token has expired');
-      }
-
-      const response = await classApi.get(`/${orgId}/fee-structures`, {
-        headers: {
-          Authorization: `Bearer ${tokenItem.value}`,
-        },
-        params: params || {},
+      return await makeApiCall({
+        path: `/${orgId}/fee-structures${queryString}`,
+        method: 'GET',
+        baseUrl: 'default',
       });
-      return response.data;
     } catch (error) {
       console.error('Error fetching fee structures:', error);
       throw new Error('Failed to fetch fee structures');
@@ -2219,35 +2208,16 @@ export class ApiService {
     },
   ): Promise<any> {
     try {
-      // Get authentication token
-      const tokenStr = localStorage.getItem('bearerToken');
-      if (!tokenStr) {
-        throw new Error('No authentication token found');
-      }
-
-      const tokenItem = JSON.parse(tokenStr);
-      const now = new Date().getTime();
-
-      if (now > tokenItem.expiry) {
-        localStorage.removeItem('bearerToken');
-        throw new Error('Authentication token has expired');
-      }
-
-      const response = await classApi.post(
-        `/${orgId}/classes/${classId}/fee-structures`,
-        {
+      return await makeApiCall({
+        path: `/${orgId}/classes/${classId}/fee-structures`,
+        method: 'POST',
+        baseUrl: 'default',
+        payload: {
           data: {
             attributes: feeStructureData,
           },
         },
-        {
-          headers: {
-            Authorization: `Bearer ${tokenItem.value}`,
-            'Content-Type': 'application/vnd.api+json',
-          },
-        },
-      );
-      return response.data;
+      });
     } catch (error) {
       console.error('Error creating fee structure:', error);
       throw new Error('Failed to create fee structure');
@@ -2271,35 +2241,16 @@ export class ApiService {
     },
   ): Promise<any> {
     try {
-      // Get authentication token
-      const tokenStr = localStorage.getItem('bearerToken');
-      if (!tokenStr) {
-        throw new Error('No authentication token found');
-      }
-
-      const tokenItem = JSON.parse(tokenStr);
-      const now = new Date().getTime();
-
-      if (now > tokenItem.expiry) {
-        localStorage.removeItem('bearerToken');
-        throw new Error('Authentication token has expired');
-      }
-
-      const response = await classApi.put(
-        `/${orgId}/fee-structures/${feeStructureId}`,
-        {
+      return await makeApiCall({
+        path: `/${orgId}/fee-structures/${feeStructureId}`,
+        method: 'PUT',
+        baseUrl: 'default',
+        payload: {
           data: {
             attributes: feeStructureData,
           },
         },
-        {
-          headers: {
-            Authorization: `Bearer ${tokenItem.value}`,
-            'Content-Type': 'application/vnd.api+json',
-          },
-        },
-      );
-      return response.data;
+      });
     } catch (error) {
       console.error('Error updating fee structure:', error);
       throw new Error('Failed to update fee structure');
@@ -2312,29 +2263,11 @@ export class ApiService {
     feeStructureId: string,
   ): Promise<any> {
     try {
-      // Get authentication token
-      const tokenStr = localStorage.getItem('bearerToken');
-      if (!tokenStr) {
-        throw new Error('No authentication token found');
-      }
-
-      const tokenItem = JSON.parse(tokenStr);
-      const now = new Date().getTime();
-
-      if (now > tokenItem.expiry) {
-        localStorage.removeItem('bearerToken');
-        throw new Error('Authentication token has expired');
-      }
-
-      const response = await classApi.delete(
-        `/${orgId}/fee-structures/${feeStructureId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${tokenItem.value}`,
-          },
-        },
-      );
-      return response.data;
+      return await makeApiCall({
+        path: `/${orgId}/fee-structures/${feeStructureId}`,
+        method: 'DELETE',
+        baseUrl: 'default',
+      });
     } catch (error) {
       console.error('Error deleting fee structure:', error);
       throw new Error('Failed to delete fee structure');
@@ -2353,35 +2286,16 @@ export class ApiService {
     },
   ): Promise<any> {
     try {
-      // Get authentication token
-      const tokenStr = localStorage.getItem('bearerToken');
-      if (!tokenStr) {
-        throw new Error('No authentication token found');
-      }
-
-      const tokenItem = JSON.parse(tokenStr);
-      const now = new Date().getTime();
-
-      if (now > tokenItem.expiry) {
-        localStorage.removeItem('bearerToken');
-        throw new Error('Authentication token has expired');
-      }
-
-      const response = await classApi.put(
-        `/${orgId}/fees/${feeId}`,
-        {
+      return await makeApiCall({
+        path: `/${orgId}/fees/${feeId}`,
+        method: 'PUT',
+        baseUrl: 'default',
+        payload: {
           data: {
             attributes: feeData,
           },
         },
-        {
-          headers: {
-            Authorization: `Bearer ${tokenItem.value}`,
-            'Content-Type': 'application/vnd.api+json',
-          },
-        },
-      );
-      return response.data;
+      });
     } catch (error) {
       console.error('Error updating fee:', error);
       throw new Error('Failed to update fee');
@@ -2409,35 +2323,16 @@ export class ApiService {
     },
   ): Promise<any> {
     try {
-      // Get authentication token
-      const tokenStr = localStorage.getItem('bearerToken');
-      if (!tokenStr) {
-        throw new Error('No authentication token found');
-      }
-
-      const tokenItem = JSON.parse(tokenStr);
-      const now = new Date().getTime();
-
-      if (now > tokenItem.expiry) {
-        localStorage.removeItem('bearerToken');
-        throw new Error('Authentication token has expired');
-      }
-
-      const response = await classApi.post(
-        `/${orgId}/classes/${classId}/students/${studentId}/fees`,
-        {
+      return await makeApiCall({
+        path: `/${orgId}/classes/${classId}/students/${studentId}/fees`,
+        method: 'POST',
+        baseUrl: 'default',
+        payload: {
           data: {
             attributes: feeData,
           },
         },
-        {
-          headers: {
-            Authorization: `Bearer ${tokenItem.value}`,
-            'Content-Type': 'application/vnd.api+json',
-          },
-        },
-      );
-      return response.data;
+      });
     } catch (error) {
       console.error('Error creating student fee:', error);
       throw new Error('Failed to create student fee');
@@ -2592,35 +2487,18 @@ export class ApiService {
     },
   ): Promise<any> {
     try {
-      // Build headers - support both student (x-api-key) and admin (Bearer) authentication
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/vnd.api+json',
-      };
-
-      // Check for student authentication first
+      // Check for student authentication (uses x-api-key instead of Bearer token)
+      let customAuthHeaders: Record<string, string> | undefined;
       const studentAuthStr = localStorage.getItem('studentAuth');
       if (studentAuthStr) {
         const studentAuth = JSON.parse(studentAuthStr);
         if (studentAuth.basicAuthToken) {
-          headers['x-api-key'] = studentAuth.basicAuthToken;
+          customAuthHeaders = {
+            'x-api-key': studentAuth.basicAuthToken,
+          };
         }
-      } else {
-        // Fallback to Bearer token for admin
-        const tokenStr = localStorage.getItem('bearerToken');
-        if (!tokenStr) {
-          throw new Error('No authentication token found');
-        }
-
-        const tokenItem = JSON.parse(tokenStr);
-        const now = new Date().getTime();
-
-        if (now > tokenItem.expiry) {
-          localStorage.removeItem('bearerToken');
-          throw new Error('Authentication token has expired');
-        }
-
-        headers['Authorization'] = `Bearer ${tokenItem.value}`;
       }
+      // If no student auth, makeApiCall will automatically use Bearer token from Redux
 
       // Build query parameters
       const queryParams = new URLSearchParams();
@@ -2634,10 +2512,12 @@ export class ApiService {
       const queryString = queryParams.toString();
       const url = `/${orgId}/students/${studentId}/fees${queryString ? `?${queryString}` : ''}`;
 
-      const response = await classApi.get(url, {
-        headers,
+      return await makeApiCall({
+        path: url,
+        method: 'GET',
+        baseUrl: 'default',
+        customAuthHeaders,
       });
-      return response.data;
     } catch (error) {
       console.error('Error fetching student fees:', error);
       throw new Error('Failed to fetch student fees');

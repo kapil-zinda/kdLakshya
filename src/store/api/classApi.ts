@@ -225,7 +225,7 @@ export const classApi = baseClassApi.injectEndpoints({
               { type: 'Classes', id: 'LIST' },
             ]
           : [{ type: 'Classes', id: 'LIST' }],
-      keepUnusedDataFor: 30, // 30 seconds cache
+      // Removed keepUnusedDataFor override - uses base API's 300 seconds (5 minutes)
     }),
 
     /**
