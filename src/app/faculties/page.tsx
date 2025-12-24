@@ -115,9 +115,33 @@ export default function FacultiesPage() {
     loadFacultyData();
   }, [organizationData, userData]);
 
-  // Show loading spinner for content, but still render Header for navigation
-  const isLoading = orgLoading || loading;
-  const hasNoData = !orgLoading && !organizationData;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">
+            Loading faculty information...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!organizationData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            No Data Available
+          </h1>
+          <p className="text-muted-foreground">
+            Unable to load organization data from API
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const filteredFaculty =
     selectedSubject === 'All'
@@ -127,49 +151,13 @@ export default function FacultiesPage() {
         );
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      {organizationData && (
-        <style jsx global>{`
-          :root {
-            --primary-color: ${organizationData.branding.primaryColor};
-            --secondary-color: ${organizationData.branding.secondaryColor};
-            --accent-color: ${organizationData.branding.accentColor};
-          }
-
-          .template-container * {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          }
-
-          .template-container header,
-          .template-container header * {
-            transition: none !important;
-          }
-
-          .template-container header button {
-            transition:
-              color 0.2s ease,
-              background-color 0.2s ease,
-              transform 0.2s ease !important;
-          }
-
-          .template-container header {
-            backface-visibility: hidden;
-            transform: translateZ(0);
-            will-change: auto;
-          }
-
-          .template-container header h1,
-          .template-container header p,
-          .template-container header span {
-            backface-visibility: hidden !important;
-            transform: translateZ(0) !important;
-            transition: none !important;
-            will-change: auto !important;
-            -webkit-font-smoothing: antialiased !important;
-            -moz-osx-font-smoothing: grayscale !important;
-          }
-        `}</style>
-      )}
+    <div className="min-h-screen bg-background text-foreground">
+      <style jsx global>{`
+        :root {
+          --primary-color: ${organizationData.branding.primaryColor};
+          --secondary-color: ${organizationData.branding.secondaryColor};
+          --accent-color: ${organizationData.branding.accentColor};
+        }
 
       <div className="template-container">
         {organizationData && <Header organization={organizationData} />}

@@ -5,6 +5,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
+
 interface Photo {
   id: string;
   title: string;
@@ -367,15 +369,15 @@ export default function GalleryManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link
                 href="/dashboard"
-                className="text-gray-500 hover:text-gray-700 mr-4"
+                className="text-muted-foreground hover:text-foreground mr-4"
               >
                 <svg
                   className="w-6 h-6"
@@ -391,11 +393,12 @@ export default function GalleryManagement() {
                   />
                 </svg>
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 Gallery Management
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               {/* Upload Photos */}
               <label className="cursor-pointer flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">
                 <svg
@@ -441,13 +444,13 @@ export default function GalleryManagement() {
                 Create Album
               </button>
               {/* View Toggle */}
-              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+              <div className="flex items-center bg-muted rounded-lg p-1">
                 <button
                   onClick={() => setViewMode('albums')}
                   className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'albums'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Albums
@@ -456,8 +459,8 @@ export default function GalleryManagement() {
                   onClick={() => setViewMode('photos')}
                   className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                     viewMode === 'photos'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
+                      ? 'bg-card text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   Photos
@@ -473,7 +476,7 @@ export default function GalleryManagement() {
         <div className="mb-6 space-y-4">
           {/* Category Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Filter by Category
             </label>
             <div className="flex flex-wrap gap-2">
@@ -484,7 +487,7 @@ export default function GalleryManagement() {
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                     selectedCategory === category
                       ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-muted text-foreground hover:bg-accent'
                   }`}
                 >
                   {category}
@@ -496,26 +499,26 @@ export default function GalleryManagement() {
           {/* Search and Album Filter */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground mb-2">
                 Search
               </label>
               <input
                 type="text"
                 placeholder="Search photos, albums, or tags..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             {viewMode === 'photos' && (
               <div className="sm:w-48">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Filter by Album
                 </label>
                 <select
                   value={selectedAlbum}
                   onChange={(e) => setSelectedAlbum(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 >
                   <option value="All">All Albums</option>
                   {albums.map((album) => (
@@ -567,13 +570,13 @@ export default function GalleryManagement() {
             {filteredAlbums.map((album) => (
               <div
                 key={album.id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden"
+                className="bg-card rounded-lg shadow-sm border border-border hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden"
                 onClick={() => {
                   setSelectedAlbum(album.name);
                   setViewMode('photos');
                 }}
               >
-                <div className="aspect-video bg-gray-200 overflow-hidden">
+                <div className="aspect-video bg-muted overflow-hidden">
                   <img
                     src={album.coverPhoto}
                     alt={album.name}
@@ -581,10 +584,10 @@ export default function GalleryManagement() {
                   />
                 </div>
                 <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  <h3 className="text-lg font-semibold text-foreground mb-2">
                     {album.name}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                     {album.description}
                   </p>
                   <div className="flex items-center justify-between">
@@ -599,17 +602,17 @@ export default function GalleryManagement() {
                                 ? 'bg-purple-100 text-purple-800'
                                 : album.category === 'Cultural'
                                   ? 'bg-pink-100 text-pink-800'
-                                  : 'bg-gray-100 text-gray-800'
+                                  : 'bg-muted text-muted-foreground'
                         }`}
                       >
                         {album.category}
                       </span>
                     </div>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-muted-foreground">
                       {album.photoCount} photos
                     </span>
                   </div>
-                  <div className="mt-2 text-xs text-gray-400">
+                  <div className="mt-2 text-xs text-muted-foreground">
                     Created: {new Date(album.createdDate).toLocaleDateString()}
                   </div>
                 </div>
@@ -622,7 +625,7 @@ export default function GalleryManagement() {
             {filteredPhotos.map((photo) => (
               <div
                 key={photo.id}
-                className="relative group bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-200"
+                className="relative group bg-card rounded-lg shadow-sm border border-border overflow-hidden hover:shadow-md transition-all duration-200"
               >
                 {/* Selection Checkbox */}
                 <div className="absolute top-2 left-2 z-10">
@@ -630,7 +633,7 @@ export default function GalleryManagement() {
                     type="checkbox"
                     checked={selectedPhotos.includes(photo.id)}
                     onChange={() => togglePhotoSelection(photo.id)}
-                    className="w-4 h-4 text-indigo-600 bg-white border-gray-300 rounded focus:ring-indigo-500"
+                    className="w-4 h-4 text-indigo-600 bg-background border-border rounded focus:ring-indigo-500"
                   />
                 </div>
 
@@ -645,7 +648,7 @@ export default function GalleryManagement() {
 
                 {/* Photo */}
                 <div
-                  className="aspect-square bg-gray-200 overflow-hidden cursor-pointer"
+                  className="aspect-square bg-muted overflow-hidden cursor-pointer"
                   onClick={() => setSelectedPhoto(photo)}
                 >
                   <img
@@ -657,10 +660,10 @@ export default function GalleryManagement() {
 
                 {/* Photo Info */}
                 <div className="p-3">
-                  <h4 className="text-sm font-semibold text-gray-900 truncate mb-1">
+                  <h4 className="text-sm font-semibold text-foreground truncate mb-1">
                     {photo.title}
                   </h4>
-                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
                     {photo.description}
                   </p>
                   <div className="flex items-center justify-between">
@@ -674,12 +677,12 @@ export default function GalleryManagement() {
                               ? 'bg-purple-100 text-purple-800'
                               : photo.category === 'Cultural'
                                 ? 'bg-pink-100 text-pink-800'
-                                : 'bg-gray-100 text-gray-800'
+                                : 'bg-muted text-muted-foreground'
                       }`}
                     >
                       {photo.category}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted-foreground">
                       {photo.fileSize}
                     </span>
                   </div>
@@ -694,7 +697,7 @@ export default function GalleryManagement() {
           (viewMode === 'photos' && filteredPhotos.length === 0)) && (
           <div className="text-center py-12">
             <svg
-              className="w-16 h-16 mx-auto text-gray-400 mb-4"
+              className="w-16 h-16 mx-auto text-muted-foreground mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -706,10 +709,10 @@ export default function GalleryManagement() {
                 d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-foreground mb-2">
               No {viewMode} found
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-muted-foreground mb-4">
               {viewMode === 'albums'
                 ? 'Create your first album to organize photos'
                 : 'Upload photos or adjust your filters'}
@@ -739,9 +742,9 @@ export default function GalleryManagement() {
         {/* Upload Photos Modal */}
         {showUploadModal && uploadFiles && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
+            <div className="bg-card rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-foreground">
                   Upload Photos
                 </h3>
                 <button
@@ -749,7 +752,7 @@ export default function GalleryManagement() {
                     setShowUploadModal(false);
                     setUploadFiles(null);
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
                     className="w-6 h-6"
@@ -767,19 +770,19 @@ export default function GalleryManagement() {
                 </button>
               </div>
               <div className="p-6">
-                <p className="text-sm text-gray-600 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   Ready to upload {uploadFiles.length} file(s)
                 </p>
                 <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
                   {Array.from(uploadFiles).map((file, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-2 bg-gray-50 rounded"
+                      className="flex items-center justify-between p-2 bg-muted rounded"
                     >
-                      <span className="text-sm text-gray-900 truncate">
+                      <span className="text-sm text-foreground truncate">
                         {file.name}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-muted-foreground">
                         {(file.size / (1024 * 1024)).toFixed(1)} MB
                       </span>
                     </div>
@@ -791,7 +794,7 @@ export default function GalleryManagement() {
                       setShowUploadModal(false);
                       setUploadFiles(null);
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                    className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
                   >
                     Cancel
                   </button>
@@ -810,14 +813,14 @@ export default function GalleryManagement() {
         {/* Create Album Modal */}
         {showCreateAlbumModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-md w-full">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
+            <div className="bg-card rounded-lg max-w-md w-full">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-foreground">
                   Create New Album
                 </h3>
                 <button
                   onClick={() => setShowCreateAlbumModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
                     className="w-6 h-6"
@@ -836,7 +839,7 @@ export default function GalleryManagement() {
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Album Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -848,12 +851,12 @@ export default function GalleryManagement() {
                         name: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Enter album name"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Description
                   </label>
                   <textarea
@@ -865,12 +868,12 @@ export default function GalleryManagement() {
                       }))
                     }
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                     placeholder="Enter album description"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-foreground mb-1">
                     Category
                   </label>
                   <select
@@ -881,7 +884,7 @@ export default function GalleryManagement() {
                         category: e.target.value,
                       }))
                     }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                   >
                     {categories
                       .filter((cat) => cat !== 'All')
@@ -895,7 +898,7 @@ export default function GalleryManagement() {
                 <div className="flex items-center justify-end space-x-3 pt-4">
                   <button
                     onClick={() => setShowCreateAlbumModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                    className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
                   >
                     Cancel
                   </button>
@@ -914,14 +917,14 @@ export default function GalleryManagement() {
         {/* Photo Detail Modal */}
         {selectedPhoto && (
           <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
+            <div className="bg-card rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-foreground">
                   {selectedPhoto.title}
                 </h3>
                 <button
                   onClick={() => setSelectedPhoto(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
                     className="w-6 h-6"
@@ -942,7 +945,7 @@ export default function GalleryManagement() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Photo Display */}
                   <div className="space-y-4">
-                    <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                    <div className="aspect-video bg-muted rounded-lg overflow-hidden">
                       <img
                         src={selectedPhoto.url}
                         alt={selectedPhoto.title}
@@ -993,66 +996,66 @@ export default function GalleryManagement() {
                   {/* Photo Details */}
                   <div className="space-y-4">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Photo Details
                       </h4>
                       <div className="space-y-3">
                         <div>
-                          <label className="text-sm font-medium text-gray-500">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Description
                           </label>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-sm text-foreground">
                             {selectedPhoto.description}
                           </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Category
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedPhoto.category}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Album
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedPhoto.album}
                             </p>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               File Size
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedPhoto.fileSize}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Dimensions
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedPhoto.dimensions}
                             </p>
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Upload Date
                           </label>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-sm text-foreground">
                             {new Date(
                               selectedPhoto.uploadDate,
                             ).toLocaleDateString()}
                           </p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Status
                           </label>
                           <span
@@ -1067,7 +1070,7 @@ export default function GalleryManagement() {
                         </div>
                         {selectedPhoto.tags.length > 0 && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Tags
                             </label>
                             <div className="flex flex-wrap gap-1 mt-1">

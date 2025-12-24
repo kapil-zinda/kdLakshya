@@ -83,8 +83,8 @@ export default function GalleryPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          <p className="text-gray-600">Loading gallery...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Loading gallery...</p>
         </div>
       </div>
     );
@@ -94,10 +94,10 @@ export default function GalleryPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
             No Data Available
           </h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Unable to load organization data from API
           </p>
         </div>
@@ -111,7 +111,7 @@ export default function GalleryPage() {
       : galleryImages.filter((img) => img.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen bg-background text-foreground">
       <style jsx global>{`
         :root {
           --primary-color: ${organizationData.branding.primaryColor};

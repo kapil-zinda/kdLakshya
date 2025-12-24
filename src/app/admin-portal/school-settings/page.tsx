@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ApiService } from '@/services/api';
 
 interface Statistic {
@@ -549,15 +550,15 @@ export default function SchoolSettings() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link
                 href="/dashboard"
-                className="text-gray-500 hover:text-gray-700 mr-4"
+                className="text-muted-foreground hover:text-foreground mr-4"
               >
                 <svg
                   className="w-6 h-6"
@@ -573,11 +574,12 @@ export default function SchoolSettings() {
                   />
                 </svg>
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 School Settings
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               {/* <Link
                 href="/template"
                 target="_blank"
@@ -641,7 +643,7 @@ export default function SchoolSettings() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <nav className="bg-white rounded-lg shadow-sm p-4">
+            <nav className="bg-card rounded-lg shadow-sm p-4">
               <ul className="space-y-2">
                 {tabs.map((tab) => (
                   <li key={tab.id}>
@@ -650,7 +652,7 @@ export default function SchoolSettings() {
                       className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         activeTab === tab.id
                           ? 'bg-indigo-100 text-indigo-700'
-                          : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                       }`}
                     >
                       <span className="mr-3">{tab.icon}</span>
@@ -709,17 +711,17 @@ export default function SchoolSettings() {
               </div>
             )}
 
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-card rounded-lg shadow-sm p-6">
               {/* Basic Information Tab */}
               {activeTab === 'basic' && (
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-foreground">
                     Basic Information
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Organization Name{' '}
                         <span className="text-red-500">*</span>
                       </label>
@@ -727,7 +729,7 @@ export default function SchoolSettings() {
                         type="text"
                         value={settings.name}
                         onChange={(e) => updateSetting('name', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         required
                       />
                     </div>
@@ -748,7 +750,7 @@ export default function SchoolSettings() {
                     </div> */}
 
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Description
                       </label>
                       <textarea
@@ -757,13 +759,13 @@ export default function SchoolSettings() {
                           updateSetting('description', e.target.value)
                         }
                         rows={3}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="Brief description of your organization"
                       />
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Building/Street Address{' '}
                         <span className="text-red-500">*</span>
                       </label>
@@ -773,42 +775,42 @@ export default function SchoolSettings() {
                         onChange={(e) =>
                           updateSetting('buildingStreet', e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="123 Main Street, Block A"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         City <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         value={settings.city}
                         onChange={(e) => updateSetting('city', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="City name"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         State <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
                         value={settings.state}
                         onChange={(e) => updateSetting('state', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="State name"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Country <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -817,14 +819,14 @@ export default function SchoolSettings() {
                         onChange={(e) =>
                           updateSetting('country', e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="Country name"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Pincode
                       </label>
                       <input
@@ -833,7 +835,7 @@ export default function SchoolSettings() {
                         onChange={(e) =>
                           updateSetting('pincode', e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="6-digit pincode"
                         maxLength={6}
                         pattern="[0-9]{6}"
@@ -841,7 +843,7 @@ export default function SchoolSettings() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Point of Contact Name{' '}
                         <span className="text-red-500">*</span>
                       </label>
@@ -851,14 +853,14 @@ export default function SchoolSettings() {
                         onChange={(e) =>
                           updateSetting('pocName', e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="Principal/Admin name"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Contact Email <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -867,27 +869,27 @@ export default function SchoolSettings() {
                         onChange={(e) =>
                           updateSetting('pocEmail', e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="contact@organization.edu"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Phone Number
                       </label>
                       <input
                         type="tel"
                         value={settings.phone}
                         onChange={(e) => updateSetting('phone', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="+91-9876543210"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Established Year
                       </label>
                       <input
@@ -896,7 +898,7 @@ export default function SchoolSettings() {
                         onChange={(e) =>
                           updateSetting('establishedYear', e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="e.g., 1985"
                       />
                     </div>
@@ -907,20 +909,20 @@ export default function SchoolSettings() {
               {/* Branding Tab */}
               {activeTab === 'branding' && (
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-foreground">
                     Branding & Colors
                   </h3>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Logo URL
                       </label>
                       <input
                         type="url"
                         value={settings.logo}
                         onChange={(e) => updateSetting('logo', e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                       />
                       {settings.logo && (
                         <div className="mt-2">
@@ -935,7 +937,7 @@ export default function SchoolSettings() {
 
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">
                           Primary Color
                         </label>
                         <div className="flex items-center space-x-3">
@@ -945,7 +947,7 @@ export default function SchoolSettings() {
                             onChange={(e) =>
                               updateSetting('primaryColor', e.target.value)
                             }
-                            className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                            className="w-12 h-10 border border-border rounded cursor-pointer"
                           />
                           <input
                             type="text"
@@ -953,13 +955,13 @@ export default function SchoolSettings() {
                             onChange={(e) =>
                               updateSetting('primaryColor', e.target.value)
                             }
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                           />
                         </div>
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-medium text-foreground mb-2">
                           Secondary Color
                         </label>
                         <div className="flex items-center space-x-3">
@@ -969,7 +971,7 @@ export default function SchoolSettings() {
                             onChange={(e) =>
                               updateSetting('secondaryColor', e.target.value)
                             }
-                            className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
+                            className="w-12 h-10 border border-border rounded cursor-pointer"
                           />
                           <input
                             type="text"
@@ -977,7 +979,7 @@ export default function SchoolSettings() {
                             onChange={(e) =>
                               updateSetting('secondaryColor', e.target.value)
                             }
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                           />
                         </div>
                       </div>
@@ -1009,8 +1011,8 @@ export default function SchoolSettings() {
                   </div>
 
                   {/* Color Preview */}
-                  <div className="mt-6 p-4 border border-gray-200 rounded-lg">
-                    <h4 className="text-sm font-medium text-gray-700 mb-3">
+                  <div className="mt-6 p-4 border border-border rounded-lg">
+                    <h4 className="text-sm font-medium text-foreground mb-3">
                       Color Preview
                     </h4>
                     <div className="flex space-x-4">
@@ -1034,12 +1036,12 @@ export default function SchoolSettings() {
               {/* Content Tab */}
               {activeTab === 'content' && (
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-foreground">
                     About Section Content
                   </h3>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       About Title
                     </label>
                     <input
@@ -1048,12 +1050,12 @@ export default function SchoolSettings() {
                       onChange={(e) =>
                         updateSetting('aboutTitle', e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       About Content
                     </label>
                     <textarea
@@ -1062,36 +1064,36 @@ export default function SchoolSettings() {
                         updateSetting('aboutContent', e.target.value)
                       }
                       rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Mission Statement
                     </label>
                     <textarea
                       value={settings.mission}
                       onChange={(e) => updateSetting('mission', e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Vision Statement
                     </label>
                     <textarea
                       value={settings.vision}
                       onChange={(e) => updateSetting('vision', e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Core Values
                     </label>
                     {settings.values.map((value, index) => (
@@ -1105,7 +1107,7 @@ export default function SchoolSettings() {
                           onChange={(e) =>
                             updateValueAtIndex('values', index, e.target.value)
                           }
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                           placeholder={`Value ${index + 1}`}
                         />
                         <button
@@ -1138,7 +1140,7 @@ export default function SchoolSettings() {
 
                   {/* About Images */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       About Section Images
                     </label>
                     {settings.aboutImages.map((image, index) => (
@@ -1156,7 +1158,7 @@ export default function SchoolSettings() {
                               e.target.value,
                             )
                           }
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                           placeholder="https://example.com/image.jpg"
                         />
                         <button
@@ -1189,7 +1191,7 @@ export default function SchoolSettings() {
                     {/* Image Preview */}
                     {settings.aboutImages.length > 0 && (
                       <div className="mt-4">
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">
+                        <h4 className="text-sm font-medium text-foreground mb-2">
                           Image Preview
                         </h4>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
@@ -1220,12 +1222,12 @@ export default function SchoolSettings() {
               {/* Hero Section Tab */}
               {activeTab === 'hero' && (
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-foreground">
                     Hero Section
                   </h3>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Hero Title
                     </label>
                     <input
@@ -1234,12 +1236,12 @@ export default function SchoolSettings() {
                       onChange={(e) =>
                         updateSetting('heroTitle', e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Hero Subtitle
                     </label>
                     <input
@@ -1248,12 +1250,12 @@ export default function SchoolSettings() {
                       onChange={(e) =>
                         updateSetting('heroSubtitle', e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Hero Description
                     </label>
                     <textarea
@@ -1262,12 +1264,12 @@ export default function SchoolSettings() {
                         updateSetting('heroDescription', e.target.value)
                       }
                       rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       Hero Background Image URL
                     </label>
                     <input
@@ -1276,7 +1278,7 @@ export default function SchoolSettings() {
                       onChange={(e) =>
                         updateSetting('heroImage', e.target.value)
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                     />
                     {settings.heroImage && (
                       <div className="mt-2">
@@ -1294,13 +1296,13 @@ export default function SchoolSettings() {
               {/* Social Media Tab */}
               {activeTab === 'social' && (
                 <div className="space-y-6">
-                  <h3 className="text-lg font-semibold text-gray-900">
+                  <h3 className="text-lg font-semibold text-foreground">
                     Social Media Links
                   </h3>
 
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Facebook URL
                       </label>
                       <input
@@ -1309,13 +1311,13 @@ export default function SchoolSettings() {
                         onChange={(e) =>
                           updateSetting('facebookUrl', e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="https://facebook.com/yourschool"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Twitter URL
                       </label>
                       <input
@@ -1324,13 +1326,13 @@ export default function SchoolSettings() {
                         onChange={(e) =>
                           updateSetting('twitterUrl', e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="https://twitter.com/yourschool"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         Instagram URL
                       </label>
                       <input
@@ -1339,13 +1341,13 @@ export default function SchoolSettings() {
                         onChange={(e) =>
                           updateSetting('instagramUrl', e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="https://instagram.com/yourschool"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         LinkedIn URL
                       </label>
                       <input
@@ -1354,13 +1356,13 @@ export default function SchoolSettings() {
                         onChange={(e) =>
                           updateSetting('linkedinUrl', e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="https://linkedin.com/company/yourschool"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-foreground mb-2">
                         YouTube URL
                       </label>
                       <input
@@ -1369,7 +1371,7 @@ export default function SchoolSettings() {
                         onChange={(e) =>
                           updateSetting('youtubeUrl', e.target.value)
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                         placeholder="https://youtube.com/yourschool"
                       />
                     </div>
@@ -1382,10 +1384,10 @@ export default function SchoolSettings() {
                 <div className="space-y-6 -mx-6">
                   <div className="flex justify-between items-center mb-6 px-6">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-foreground">
                         Statistics & Achievements
                       </h3>
-                      <p className="text-sm text-gray-500 mt-1">
+                      <p className="text-sm text-muted-foreground mt-1">
                         Showcase key metrics and achievements on your school
                         website
                       </p>
@@ -1417,8 +1419,8 @@ export default function SchoolSettings() {
                   </div>
 
                   {settings.statistics.length === 0 ? (
-                    <div className="text-center py-16 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300 mx-6">
-                      <div className="text-gray-400 mb-4">
+                    <div className="text-center py-16 bg-muted/50 rounded-xl border-2 border-dashed border-border mx-6">
+                      <div className="text-muted-foreground mb-4">
                         <svg
                           className="w-20 h-20 mx-auto"
                           fill="none"
@@ -1433,10 +1435,10 @@ export default function SchoolSettings() {
                           />
                         </svg>
                       </div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h4 className="text-lg font-semibold text-foreground mb-2">
                         No statistics added yet
                       </h4>
-                      <p className="text-sm text-gray-500 mb-6 max-w-sm mx-auto">
+                      <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
                         Add statistics to showcase your school&apos;s
                         achievements, student count, success rates, and more
                       </p>
@@ -1470,7 +1472,7 @@ export default function SchoolSettings() {
                         {settings.statistics.map((stat, index) => (
                           <div
                             key={index}
-                            className="p-6 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                            className="p-6 bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow"
                           >
                             <div className="flex justify-between items-start mb-5">
                               <div className="flex items-center space-x-3">
@@ -1479,7 +1481,7 @@ export default function SchoolSettings() {
                                     {index + 1}
                                   </span>
                                 </div>
-                                <h4 className="text-base font-semibold text-gray-900">
+                                <h4 className="text-base font-semibold text-foreground">
                                   Statistic {index + 1}
                                 </h4>
                               </div>
@@ -1513,7 +1515,7 @@ export default function SchoolSettings() {
                               <div className="md:col-span-2">
                                 <div className="grid grid-cols-2 gap-5">
                                   <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-foreground mb-2">
                                       Label
                                     </label>
                                     <input
@@ -1529,12 +1531,12 @@ export default function SchoolSettings() {
                                         };
                                         updateSetting('statistics', newStats);
                                       }}
-                                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-background text-foreground"
                                       placeholder="e.g., Total Students"
                                     />
                                   </div>
                                   <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    <label className="block text-sm font-medium text-foreground mb-2">
                                       Value
                                     </label>
                                     <input
@@ -1550,14 +1552,14 @@ export default function SchoolSettings() {
                                         };
                                         updateSetting('statistics', newStats);
                                       }}
-                                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
+                                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm bg-background text-foreground"
                                       placeholder="e.g., 5000+"
                                     />
                                   </div>
                                 </div>
                               </div>
                               <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                <label className="block text-sm font-medium text-foreground mb-2">
                                   Icon (emoji)
                                 </label>
                                 <div className="relative">
@@ -1572,14 +1574,14 @@ export default function SchoolSettings() {
                                       };
                                       updateSetting('statistics', newStats);
                                     }}
-                                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm pr-12"
+                                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm pr-12 bg-background text-foreground"
                                     placeholder="e.g., 👥"
                                   />
                                   <div className="absolute right-2 top-1/2 -translate-y-1/2">
                                     <div className="relative group">
                                       <button
                                         type="button"
-                                        className="text-gray-400 hover:text-gray-600 p-1"
+                                        className="text-muted-foreground hover:text-foreground p-1"
                                         onClick={(e) => {
                                           e.preventDefault();
                                           const picker =
@@ -1591,7 +1593,7 @@ export default function SchoolSettings() {
                                       >
                                         😊
                                       </button>
-                                      <div className="hidden absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-10 w-64">
+                                      <div className="hidden absolute right-0 top-full mt-2 bg-card border border-border rounded-lg shadow-lg p-3 z-10 w-64">
                                         <div className="grid grid-cols-6 gap-2">
                                           {[
                                             '👥',
@@ -1644,7 +1646,7 @@ export default function SchoolSettings() {
                                                   );
                                                 }
                                               }}
-                                              className="text-2xl hover:bg-gray-100 rounded p-1 transition-colors"
+                                              className="text-2xl hover:bg-accent rounded p-1 transition-colors"
                                             >
                                               {emoji}
                                             </button>
@@ -1654,7 +1656,7 @@ export default function SchoolSettings() {
                                     </div>
                                   </div>
                                 </div>
-                                <p className="mt-1.5 text-xs text-gray-500">
+                                <p className="mt-1.5 text-xs text-muted-foreground">
                                   Type or click 😊 to select
                                 </p>
                               </div>
@@ -1662,8 +1664,8 @@ export default function SchoolSettings() {
 
                             {/* Preview */}
                             {stat.label && stat.value && (
-                              <div className="mt-6 pt-6 border-t border-gray-200">
-                                <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-3">
+                              <div className="mt-6 pt-6 border-t border-border">
+                                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
                                   Preview
                                 </p>
                                 <div className="flex justify-center">

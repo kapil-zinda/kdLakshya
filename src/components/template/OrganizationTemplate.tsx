@@ -19,7 +19,7 @@ export function OrganizationTemplate({
   customSections,
 }: OrganizationTemplateProps) {
   return (
-    <div className="min-h-screen bg-white text-gray-900">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Dynamic CSS Variables */}
       <style jsx global>{`
         :root {
@@ -28,9 +28,9 @@ export function OrganizationTemplate({
           --accent-color: ${data.branding.accentColor};
         }
 
-        /* Force light mode styles for template */
+        /* Support both light and dark modes */
         .template-container * {
-          color-scheme: light;
+          color-scheme: light dark;
         }
 
         .line-clamp-2 {

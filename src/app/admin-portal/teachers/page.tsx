@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
 import { useGetClassesQuery } from '@/store/api/classApi';
@@ -364,15 +365,15 @@ export default function TeacherManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-card shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link
                 href="/dashboard"
-                className="text-gray-500 hover:text-gray-700 mr-4"
+                className="text-muted-foreground hover:text-foreground mr-4"
               >
                 <svg
                   className="w-6 h-6"
@@ -388,11 +389,12 @@ export default function TeacherManagement() {
                   />
                 </svg>
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 Teacher Management
               </h1>
             </div>
             <div className="flex items-center space-x-4">
+              <ThemeToggle />
               <button
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors"
@@ -412,7 +414,7 @@ export default function TeacherManagement() {
                 </svg>
                 Add Teacher/Staff
               </button>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-muted-foreground">
                 Total: {filteredTeachers.length}
               </div>
             </div>
@@ -425,7 +427,7 @@ export default function TeacherManagement() {
         <div className="mb-6 space-y-4">
           {/* Role Filter */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Filter by Role
             </label>
             <div className="flex flex-wrap gap-2">
@@ -436,7 +438,7 @@ export default function TeacherManagement() {
                   className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
                     selectedRole === role
                       ? 'bg-indigo-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      : 'bg-muted text-foreground hover:bg-accent'
                   }`}
                 >
                   {role}
@@ -447,13 +449,13 @@ export default function TeacherManagement() {
 
           {/* Search */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium text-foreground mb-2">
               Search Teachers
             </label>
             <input
               type="text"
               placeholder="Search by name, employee ID, or department..."
-              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full max-w-md px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -461,34 +463,34 @@ export default function TeacherManagement() {
         </div>
 
         {/* Teachers Table */}
-        <div className="bg-white shadow-sm rounded-lg border border-gray-200">
+        <div className="bg-card shadow-sm rounded-lg border border-border">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-border">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Teacher/Staff
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Role
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Contact
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Experience
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-card divide-y divide-border">
                 {filteredTeachers.map((teacher) => (
-                  <tr key={teacher.id} className="hover:bg-gray-50">
+                  <tr key={teacher.id} className="hover:bg-muted/50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <img
@@ -497,10 +499,10 @@ export default function TeacherManagement() {
                           className="w-10 h-10 rounded-full object-cover mr-3"
                         />
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-foreground">
                             {teacher.name}
                           </div>
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm text-muted-foreground">
                             {teacher.employeeId
                               ? `ID: ${teacher.employeeId}`
                               : teacher.designation}
@@ -518,15 +520,15 @@ export default function TeacherManagement() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-foreground">
                         {teacher.phone}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm text-muted-foreground">
                         {teacher.email}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm text-foreground">
                         {teacher.experience
                           ? `${teacher.experience} years`
                           : 'N/A'}
@@ -563,7 +565,7 @@ export default function TeacherManagement() {
         {filteredTeachers.length === 0 && (
           <div className="text-center py-12">
             <svg
-              className="w-16 h-16 mx-auto text-gray-400 mb-4"
+              className="w-16 h-16 mx-auto text-muted-foreground mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -575,10 +577,10 @@ export default function TeacherManagement() {
                 d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
               />
             </svg>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-foreground mb-2">
               No teachers found
             </h3>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Try adjusting your filters or search terms.
             </p>
           </div>
@@ -587,9 +589,9 @@ export default function TeacherManagement() {
         {/* View Teacher Modal */}
         {selectedTeacher && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div className="bg-card rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
               {/* Modal Header */}
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center">
                   <img
                     src={selectedTeacher.photo}
@@ -597,17 +599,17 @@ export default function TeacherManagement() {
                     className="w-16 h-16 rounded-full object-cover mr-4"
                   />
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900">
+                    <h3 className="text-xl font-semibold text-foreground">
                       {selectedTeacher.name}
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {selectedTeacher.role} | {selectedTeacher.employeeId}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setSelectedTeacher(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
                     className="w-6 h-6"
@@ -631,41 +633,41 @@ export default function TeacherManagement() {
                   {/* Personal Information */}
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Personal Information
                       </h4>
                       <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Date of Birth
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedTeacher.dateOfBirth}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Gender
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedTeacher.gender}
                             </p>
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Phone
                           </label>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-sm text-foreground">
                             {selectedTeacher.phone}
                           </p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-gray-500">
+                          <label className="text-sm font-medium text-muted-foreground">
                             Email
                           </label>
-                          <p className="text-sm text-gray-900">
+                          <p className="text-sm text-foreground">
                             {selectedTeacher.email}
                           </p>
                         </div>
@@ -676,31 +678,31 @@ export default function TeacherManagement() {
                   {/* Professional Information */}
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Professional Information
                       </h4>
                       <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Department
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedTeacher.department}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Experience
                             </label>
-                            <p className="text-sm text-gray-900">
+                            <p className="text-sm text-foreground">
                               {selectedTeacher.experience} years
                             </p>
                           </div>
                         </div>
                         {selectedTeacher.isClassTeacher && (
                           <div>
-                            <label className="text-sm font-medium text-gray-500">
+                            <label className="text-sm font-medium text-muted-foreground">
                               Class Teacher
                             </label>
                             <p className="text-sm text-green-900 font-medium">
@@ -716,10 +718,10 @@ export default function TeacherManagement() {
               </div>
 
               {/* Modal Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <div className="px-6 py-4 border-t border-border flex justify-end space-x-3">
                 <button
                   onClick={() => setSelectedTeacher(null)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
                 >
                   Close
                 </button>
@@ -737,20 +739,20 @@ export default function TeacherManagement() {
         {/* Add Teacher Modal */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div className="bg-card rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
               {/* Add Modal Header */}
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900">
+                  <h3 className="text-xl font-semibold text-foreground">
                     Add New Teacher/Staff
                   </h3>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-muted-foreground">
                     Fill in the details below
                   </p>
                 </div>
                 <button
                   onClick={handleCancelAdd}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
                     className="w-6 h-6"
@@ -774,13 +776,13 @@ export default function TeacherManagement() {
                   {/* Personal Information */}
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Personal Information
                       </h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Name <span className="text-red-500">*</span>
                             </label>
                             <input
@@ -789,12 +791,12 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateAddFormField('name', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                               placeholder="Enter full name"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Designation{' '}
                               <span className="text-red-500">*</span>
                             </label>
@@ -807,14 +809,14 @@ export default function TeacherManagement() {
                                   e.target.value,
                                 )
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                               placeholder="e.g. Senior Teacher, Math Teacher"
                             />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Role <span className="text-red-500">*</span>
                             </label>
                             <select
@@ -822,7 +824,7 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateAddFormField('role', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             >
                               <option value="Teacher">Teacher</option>
                               <option value="Faculty">Faculty</option>
@@ -830,7 +832,7 @@ export default function TeacherManagement() {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Department
                             </label>
                             <select
@@ -838,7 +840,7 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateAddFormField('department', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             >
                               <option value="">
                                 Select Department (Optional)
@@ -853,7 +855,7 @@ export default function TeacherManagement() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Date of Birth
                             </label>
                             <input
@@ -865,11 +867,11 @@ export default function TeacherManagement() {
                                   e.target.value,
                                 )
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Gender
                             </label>
                             <select
@@ -877,7 +879,7 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateAddFormField('gender', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             >
                               <option value="Male">Male</option>
                               <option value="Female">Female</option>
@@ -885,7 +887,7 @@ export default function TeacherManagement() {
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Bio
                           </label>
                           <textarea
@@ -894,12 +896,12 @@ export default function TeacherManagement() {
                               updateAddFormField('bio', e.target.value)
                             }
                             rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             placeholder="Brief description about the faculty member"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Subjects (comma separated)
                           </label>
                           <input
@@ -916,7 +918,7 @@ export default function TeacherManagement() {
                                 .filter((s) => s);
                               updateAddFormField('subjects', subjectsArray);
                             }}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             placeholder="Math, Science, English"
                           />
                         </div>
@@ -927,12 +929,12 @@ export default function TeacherManagement() {
                   {/* Professional Information */}
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Professional & Contact Details
                       </h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Phone
                           </label>
                           <input
@@ -941,12 +943,12 @@ export default function TeacherManagement() {
                             onChange={(e) =>
                               updateAddFormField('phone', e.target.value)
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             placeholder="Enter phone number"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Email
                           </label>
                           <input
@@ -955,12 +957,12 @@ export default function TeacherManagement() {
                             onChange={(e) =>
                               updateAddFormField('email', e.target.value)
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             placeholder="Enter email address"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Experience (Years)
                           </label>
                           <input
@@ -972,7 +974,7 @@ export default function TeacherManagement() {
                                 parseInt(e.target.value) || 0,
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             placeholder="0"
                             min="0"
                           />
@@ -981,7 +983,7 @@ export default function TeacherManagement() {
                         {/* Class Teacher Assignment */}
                         {(addFormData.role === 'Teacher' ||
                           addFormData.role === 'Faculty') && (
-                          <div className="border-t pt-4">
+                          <div className="border-t border-border pt-4">
                             <div className="flex items-center mb-3">
                               <input
                                 type="checkbox"
@@ -994,14 +996,14 @@ export default function TeacherManagement() {
                                 }
                                 className="mr-2"
                               />
-                              <label className="text-sm font-medium text-gray-700">
+                              <label className="text-sm font-medium text-foreground">
                                 Assign as Class Teacher
                               </label>
                             </div>
                             {addFormData.isClassTeacher && (
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  <label className="block text-sm font-medium text-foreground mb-1">
                                     Class
                                   </label>
                                   <select
@@ -1012,7 +1014,7 @@ export default function TeacherManagement() {
                                         e.target.value,
                                       )
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                                   >
                                     <option value="">Select Class</option>
                                     {classes.map((cls) => (
@@ -1023,7 +1025,7 @@ export default function TeacherManagement() {
                                   </select>
                                 </div>
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  <label className="block text-sm font-medium text-foreground mb-1">
                                     Section
                                   </label>
                                   <input
@@ -1035,7 +1037,7 @@ export default function TeacherManagement() {
                                         e.target.value,
                                       )
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                                     placeholder="A"
                                   />
                                 </div>
@@ -1050,10 +1052,10 @@ export default function TeacherManagement() {
               </div>
 
               {/* Add Modal Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <div className="px-6 py-4 border-t border-border flex justify-end space-x-3">
                 <button
                   onClick={handleCancelAdd}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
                 >
                   Cancel
                 </button>
@@ -1071,9 +1073,9 @@ export default function TeacherManagement() {
         {/* Edit Teacher Modal */}
         {editingTeacher && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+            <div className="bg-card rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
               {/* Edit Modal Header */}
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center">
                   <img
                     src={editFormData.photo || editingTeacher.photo}
@@ -1081,17 +1083,17 @@ export default function TeacherManagement() {
                     className="w-16 h-16 rounded-full object-cover mr-4"
                   />
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900">
+                    <h3 className="text-xl font-semibold text-foreground">
                       Edit Teacher Details
                     </h3>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-muted-foreground">
                       {editFormData.name || editingTeacher.name}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={handleCancelEdit}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
                     className="w-6 h-6"
@@ -1115,13 +1117,13 @@ export default function TeacherManagement() {
                   {/* Personal Information */}
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Personal Information
                       </h4>
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Name
                             </label>
                             <input
@@ -1130,11 +1132,11 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateFormField('name', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Employee ID
                             </label>
                             <input
@@ -1143,13 +1145,13 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateFormField('employeeId', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Role
                             </label>
                             <select
@@ -1157,7 +1159,7 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateFormField('role', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             >
                               <option value="Teacher">Teacher</option>
                               <option value="Faculty">Faculty</option>
@@ -1165,7 +1167,7 @@ export default function TeacherManagement() {
                             </select>
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Department
                             </label>
                             <select
@@ -1173,7 +1175,7 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateFormField('department', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             >
                               <option value="">No Department</option>
                               {departments.map((dept) => (
@@ -1186,7 +1188,7 @@ export default function TeacherManagement() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Date of Birth
                             </label>
                             <input
@@ -1195,11 +1197,11 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateFormField('dateOfBirth', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Gender
                             </label>
                             <select
@@ -1207,7 +1209,7 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateFormField('gender', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             >
                               <option value="Male">Male</option>
                               <option value="Female">Female</option>
@@ -1216,7 +1218,7 @@ export default function TeacherManagement() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Status
                             </label>
                             <select
@@ -1224,7 +1226,7 @@ export default function TeacherManagement() {
                               onChange={(e) =>
                                 updateFormField('status', e.target.value)
                               }
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             >
                               <option value="Active">Active</option>
                               <option value="Inactive">Inactive</option>
@@ -1239,12 +1241,12 @@ export default function TeacherManagement() {
                   {/* Professional & Contact Information */}
                   <div className="space-y-6">
                     <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                      <h4 className="text-lg font-semibold text-foreground mb-4">
                         Professional & Contact Details
                       </h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Phone
                           </label>
                           <input
@@ -1253,11 +1255,11 @@ export default function TeacherManagement() {
                             onChange={(e) =>
                               updateFormField('phone', e.target.value)
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Email
                           </label>
                           <input
@@ -1266,11 +1268,11 @@ export default function TeacherManagement() {
                             onChange={(e) =>
                               updateFormField('email', e.target.value)
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Experience (Years)
                           </label>
                           <input
@@ -1282,12 +1284,12 @@ export default function TeacherManagement() {
                                 parseInt(e.target.value) || 0,
                               )
                             }
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             min="0"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-foreground mb-1">
                             Profile Photo
                           </label>
                           <div className="space-y-2">
@@ -1300,11 +1302,11 @@ export default function TeacherManagement() {
                                   handlePhotoUpload(file);
                                 }
                               }}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                               disabled={uploadingPhoto}
                             />
                             {uploadingPhoto && (
-                              <p className="text-sm text-gray-500">
+                              <p className="text-sm text-muted-foreground">
                                 Uploading photo...
                               </p>
                             )}
@@ -1319,7 +1321,7 @@ export default function TeacherManagement() {
                         {/* Class Teacher Assignment */}
                         {(editFormData.role === 'Teacher' ||
                           editFormData.role === 'Faculty') && (
-                          <div className="border-t pt-4">
+                          <div className="border-t border-border pt-4">
                             <div className="flex items-center mb-3">
                               <input
                                 type="checkbox"
@@ -1332,14 +1334,14 @@ export default function TeacherManagement() {
                                 }
                                 className="mr-2"
                               />
-                              <label className="text-sm font-medium text-gray-700">
+                              <label className="text-sm font-medium text-foreground">
                                 Assign as Class Teacher
                               </label>
                             </div>
                             {editFormData.isClassTeacher && (
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  <label className="block text-sm font-medium text-foreground mb-1">
                                     Class
                                   </label>
                                   <select
@@ -1350,7 +1352,7 @@ export default function TeacherManagement() {
                                         e.target.value,
                                       )
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                                   >
                                     <option value="">Select Class</option>
                                     {classes.map((cls) => (
@@ -1361,7 +1363,7 @@ export default function TeacherManagement() {
                                   </select>
                                 </div>
                                 <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                                  <label className="block text-sm font-medium text-foreground mb-1">
                                     Section
                                   </label>
                                   <input
@@ -1373,7 +1375,7 @@ export default function TeacherManagement() {
                                         e.target.value,
                                       )
                                     }
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                                     placeholder="A"
                                   />
                                 </div>
@@ -1388,10 +1390,10 @@ export default function TeacherManagement() {
               </div>
 
               {/* Edit Modal Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <div className="px-6 py-4 border-t border-border flex justify-end space-x-3">
                 <button
                   onClick={handleCancelEdit}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
                 >
                   Cancel
                 </button>

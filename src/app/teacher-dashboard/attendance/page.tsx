@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ApiService } from '@/services/api';
 
 interface AttendanceRecord {
@@ -307,25 +308,27 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading attendance data...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">
+            Loading attendance data...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-background shadow-sm border-b border-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link
                 href="/teacher-dashboard"
-                className="mr-4 text-gray-600 hover:text-gray-900"
+                className="mr-4 text-muted-foreground hover:text-foreground"
               >
                 <svg
                   className="w-6 h-6"
@@ -341,12 +344,15 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                   />
                 </svg>
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 Attendance Management
               </h1>
             </div>
-            <div className="text-sm text-gray-500">
-              {userData.firstName} {userData.lastName}
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-muted-foreground">
+                {userData.firstName} {userData.lastName}
+              </div>
+              <ThemeToggle />
             </div>
           </div>
         </div>
@@ -357,10 +363,10 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
         {classes.length > 0 ? (
           <div className="space-y-6">
             {/* Class Selection */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Select Class
                   </label>
                   <select
@@ -369,7 +375,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                       const cls = classes.find((c) => c.id === e.target.value);
                       setSelectedClass(cls || null);
                     }}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    className="w-full px-4 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                   >
                     {classes.map((cls) => (
                       <option key={cls.id} value={cls.id}>
@@ -380,12 +386,12 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Date
                   </label>
-                  <div className="flex items-center px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg">
+                  <div className="flex items-center px-4 py-2 bg-muted border border-border rounded-lg">
                     <svg
-                      className="w-5 h-5 mr-2 text-gray-600"
+                      className="w-5 h-5 mr-2 text-muted-foreground"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -397,7 +403,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                         d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                       />
                     </svg>
-                    <span className="text-gray-900 font-medium">
+                    <span className="text-foreground font-medium">
                       {new Date(selectedDate).toLocaleDateString('en-US', {
                         weekday: 'long',
                         year: 'numeric',
@@ -405,7 +411,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                         day: 'numeric',
                       })}
                     </span>
-                    <span className="ml-2 px-2 py-1 bg-indigo-100 text-indigo-800 text-xs font-semibold rounded">
+                    <span className="ml-2 px-2 py-1 bg-blue-500/20 border border-blue-500/30 text-foreground text-xs font-semibold rounded">
                       Today
                     </span>
                   </div>
@@ -415,15 +421,17 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
+              <div className="bg-card border border-border rounded-lg shadow-sm p-6 border-l-4 border-green-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Present</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Present
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">
                       {stats.present}
                     </p>
                   </div>
-                  <div className="p-3 bg-green-100 rounded-full">
+                  <div className="p-3 bg-green-500/20 rounded-full">
                     <svg
                       className="w-6 h-6 text-green-600"
                       fill="none"
@@ -441,15 +449,17 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-red-500">
+              <div className="bg-card border border-border rounded-lg shadow-sm p-6 border-l-4 border-red-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Absent</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Absent
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">
                       {stats.absent}
                     </p>
                   </div>
-                  <div className="p-3 bg-red-100 rounded-full">
+                  <div className="p-3 bg-red-500/20 rounded-full">
                     <svg
                       className="w-6 h-6 text-red-600"
                       fill="none"
@@ -467,15 +477,17 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-yellow-500">
+              <div className="bg-card border border-border rounded-lg shadow-sm p-6 border-l-4 border-yellow-500">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-600">Late</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Late
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">
                       {stats.late}
                     </p>
                   </div>
-                  <div className="p-3 bg-yellow-100 rounded-full">
+                  <div className="p-3 bg-yellow-500/20 rounded-full">
                     <svg
                       className="w-6 h-6 text-yellow-600"
                       fill="none"
@@ -495,7 +507,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="bg-card border border-border rounded-lg shadow-sm p-4">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center space-x-3">
                   <button
@@ -540,7 +552,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
 
                 {hasUnsavedChanges && (
                   <div className="flex items-center space-x-3">
-                    <span className="text-sm text-orange-600 font-medium flex items-center">
+                    <span className="text-sm text-orange-600 dark:text-orange-400 font-medium flex items-center">
                       <svg
                         className="w-4 h-4 mr-1"
                         fill="none"
@@ -559,7 +571,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                     <button
                       onClick={handleSaveAttendance}
                       disabled={isSaving}
-                      className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSaving ? (
                         <>
@@ -609,46 +621,46 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
             </div>
 
             {/* Attendance Table */}
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">
+            <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-border">
+                <h2 className="text-lg font-semibold text-foreground">
                   Student Attendance ({students.length} students)
                 </h2>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-border">
+                  <thead className="bg-muted">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Roll No.
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Student Name
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Email
                       </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-card divide-y divide-border">
                     {students.map((student) => {
                       const status = attendanceRecords.get(student.id) || 'P';
                       return (
-                        <tr key={student.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <tr key={student.id} className="hover:bg-muted/50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
                             {student.rollNumber}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
                             {student.name}
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                             {student.email}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -660,7 +672,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                   status === 'P'
                                     ? 'bg-green-600 text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-green-100'
+                                    : 'bg-muted text-foreground hover:bg-green-500/20'
                                 }`}
                                 title="Present"
                               >
@@ -673,7 +685,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                   status === 'A'
                                     ? 'bg-red-600 text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-red-100'
+                                    : 'bg-muted text-foreground hover:bg-red-500/20'
                                 }`}
                                 title="Absent"
                               >
@@ -686,7 +698,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                   status === 'L'
                                     ? 'bg-yellow-600 text-white shadow-md'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-yellow-100'
+                                    : 'bg-muted text-foreground hover:bg-yellow-500/20'
                                 }`}
                                 title="Late"
                               >
@@ -699,7 +711,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                               onClick={() =>
                                 handleViewMonthlyAttendance(student)
                               }
-                              className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-xs font-medium flex items-center mx-auto"
+                              className="px-3 py-1.5 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors text-xs font-medium flex items-center mx-auto"
                             >
                               <svg
                                 className="w-4 h-4 mr-1"
@@ -726,9 +738,9 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+          <div className="bg-card border border-border rounded-lg shadow-sm p-12 text-center">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-12 w-12 text-muted-foreground"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -740,10 +752,10 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
+            <h3 className="mt-2 text-sm font-medium text-foreground">
               No classes assigned
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-muted-foreground">
               You need to be assigned to a class to manage attendance.
             </p>
           </div>
@@ -752,10 +764,10 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
 
       {/* Monthly Attendance Modal */}
       {showMonthlyModal && selectedStudent && (
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-600 to-purple-600">
+            <div className="px-6 py-4 border-b border-border bg-gradient-to-r from-indigo-600 to-purple-600">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold text-white">
@@ -787,9 +799,9 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
             </div>
 
             {/* Month Selector */}
-            <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <div className="px-6 py-4 bg-muted border-b border-border">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700">
+                <label className="text-sm font-medium text-foreground">
                   Select Month:
                 </label>
                 <input
@@ -797,7 +809,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                   value={selectedMonth}
                   onChange={(e) => handleMonthChange(e.target.value)}
                   max={new Date().toISOString().slice(0, 7)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                  className="px-4 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                 />
               </div>
             </div>
@@ -806,7 +818,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
             <div className="px-6 py-6">
               {isLoadingMonthly ? (
                 <div className="flex items-center justify-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
                 </div>
               ) : (
                 <div>
@@ -817,7 +829,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                       (day) => (
                         <div
                           key={day}
-                          className="text-center font-semibold text-gray-700 py-2 text-sm"
+                          className="text-center font-semibold text-foreground py-2 text-sm"
                         >
                           {day}
                         </div>
@@ -851,21 +863,21 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                             <div
                               className={`aspect-square border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all ${
                                 isToday
-                                  ? 'border-indigo-500 bg-indigo-50'
-                                  : 'border-gray-200'
+                                  ? 'border-blue-500 bg-blue-500/10'
+                                  : 'border-border'
                               } ${
                                 attendance
                                   ? attendance.status === 'P'
-                                    ? 'bg-green-50 border-green-300'
+                                    ? 'bg-green-50 dark:bg-green-500/20 border-green-300'
                                     : attendance.status === 'A'
-                                      ? 'bg-red-50 border-red-300'
+                                      ? 'bg-red-50 dark:bg-red-500/20 border-red-300'
                                       : attendance.status === 'L'
-                                        ? 'bg-yellow-50 border-yellow-300'
-                                        : 'bg-gray-50'
-                                  : 'bg-white'
+                                        ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-300'
+                                        : 'bg-muted'
+                                  : 'bg-card'
                               }`}
                             >
-                              <span className="text-sm font-semibold text-gray-900">
+                              <span className="text-sm font-semibold text-foreground">
                                 {day}
                               </span>
                               {attendance && (
@@ -893,21 +905,21 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                           key={`day-${day}`}
                           className={`aspect-square border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all ${
                             isToday
-                              ? 'border-indigo-500 bg-indigo-50'
-                              : 'border-gray-200'
+                              ? 'border-blue-500 bg-blue-500/10'
+                              : 'border-border'
                           } ${
                             attendance
                               ? attendance.status === 'P'
-                                ? 'bg-green-50 border-green-300'
+                                ? 'bg-green-50 dark:bg-green-500/20 border-green-300'
                                 : attendance.status === 'A'
-                                  ? 'bg-red-50 border-red-300'
+                                  ? 'bg-red-50 dark:bg-red-500/20 border-red-300'
                                   : attendance.status === 'L'
-                                    ? 'bg-yellow-50 border-yellow-300'
-                                    : 'bg-gray-50'
-                              : 'bg-white'
+                                    ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-300'
+                                    : 'bg-muted'
+                              : 'bg-card'
                           }`}
                         >
-                          <span className="text-sm font-semibold text-gray-900">
+                          <span className="text-sm font-semibold text-foreground">
                             {day}
                           </span>
                           {attendance && (
@@ -931,37 +943,41 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                   </div>
 
                   {/* Legend */}
-                  <div className="mt-6 pt-6 border-t border-gray-200">
-                    <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                  <div className="mt-6 pt-6 border-t border-border">
+                    <h4 className="text-sm font-semibold text-foreground mb-3">
                       Legend:
                     </h4>
                     <div className="flex flex-wrap gap-4">
                       <div className="flex items-center">
                         <div className="w-6 h-6 bg-green-600 rounded mr-2"></div>
-                        <span className="text-sm text-gray-700">
+                        <span className="text-sm text-muted-foreground">
                           Present (P)
                         </span>
                       </div>
                       <div className="flex items-center">
                         <div className="w-6 h-6 bg-red-600 rounded mr-2"></div>
-                        <span className="text-sm text-gray-700">
+                        <span className="text-sm text-muted-foreground">
                           Absent (A)
                         </span>
                       </div>
                       <div className="flex items-center">
                         <div className="w-6 h-6 bg-yellow-600 rounded mr-2"></div>
-                        <span className="text-sm text-gray-700">Late (L)</span>
+                        <span className="text-sm text-muted-foreground">
+                          Late (L)
+                        </span>
                       </div>
                       <div className="flex items-center">
-                        <div className="w-6 h-6 bg-white border-2 border-gray-200 rounded mr-2"></div>
-                        <span className="text-sm text-gray-700">No Record</span>
+                        <div className="w-6 h-6 bg-card border-2 border-border rounded mr-2"></div>
+                        <span className="text-sm text-muted-foreground">
+                          No Record
+                        </span>
                       </div>
                     </div>
 
                     {/* Summary */}
                     <div className="mt-4 grid grid-cols-3 gap-4">
-                      <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                        <p className="text-xs text-gray-600">Present</p>
+                      <div className="bg-green-50 dark:bg-green-500/20 rounded-lg p-3 border border-green-200">
+                        <p className="text-xs text-muted-foreground">Present</p>
                         <p className="text-xl font-bold text-green-600">
                           {
                             monthlyAttendance.filter((a) => a.status === 'P')
@@ -969,8 +985,8 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                           }
                         </p>
                       </div>
-                      <div className="bg-red-50 rounded-lg p-3 border border-red-200">
-                        <p className="text-xs text-gray-600">Absent</p>
+                      <div className="bg-red-50 dark:bg-red-500/20 rounded-lg p-3 border border-red-200">
+                        <p className="text-xs text-muted-foreground">Absent</p>
                         <p className="text-xl font-bold text-red-600">
                           {
                             monthlyAttendance.filter((a) => a.status === 'A')
@@ -978,8 +994,8 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                           }
                         </p>
                       </div>
-                      <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
-                        <p className="text-xs text-gray-600">Late</p>
+                      <div className="bg-yellow-50 dark:bg-yellow-500/20 rounded-lg p-3 border border-yellow-200">
+                        <p className="text-xs text-muted-foreground">Late</p>
                         <p className="text-xl font-bold text-yellow-600">
                           {
                             monthlyAttendance.filter((a) => a.status === 'L')
@@ -994,10 +1010,10 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
             </div>
 
             {/* Modal Footer */}
-            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end">
+            <div className="px-6 py-4 border-t border-border bg-muted flex justify-end">
               <button
                 onClick={() => setShowMonthlyModal(false)}
-                className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                className="px-4 py-2 bg-card border border-border text-foreground rounded-lg hover:bg-accent transition-colors font-medium"
               >
                 Close
               </button>
