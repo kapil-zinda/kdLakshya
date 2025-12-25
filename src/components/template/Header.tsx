@@ -141,7 +141,7 @@ export function Header({ organization }: HeaderProps) {
   };
 
   return (
-    <header className="bg-background/98 shadow-sm sticky top-0 z-50 border-b border-border backdrop-blur-sm">
+    <header className="bg-background shadow-sm sticky top-0 z-50 border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 md:h-20">
           {/* Logo and Name */}
