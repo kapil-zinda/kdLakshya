@@ -141,7 +141,7 @@ export function Header({ organization }: HeaderProps) {
   };
 
   return (
-    <header className="bg-background/98 shadow-sm sticky top-0 z-50 border-b border-border backdrop-blur-sm">
+    <header className="bg-background shadow-sm sticky top-0 z-50 border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 sm:h-16 md:h-20">
           {/* Logo and Name */}
@@ -197,8 +197,10 @@ export function Header({ organization }: HeaderProps) {
                   <li key={item.href}>
                     <button
                       onClick={() => handleNavigation(item.href)}
-                      className={`font-medium transition-all duration-200 hover:scale-105 cursor-pointer px-2 py-1 rounded-md ${
-                        isActive ? 'border-b-2' : 'text-foreground'
+                      className={`font-medium transition-all duration-200 hover:scale-105 cursor-pointer px-3 py-1.5 rounded-md ${
+                        isActive
+                          ? 'border-b-2 bg-accent'
+                          : 'text-foreground hover:bg-accent/60'
                       }`}
                       style={{
                         color: isActive
@@ -207,21 +209,7 @@ export function Header({ organization }: HeaderProps) {
                         borderBottomColor: isActive
                           ? organization.branding.primaryColor
                           : 'transparent',
-                        backgroundColor: isActive
-                          ? `${organization.branding.primaryColor}10`
-                          : 'transparent',
                         fontWeight: isActive ? '600' : '500',
-                      }}
-                      onMouseEnter={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.color =
-                            organization.branding.primaryColor;
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (!isActive) {
-                          e.currentTarget.style.color = '';
-                        }
                       }}
                     >
                       {item.label}
@@ -233,7 +221,7 @@ export function Header({ organization }: HeaderProps) {
           </nav>
 
           {/* Theme Toggle & Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden lg:flex items-center space-x-2">
             <ThemeToggle />
             <div>
               {isAuthenticated ? (
@@ -305,13 +293,12 @@ export function Header({ organization }: HeaderProps) {
                           handleNavigation(item.href);
                           setIsMenuOpen(false);
                         }}
-                        className={`block py-2 sm:py-3 px-2 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg w-full text-left text-foreground hover:bg-muted/50`}
+                        className={`block py-2 sm:py-3 px-3 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg w-full text-left text-foreground ${
+                          isActive ? 'bg-accent' : 'hover:bg-accent/60'
+                        }`}
                         style={{
                           color: isActive
                             ? organization.branding.primaryColor
-                            : undefined,
-                          backgroundColor: isActive
-                            ? `${organization.branding.primaryColor}15`
                             : undefined,
                           fontWeight: isActive ? '600' : '500',
                         }}

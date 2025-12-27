@@ -11,7 +11,7 @@ interface HeroSectionProps {
 export function HeroSection({ data, branding }: HeroSectionProps) {
   return (
     <section
-      className="relative min-h-[60vh] sm:min-h-[70vh] lg:min-h-[80vh] flex items-center justify-center text-white overflow-hidden"
+      className="relative min-h-[60vh] sm:min-h-[70vh] lg:min-h-[80vh] flex items-center justify-center text-white overflow-hidden z-0 pt-14 sm:pt-16 md:pt-20"
       style={{
         background: `linear-gradient(135deg, ${branding.primaryColor}f0, ${branding.secondaryColor}f0), url(${data.backgroundImage})`,
         backgroundSize: 'cover',

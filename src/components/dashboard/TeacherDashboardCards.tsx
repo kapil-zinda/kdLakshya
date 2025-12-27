@@ -302,21 +302,21 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
         {/* Dashboard Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-4xl mx-auto">
           {dashboardCards.map((card, index) => (
-            <Link key={index} href={card.href} className="group">
-              <div className="bg-card rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group-hover:scale-105">
+            <Link key={index} href={card.href} className="group h-full">
+              <div className="bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden group-hover:scale-105 border-2 border-foreground/30 h-full flex flex-col">
                 <div
                   className={`h-32 bg-gradient-to-br ${card.color} p-6 flex items-center justify-center`}
                 >
                   <div className="text-white">{card.icon}</div>
                 </div>
-                <div className="p-6">
+                <div className="p-6 flex-1 flex flex-col">
                   <h3 className="text-lg font-semibold text-foreground mb-2">
                     {card.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground mb-4">
+                  <p className="text-sm text-muted-foreground mb-4 flex-1">
                     {card.description}
                   </p>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mt-auto">
                     <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded">
                       {card.stats}
                     </span>
