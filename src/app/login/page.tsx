@@ -426,15 +426,15 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Student Login Card (Default) */}
-        <Card className="w-full shadow-lg border-0 bg-white/80 backdrop-blur-sm">
+        <Card className="w-full shadow-lg border-2 border-foreground/20 bg-card">
           <CardHeader className="space-y-1 text-center pb-4">
-            <CardTitle className="text-2xl font-bold text-gray-900">
+            <CardTitle className="text-2xl font-bold text-foreground">
               Student Login
             </CardTitle>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               Enter your first name and date of birth to access your dashboard
             </p>
           </CardHeader>
@@ -444,7 +444,7 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <Label
                   htmlFor="firstName"
-                  className="text-sm font-medium text-gray-700"
+                  className="text-sm font-medium text-foreground"
                 >
                   First Name
                 </Label>
@@ -456,7 +456,7 @@ export default function LoginPage() {
                   onChange={(e) =>
                     handleInputChange('firstName', e.target.value)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -465,7 +465,7 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <Label
                   htmlFor="dob"
-                  className="text-sm font-medium text-gray-700"
+                  className="text-sm font-medium text-foreground"
                 >
                   Date of Birth
                 </Label>
@@ -476,7 +476,7 @@ export default function LoginPage() {
                   onChange={(e) =>
                     handleInputChange('dateOfBirth', e.target.value)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-background text-foreground border border-border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -508,10 +508,10 @@ export default function LoginPage() {
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+                <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">or</span>
+                <span className="px-2 bg-card text-muted-foreground">or</span>
               </div>
             </div>
 
@@ -519,7 +519,7 @@ export default function LoginPage() {
             <Button
               onClick={handleAdminTeacherLogin}
               variant="outline"
-              className="w-full border-indigo-600 text-indigo-600 hover:bg-indigo-50 font-medium py-2 px-4 rounded-md transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="w-full border-indigo-600 text-indigo-600 hover:bg-accent hover:text-indigo-600 font-medium py-2 px-4 rounded-md transition-colors focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
             >
               <svg
                 className="w-4 h-4 mr-2"
@@ -541,7 +541,7 @@ export default function LoginPage() {
         </Card>
 
         {/* Footer */}
-        <div className="text-center text-sm text-gray-600">
+        <div className="text-center text-sm text-muted-foreground">
           <p>
             Having trouble logging in?{' '}
             <a

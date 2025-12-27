@@ -452,7 +452,7 @@ function AdminDashboardContent({ userData }: { userData: any }) {
                 })
                 .map((card, index) => (
                   <Link key={index} href={card.href} className="group">
-                    <div className="bg-card rounded-xl shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden group-hover:scale-105">
+                    <div className="bg-card rounded-xl shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden group-hover:scale-105 border-2 border-foreground/30">
                       <div
                         className={`h-32 bg-gradient-to-br ${card.color} p-6 flex items-center justify-center`}
                       >
