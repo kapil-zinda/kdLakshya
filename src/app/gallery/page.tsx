@@ -1,85 +1,78 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
-
-const galleryImages = [
-  {
-    id: 1,
-    src: 'https://images.unsplash.com/photo-1562774053-701939374585?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Campus View',
-    category: 'Campus',
-    title: 'Beautiful Campus Grounds',
-  },
-  {
-    id: 2,
-    src: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Students in Classroom',
-    category: 'Academic',
-    title: 'Interactive Learning Environment',
-  },
-  {
-    id: 3,
-    src: 'https://images.unsplash.com/photo-1581092795442-bcd3bfa0f8a4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Laboratory',
-    category: 'Facilities',
-    title: 'State-of-the-art Science Lab',
-  },
-  {
-    id: 4,
-    src: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Sports Activities',
-    category: 'Sports',
-    title: 'Athletic Excellence',
-  },
-  {
-    id: 5,
-    src: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Library',
-    category: 'Facilities',
-    title: 'Modern Library',
-  },
-  {
-    id: 6,
-    src: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Cultural Event',
-    category: 'Events',
-    title: 'Cultural Celebrations',
-  },
-  {
-    id: 7,
-    src: 'https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Graduation Ceremony',
-    category: 'Events',
-    title: 'Graduation Day',
-  },
-  {
-    id: 8,
-    src: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Art Class',
-    category: 'Academic',
-    title: 'Creative Arts Program',
-  },
-];
-
-const categories = [
-  'All',
-  'Campus',
-  'Academic',
-  'Facilities',
-  'Sports',
-  'Events',
-];
+import { ApiService } from '@/services/api';
+import { useGetGalleryQuery } from '@/store/api/galleryApi';
+import { getSubdomain } from '@/utils/subdomainUtils';
 
 export default function GalleryPage() {
   const { organizationData, loading } = useOrganizationData();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedImage, setSelectedImage] = useState<any>(null);
+  const [orgId, setOrgId] = useState<string>('');
 
-  if (loading) {
+  // Get orgId from subdomain (public access)
+  useEffect(() => {
+    const fetchOrgId = async () => {
+      try {
+        const subdomain = getSubdomain() || 'spd'; // Default to 'spd' if no subdomain
+        const orgData = await ApiService.getOrganization(subdomain);
+        setOrgId(orgData.data.id);
+      } catch (error) {
+        console.error('Error fetching organization ID:', error);
+      }
+    };
+
+    fetchOrgId();
+  }, []);
+
+  // Fetch gallery data from API (public endpoint - no auth required)
+  const {
+    data: galleryData,
+    isLoading: isGalleryLoading,
+    error: galleryError,
+  } = useGetGalleryQuery(
+    { orgId, params: { active_only: 'true' } },
+    { skip: !orgId },
+  );
+
+  // Transform API data to match component structure
+  const galleryImages = useMemo(() => {
+    if (!galleryData?.data) return [];
+    return galleryData.data
+      .map((item) => ({
+        id: item.id,
+        src: item.attributes.image_url,
+        alt: item.attributes.title,
+        title: item.attributes.title,
+        description: item.attributes.description,
+        tags: item.attributes.tags,
+      }))
+      .sort((a, b) => {
+        // Sort by order if available in attributes
+        const orderA =
+          galleryData.data.find((d) => d.id === a.id)?.attributes.order || 0;
+        const orderB =
+          galleryData.data.find((d) => d.id === b.id)?.attributes.order || 0;
+        return orderA - orderB;
+      });
+  }, [galleryData]);
+
+  // Extract unique tags from gallery images to create categories
+  const categories = useMemo(() => {
+    if (!galleryImages.length) return ['All'];
+    const allTags = new Set<string>();
+    galleryImages.forEach((image) => {
+      image.tags?.forEach((tag) => allTags.add(tag));
+    });
+    return ['All', ...Array.from(allTags).sort()];
+  }, [galleryImages]);
+
+  if (loading || isGalleryLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center space-y-4">
@@ -105,10 +98,26 @@ export default function GalleryPage() {
     );
   }
 
+  if (galleryError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Error Loading Gallery
+          </h1>
+          <p className="text-muted-foreground">
+            Unable to load gallery images. Please try again later.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Filter images by selected category (tag)
   const filteredImages =
     selectedCategory === 'All'
       ? galleryImages
-      : galleryImages.filter((img) => img.category === selectedCategory);
+      : galleryImages.filter((img) => img.tags?.includes(selectedCategory));
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -221,9 +230,11 @@ export default function GalleryPage() {
                         <h3 className="text-white font-medium text-sm">
                           {image.title}
                         </h3>
-                        <p className="text-white/80 text-xs">
-                          {image.category}
-                        </p>
+                        {image.tags && image.tags.length > 0 && (
+                          <p className="text-white/80 text-xs">
+                            {image.tags.join(', ')}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -266,7 +277,16 @@ export default function GalleryPage() {
                 <h3 className="text-white font-medium text-lg">
                   {selectedImage.title}
                 </h3>
-                <p className="text-white/80">{selectedImage.category}</p>
+                {selectedImage.description && (
+                  <p className="text-white/90 text-sm mb-2">
+                    {selectedImage.description}
+                  </p>
+                )}
+                {selectedImage.tags && selectedImage.tags.length > 0 && (
+                  <p className="text-white/80 text-sm">
+                    {selectedImage.tags.join(', ')}
+                  </p>
+                )}
               </div>
             </div>
           </div>
