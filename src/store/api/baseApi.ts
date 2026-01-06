@@ -9,7 +9,7 @@ const API_CONFIG = {
     'https://apis.testkdlakshya.uchhal.in/auth',
   CLASS_API:
     process.env.NEXT_PUBLIC_BaseURLClass ||
-    'https://apis.testkdlakshya.uchhal.in', // Base domain only - paths are full in endpoints
+    'https://apis.testkdlakshya.uchhal.in/class', // Base URL includes /class prefix
   WORKSPACE_API:
     process.env.NEXT_PUBLIC_BaseURLWorkspace ||
     'https://apis.testkdlakshya.uchhal.in',
