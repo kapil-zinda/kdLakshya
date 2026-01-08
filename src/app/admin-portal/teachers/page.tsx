@@ -28,7 +28,7 @@ interface Teacher {
   updatedAt?: number;
   // Legacy fields for backward compatibility
   employeeId?: string;
-  role?: 'Teacher' | 'Faculty' | 'Staff';
+  role?: 'Faculty' | 'Staff';
   department?: string;
   experience?: number;
   gender?: 'Male' | 'Female';
@@ -37,6 +37,7 @@ interface Teacher {
   isClassTeacher?: boolean;
   assignedClass?: string;
   assignedSection?: string;
+  temporary_password?: string;
 }
 
 export default function TeacherManagement() {
@@ -74,6 +75,9 @@ export default function TeacherManagement() {
     subjects: [],
     email: '',
     phone: '',
+    employeeId: '',
+    gender: 'Male',
+    temporary_password: 'TempPass@123',
   });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const router = useRouter();
@@ -83,8 +87,13 @@ export default function TeacherManagement() {
     facultyResponse?.data.map((faculty) => {
       // Normalize role to proper case (capitalize first letter)
       const rawRole = faculty.attributes.role || 'faculty';
-      const normalizedRole =
+      let normalizedRole =
         rawRole.charAt(0).toUpperCase() + rawRole.slice(1).toLowerCase();
+
+      // Convert 'Teacher' to 'Faculty' for consistency
+      if (normalizedRole === 'Teacher') {
+        normalizedRole = 'Faculty';
+      }
 
       // Normalize status to proper case (capitalize first letter)
       const rawStatus = faculty.attributes.status || 'active';
@@ -103,7 +112,7 @@ export default function TeacherManagement() {
         experience: faculty.attributes.experience,
         createdAt: faculty.attributes.createdAt,
         updatedAt: faculty.attributes.updatedAt,
-        role: normalizedRole as 'Teacher' | 'Faculty' | 'Staff',
+        role: normalizedRole as 'Faculty' | 'Staff',
         status: normalizedStatus as 'Active' | 'Inactive' | 'On Leave',
         isClassTeacher: false,
       };
@@ -147,6 +156,9 @@ export default function TeacherManagement() {
         subjects: addFormData.subjects || [],
         email: addFormData.email!,
         phone: addFormData.phone!,
+        employee_id: addFormData.employeeId || '',
+        gender: addFormData.gender || 'Male',
+        temporary_password: addFormData.temporary_password || 'TempPass@123',
       };
 
       // Use RTK Query mutation - cache will auto-update!
@@ -163,6 +175,9 @@ export default function TeacherManagement() {
         subjects: [],
         email: '',
         phone: '',
+        employeeId: '',
+        gender: 'Male',
+        temporary_password: 'TempPass@123',
       });
 
       alert('Faculty member added successfully!');
@@ -172,7 +187,7 @@ export default function TeacherManagement() {
     }
   };
 
-  const roles = ['All', 'Teacher', 'Faculty', 'Staff'];
+  const roles = ['All', 'Faculty', 'Staff'];
   const departments = [
     'Mathematics',
     'Science',
@@ -241,8 +256,6 @@ export default function TeacherManagement() {
     switch (role) {
       case 'Faculty':
         return 'bg-purple-100 text-purple-800';
-      case 'Teacher':
-        return 'bg-blue-100 text-blue-800';
       case 'Staff':
         return 'bg-gray-100 text-gray-800';
       default:
@@ -353,6 +366,9 @@ export default function TeacherManagement() {
       subjects: [],
       email: '',
       phone: '',
+      employeeId: '',
+      gender: 'Male',
+      temporary_password: 'TempPass@123',
     });
   };
 
@@ -820,13 +836,12 @@ export default function TeacherManagement() {
                               Role <span className="text-red-500">*</span>
                             </label>
                             <select
-                              value={addFormData.role || 'Teacher'}
+                              value={addFormData.role || 'Faculty'}
                               onChange={(e) =>
                                 updateAddFormField('role', e.target.value)
                               }
                               className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             >
-                              <option value="Teacher">Teacher</option>
                               <option value="Faculty">Faculty</option>
                               <option value="Staff">Staff</option>
                             </select>
@@ -856,6 +871,37 @@ export default function TeacherManagement() {
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-foreground mb-1">
+                              Employee ID
+                            </label>
+                            <input
+                              type="text"
+                              value={addFormData.employeeId || ''}
+                              onChange={(e) =>
+                                updateAddFormField('employeeId', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
+                              placeholder="e.g. EMP001"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">
+                              Gender <span className="text-red-500">*</span>
+                            </label>
+                            <select
+                              value={addFormData.gender || 'Male'}
+                              onChange={(e) =>
+                                updateAddFormField('gender', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
+                            >
+                              <option value="Male">Male</option>
+                              <option value="Female">Female</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">
                               Date of Birth
                             </label>
                             <input
@@ -872,18 +918,23 @@ export default function TeacherManagement() {
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-foreground mb-1">
-                              Gender
+                              Temporary Password{' '}
+                              <span className="text-red-500">*</span>
                             </label>
-                            <select
-                              value={addFormData.gender || 'Male'}
+                            <input
+                              type="text"
+                              value={
+                                addFormData.temporary_password || 'TempPass@123'
+                              }
                               onChange={(e) =>
-                                updateAddFormField('gender', e.target.value)
+                                updateAddFormField(
+                                  'temporary_password',
+                                  e.target.value,
+                                )
                               }
                               className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
-                            >
-                              <option value="Male">Male</option>
-                              <option value="Female">Female</option>
-                            </select>
+                              placeholder="TempPass@123"
+                            />
                           </div>
                         </div>
                         <div>
@@ -909,9 +960,16 @@ export default function TeacherManagement() {
                             value={
                               Array.isArray(addFormData.subjects)
                                 ? addFormData.subjects.join(', ')
-                                : addFormData.subjects || ''
+                                : typeof addFormData.subjects === 'string'
+                                  ? addFormData.subjects
+                                  : ''
                             }
                             onChange={(e) => {
+                              // Store as string to preserve commas during typing
+                              updateAddFormField('subjects', e.target.value);
+                            }}
+                            onBlur={(e) => {
+                              // Convert to array only on blur (when user leaves the field)
                               const subjectsArray = e.target.value
                                 .split(',')
                                 .map((s) => s.trim())
@@ -981,8 +1039,7 @@ export default function TeacherManagement() {
                         </div>
 
                         {/* Class Teacher Assignment */}
-                        {(addFormData.role === 'Teacher' ||
-                          addFormData.role === 'Faculty') && (
+                        {addFormData.role === 'Faculty' && (
                           <div className="border-t border-border pt-4">
                             <div className="flex items-center mb-3">
                               <input
@@ -1161,7 +1218,6 @@ export default function TeacherManagement() {
                               }
                               className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                             >
-                              <option value="Teacher">Teacher</option>
                               <option value="Faculty">Faculty</option>
                               <option value="Staff">Staff</option>
                             </select>
@@ -1319,8 +1375,7 @@ export default function TeacherManagement() {
                         </div>
 
                         {/* Class Teacher Assignment */}
-                        {(editFormData.role === 'Teacher' ||
-                          editFormData.role === 'Faculty') && (
+                        {editFormData.role === 'Faculty' && (
                           <div className="border-t border-border pt-4">
                             <div className="flex items-center mb-3">
                               <input

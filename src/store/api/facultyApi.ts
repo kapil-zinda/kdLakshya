@@ -28,6 +28,8 @@ export interface Faculty {
   created_by: string;
   created_by_email: string;
   temporary_password?: string;
+  employee_id?: string;
+  gender?: string;
 }
 
 export interface FacultyResponse {
@@ -63,6 +65,8 @@ export interface CreateFacultyRequest {
   email: string;
   phone: string;
   temporary_password?: string;
+  employee_id?: string;
+  gender?: string;
 }
 
 export interface UpdateFacultyRequest {
