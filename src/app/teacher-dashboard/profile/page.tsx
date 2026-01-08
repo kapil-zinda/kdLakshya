@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { getCDNUrl } from '@/config/cdn';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -42,10 +43,7 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
       // Use full user data from Redux (has all fields including email, type, phone, etc.)
       const rawPhotoUrl = fullUserData.profilePhoto || '';
       // If photo URL doesn't start with http, add CloudFront domain
-      const profilePhotoUrl =
-        rawPhotoUrl && !rawPhotoUrl.startsWith('http')
-          ? `https://d2kwquvuus8ixo.cloudfront.net/${rawPhotoUrl}`
-          : rawPhotoUrl;
+      const profilePhotoUrl = getCDNUrl(rawPhotoUrl);
 
       const profileData = {
         id: fullUserData.id || '',
@@ -172,7 +170,7 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
       }
 
       // For displaying, add CloudFront domain to the file path
-      const displayUrl = `https://d2kwquvuus8ixo.cloudfront.net/${filePath}`;
+      const displayUrl = getCDNUrl(filePath);
 
       // Update teacher data with new photo URL
       const updatedTeacherData = {
