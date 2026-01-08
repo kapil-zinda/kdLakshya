@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { getCDNUrl } from '@/config/cdn';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
 import { useGetClassesQuery } from '@/store/api/classApi';
@@ -267,7 +268,7 @@ export default function TeacherManagement() {
       if (editFormData.designation)
         facultyData.designation = editFormData.designation;
       if (editFormData.bio) facultyData.bio = editFormData.bio;
-      if (editFormData.photo) facultyData.photo = editFormData.photo;
+      if (editFormData.photo) facultyData.photo = getCDNUrl(editFormData.photo);
       if (editFormData.subjects) facultyData.subjects = editFormData.subjects;
       if (editFormData.email) facultyData.email = editFormData.email;
       if (editFormData.phone) facultyData.phone = editFormData.phone;

@@ -6,6 +6,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
+import {
+  useCreateGalleryImageMutation,
+  useDeleteGalleryImageMutation,
+  useUpdateGalleryImageMutation,
+} from '@/store/api/galleryApi';
+import { useGetS3UploadUrlMutation } from '@/store/api/s3Api';
 
 interface Photo {
   id: string;
@@ -44,12 +51,27 @@ export default function GalleryManagement() {
   const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [uploadFiles, setUploadFiles] = useState<FileList | null>(null);
+  const [uploadFormData, setUploadFormData] = useState({
+    title: '',
+    description: '',
+    tags: '',
+    active: false,
+  });
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
   const [albumFormData, setAlbumFormData] = useState({
     name: '',
     description: '',
     category: 'Events',
   });
   const router = useRouter();
+  const { userData } = useUserDataRedux();
+
+  // API Hooks
+  const [getS3UploadUrl] = useGetS3UploadUrlMutation();
+  const [createGalleryImage] = useCreateGalleryImageMutation();
+  const [updateGalleryImage] = useUpdateGalleryImageMutation();
+  const [deleteGalleryImage] = useDeleteGalleryImageMutation();
 
   const categories = [
     'All',
@@ -260,41 +282,120 @@ export default function GalleryManagement() {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (files) {
+    if (files && files.length > 0) {
       setUploadFiles(files);
+      // Set default title from first file name
+      setUploadFormData({
+        title: files[0].name.split('.')[0],
+        description: '',
+        tags: '',
+        active: false,
+      });
       setShowUploadModal(true);
     }
   };
 
-  const processUpload = () => {
-    if (!uploadFiles) return;
-
-    // In a real application, you would upload files to a server
-    // For demo purposes, we'll simulate the upload
-    const newPhotos: Photo[] = [];
-
-    for (let i = 0; i < uploadFiles.length; i++) {
-      const file = uploadFiles[i];
-      const newPhoto: Photo = {
-        id: (photos.length + i + 1).toString(),
-        title: file.name.split('.')[0],
-        description: 'Uploaded photo',
-        url: URL.createObjectURL(file), // In production, this would be the server URL
-        category: 'Other',
-        album: 'Uploads',
-        uploadDate: new Date().toISOString().split('T')[0],
-        fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        dimensions: '1920x1080',
-        tags: [],
-        isPublished: false,
-      };
-      newPhotos.push(newPhoto);
+  const processUpload = async () => {
+    if (!uploadFiles || uploadFiles.length === 0) {
+      alert('Please select files to upload');
+      return;
     }
 
-    setPhotos((prev) => [...prev, ...newPhotos]);
-    setShowUploadModal(false);
-    setUploadFiles(null);
-    alert(`Successfully uploaded ${newPhotos.length} photo(s)`);
+    if (!uploadFormData.title.trim()) {
+      alert('Please enter a title for the image');
+      return;
+    }
+
+    if (!userData?.orgId) {
+      alert('Organization ID not found. Please log in again.');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // Process only the first file for now (can be extended for multiple files)
+      const file = uploadFiles[0];
+
+      // Step 1: Get S3 signed URL for upload
+      setUploadProgress(10);
+      const uploadUrlResponse = await getS3UploadUrl({
+        type: 'upload',
+        id: userData.id,
+        attributes: {
+          title: 'org_image', // Must be "org_image" or "profile_photo" for S3
+          image_type: 'gallery',
+        },
+      }).unwrap();
+
+      if (!uploadUrlResponse.success) {
+        throw new Error('Failed to get upload URL');
+      }
+
+      const { signed_url: uploadUrl, file_path } = uploadUrlResponse.data;
+
+      // Step 2: Upload file to S3
+      setUploadProgress(30);
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'PUT',
+        body: file,
+        headers: {
+          'Content-Type': file.type,
+        },
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file to S3');
+      }
+
+      // Step 3: Store only the file path (CloudFront domain will be added when displaying)
+      setUploadProgress(60);
+
+      // Step 4: Create gallery entry in database
+      setUploadProgress(80);
+      const tagsArray = uploadFormData.tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter((tag) => tag.length > 0);
+
+      await createGalleryImage({
+        orgId: userData.orgId,
+        imageData: {
+          image_url: file_path,
+          title: uploadFormData.title,
+          description: uploadFormData.description,
+          tags: tagsArray,
+          active: uploadFormData.active,
+          order: photos.length + 1,
+        },
+      }).unwrap();
+
+      setUploadProgress(100);
+
+      // Reset form and close modal
+      setShowUploadModal(false);
+      setUploadFiles(null);
+      setUploadFormData({
+        title: '',
+        description: '',
+        tags: '',
+        active: false,
+      });
+      setUploadProgress(0);
+
+      alert('Image uploaded successfully!');
+
+      // Refresh the page to show new image
+      window.location.reload();
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert(
+        `Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleCreateAlbum = () => {
@@ -745,14 +846,23 @@ export default function GalleryManagement() {
             <div className="bg-card rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-foreground">
-                  Upload Photos
+                  Upload Gallery Image
                 </h3>
                 <button
                   onClick={() => {
-                    setShowUploadModal(false);
-                    setUploadFiles(null);
+                    if (!isUploading) {
+                      setShowUploadModal(false);
+                      setUploadFiles(null);
+                      setUploadFormData({
+                        title: '',
+                        description: '',
+                        tags: '',
+                        active: false,
+                      });
+                    }
                   }}
-                  className="text-muted-foreground hover:text-foreground"
+                  disabled={isUploading}
+                  className="text-muted-foreground hover:text-foreground disabled:opacity-50"
                 >
                   <svg
                     className="w-6 h-6"
@@ -769,40 +879,152 @@ export default function GalleryManagement() {
                   </svg>
                 </button>
               </div>
-              <div className="p-6">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Ready to upload {uploadFiles.length} file(s)
-                </p>
-                <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
-                  {Array.from(uploadFiles).map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-2 bg-muted rounded"
-                    >
-                      <span className="text-sm text-foreground truncate">
-                        {file.name}
+              <div className="p-6 space-y-4">
+                {/* File Preview */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Selected File
+                  </label>
+                  <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                    <span className="text-sm text-foreground truncate">
+                      {uploadFiles[0].name}
+                    </span>
+                    <span className="text-xs text-muted-foreground ml-2">
+                      {(uploadFiles[0].size / (1024 * 1024)).toFixed(1)} MB
+                    </span>
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Title <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadFormData.title}
+                    onChange={(e) =>
+                      setUploadFormData((prev) => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))
+                    }
+                    disabled={isUploading}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                    placeholder="Enter image title"
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={uploadFormData.description}
+                    onChange={(e) =>
+                      setUploadFormData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    disabled={isUploading}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                    placeholder="Enter image description"
+                  />
+                </div>
+
+                {/* Tags */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">
+                    Tags
+                  </label>
+                  <input
+                    type="text"
+                    value={uploadFormData.tags}
+                    onChange={(e) =>
+                      setUploadFormData((prev) => ({
+                        ...prev,
+                        tags: e.target.value,
+                      }))
+                    }
+                    disabled={isUploading}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                    placeholder="Enter tags separated by commas (e.g. event, sports, campus)"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Separate tags with commas
+                  </p>
+                </div>
+
+                {/* Active Checkbox */}
+                <div className="flex items-center">
+                  <input
+                    type="checkbox"
+                    id="active-checkbox"
+                    checked={uploadFormData.active}
+                    onChange={(e) =>
+                      setUploadFormData((prev) => ({
+                        ...prev,
+                        active: e.target.checked,
+                      }))
+                    }
+                    disabled={isUploading}
+                    className="w-4 h-4 text-indigo-600 bg-background border-border rounded focus:ring-indigo-500 disabled:opacity-50"
+                  />
+                  <label
+                    htmlFor="active-checkbox"
+                    className="ml-2 text-sm text-foreground"
+                  >
+                    Make this image active (visible on public gallery)
+                  </label>
+                </div>
+
+                {/* Upload Progress */}
+                {isUploading && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-foreground">
+                        Uploading...
                       </span>
-                      <span className="text-xs text-muted-foreground">
-                        {(file.size / (1024 * 1024)).toFixed(1)} MB
+                      <span className="text-sm text-muted-foreground">
+                        {uploadProgress}%
                       </span>
                     </div>
-                  ))}
-                </div>
-                <div className="flex items-center justify-end space-x-3">
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div
+                        className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end space-x-3 pt-4">
                   <button
                     onClick={() => {
                       setShowUploadModal(false);
                       setUploadFiles(null);
+                      setUploadFormData({
+                        title: '',
+                        description: '',
+                        tags: '',
+                        active: false,
+                      });
                     }}
-                    className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
+                    disabled={isUploading}
+                    className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={processUpload}
-                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
+                    disabled={isUploading || !uploadFormData.title.trim()}
+                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Upload Photos
+                    {isUploading ? 'Uploading...' : 'Upload Image'}
                   </button>
                 </div>
               </div>

@@ -32,7 +32,7 @@ export const syncUserToRedux = (userData: {
   lastName: string;
   role: string;
   orgId: string;
-  permissions?: Record<string, any>;
+  permissions?: Record<string, string>;
 }) => {
   const user: User = {
     id: userData.id,
