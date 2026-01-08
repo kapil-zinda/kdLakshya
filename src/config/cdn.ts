@@ -3,9 +3,7 @@
  * CloudFront URL for serving uploaded files
  */
 
-export const CLOUDFRONT_URL =
-  process.env.NEXT_PUBLIC_CLOUDFRONT_URL ||
-  'https://d2kwquvuus8ixo.cloudfront.net';
+export const CLOUDFRONT_URL = process.env.NEXT_PUBLIC_CLOUDFRONT_URL || '';
 
 /**
  * Helper to construct full CDN URL from file path
