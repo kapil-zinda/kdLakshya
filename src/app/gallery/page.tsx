@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
+import { getCDNUrl } from '@/config/cdn';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { ApiService } from '@/services/api';
 import { useGetGalleryQuery } from '@/store/api/galleryApi';
@@ -47,9 +48,7 @@ export default function GalleryPage() {
       .map((item) => {
         const imageUrl = item.attributes.image_url;
         // If image_url doesn't start with http, add CloudFront domain
-        const src = imageUrl.startsWith('http')
-          ? imageUrl
-          : `https://d2kwquvuus8ixo.cloudfront.net/${imageUrl}`;
+        const src = getCDNUrl(imageUrl);
 
         return {
           id: item.id,
