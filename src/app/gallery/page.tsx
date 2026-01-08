@@ -44,14 +44,22 @@ export default function GalleryPage() {
   const galleryImages = useMemo(() => {
     if (!galleryData?.data) return [];
     return galleryData.data
-      .map((item) => ({
-        id: item.id,
-        src: item.attributes.image_url,
-        alt: item.attributes.title,
-        title: item.attributes.title,
-        description: item.attributes.description,
-        tags: item.attributes.tags,
-      }))
+      .map((item) => {
+        const imageUrl = item.attributes.image_url;
+        // If image_url doesn't start with http, add CloudFront domain
+        const src = imageUrl.startsWith('http')
+          ? imageUrl
+          : `https://d2kwquvuus8ixo.cloudfront.net/${imageUrl}`;
+
+        return {
+          id: item.id,
+          src,
+          alt: item.attributes.title,
+          title: item.attributes.title,
+          description: item.attributes.description,
+          tags: item.attributes.tags,
+        };
+      })
       .sort((a, b) => {
         // Sort by order if available in attributes
         const orderA =

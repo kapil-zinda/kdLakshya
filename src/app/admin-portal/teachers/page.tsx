@@ -267,7 +267,9 @@ export default function TeacherManagement() {
       if (editFormData.designation)
         facultyData.designation = editFormData.designation;
       if (editFormData.bio) facultyData.bio = editFormData.bio;
-      if (editFormData.photo) facultyData.photo = editFormData.photo;
+      if (editFormData.photo)
+        facultyData.photo =
+          'https://d2kwquvuus8ixo.cloudfront.net/' + editFormData.photo;
       if (editFormData.subjects) facultyData.subjects = editFormData.subjects;
       if (editFormData.email) facultyData.email = editFormData.email;
       if (editFormData.phone) facultyData.phone = editFormData.phone;
