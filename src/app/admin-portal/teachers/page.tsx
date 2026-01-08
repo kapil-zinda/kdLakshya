@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -273,7 +274,7 @@ export default function TeacherManagement() {
     if (!editingTeacher || !editFormData.id || !orgId) return;
 
     try {
-      const facultyData: any = {};
+      const facultyData: Partial<Teacher> = {};
 
       // Only include fields that were actually changed
       if (editFormData.name) facultyData.name = editFormData.name;
@@ -310,14 +311,20 @@ export default function TeacherManagement() {
     setEditFormData({});
   };
 
-  const updateFormField = (field: string, value: any) => {
+  const updateFormField = (
+    field: string,
+    value: string | number | boolean | string[],
+  ) => {
     setEditFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const updateAddFormField = (field: string, value: any) => {
+  const updateAddFormField = (
+    field: string,
+    value: string | number | boolean | string[],
+  ) => {
     setAddFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -509,10 +516,12 @@ export default function TeacherManagement() {
                   <tr key={teacher.id} className="hover:bg-muted/50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <img
+                        <Image
                           src={teacher.photo}
                           alt={teacher.name}
-                          className="w-10 h-10 rounded-full object-cover mr-3"
+                          width={40}
+                          height={40}
+                          className="rounded-full object-cover mr-3"
                         />
                         <div>
                           <div className="text-sm font-medium text-foreground">
@@ -609,10 +618,12 @@ export default function TeacherManagement() {
               {/* Modal Header */}
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center">
-                  <img
+                  <Image
                     src={selectedTeacher.photo}
                     alt={selectedTeacher.name}
-                    className="w-16 h-16 rounded-full object-cover mr-4"
+                    width={64}
+                    height={64}
+                    className="rounded-full object-cover mr-4"
                   />
                   <div>
                     <h3 className="text-xl font-semibold text-foreground">
@@ -1134,10 +1145,12 @@ export default function TeacherManagement() {
               {/* Edit Modal Header */}
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center">
-                  <img
+                  <Image
                     src={editFormData.photo || editingTeacher.photo}
                     alt={editFormData.name || editingTeacher.name}
-                    className="w-16 h-16 rounded-full object-cover mr-4"
+                    width={64}
+                    height={64}
+                    className="rounded-full object-cover mr-4"
                   />
                   <div>
                     <h3 className="text-xl font-semibold text-foreground">
