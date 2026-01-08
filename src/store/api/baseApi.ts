@@ -95,6 +95,7 @@ export const baseApi = createApi({
     'Results',
     'SiteConfig',
     'Content',
+    'Gallery',
   ],
   endpoints: () => ({}),
 });
