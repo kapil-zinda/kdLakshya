@@ -5,10 +5,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
-import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ApiService } from '@/services/api';
+import { useAppDispatch } from '@/store/hooks';
+import { clearOrganizationData } from '@/store/slices/organizationSlice';
 
 interface Statistic {
   id?: string;
@@ -37,6 +39,7 @@ interface SchoolSettings {
   secondaryColor: string;
   accentColor: string;
   logo: string;
+  fontFamily: string;
 
   // About Section
   aboutTitle: string;
@@ -84,6 +87,7 @@ export default function SchoolSettings() {
     secondaryColor: '#059669',
     accentColor: '#dc2626',
     logo: 'https://images.unsplash.com/photo-1562774053-701939374585?w=200&h=200&fit=crop',
+    fontFamily: 'Arial',
 
     // About Section
     aboutTitle: 'About Our School',
@@ -133,6 +137,7 @@ export default function SchoolSettings() {
   const [originalSettings, setOriginalSettings] =
     useState<SchoolSettings | null>(null);
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   // Use Redux-cached organization data
   const { organizationData } = useOrganizationData();
@@ -213,6 +218,7 @@ export default function SchoolSettings() {
         secondaryColor:
           organizationData.branding?.secondaryColor || prev.secondaryColor,
         accentColor: organizationData.branding?.accentColor || prev.accentColor,
+        fontFamily: organizationData.branding?.fontFamily || prev.fontFamily,
 
         // About section
         aboutTitle: organizationData.about?.title || prev.aboutTitle,
@@ -386,10 +392,13 @@ export default function SchoolSettings() {
             theme: {
               primaryColor: settings.primaryColor,
               secondaryColor: settings.secondaryColor,
-              fontFamily: 'Arial', // Default font family
+              fontFamily: settings.fontFamily,
             },
           };
           await ApiService.updateSiteConfig(orgId, siteConfigData);
+
+          // Clear organization cache to force refetch with new branding
+          dispatch(clearOrganizationData());
 
           setSuccessMessage('Branding settings saved successfully!');
           break;
@@ -981,6 +990,80 @@ export default function SchoolSettings() {
                             }
                             className="flex-1 px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-background text-foreground"
                           />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-2">
+                          Font Family
+                        </label>
+                        <div className="space-y-2">
+                          {/* Grid of font preview cards */}
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto border border-border rounded-md p-2 bg-background">
+                            {[
+                              'Arial',
+                              'Helvetica',
+                              'Times New Roman',
+                              'Georgia',
+                              'Courier New',
+                              'Verdana',
+                              'Tahoma',
+                              'Trebuchet MS',
+                              'Comic Sans MS',
+                              'Impact',
+                              'Roboto',
+                              'Open Sans',
+                              'Lato',
+                              'Montserrat',
+                              'Poppins',
+                              'Press Start 2P',
+                              'Pacifico',
+                            ].map((font) => (
+                              <button
+                                key={font}
+                                type="button"
+                                onClick={() =>
+                                  updateSetting('fontFamily', font)
+                                }
+                                className={`font-preview-card p-3 text-left border rounded transition-all ${
+                                  settings.fontFamily === font
+                                    ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20'
+                                    : 'border-border hover:border-indigo-300 hover:bg-muted'
+                                }`}
+                                style={{
+                                  fontFamily: `'${font}', sans-serif !important`,
+                                }}
+                              >
+                                <div
+                                  className="text-sm font-medium"
+                                  style={{
+                                    fontFamily: `'${font}', sans-serif !important`,
+                                  }}
+                                >
+                                  {font}
+                                </div>
+                                <div
+                                  className="text-xs text-muted-foreground mt-1"
+                                  style={{
+                                    fontFamily: `'${font}', sans-serif !important`,
+                                  }}
+                                >
+                                  The quick brown fox
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Currently selected:{' '}
+                            <span
+                              className="font-medium"
+                              style={{
+                                fontFamily: `'${settings.fontFamily}', sans-serif`,
+                              }}
+                            >
+                              {settings.fontFamily}
+                            </span>
+                          </p>
                         </div>
                       </div>
 
