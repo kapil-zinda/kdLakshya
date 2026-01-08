@@ -11,7 +11,7 @@ import {
 } from 'redux-persist';
 import createWebStorage from 'redux-persist/lib/storage/createWebStorage';
 
-import { baseApi, classApi, workspaceApi } from './api/baseApi';
+import { baseApi, classApi, publicApi, workspaceApi } from './api/baseApi';
 import authReducer from './slices/authSlice';
 import organizationReducer from './slices/organizationSlice';
 
@@ -59,6 +59,7 @@ const rootReducer = combineReducers({
   [baseApi.reducerPath]: baseApi.reducer,
   [classApi.reducerPath]: classApi.reducer,
   [workspaceApi.reducerPath]: workspaceApi.reducer,
+  [publicApi.reducerPath]: publicApi.reducer,
 });
 
 // Create persisted reducer
@@ -72,7 +73,12 @@ export const store = configureStore({
       serializableCheck: {
         ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
       },
-    }).concat(baseApi.middleware, classApi.middleware, workspaceApi.middleware),
+    }).concat(
+      baseApi.middleware,
+      classApi.middleware,
+      workspaceApi.middleware,
+      publicApi.middleware,
+    ),
   devTools: process.env.NODE_ENV !== 'production',
 });
 

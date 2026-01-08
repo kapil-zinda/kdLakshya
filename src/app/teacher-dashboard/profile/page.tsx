@@ -40,6 +40,13 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
 
     try {
       // Use full user data from Redux (has all fields including email, type, phone, etc.)
+      const rawPhotoUrl = fullUserData.profilePhoto || '';
+      // If photo URL doesn't start with http, add CloudFront domain
+      const profilePhotoUrl =
+        rawPhotoUrl && !rawPhotoUrl.startsWith('http')
+          ? `https://d2kwquvuus8ixo.cloudfront.net/${rawPhotoUrl}`
+          : rawPhotoUrl;
+
       const profileData = {
         id: fullUserData.id || '',
         email: fullUserData.email || '',
@@ -48,7 +55,7 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
         phone: fullUserData.phone || '',
         designation: fullUserData.designation || '',
         experience: fullUserData.experience || '',
-        profilePhoto: fullUserData.profilePhoto || '',
+        profilePhoto: profilePhotoUrl,
         type: fullUserData.type || '',
         role: fullUserData.role || '',
       };
@@ -56,8 +63,8 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
       setTeacherData(profileData);
 
       // Set profile photo URL if available
-      if (profileData.profilePhoto) {
-        setProfilePhotoUrl(profileData.profilePhoto);
+      if (profilePhotoUrl) {
+        setProfilePhotoUrl(profilePhotoUrl);
       }
 
       // Sync to localStorage for backward compatibility
@@ -92,6 +99,10 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
     try {
       if (!teacherData?.id) {
         throw new Error('Teacher ID not found');
+      }
+
+      if (!fullUserData?.orgId) {
+        throw new Error('Organization ID not found');
       }
 
       const tokenData = localStorage.getItem('bearerToken');
@@ -136,24 +147,21 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
         throw new Error(`S3 upload failed: ${uploadResponse.status}`);
       }
 
-      const region = 'ap-south-1';
-      const photoUrl = `https://${bucket}.s3.${region}.amazonaws.com/${filePath}`;
-
-      // Update the profile photo in the backend
+      // Store only the file path in database (CloudFront domain will be added when displaying)
+      // Update the profile photo using faculty endpoint for teachers/admins/supervisors
       try {
         await makeApiCall({
-          path: '/users/me',
-          method: 'PATCH',
-          baseUrl: 'auth',
+          path: `/${fullUserData.orgId}/faculty/${teacherData.id}`,
+          method: 'PUT',
+          baseUrl: 'workspace',
           customAuthHeaders: {
             Authorization: `Bearer ${parsed.value}`,
           },
           payload: {
             data: {
-              type: 'users',
-              id: teacherData.id,
+              type: 'faculty',
               attributes: {
-                profile_photo: photoUrl,
+                photo: filePath,
               },
             },
           },
@@ -163,15 +171,18 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
         // Don't throw error, photo is uploaded to S3 successfully
       }
 
+      // For displaying, add CloudFront domain to the file path
+      const displayUrl = `https://d2kwquvuus8ixo.cloudfront.net/${filePath}`;
+
       // Update teacher data with new photo URL
       const updatedTeacherData = {
         ...teacherData,
-        profilePhoto: photoUrl,
+        profilePhoto: displayUrl,
       };
       setTeacherData(updatedTeacherData);
 
       // Update the displayed photo URL
-      setProfilePhotoUrl(photoUrl);
+      setProfilePhotoUrl(displayUrl);
 
       toast.success('Profile photo updated successfully!', {
         id: uploadToast,

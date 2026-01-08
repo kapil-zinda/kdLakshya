@@ -200,7 +200,7 @@ export const facultyApi = baseApi.injectEndpoints({
     >({
       query: ({ orgId, facultyId, facultyData }) => ({
         url: `/${orgId}/faculty/${facultyId}`,
-        method: 'PATCH',
+        method: 'PUT',
         body: {
           data: {
             type: 'faculty',
