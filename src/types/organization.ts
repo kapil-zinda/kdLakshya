@@ -26,6 +26,7 @@ export interface OrganizationConfig {
     primaryColor: string;
     secondaryColor: string;
     accentColor: string;
+    fontFamily?: string;
   };
 
   // Hero Section

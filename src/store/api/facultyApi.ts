@@ -28,6 +28,8 @@ export interface Faculty {
   created_by: string;
   created_by_email: string;
   temporary_password?: string;
+  employee_id?: string;
+  gender?: string;
 }
 
 export interface FacultyResponse {
@@ -63,6 +65,8 @@ export interface CreateFacultyRequest {
   email: string;
   phone: string;
   temporary_password?: string;
+  employee_id?: string;
+  gender?: string;
 }
 
 export interface UpdateFacultyRequest {
@@ -108,7 +112,7 @@ export const facultyApi = baseApi.injectEndpoints({
         );
         return filteredData;
       },
-      providesTags: (result, error, orgId) =>
+      providesTags: (result) =>
         result
           ? [
               ...result.data.map(({ id }) => ({
@@ -127,7 +131,7 @@ export const facultyApi = baseApi.injectEndpoints({
      */
     getAllFacultyMembers: builder.query<FacultyListResponse, string>({
       query: (orgId) => `/${orgId}/faculty`,
-      providesTags: (result, error, orgId) =>
+      providesTags: (result) =>
         result
           ? [
               ...result.data.map(({ id }) => ({

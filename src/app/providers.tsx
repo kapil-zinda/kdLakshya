@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import { usePathname } from 'next/navigation';
 
+import { ThemeApplier } from '@/components/ThemeApplier';
 import { ApiService } from '@/services/api';
 import { isStudentUser } from '@/utils/authHeaders';
 import {
@@ -604,6 +605,7 @@ export function Providers({ children }: ThemeProviderProps) {
       enableSystem
       disableTransitionOnChange
     >
+      <ThemeApplier />
       {children}
     </NextThemesProvider>
   );

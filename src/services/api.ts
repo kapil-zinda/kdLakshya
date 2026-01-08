@@ -3896,6 +3896,7 @@ export const transformApiDataToOrganizationConfig = (apiData: {
       primaryColor: subdomain.config.primaryColor || '#059669',
       secondaryColor: subdomain.config.secondaryColor || '#10B981',
       accentColor: subdomain.config.accentColor || '#F59E0B',
+      fontFamily: subdomain.config.fontFamily || 'Arial',
     },
 
     hero: {
