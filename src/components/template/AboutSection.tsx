@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+import Image from 'next/image';
 
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
@@ -43,7 +45,7 @@ export function AboutSection({
   };
 
   // Load real notifications from API
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     if (!showNotifications || !news) return;
 
     try {
@@ -85,11 +87,11 @@ export function AboutSection({
     } finally {
       setLoading(false);
     }
-  };
+  }, [showNotifications, news, userData?.orgId]);
 
   useEffect(() => {
     loadNotifications();
-  }, [showNotifications, news]);
+  }, [loadNotifications]);
 
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-background">
@@ -155,10 +157,12 @@ export function AboutSection({
               {/* Hero Image - Left Side */}
               <div className="order-1">
                 <div className="relative rounded-lg overflow-hidden shadow-lg border border-border dark:border-white/10 h-full min-h-[350px] lg:min-h-[450px]">
-                  <img
+                  <Image
                     src={data.images[0]}
                     alt="About Hero"
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 1024px) 100vw, 50vw"
                   />
                 </div>
               </div>

@@ -97,86 +97,67 @@ export function Providers({ children }: ThemeProviderProps) {
     }
   };
 
-  const userMeData = async (
-    bearerToken: string,
-    shouldRedirect: boolean = false,
-  ) => {
-    if (!bearerToken) return;
+  const userMeData = React.useCallback(
+    async (bearerToken: string, shouldRedirect: boolean = false) => {
+      if (!bearerToken) return;
 
-    // Skip /users/me call for students as we already have their data
-    if (isStudentUser()) {
-      console.log('Student user detected, skipping /users/me call');
-      return;
-    }
-
-    try {
-      // Get auth headers (will use Bearer for admin/teachers)
-      const { makeApiCall } = await import('@/utils/ApiRequest');
-
-      const res = await makeApiCall({
-        path: '/users/me?include=permission',
-        method: 'GET',
-        baseUrl: 'auth',
-      });
-
-      const userData = res.data; // Extract from nested structure
-      const attributes = userData.attributes;
-      const permissions =
-        userData.user_permissions || attributes.permissions || {};
-
-      // Handle both possible field names for org ID
-      const orgId = attributes.orgId || attributes.org_id || attributes.org;
-
-      // Determine user role using same logic as authApi
-      let userRole: 'admin' | 'teacher' | 'faculty' | 'student' = 'student';
-      if (attributes.role === 'faculty' || attributes.type === 'faculty') {
-        userRole = 'faculty';
-      } else if (
-        permissions['admin'] ||
-        permissions['organization_admin'] ||
-        permissions['org']
-      ) {
-        userRole = 'admin';
-      } else if (permissions['teacher'] || permissions['instructor']) {
-        userRole = 'teacher';
+      // Skip /users/me call for students as we already have their data
+      if (isStudentUser()) {
+        console.log('Student user detected, skipping /users/me call');
+        return;
       }
 
-      updateUserData({
-        userId: attributes.user_id || attributes.id,
-        keyId: 'user-' + (attributes.user_id || attributes.id),
-        orgKeyId: 'org-' + orgId,
-        orgId: orgId,
-        userEmail: attributes.email,
-        firstName: attributes.first_name || attributes.name?.split(' ')[0],
-        lastName:
-          attributes.last_name ||
-          attributes.name?.split(' ').slice(1).join(' '),
-        permission: permissions,
-        allowedTeams: Object.keys(permissions || {})
-          .filter((key) => key.startsWith('team-'))
-          .map((key) => key.match(/team-(\d+)/)?.[1])
-          .filter(Boolean) as string[],
-      });
+      try {
+        // Get auth headers (will use Bearer for admin/teachers)
+        const { makeApiCall } = await import('@/utils/ApiRequest');
 
-      // Sync user data to Redux for new components
-      syncUserToRedux({
-        id: userData.id,
-        email: attributes.email,
-        firstName:
-          attributes.first_name || attributes.name?.split(' ')[0] || '',
-        lastName:
-          attributes.last_name ||
-          attributes.name?.split(' ').slice(1).join(' ') ||
-          '',
-        role: userRole,
-        orgId: orgId || '',
-        permissions: permissions,
-      });
+        const res = await makeApiCall({
+          path: '/users/me?include=permission',
+          method: 'GET',
+          baseUrl: 'auth',
+        });
 
-      // Write to localStorage for backward compatibility
-      localStorage.setItem(
-        'cachedUserData',
-        JSON.stringify({
+        const userData = res.data; // Extract from nested structure
+        const attributes = userData.attributes;
+        const permissions =
+          userData.user_permissions || attributes.permissions || {};
+
+        // Handle both possible field names for org ID
+        const orgId = attributes.orgId || attributes.org_id || attributes.org;
+
+        // Determine user role using same logic as authApi
+        let userRole: 'admin' | 'teacher' | 'faculty' | 'student' = 'student';
+        if (attributes.role === 'faculty' || attributes.type === 'faculty') {
+          userRole = 'faculty';
+        } else if (
+          permissions['admin'] ||
+          permissions['organization_admin'] ||
+          permissions['org']
+        ) {
+          userRole = 'admin';
+        } else if (permissions['teacher'] || permissions['instructor']) {
+          userRole = 'teacher';
+        }
+
+        updateUserData({
+          userId: attributes.user_id || attributes.id,
+          keyId: 'user-' + (attributes.user_id || attributes.id),
+          orgKeyId: 'org-' + orgId,
+          orgId: orgId,
+          userEmail: attributes.email,
+          firstName: attributes.first_name || attributes.name?.split(' ')[0],
+          lastName:
+            attributes.last_name ||
+            attributes.name?.split(' ').slice(1).join(' '),
+          permission: permissions,
+          allowedTeams: Object.keys(permissions || {})
+            .filter((key) => key.startsWith('team-'))
+            .map((key) => key.match(/team-(\d+)/)?.[1])
+            .filter(Boolean) as string[],
+        });
+
+        // Sync user data to Redux for new components
+        syncUserToRedux({
           id: userData.id,
           email: attributes.email,
           firstName:
@@ -188,32 +169,52 @@ export function Providers({ children }: ThemeProviderProps) {
           role: userRole,
           orgId: orgId || '',
           permissions: permissions,
-          type: attributes.type || attributes.role,
-          phone: attributes.phone || '',
-          designation: attributes.designation || '',
-          experience: attributes.experience || '',
-          profilePhoto: attributes.profile_photo || attributes.photo || '',
-          cacheTimestamp: Date.now(), // Add timestamp for cache validation
-        }),
-      );
+        });
 
-      // Only redirect if explicitly requested and has org ID
-      if (shouldRedirect && orgId) {
-        await redirectToOrgSubdomain(orgId, bearerToken);
-      }
-    } catch (error: any) {
-      console.error('Error fetching user data:', error);
-      // If we get a 401 or 403, the token is invalid
-      const status = error.response?.status;
-      if (status === 401 || status === 403) {
-        localStorage.removeItem('bearerToken');
-        setAccessTkn(null);
-        loginHandler();
-      }
-    }
-  };
+        // Write to localStorage for backward compatibility
+        localStorage.setItem(
+          'cachedUserData',
+          JSON.stringify({
+            id: userData.id,
+            email: attributes.email,
+            firstName:
+              attributes.first_name || attributes.name?.split(' ')[0] || '',
+            lastName:
+              attributes.last_name ||
+              attributes.name?.split(' ').slice(1).join(' ') ||
+              '',
+            role: userRole,
+            orgId: orgId || '',
+            permissions: permissions,
+            type: attributes.type || attributes.role,
+            phone: attributes.phone || '',
+            designation: attributes.designation || '',
+            experience: attributes.experience || '',
+            profilePhoto: attributes.profile_photo || attributes.photo || '',
+            cacheTimestamp: Date.now(), // Add timestamp for cache validation
+          }),
+        );
 
-  const setItemWithTTL = (key: string, value: any, ttlHours: number) => {
+        // Only redirect if explicitly requested and has org ID
+        if (shouldRedirect && orgId) {
+          await redirectToOrgSubdomain(orgId, bearerToken);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+        // If we get a 401 or 403, the token is invalid
+        const status = (error as { response?: { status?: number } }).response
+          ?.status;
+        if (status === 401 || status === 403) {
+          localStorage.removeItem('bearerToken');
+          setAccessTkn(null);
+          loginHandler();
+        }
+      }
+    },
+    [setAccessTkn],
+  );
+
+  const setItemWithTTL = (key: string, value: string, ttlHours: number) => {
     const now = new Date().getTime();
     const ttlMilliseconds = ttlHours * 60 * 60 * 1000;
     const item = {
@@ -253,216 +254,227 @@ export function Providers({ children }: ThemeProviderProps) {
     }
   };
 
-  const fetchAuthToken = async (code: string) => {
-    if (isProcessingCode) return;
-    setIsProcessingCode(true);
+  const fetchAuthToken = React.useCallback(
+    async (code: string) => {
+      if (isProcessingCode) return;
+      setIsProcessingCode(true);
 
-    console.log('Processing auth code:', code);
-    console.log('Auth0 Config:', {
-      AUTH0_Client_Id,
-      AUTH0_Domain_Name,
-      login_redirect,
-    });
-
-    try {
-      const data = new URLSearchParams();
-      data.append('grant_type', 'authorization_code');
-      data.append('client_id', AUTH0_Client_Id);
-      data.append('client_secret', AUTH0_Client_Secret);
-      data.append('code', code);
-      // Use dynamic redirect URI based on current domain
-      const tokenExchangeHost = window.location.host;
-      const tokenIsLocalhost =
-        tokenExchangeHost.includes('localhost') ||
-        tokenExchangeHost.includes('127.0.0.1');
-      const dynamicRedirectUri = tokenIsLocalhost
-        ? login_redirect
-        : `https://${tokenExchangeHost}/`;
-
-      data.append('redirect_uri', dynamicRedirectUri);
-
-      console.log('Token request data:', Object.fromEntries(data));
-
-      const response = await axios({
-        method: 'post',
-        url: `https://${AUTH0_Domain_Name}/oauth/token`,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        data: data,
+      console.log('Processing auth code:', code);
+      console.log('Auth0 Config:', {
+        AUTH0_Client_Id,
+        AUTH0_Domain_Name,
+        login_redirect,
       });
 
-      console.log('Token response:', response.data);
-      const token = response.data.access_token;
-      const expiresIn = response.data.expires_in || 3600; // Default to 1 hour if not provided
-      const expiresInHours = Math.max(1, Math.floor(expiresIn / 3600)); // Convert seconds to hours, minimum 1 hour
+      try {
+        const data = new URLSearchParams();
+        data.append('grant_type', 'authorization_code');
+        data.append('client_id', AUTH0_Client_Id);
+        data.append('client_secret', AUTH0_Client_Secret);
+        data.append('code', code);
+        // Use dynamic redirect URI based on current domain
+        const tokenExchangeHost = window.location.host;
+        const tokenIsLocalhost =
+          tokenExchangeHost.includes('localhost') ||
+          tokenExchangeHost.includes('127.0.0.1');
+        const dynamicRedirectUri = tokenIsLocalhost
+          ? login_redirect
+          : `https://${tokenExchangeHost}/`;
 
-      console.log(
-        'Token expires in:',
-        expiresIn,
-        'seconds (',
-        expiresInHours,
-        'hours)',
-      );
-      setAccessTkn(token);
-      setItemWithTTL('bearerToken', token, expiresInHours);
+        data.append('redirect_uri', dynamicRedirectUri);
 
-      // Sync token to Redux store
-      syncTokenToRedux(token, expiresIn);
+        console.log('Token request data:', Object.fromEntries(data));
 
-      // Mark code as processed temporarily
-      sessionStorage.setItem('authCodeProcessed', 'true');
+        const response = await axios({
+          method: 'post',
+          url: `https://${AUTH0_Domain_Name}/oauth/token`,
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          data: data,
+        });
 
-      // Only redirect immediately after OAuth callback, not on normal homepage visits
-      const wasAuthCallback = sessionStorage.getItem('isAuthCallback');
+        console.log('Token response:', response.data);
+        const token = response.data.access_token;
+        const expiresIn = response.data.expires_in || 3600; // Default to 1 hour if not provided
+        const expiresInHours = Math.max(1, Math.floor(expiresIn / 3600)); // Convert seconds to hours, minimum 1 hour
 
-      // Check if this is an auth callback that should trigger redirect to dashboard
-      const currentHost = window.location.host;
-      const isLocalhost =
-        currentHost.includes('localhost') || currentHost.includes('127.0.0.1');
+        console.log(
+          'Token expires in:',
+          expiresIn,
+          'seconds (',
+          expiresInHours,
+          'hours)',
+        );
+        setAccessTkn(token);
+        setItemWithTTL('bearerToken', token, expiresInHours);
 
-      console.log(
-        '✅ Token obtained, now fetching user org and redirecting...',
-      );
+        // Sync token to Redux store
+        syncTokenToRedux(token, expiresIn);
 
-      // SIMPLE FLOW: Get user → get org → redirect to org subdomain
-      if (wasAuthCallback) {
-        sessionStorage.removeItem('isAuthCallback');
+        // Mark code as processed temporarily
+        sessionStorage.setItem('authCodeProcessed', 'true');
 
-        try {
-          // Step 1: Call /users/me to get orgId
-          console.log('📞 Step 1: Calling /users/me to get orgId...');
-          const { makeApiCall } = await import('@/utils/ApiRequest');
+        // Only redirect immediately after OAuth callback, not on normal homepage visits
+        const wasAuthCallback = sessionStorage.getItem('isAuthCallback');
 
-          const userResponse = await makeApiCall({
-            path: '/users/me?include=permission',
-            method: 'GET',
-            baseUrl: 'auth',
-            customAuthHeaders: {
-              Authorization: `Bearer ${token}`,
-            },
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+        // Check if this is an auth callback that should trigger redirect to dashboard
+        const currentHost = window.location.host;
+        const isLocalhost =
+          currentHost.includes('localhost') ||
+          currentHost.includes('127.0.0.1');
 
-          const userData = userResponse.data;
-          console.log('👤 User data received:', userData);
+        console.log(
+          '✅ Token obtained, now fetching user org and redirecting...',
+        );
 
-          // Extract orgId from attributes
-          const orgId =
-            userData.attributes.orgId ||
-            userData.attributes.org_id ||
-            userData.attributes.org;
+        // SIMPLE FLOW: Get user → get org → redirect to org subdomain
+        if (wasAuthCallback) {
+          sessionStorage.removeItem('isAuthCallback');
 
-          console.log('🏢 Extracted orgId:', orgId);
+          try {
+            // Step 1: Call /users/me to get orgId
+            console.log('📞 Step 1: Calling /users/me to get orgId...');
+            const { makeApiCall } = await import('@/utils/ApiRequest');
 
-          // Sync user data to Redux store
-          syncUserToRedux({
-            id: userData.id,
-            email: userData.attributes.email,
-            firstName:
-              userData.attributes.first_name ||
-              userData.attributes.name?.split(' ')[0] ||
-              'User',
-            lastName:
-              userData.attributes.last_name ||
-              userData.attributes.name?.split(' ').slice(1).join(' ') ||
-              '',
-            role: userData.attributes.role || 'student',
-            orgId: orgId || '',
-          });
+            const userResponse = await makeApiCall({
+              path: '/users/me?include=permission',
+              method: 'GET',
+              baseUrl: 'auth',
+              customAuthHeaders: {
+                Authorization: `Bearer ${token}`,
+              },
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
 
-          if (!orgId) {
-            console.error('❌ No orgId found in user data, going to dashboard');
-            window.location.href = '/dashboard';
-            return;
-          }
+            const userData = userResponse.data;
+            console.log('👤 User data received:', userData);
 
-          // Step 2: Call /organizations/{orgId} to get subdomain
-          console.log(
-            '📞 Step 2: Calling /organizations/' +
-              orgId +
-              ' to get subdomain...',
-          );
-          const orgResponse = await makeApiCall({
-            path: `/organizations/${orgId}`,
-            method: 'GET',
-            baseUrl: 'auth',
-            customAuthHeaders: {
-              Authorization: `Bearer ${token}`,
-            },
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          });
+            // Extract orgId from attributes
+            const orgId =
+              userData.attributes.orgId ||
+              userData.attributes.org_id ||
+              userData.attributes.org;
 
-          const orgData = orgResponse.data;
-          const targetSubdomain = orgData.attributes.subdomain;
+            console.log('🏢 Extracted orgId:', orgId);
 
-          console.log('🏢 Organization data received:', orgData);
-          console.log('🎯 Target subdomain:', targetSubdomain);
+            // Sync user data to Redux store
+            syncUserToRedux({
+              id: userData.id,
+              email: userData.attributes.email,
+              firstName:
+                userData.attributes.first_name ||
+                userData.attributes.name?.split(' ')[0] ||
+                'User',
+              lastName:
+                userData.attributes.last_name ||
+                userData.attributes.name?.split(' ').slice(1).join(' ') ||
+                '',
+              role: userData.attributes.role || 'student',
+              orgId: orgId || '',
+            });
 
-          if (!targetSubdomain) {
-            console.error(
-              '❌ No subdomain found in org data, going to dashboard',
-            );
-            window.location.href = '/dashboard';
-            return;
-          }
-
-          // Step 3: Redirect to org subdomain
-          const currentHost = window.location.host;
-          const currentSubdomain = currentHost.split('.')[0];
-
-          console.log('🌐 Current subdomain:', currentSubdomain);
-          console.log('🎯 Target subdomain:', targetSubdomain);
-
-          // Check if we need to redirect
-          const needsRedirect =
-            currentSubdomain === 'localhost' || // Plain localhost
-            currentSubdomain === 'auth' || // Auth subdomain
-            currentSubdomain !== targetSubdomain; // Different org subdomain
-
-          if (needsRedirect) {
-            console.log('🔄 Redirecting to org subdomain:', targetSubdomain);
-
-            if (isLocalhost) {
-              const port = currentHost.split(':')[1] || '3000';
-              const redirectUrl = `http://${targetSubdomain}.localhost:${port}/#access_token=${encodeURIComponent(token)}`;
-              console.log('🔗 Redirect URL:', redirectUrl);
-              window.location.href = redirectUrl;
-            } else {
-              const domain = currentHost.split('.').slice(1).join('.');
-              const redirectUrl = `https://${targetSubdomain}.${domain}/#access_token=${encodeURIComponent(token)}`;
-              console.log('🔗 Redirect URL:', redirectUrl);
-              window.location.href = redirectUrl;
+            if (!orgId) {
+              console.error(
+                '❌ No orgId found in user data, going to dashboard',
+              );
+              window.location.href = '/dashboard';
+              return;
             }
-          } else {
-            console.log('✅ Already on correct subdomain, going to dashboard');
+
+            // Step 2: Call /organizations/{orgId} to get subdomain
+            console.log(
+              '📞 Step 2: Calling /organizations/' +
+                orgId +
+                ' to get subdomain...',
+            );
+            const orgResponse = await makeApiCall({
+              path: `/organizations/${orgId}`,
+              method: 'GET',
+              baseUrl: 'auth',
+              customAuthHeaders: {
+                Authorization: `Bearer ${token}`,
+              },
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+
+            const orgData = orgResponse.data;
+            const targetSubdomain = orgData.attributes.subdomain;
+
+            console.log('🏢 Organization data received:', orgData);
+            console.log('🎯 Target subdomain:', targetSubdomain);
+
+            if (!targetSubdomain) {
+              console.error(
+                '❌ No subdomain found in org data, going to dashboard',
+              );
+              window.location.href = '/dashboard';
+              return;
+            }
+
+            // Step 3: Redirect to org subdomain
+            const currentHost = window.location.host;
+            const currentSubdomain = currentHost.split('.')[0];
+
+            console.log('🌐 Current subdomain:', currentSubdomain);
+            console.log('🎯 Target subdomain:', targetSubdomain);
+
+            // Check if we need to redirect
+            const needsRedirect =
+              currentSubdomain === 'localhost' || // Plain localhost
+              currentSubdomain === 'auth' || // Auth subdomain
+              currentSubdomain !== targetSubdomain; // Different org subdomain
+
+            if (needsRedirect) {
+              console.log('🔄 Redirecting to org subdomain:', targetSubdomain);
+
+              if (isLocalhost) {
+                const port = currentHost.split(':')[1] || '3000';
+                const redirectUrl = `http://${targetSubdomain}.localhost:${port}/#access_token=${encodeURIComponent(token)}`;
+                console.log('🔗 Redirect URL:', redirectUrl);
+                window.location.href = redirectUrl;
+              } else {
+                const domain = currentHost.split('.').slice(1).join('.');
+                const redirectUrl = `https://${targetSubdomain}.${domain}/#access_token=${encodeURIComponent(token)}`;
+                console.log('🔗 Redirect URL:', redirectUrl);
+                window.location.href = redirectUrl;
+              }
+            } else {
+              console.log(
+                '✅ Already on correct subdomain, going to dashboard',
+              );
+              window.location.href = '/dashboard';
+            }
+          } catch (error) {
+            console.error('❌ Error in faculty login flow:', error);
+            // Fallback to dashboard on error
             window.location.href = '/dashboard';
           }
-        } catch (error) {
-          console.error('❌ Error in faculty login flow:', error);
-          // Fallback to dashboard on error
-          window.location.href = '/dashboard';
+        } else {
+          console.log('⚠️ Not an auth callback, calling userMeData normally');
+          await userMeData(token, false);
         }
-      } else {
-        console.log('⚠️ Not an auth callback, calling userMeData normally');
-        await userMeData(token, false);
+      } catch (error) {
+        console.error('Error fetching auth token:', error);
+        const err = error as {
+          response?: { data?: unknown; status?: number };
+        };
+        if (err.response) {
+          console.error('Response data:', err.response?.data);
+          console.error('Response status:', err.response?.status);
+        }
+        sessionStorage.setItem('authCodeProcessed', 'true');
+        loginHandler();
+      } finally {
+        setIsProcessingCode(false);
       }
-    } catch (error: any) {
-      console.error('Error fetching auth token:', error);
-      if (error.response) {
-        console.error('Response data:', error.response?.data);
-        console.error('Response status:', error.response?.status);
-      }
-      sessionStorage.setItem('authCodeProcessed', 'true');
-      loginHandler();
-    } finally {
-      setIsProcessingCode(false);
-    }
-  };
+    },
+    [isProcessingCode, setAccessTkn, setIsProcessingCode, userMeData],
+  );
 
   const loginHandler = () => {
     try {
@@ -536,7 +548,7 @@ export function Providers({ children }: ThemeProviderProps) {
         }
       }
     }
-  }, []);
+  }, [pathname, userMeData]);
 
   // Handle auth code from URL
   React.useEffect(() => {
@@ -574,7 +586,7 @@ export function Providers({ children }: ThemeProviderProps) {
         fetchAuthToken(parsedAuthCode);
       }
     }
-  }, [accessTkn, isProcessingCode]);
+  }, [accessTkn, isProcessingCode, fetchAuthToken]);
 
   // Show loader when processing auth code or redirecting
   if (isProcessingCode || isRedirecting) {
