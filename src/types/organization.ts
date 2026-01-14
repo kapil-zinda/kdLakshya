@@ -1,5 +1,7 @@
 export interface OrganizationConfig {
   // Basic Information
+  orgId?: string;
+  subdomain?: string;
   name: string;
   type: 'school' | 'college' | 'university' | 'institute' | 'organization';
   tagline: string;

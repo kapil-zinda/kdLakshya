@@ -2,6 +2,8 @@
 
 import { usePathname } from 'next/navigation';
 
+import { PravahaChat } from '@/components/PravahaChat';
+
 interface ConditionalLayoutProps {
   children: React.ReactNode;
 }
@@ -34,9 +36,19 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
     isStudentRoute ||
     isTeacherRoute
   ) {
-    return <>{children}</>;
+    return (
+      <>
+        {children}
+        <PravahaChat />
+      </>
+    );
   }
 
   // For other routes, render children directly
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <PravahaChat />
+    </>
+  );
 }

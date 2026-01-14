@@ -4,6 +4,7 @@ import * as React from 'react';
 
 import { usePathname } from 'next/navigation';
 
+import { DynamicTitle } from '@/components/DynamicTitle';
 import { ThemeApplier } from '@/components/ThemeApplier';
 import { ApiService } from '@/services/api';
 import { isStudentUser } from '@/utils/authHeaders';
@@ -606,6 +607,7 @@ export function Providers({ children }: ThemeProviderProps) {
       disableTransitionOnChange
     >
       <ThemeApplier />
+      <DynamicTitle />
       {children}
     </NextThemesProvider>
   );
