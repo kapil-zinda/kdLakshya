@@ -1,4 +1,5 @@
 import { makeApiCall } from '@/utils/ApiRequest';
+import { convertGoogleDriveUrl } from '@/utils/imageUtils';
 import axios from 'axios';
 
 // Cache configuration
@@ -3871,6 +3872,8 @@ export const transformApiDataToOrganizationConfig = (apiData: {
   } = apiData;
   // Transform the API data into OrganizationConfig format
   return {
+    orgId: subdomain?.config?.organizationId,
+    subdomain: subdomain?.subdomain,
     name: subdomain?.config?.name || 'Educational Institution',
     type: 'school' as const,
     tagline: hero?.data.attributes.headline || 'Excellence in Education',
@@ -3891,7 +3894,9 @@ export const transformApiDataToOrganizationConfig = (apiData: {
     },
 
     branding: {
-      logo: branding?.data.attributes.logo || '/images/logo.png',
+      logo: convertGoogleDriveUrl(
+        subdomain.config.logo || branding?.data.attributes.logo || '',
+      ),
       favicon: branding?.data.attributes.favicon || '/favicon.ico',
       primaryColor: subdomain.config.primaryColor || '#059669',
       secondaryColor: subdomain.config.secondaryColor || '#10B981',

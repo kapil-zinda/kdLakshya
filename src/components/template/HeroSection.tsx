@@ -36,7 +36,7 @@ export function HeroSection({ data, branding }: HeroSectionProps) {
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center px-4 sm:px-0">
           <Button
             size="lg"
-            className="w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8 lg:px-10 py-3 sm:py-4 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white hover:text-gray-900 font-medium rounded-full shadow-lg transition-all duration-300"
+            className="w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8 lg:px-10 py-3 sm:py-4 bg-gray-900/90 backdrop-blur-sm border-white/30 text-white hover:bg-white hover:text-gray-900 font-medium rounded-full shadow-lg transition-all duration-300"
             onClick={() => window.open(data.ctaButtons.primary.link, '_self')}
           >
             {data.ctaButtons.primary.text}
@@ -46,14 +46,14 @@ export function HeroSection({ data, branding }: HeroSectionProps) {
             <Button
               variant="secondary"
               size="lg"
-              className="w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8 lg:px-10 py-3 sm:py-4 backdrop-blur-sm font-medium rounded-full transition-all duration-300"
-              // onClick={() =>
-              //   data.ctaButtons.secondary?.link &&
-              //   window.open(data.ctaButtons.secondary.link, '_self')
-              // }
+              className="group w-full sm:w-auto text-sm sm:text-base px-6 sm:px-8 lg:px-10 py-3 sm:py-4 bg-gray-900/90 backdrop-blur-sm border-white/30 text-white hover:bg-gray-800/95 font-medium rounded-full transition-all duration-300 relative overflow-hidden"
             >
-              {/* {data.ctaButtons.secondary?.text} */}
-              Virtual Tour Coming Soon
+              <span className="group-hover:opacity-0 transition-opacity duration-300">
+                Virtual Tour
+              </span>
+              <span className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                Coming Soon
+              </span>
             </Button>
           )}
         </div>

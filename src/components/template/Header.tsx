@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
@@ -146,22 +147,31 @@ export function Header({ organization }: HeaderProps) {
         <div className="flex items-center justify-between h-14 sm:h-16 md:h-20">
           {/* Logo and Name */}
           <div className="flex items-center space-x-2 sm:space-x-3">
-            <div
-              className="h-8 sm:h-10 md:h-12 w-8 sm:w-10 md:w-12 rounded-lg flex items-center justify-center text-white font-bold text-sm sm:text-base md:text-lg"
-              style={{ backgroundColor: organization.branding.primaryColor }}
-            >
-              {organization.name
-                .split(' ')
-                .map((word) => word[0])
-                .join('')
-                .slice(0, 2)
-                .toUpperCase()}
-            </div>
+            {organization.branding.logo ? (
+              <Image
+                src={organization.branding.logo}
+                alt={`${organization.name} logo`}
+                width={48}
+                height={48}
+                className="h-8 sm:h-10 md:h-12 w-8 sm:w-10 md:w-12 rounded-lg object-contain"
+              />
+            ) : (
+              <div
+                className="h-8 sm:h-10 md:h-12 w-8 sm:w-10 md:w-12 rounded-lg flex items-center justify-center text-white font-bold text-sm sm:text-base md:text-lg"
+                style={{ backgroundColor: organization.branding.primaryColor }}
+              >
+                {organization.name
+                  .split(' ')
+                  .map((word) => word[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+            )}
             <div className="hidden sm:block">
               <h1
-                className="text-xl font-medium"
+                className="text-xl font-medium text-foreground"
                 style={{
-                  color: organization.branding.primaryColor,
                   transition: 'none !important',
                   transform: 'translateZ(0)',
                   backfaceVisibility: 'hidden',

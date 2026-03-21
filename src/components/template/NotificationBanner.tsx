@@ -10,19 +10,17 @@ interface NotificationBannerProps {
 export function NotificationBanner({
   message,
   backgroundColor = '#3b82f6',
-  textColor = '#ffffff',
   speed = 50,
 }: NotificationBannerProps) {
   return (
     <div
-      className="relative overflow-hidden py-4 z-10"
+      className="relative overflow-hidden py-4 z-10 dark:opacity-90"
       style={{ backgroundColor }}
     >
       <div className="relative">
         <div
-          className="whitespace-nowrap animate-scroll-right-to-left text-center font-medium text-sm md:text-base"
+          className="whitespace-nowrap animate-scroll-right-to-left text-center font-medium text-sm md:text-base text-white"
           style={{
-            color: textColor,
             animationDuration: `${speed}s`,
           }}
         >
