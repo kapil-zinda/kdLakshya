@@ -1760,7 +1760,8 @@ export default function ClassManagement() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Class Name <span className="text-red-500">*</span>
                     </label>
-                    <select
+                    <input
+                      type="text"
                       value={classFormData.name}
                       onChange={(e) =>
                         setClassFormData((prev) => ({
@@ -1769,14 +1770,8 @@ export default function ClassManagement() {
                         }))
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    >
-                      <option value="">Select Class</option>
-                      {availableClassNames.map((className) => (
-                        <option key={className} value={className}>
-                          {className}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="Enter class name"
+                    />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
