@@ -578,20 +578,12 @@ export default function ClassManagement() {
   const handleAddStudentToClass = () => {
     setStudentSearchQuery('');
 
-    // Debug logging for production issues
-    console.log('handleAddStudentToClass called');
-    console.log('orgId:', orgId);
-    console.log('allStudentsResponse:', allStudentsResponse);
-    console.log('allStudentsLoading:', allStudentsLoading);
-    console.log('allStudentsError:', allStudentsError);
-
     if (allStudentsLoading) {
       alert('Loading students, please wait...');
       return;
     }
 
     if (allStudentsError) {
-      console.error('Error fetching students:', allStudentsError);
       alert('Failed to load students. Please try again.');
       return;
     }

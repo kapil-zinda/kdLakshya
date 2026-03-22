@@ -1,11 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import Image from 'next/image';
 
-import { useUserDataRedux } from '@/hooks/useUserDataRedux';
-import { ApiService } from '@/services/api';
 import { OrganizationConfig } from '@/types/organization';
 
 import { NotificationPanel } from './NotificationPanel';
@@ -32,8 +30,6 @@ export function AboutSection({
       isNew?: boolean;
     }>
   >([]);
-  const [loading, setLoading] = useState(false);
-  const { userData } = useUserDataRedux();
 
   // Helper function to truncate text if it exceeds 60 words
   const truncateText = (text: string, maxWords: number = 45): string => {
@@ -44,54 +40,22 @@ export function AboutSection({
     return words.slice(0, maxWords).join(' ') + '...';
   };
 
-  // Load real notifications from API
-  const loadNotifications = useCallback(async () => {
-    if (!showNotifications || !news) return;
-
-    try {
-      setLoading(true);
-      const orgId = userData?.orgId;
-      if (!orgId) {
-        console.error('Organization ID not found');
-        setLoading(false);
-        return;
-      }
-      const newsResponse = await ApiService.getNews(orgId);
-
-      // Transform API data to notification format
-      const apiNotifications = newsResponse.data
-        .map((newsItem) => ({
-          id: newsItem.id,
-          title: newsItem.attributes.title,
-          content: newsItem.attributes.content,
-          isNew:
-            new Date().getTime() - newsItem.attributes.publishedAt * 1000 <
-            7 * 24 * 60 * 60 * 1000, // New if published within 7 days
-        }))
-        .slice(0, 5); // Show max 5 notifications
-
-      setNotifications(apiNotifications);
-    } catch (error) {
-      console.error('Failed to load notifications:', error);
-      // Fallback to hardcoded data if API fails
-      const fallbackNotifications = news.items
-        .map((item, index) => ({
-          id: String(index + 1),
-          title: item.title,
-          content:
-            'This is a detailed view of the notification. You can add more content here based on your requirements.',
-          isNew: index < 2,
-        }))
-        .slice(0, 5);
-      setNotifications(fallbackNotifications);
-    } finally {
-      setLoading(false);
-    }
-  }, [showNotifications, news, userData?.orgId]);
-
+  // Use news data from props (already fetched by parent)
   useEffect(() => {
-    loadNotifications();
-  }, [loadNotifications]);
+    if (!showNotifications || !news?.items) return;
+
+    // Transform news items to notification format
+    const newsNotifications = news.items
+      .map((item, index) => ({
+        id: String(index + 1),
+        title: item.title,
+        content: item.excerpt || item.title,
+        isNew: index < 2, // Mark first 2 as new
+      }))
+      .slice(0, 5); // Show max 5 notifications
+
+    setNotifications(newsNotifications);
+  }, [showNotifications, news]);
 
   return (
     <section className="py-12 sm:py-16 lg:py-20 bg-background">
@@ -114,30 +78,12 @@ export function AboutSection({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:gap-10">
               {/* Notifications Panel - Left Side */}
               <div className="lg:col-span-1 order-2 lg:order-1">
-                {loading ? (
-                  <div className="bg-background dark:bg-card rounded-lg shadow-lg border border-border dark:border-white/10 h-fit">
-                    <div
-                      className="px-4 py-3 rounded-t-lg border-b border-border dark:border-white/10"
-                      style={{ backgroundColor: branding.primaryColor }}
-                    >
-                      <h3 className="text-white font-semibold text-lg flex items-center">
-                        <span className="w-2 h-2 bg-red-500 rounded-full mr-2 animate-pulse"></span>
-                        {news.title || 'Latest Updates'}
-                      </h3>
-                    </div>
-                    <div className="p-4 text-center text-muted-foreground">
-                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
-                      Loading notifications...
-                    </div>
-                  </div>
-                ) : (
-                  <NotificationPanel
-                    notifications={notifications}
-                    title={news.title || 'Latest Updates'}
-                    primaryColor={branding.primaryColor}
-                    accentColor={branding.accentColor}
-                  />
-                )}
+                <NotificationPanel
+                  notifications={notifications}
+                  title={news.title || 'Latest Updates'}
+                  primaryColor={branding.primaryColor}
+                  accentColor={branding.accentColor}
+                />
               </div>
 
               {/* Content - Right Side */}
