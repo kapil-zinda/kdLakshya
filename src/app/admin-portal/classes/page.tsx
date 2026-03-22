@@ -125,15 +125,20 @@ export default function ClassManagement() {
       skip: !orgId,
     });
 
-  const { data: allStudentsResponse } = useGetStudentsQuery(orgId, {
+  const {
+    data: allStudentsResponse,
+    isLoading: allStudentsLoading,
+    error: allStudentsError,
+  } = useGetStudentsQuery(orgId, {
     skip: !orgId,
+    refetchOnMountOrArgChange: true,
   });
 
   // Fetch data for selected class only
   const { data: classStudentsResponse, isLoading: studentsLoading } =
     useGetClassStudentsQuery(
       { orgId, classId: selectedClassId! },
-      { skip: !orgId || !selectedClassId },
+      { skip: !orgId || !selectedClassId, refetchOnMountOrArgChange: true },
     );
 
   const { data: subjectsResponse, isLoading: subjectsLoading } =
@@ -572,6 +577,46 @@ export default function ClassManagement() {
 
   const handleAddStudentToClass = () => {
     setStudentSearchQuery('');
+
+    // Debug logging for production issues
+    console.log('handleAddStudentToClass called');
+    console.log('orgId:', orgId);
+    console.log('allStudentsResponse:', allStudentsResponse);
+    console.log('allStudentsLoading:', allStudentsLoading);
+    console.log('allStudentsError:', allStudentsError);
+
+    if (allStudentsLoading) {
+      alert('Loading students, please wait...');
+      return;
+    }
+
+    if (allStudentsError) {
+      console.error('Error fetching students:', allStudentsError);
+      alert('Failed to load students. Please try again.');
+      return;
+    }
+
+    // Get all students from the response
+    const allStudents = allStudentsResponse?.data || [];
+
+    // Get IDs of students already assigned to this class
+    const assignedStudentIds = new Set(currentStudents.map((s) => s.id));
+
+    // Filter to get only unassigned students
+    const unassigned = allStudents.filter(
+      (student: any) => !assignedStudentIds.has(student.id),
+    );
+
+    // Transform to the expected format
+    const formattedUnassigned = unassigned.map((s: any) => ({
+      id: s.id,
+      firstName: s.attributes?.first_name || '',
+      lastName: s.attributes?.last_name || '',
+      email: s.attributes?.email || '',
+      phone: s.attributes?.phone || '',
+    }));
+
+    setUnassignedStudents(formattedUnassigned);
     setShowAddStudentModal(true);
   };
 
