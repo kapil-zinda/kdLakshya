@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -12,10 +13,40 @@ import {
   useGetClassStudentsQuery,
 } from '@/store/api/classApi';
 import {
+  UpdateStudentRequest,
   useCreateStudentMutation,
   useGetStudentsQuery,
   useUpdateStudentMutation,
 } from '@/store/api/studentApi';
+
+// API Response Types
+interface StudentApiData {
+  id: string;
+  attributes: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    date_of_birth?: string;
+    enrollment_date?: string;
+    gender?: string;
+    unique_id?: string;
+    student_id?: string;
+    profile?: string;
+    grade_level?: string;
+    guardian_info: {
+      father_name: string;
+      mother_name: string;
+      phone: string;
+      email: string;
+      address: string;
+    };
+    admission_date?: string;
+    roll_number?: string;
+    status?: string;
+    academic_year?: string;
+  };
+}
 
 interface Student {
   id: string;
@@ -86,6 +117,10 @@ export default function StudentManagement() {
     gender: 'Male',
     uniqueId: '',
     profile: '',
+    classId: '',
+    className: '',
+    rollNumber: '',
+    admissionDate: '',
     guardianInfo: {
       fatherName: '',
       motherName: '',
@@ -136,7 +171,7 @@ export default function StudentManagement() {
 
   // Transform API data to Student format
   const students: Student[] =
-    studentsData?.data.map((studentData: any) => {
+    studentsData?.data.map((studentData: StudentApiData) => {
       // Handle different response formats for all students vs class students
       const attrs = studentData.attributes;
       const isClassStudentResponse = selectedClass !== 'All';
@@ -249,7 +284,7 @@ export default function StudentManagement() {
     return searchMatch;
   });
 
-  const getStatusColor = (status: string) => {
+  const _getStatusColor = (status: string) => {
     switch (status) {
       case 'Active':
         return 'bg-green-100 text-green-800';
@@ -262,7 +297,7 @@ export default function StudentManagement() {
     }
   };
 
-  const getGradeColor = (grade: string) => {
+  const _getGradeColor = (grade: string) => {
     if (grade.includes('A+')) return 'text-green-600';
     if (grade.includes('A')) return 'text-blue-600';
     if (grade.includes('B')) return 'text-yellow-600';
@@ -280,7 +315,7 @@ export default function StudentManagement() {
 
     try {
       // Convert editFormData to API format
-      const updateData: any = {};
+      const updateData: UpdateStudentRequest = {};
 
       if (editFormData.firstName) updateData.firstName = editFormData.firstName;
       if (editFormData.lastName) updateData.lastName = editFormData.lastName;
@@ -316,7 +351,7 @@ export default function StudentManagement() {
     setEditFormData({});
   };
 
-  const updateFormField = (field: string, value: any) => {
+  const updateFormField = (field: string, value: string) => {
     setEditFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -326,33 +361,33 @@ export default function StudentManagement() {
   const updateNestedField = (
     parentField: string,
     childField: string,
-    value: any,
+    value: string,
   ) => {
     setEditFormData((prev) => ({
       ...prev,
       [parentField]: {
-        ...(prev[parentField as keyof Student] as any),
+        ...(prev[parentField as keyof Student] as Record<string, string>),
         [childField]: value,
       },
     }));
   };
 
-  const updateAddFormField = (field: string, value: any) => {
+  const _updateAddFormField = (field: string, value: string) => {
     setAddFormData((prev) => ({
       ...prev,
       [field]: value,
     }));
   };
 
-  const updateAddFormNestedField = (
+  const _updateAddFormNestedField = (
     parentField: string,
     childField: string,
-    value: any,
+    value: string,
   ) => {
     setAddFormData((prev) => ({
       ...prev,
       [parentField]: {
-        ...(prev[parentField as keyof typeof prev] as any),
+        ...(prev[parentField as keyof typeof prev] as Record<string, string>),
         [childField]: value,
       },
     }));
@@ -370,10 +405,10 @@ export default function StudentManagement() {
     }
 
     try {
-      // Create student via RTK Query mutation with default grade level
+      // Create student via RTK Query mutation
       const studentDataWithDefaults = {
         ...addFormData,
-        gradeLevel: '1', // Default grade level
+        gradeLevel: addFormData.className || '1', // Use class name or default
       };
 
       // Use RTK Query mutation - cache will auto-update!
@@ -392,6 +427,10 @@ export default function StudentManagement() {
         gender: 'Male',
         uniqueId: '',
         profile: '',
+        classId: '',
+        className: '',
+        rollNumber: '',
+        admissionDate: '',
         guardianInfo: {
           fatherName: '',
           motherName: '',
@@ -418,6 +457,10 @@ export default function StudentManagement() {
       gender: 'Male',
       uniqueId: '',
       profile: '',
+      classId: '',
+      className: '',
+      rollNumber: '',
+      admissionDate: '',
       guardianInfo: {
         fatherName: '',
         motherName: '',
@@ -590,9 +633,11 @@ export default function StudentManagement() {
                   <tr key={student.id} className="hover:bg-muted/50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <img
-                          src={student.photo}
+                        <Image
+                          src={student.photo || '/placeholder-avatar.png'}
                           alt={student.name}
+                          width={40}
+                          height={40}
                           className="w-10 h-10 rounded-full object-cover mr-3"
                         />
                         <div>
@@ -667,9 +712,11 @@ export default function StudentManagement() {
               {/* Modal Header */}
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center">
-                  <img
-                    src={selectedStudent.photo}
+                  <Image
+                    src={selectedStudent.photo || '/placeholder-avatar.png'}
                     alt={selectedStudent.name}
+                    width={64}
+                    height={64}
                     className="w-16 h-16 rounded-full object-cover mr-4"
                   />
                   <div>
@@ -856,9 +903,15 @@ export default function StudentManagement() {
               {/* Edit Modal Header */}
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center">
-                  <img
-                    src={editFormData.photo || editingStudent.photo}
+                  <Image
+                    src={
+                      editFormData.photo ||
+                      editingStudent.photo ||
+                      '/placeholder-avatar.png'
+                    }
                     alt={editFormData.name || editingStudent.name}
+                    width={64}
+                    height={64}
                     className="w-16 h-16 rounded-full object-cover mr-4"
                   />
                   <div>
@@ -1305,6 +1358,71 @@ export default function StudentManagement() {
                             placeholder="https://example.com/photo.jpg"
                           />
                         </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">
+                              Class
+                            </label>
+                            <select
+                              value={addFormData.classId}
+                              onChange={(e) => {
+                                const selectedClassData =
+                                  classesResponse?.data.find(
+                                    (cls) => cls.id === e.target.value,
+                                  );
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  classId: e.target.value,
+                                  className: selectedClassData
+                                    ? `${selectedClassData.attributes.class}-${selectedClassData.attributes.section}`
+                                    : '',
+                                }));
+                              }}
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            >
+                              <option value="">Select Class</option>
+                              {classesResponse?.data.map((cls) => (
+                                <option key={cls.id} value={cls.id}>
+                                  {cls.attributes.class} -{' '}
+                                  {cls.attributes.section}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-foreground mb-1">
+                              Roll Number
+                            </label>
+                            <input
+                              type="text"
+                              value={addFormData.rollNumber}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  rollNumber: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter roll number"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-1">
+                            Admission Date
+                          </label>
+                          <input
+                            type="date"
+                            value={addFormData.admissionDate}
+                            onChange={(e) =>
+                              setAddFormData((prev) => ({
+                                ...prev,
+                                admissionDate: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1381,8 +1499,7 @@ export default function StudentManagement() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-foreground mb-1">
-                            Guardian Email{' '}
-                            <span className="text-red-500">*</span>
+                            Guardian Email
                           </label>
                           <input
                             type="email"
@@ -1402,7 +1519,7 @@ export default function StudentManagement() {
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-foreground mb-1">
-                            Address <span className="text-red-500">*</span>
+                            Address
                           </label>
                           <textarea
                             value={addFormData.guardianInfo.address}
