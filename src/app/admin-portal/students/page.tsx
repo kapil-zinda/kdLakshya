@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -18,6 +18,8 @@ import {
   useGetStudentsQuery,
   useUpdateStudentMutation,
 } from '@/store/api/studentApi';
+import { makeApiCall } from '@/utils/ApiRequest';
+import * as XLSX from 'xlsx';
 
 // API Response Types
 interface StudentApiData {
@@ -96,6 +98,24 @@ interface Student {
   }[];
 }
 
+// Bulk upload types
+interface BulkStudentRow {
+  first_name: string;
+  last_name: string;
+  email: string;
+  date_of_birth: string;
+  class_name: string;
+  phone?: string;
+  gender?: string;
+  roll_number?: string;
+  father_name?: string;
+  mother_name?: string;
+  guardian_phone?: string;
+  guardian_email?: string;
+  address?: string;
+  admission_date?: string;
+}
+
 export default function StudentManagement() {
   // Get orgId from Redux
   const { userData } = useUserDataRedux();
@@ -108,6 +128,16 @@ export default function StudentManagement() {
   const [editFormData, setEditFormData] = useState<Partial<Student>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
+  const [bulkUploadData, setBulkUploadData] = useState<BulkStudentRow[]>([]);
+  const [bulkUploadErrors, setBulkUploadErrors] = useState<string[]>([]);
+  const [bulkUploadLoading, setBulkUploadLoading] = useState(false);
+  const [bulkUploadResult, setBulkUploadResult] = useState<{
+    success: number;
+    failed: number;
+    errors: string[];
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [addFormData, setAddFormData] = useState({
     firstName: '',
     lastName: '',
@@ -471,6 +501,226 @@ export default function StudentManagement() {
     });
   };
 
+  // Bulk Upload Handlers
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    if (!['xlsx', 'xls', 'csv'].includes(fileExtension || '')) {
+      setBulkUploadErrors([
+        'Please upload a valid Excel (.xlsx, .xls) or CSV file',
+      ]);
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = event.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData =
+          XLSX.utils.sheet_to_json<Record<string, string>>(worksheet);
+
+        // Map Excel columns to expected format
+        const mappedData: BulkStudentRow[] = jsonData.map((row) => ({
+          first_name:
+            row['First Name'] || row['first_name'] || row['FirstName'] || '',
+          last_name:
+            row['Last Name'] || row['last_name'] || row['LastName'] || '',
+          email: row['Email'] || row['email'] || '',
+          date_of_birth:
+            row['Date of Birth'] ||
+            row['date_of_birth'] ||
+            row['DOB'] ||
+            row['dob'] ||
+            '',
+          class_name:
+            row['Class Name'] ||
+            row['class_name'] ||
+            row['Class'] ||
+            row['class'] ||
+            row['ClassName'] ||
+            '',
+          phone:
+            row['Phone'] ||
+            row['phone'] ||
+            row['Mobile'] ||
+            row['mobile'] ||
+            '',
+          gender: row['Gender'] || row['gender'] || '',
+          roll_number:
+            row['Roll Number'] || row['roll_number'] || row['Roll No'] || '',
+          father_name:
+            row['Father Name'] ||
+            row['father_name'] ||
+            row["Father's Name"] ||
+            '',
+          mother_name:
+            row['Mother Name'] ||
+            row['mother_name'] ||
+            row["Mother's Name"] ||
+            '',
+          guardian_phone:
+            row['Guardian Phone'] ||
+            row['guardian_phone'] ||
+            row['Parent Phone'] ||
+            '',
+          guardian_email:
+            row['Guardian Email'] ||
+            row['guardian_email'] ||
+            row['Parent Email'] ||
+            '',
+          address: row['Address'] || row['address'] || '',
+          admission_date: row['Admission Date'] || row['admission_date'] || '',
+        }));
+
+        // Validate required fields
+        const errors: string[] = [];
+        mappedData.forEach((row, index) => {
+          if (!row.first_name)
+            errors.push(`Row ${index + 2}: First Name is required`);
+          if (!row.last_name)
+            errors.push(`Row ${index + 2}: Last Name is required`);
+          if (!row.email) errors.push(`Row ${index + 2}: Email is required`);
+          if (!row.date_of_birth)
+            errors.push(`Row ${index + 2}: Date of Birth is required`);
+          if (!row.class_name)
+            errors.push(`Row ${index + 2}: Class Name is required`);
+        });
+
+        setBulkUploadErrors(errors);
+        setBulkUploadData(mappedData);
+        setBulkUploadResult(null);
+      } catch (error) {
+        console.error('Error parsing file:', error);
+        setBulkUploadErrors([
+          'Error parsing file. Please check the file format.',
+        ]);
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleBulkUpload = async () => {
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
+    if (bulkUploadData.length === 0) {
+      alert('No data to upload');
+      return;
+    }
+
+    if (bulkUploadErrors.length > 0) {
+      alert('Please fix the errors before uploading');
+      return;
+    }
+
+    setBulkUploadLoading(true);
+
+    try {
+      // Transform data to API format
+      const apiData = {
+        data: bulkUploadData.map((row) => ({
+          attributes: {
+            first_name: row.first_name,
+            last_name: row.last_name,
+            email: row.email,
+            date_of_birth: row.date_of_birth,
+            class_name: row.class_name,
+            phone: row.phone || undefined,
+            gender: row.gender?.toLowerCase() || undefined,
+            roll_number: row.roll_number || undefined,
+            guardian_info: {
+              father_name: row.father_name || '',
+              mother_name: row.mother_name || '',
+              phone: row.guardian_phone || '',
+              email: row.guardian_email || '',
+              address: row.address || '',
+            },
+            admission_date: row.admission_date || undefined,
+          },
+        })),
+      };
+
+      const response = await makeApiCall({
+        path: `/${orgId}/students/bulk`,
+        method: 'POST',
+        payload: apiData,
+        baseUrl: 'auth',
+      });
+
+      const result = {
+        success: response.meta?.succeeded || bulkUploadData.length,
+        failed: response.meta?.failed || 0,
+        errors:
+          response.errors?.map(
+            (e: { detail?: string }) => e.detail || 'Unknown error',
+          ) || [],
+      };
+
+      setBulkUploadResult(result);
+
+      if (result.failed === 0) {
+        alert(`Successfully uploaded ${result.success} students!`);
+        // Reset and close modal
+        setBulkUploadData([]);
+        setBulkUploadErrors([]);
+        setShowBulkUploadModal(false);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+        // Refresh the student list
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error uploading students:', error);
+      setBulkUploadResult({
+        success: 0,
+        failed: bulkUploadData.length,
+        errors: ['Failed to upload students. Please try again.'],
+      });
+    } finally {
+      setBulkUploadLoading(false);
+    }
+  };
+
+  const handleCloseBulkUploadModal = () => {
+    setShowBulkUploadModal(false);
+    setBulkUploadData([]);
+    setBulkUploadErrors([]);
+    setBulkUploadResult(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const downloadTemplate = () => {
+    const templateData = [
+      {
+        'First Name': 'John',
+        'Last Name': 'Doe',
+        Email: 'john.doe@example.com',
+        'Date of Birth': '15/08/2005',
+        'Class Name': '10-A',
+        Phone: '9876543210',
+        Gender: 'Male',
+        'Roll Number': '101',
+        'Father Name': 'Robert Doe',
+        'Mother Name': 'Jane Doe',
+        'Guardian Phone': '9876543211',
+        'Guardian Email': 'parent@example.com',
+        Address: '123 Main St, City',
+        'Admission Date': '01/04/2024',
+      },
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Students');
+    XLSX.writeFile(wb, 'student_upload_template.xlsx');
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -529,51 +779,75 @@ export default function StudentManagement() {
                 </svg>
                 Add New Student
               </button>
-              <div className="text-sm text-muted-foreground">
-                Total Students: {filteredStudents.length}
-              </div>
+              <button
+                onClick={() => setShowBulkUploadModal(true)}
+                className="flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                  />
+                </svg>
+                Bulk Upload
+              </button>
             </div>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        {/* Filters */}
-        <div className="mb-6 space-y-4">
-          {/* Class Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Filter by Class
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {classes.map((cls) => (
-                <button
-                  key={cls}
-                  onClick={() => handleClassSelection(cls)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    selectedClass === cls
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-muted text-foreground hover:bg-accent'
-                  }`}
-                >
-                  {cls}
-                </button>
-              ))}
+        {/* Search and Filters Row - Full Width */}
+        <div className="mb-6">
+          <div className="flex items-end gap-6">
+            {/* Search - Takes remaining space */}
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Search Students
+              </label>
+              <input
+                type="text"
+                placeholder="Search by name, roll number, or father's name..."
+                className="w-full px-4 py-2.5 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
-          </div>
 
-          {/* Search */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Search Students
-            </label>
-            <input
-              type="text"
-              placeholder="Search by name, roll number, or father's name..."
-              className="w-full max-w-md px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            {/* Class Filter Dropdown */}
+            <div className="w-52">
+              <label className="block text-sm font-medium text-foreground mb-2">
+                Filter by Class
+              </label>
+              <select
+                value={selectedClass}
+                onChange={(e) => handleClassSelection(e.target.value)}
+                className="w-full px-4 py-2.5 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                {classes.map((cls) => (
+                  <option key={cls} value={cls}>
+                    {cls}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Total Students Count */}
+            <div className="flex items-center h-[42px] px-6 bg-indigo-600/10 border border-indigo-500/30 rounded-md">
+              <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+                Total:{' '}
+                <span className="text-indigo-500 text-lg ml-1">
+                  {filteredStudents.length}
+                </span>
+              </span>
+            </div>
           </div>
         </div>
 
@@ -1556,6 +1830,331 @@ export default function StudentManagement() {
                   className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
                 >
                   Add Student
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bulk Upload Modal */}
+        {showBulkUploadModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-card rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+              {/* Modal Header */}
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold text-foreground">
+                    Bulk Upload Students
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload Excel (.xlsx, .xls) or CSV file with student data
+                  </p>
+                </div>
+                <button
+                  onClick={handleCloseBulkUploadModal}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="p-6 space-y-6">
+                {/* Download Template Section */}
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <svg
+                      className="w-5 h-5 text-blue-600 mt-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <div className="flex-1">
+                      <p className="text-sm text-blue-800 dark:text-blue-200">
+                        Download the template file to see the required format.
+                        Required fields:
+                        <strong>
+                          {' '}
+                          First Name, Last Name, Email, Date of Birth, Class
+                          Name
+                        </strong>
+                      </p>
+                      <button
+                        onClick={downloadTemplate}
+                        className="mt-2 inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800 rounded-md hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+                      >
+                        <svg
+                          className="w-4 h-4 mr-1.5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                          />
+                        </svg>
+                        Download Template
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* File Upload Section */}
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Upload File
+                  </label>
+                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-indigo-500 transition-colors">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                      id="bulk-upload-input"
+                    />
+                    <label
+                      htmlFor="bulk-upload-input"
+                      className="cursor-pointer"
+                    >
+                      <svg
+                        className="w-12 h-12 mx-auto text-muted-foreground mb-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                        />
+                      </svg>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        <span className="text-indigo-600 font-medium">
+                          Click to upload
+                        </span>{' '}
+                        or drag and drop
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Excel (.xlsx, .xls) or CSV files only
+                      </p>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Errors Section */}
+                {bulkUploadErrors.length > 0 && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <svg
+                        className="w-5 h-5 text-red-600 mt-0.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">
+                          Validation Errors ({bulkUploadErrors.length})
+                        </p>
+                        <ul className="text-sm text-red-700 dark:text-red-300 space-y-1 max-h-32 overflow-y-auto">
+                          {bulkUploadErrors.slice(0, 10).map((error, index) => (
+                            <li key={index}>• {error}</li>
+                          ))}
+                          {bulkUploadErrors.length > 10 && (
+                            <li className="text-red-500">
+                              ...and {bulkUploadErrors.length - 10} more errors
+                            </li>
+                          )}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Upload Result */}
+                {bulkUploadResult && (
+                  <div
+                    className={`border rounded-lg p-4 ${
+                      bulkUploadResult.failed === 0
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                        : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+                    }`}
+                  >
+                    <p
+                      className={`text-sm font-medium mb-2 ${
+                        bulkUploadResult.failed === 0
+                          ? 'text-green-800 dark:text-green-200'
+                          : 'text-yellow-800 dark:text-yellow-200'
+                      }`}
+                    >
+                      Upload Results: {bulkUploadResult.success} succeeded,{' '}
+                      {bulkUploadResult.failed} failed
+                    </p>
+                    {bulkUploadResult.errors.length > 0 && (
+                      <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+                        {bulkUploadResult.errors.map((error, index) => (
+                          <li key={index}>• {error}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {/* Preview Table */}
+                {bulkUploadData.length > 0 && bulkUploadErrors.length === 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-foreground mb-2">
+                      Preview ({bulkUploadData.length} students)
+                    </h4>
+                    <div className="border border-border rounded-lg overflow-hidden">
+                      <div className="overflow-x-auto max-h-64">
+                        <table className="min-w-full divide-y divide-border">
+                          <thead className="bg-muted sticky top-0">
+                            <tr>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                                #
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                                Name
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                                Email
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                                DOB
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                                Class
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                                Phone
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-card divide-y divide-border">
+                            {bulkUploadData.slice(0, 10).map((row, index) => (
+                              <tr key={index} className="hover:bg-muted/50">
+                                <td className="px-3 py-2 text-sm text-muted-foreground">
+                                  {index + 1}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-foreground">
+                                  {row.first_name} {row.last_name}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-muted-foreground">
+                                  {row.email}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-muted-foreground">
+                                  {row.date_of_birth}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-muted-foreground">
+                                  {row.class_name}
+                                </td>
+                                <td className="px-3 py-2 text-sm text-muted-foreground">
+                                  {row.phone || '-'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                      {bulkUploadData.length > 10 && (
+                        <div className="px-3 py-2 bg-muted text-sm text-muted-foreground text-center">
+                          ...and {bulkUploadData.length - 10} more students
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-border flex justify-end gap-3">
+                <button
+                  onClick={handleCloseBulkUploadModal}
+                  className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleBulkUpload}
+                  disabled={
+                    bulkUploadData.length === 0 ||
+                    bulkUploadErrors.length > 0 ||
+                    bulkUploadLoading
+                  }
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {bulkUploadLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                        />
+                      </svg>
+                      Upload {bulkUploadData.length} Students
+                    </>
+                  )}
                 </button>
               </div>
             </div>
