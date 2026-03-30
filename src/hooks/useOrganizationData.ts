@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import {
   ApiService,
@@ -27,59 +27,69 @@ export function useOrganizationData() {
     (state) => state.organization,
   );
   const fetchingRef = useRef(false);
+  const hasFetchedRef = useRef(false);
+
+  // Use refs to access current values without triggering re-renders
+  const dataRef = useRef(data);
+  const lastFetchedRef = useRef(lastFetched);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    dataRef.current = data;
+    lastFetchedRef.current = lastFetched;
+  }, [data, lastFetched]);
+
+  const loadOrganizationData = useCallback(async () => {
+    // Don't fetch if we already have data that's less than 5 minutes old
+    const FIVE_MINUTES = 5 * 60 * 1000;
+    if (
+      dataRef.current &&
+      lastFetchedRef.current &&
+      Date.now() - lastFetchedRef.current < FIVE_MINUTES
+    ) {
+      return;
+    }
+
+    // Don't fetch if already fetching
+    if (fetchingRef.current) {
+      return;
+    }
+
+    // Don't fetch if we've already fetched in this session
+    if (hasFetchedRef.current && dataRef.current) {
+      return;
+    }
+
+    try {
+      fetchingRef.current = true;
+      hasFetchedRef.current = true;
+      dispatch(setOrganizationLoading(true));
+
+      const targetSubdomain = await getTargetSubdomain(
+        userData?.orgId,
+        userData?.accessToken,
+      );
+
+      const apiData = await ApiService.fetchAllData(targetSubdomain);
+      const transformedData = transformApiDataToOrganizationConfig(apiData);
+
+      dispatch(setOrganizationData(transformedData));
+    } catch (err) {
+      console.error('Failed to load organization data:', err);
+      dispatch(
+        setOrganizationError(
+          err instanceof Error ? err.message : 'Failed to load data',
+        ),
+      );
+    } finally {
+      fetchingRef.current = false;
+    }
+  }, [userData?.orgId, userData?.accessToken, dispatch]);
 
   useEffect(() => {
-    const loadOrganizationData = async () => {
-      console.log('useOrganizationData effect running:', {
-        hasData: !!data,
-        loading,
-        fetchingRef: fetchingRef.current,
-        lastFetched,
-      });
-
-      // Don't fetch if we already have data that's less than 5 minutes old
-      const FIVE_MINUTES = 5 * 60 * 1000;
-      if (data && lastFetched && Date.now() - lastFetched < FIVE_MINUTES) {
-        console.log('Using cached organization data');
-        return;
-      }
-
-      // Don't fetch if already fetching (use ref instead of loading state)
-      if (fetchingRef.current) {
-        console.log('Already fetching organization data, skipping...');
-        return;
-      }
-
-      try {
-        console.log('Fetching organization data...');
-        fetchingRef.current = true;
-        dispatch(setOrganizationLoading(true));
-
-        const targetSubdomain = await getTargetSubdomain(
-          userData?.orgId,
-          userData?.accessToken,
-        );
-        console.log('Target subdomain:', targetSubdomain);
-
-        const apiData = await ApiService.fetchAllData(targetSubdomain);
-        const transformedData = transformApiDataToOrganizationConfig(apiData);
-
-        dispatch(setOrganizationData(transformedData));
-        console.log('Organization data cached in Redux');
-      } catch (err) {
-        console.error('Failed to load organization data:', err);
-        dispatch(
-          setOrganizationError(
-            err instanceof Error ? err.message : 'Failed to load data',
-          ),
-        );
-      } finally {
-        fetchingRef.current = false;
-      }
-    };
-
     loadOrganizationData();
-  }, [userData, data, lastFetched, dispatch]);
+    // Only depend on the memoized callback, not on data/lastFetched
+  }, [loadOrganizationData]);
 
   return {
     organizationData: data,

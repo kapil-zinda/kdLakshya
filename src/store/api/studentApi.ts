@@ -74,12 +74,16 @@ export interface CreateStudentRequest {
   uniqueId?: string;
   profile?: string;
   gradeLevel: string;
+  classId?: string;
+  className?: string;
+  rollNumber?: string;
+  admissionDate?: string;
   guardianInfo: {
     fatherName: string;
     motherName: string;
     phone: string;
-    email: string;
-    address: string;
+    email?: string;
+    address?: string;
   };
 }
 
@@ -144,6 +148,59 @@ export interface StudentFeeListResponse {
   }[];
 }
 
+// API Request Body Types (snake_case for API)
+interface StudentApiGuardianInfo {
+  father_name: string;
+  mother_name: string;
+  phone: string;
+  email?: string;
+  address?: string;
+}
+
+interface CreateStudentApiRequestBody {
+  data: {
+    type: 'students';
+    attributes: {
+      first_name: string;
+      last_name: string;
+      email: string;
+      phone: string;
+      date_of_birth: string;
+      grade_level: string;
+      admission_date: string;
+      guardian_info: StudentApiGuardianInfo;
+      gender?: string;
+      unique_id?: string;
+      profile?: string;
+      class_id?: string;
+      class_name?: string;
+      roll_number?: string;
+    };
+  };
+}
+
+interface UpdateStudentApiAttributes {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  phone?: string;
+  date_of_birth?: string;
+  gender?: string;
+  unique_id?: string;
+  profile?: string;
+  grade_level?: string;
+  is_monitor?: boolean;
+  class_id?: string;
+  guardian_info?: Partial<StudentApiGuardianInfo>;
+}
+
+interface UpdateStudentApiRequestBody {
+  data: {
+    type: 'students';
+    attributes: UpdateStudentApiAttributes;
+  };
+}
+
 // ============================================================================
 // HELPER FUNCTIONS
 // ============================================================================
@@ -165,7 +222,7 @@ const formatDate = (dateStr: string): string => {
  */
 const transformCreateStudentRequest = (
   studentData: CreateStudentRequest,
-): any => {
+): CreateStudentApiRequestBody => {
   return {
     data: {
       type: 'students',
@@ -176,17 +233,26 @@ const transformCreateStudentRequest = (
         phone: studentData.phone,
         date_of_birth: formatDate(studentData.dob),
         grade_level: studentData.gradeLevel,
-        admission_date: formatDate(new Date().toISOString()),
+        admission_date: studentData.admissionDate
+          ? formatDate(studentData.admissionDate)
+          : formatDate(new Date().toISOString()),
         guardian_info: {
           father_name: studentData.guardianInfo.fatherName,
           mother_name: studentData.guardianInfo.motherName,
           phone: studentData.guardianInfo.phone,
-          email: studentData.guardianInfo.email,
-          address: studentData.guardianInfo.address,
+          ...(studentData.guardianInfo.email && {
+            email: studentData.guardianInfo.email,
+          }),
+          ...(studentData.guardianInfo.address && {
+            address: studentData.guardianInfo.address,
+          }),
         },
-        ...(studentData.gender && { gender: studentData.gender }),
+        ...(studentData.gender && { gender: studentData.gender.toLowerCase() }),
         ...(studentData.uniqueId && { unique_id: studentData.uniqueId }),
         ...(studentData.profile && { profile: studentData.profile }),
+        ...(studentData.classId && { class_id: studentData.classId }),
+        ...(studentData.className && { class_name: studentData.className }),
+        ...(studentData.rollNumber && { roll_number: studentData.rollNumber }),
       },
     },
   };
@@ -197,8 +263,8 @@ const transformCreateStudentRequest = (
  */
 const transformUpdateStudentRequest = (
   studentData: UpdateStudentRequest,
-): any => {
-  const attributes: any = {};
+): UpdateStudentApiRequestBody => {
+  const attributes: UpdateStudentApiAttributes = {};
 
   if (studentData.firstName) attributes.first_name = studentData.firstName;
   if (studentData.lastName) attributes.last_name = studentData.lastName;
@@ -254,7 +320,7 @@ export const studentApi = baseApi.injectEndpoints({
      */
     getStudents: builder.query<StudentListResponse, string>({
       query: (orgId) => `/${orgId}/students`,
-      providesTags: (result, error, orgId) =>
+      providesTags: (result) =>
         result
           ? [
               ...result.data.map(({ id }) => ({
@@ -268,6 +334,16 @@ export const studentApi = baseApi.injectEndpoints({
     }),
 
     /**
+     * Get unassigned students (not enrolled in any active class)
+     * Used when adding students to a class
+     */
+    getUnassignedStudents: builder.query<StudentListResponse, string>({
+      query: (orgId) => `/${orgId}/students?unassigned=true`,
+      providesTags: [{ type: 'Students', id: 'UNASSIGNED' }],
+      keepUnusedDataFor: 30,
+    }),
+
+    /**
      * Get single student by ID
      */
     getStudentById: builder.query<
@@ -275,7 +351,7 @@ export const studentApi = baseApi.injectEndpoints({
       { orgId: string; studentId: string }
     >({
       query: ({ orgId, studentId }) => `/${orgId}/students/${studentId}`,
-      providesTags: (result, error, { studentId }) => [
+      providesTags: (_result, _error, { studentId }) => [
         { type: 'Students', id: studentId },
       ],
     }),
@@ -315,7 +391,7 @@ export const studentApi = baseApi.injectEndpoints({
           'Content-Type': 'application/vnd.api+json',
         },
       }),
-      invalidatesTags: (result, error, { studentId }) => [
+      invalidatesTags: (_result, _error, { studentId }) => [
         { type: 'Students', id: studentId },
         { type: 'Students', id: 'LIST' },
       ],
@@ -331,7 +407,7 @@ export const studentApi = baseApi.injectEndpoints({
           url: `/${orgId}/students/${studentId}`,
           method: 'DELETE',
         }),
-        invalidatesTags: (result, error, { studentId }) => [
+        invalidatesTags: (_result, _error, { studentId }) => [
           { type: 'Students', id: studentId },
           { type: 'Students', id: 'LIST' },
         ],
@@ -350,7 +426,7 @@ export const studentApi = baseApi.injectEndpoints({
       { orgId: string; studentId: string }
     >({
       query: ({ orgId, studentId }) => `/${orgId}/students/${studentId}/fees`,
-      providesTags: (result, error, { studentId }) => [
+      providesTags: (_result, _error, { studentId }) => [
         { type: 'Fees', id: studentId },
       ],
     }),
@@ -367,6 +443,7 @@ export const {
   // Student operations
   useGetStudentsQuery,
   useGetStudentByIdQuery,
+  useLazyGetUnassignedStudentsQuery,
   useCreateStudentMutation,
   useUpdateStudentMutation,
   useDeleteStudentMutation,
