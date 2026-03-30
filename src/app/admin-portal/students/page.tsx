@@ -21,35 +21,6 @@ import {
 import { makeApiCall } from '@/utils/ApiRequest';
 import * as XLSX from 'xlsx';
 
-// API Response Types
-interface StudentApiData {
-  id: string;
-  attributes: {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-    date_of_birth?: string;
-    enrollment_date?: string;
-    gender?: string;
-    unique_id?: string;
-    student_id?: string;
-    profile?: string;
-    grade_level?: string;
-    guardian_info: {
-      father_name: string;
-      mother_name: string;
-      phone: string;
-      email: string;
-      address: string;
-    };
-    admission_date?: string;
-    roll_number?: string;
-    status?: string;
-    academic_year?: string;
-  };
-}
-
 interface Student {
   id: string;
   firstName: string;
@@ -201,57 +172,96 @@ export default function StudentManagement() {
 
   // Transform API data to Student format
   const students: Student[] =
-    studentsData?.data.map((studentData: StudentApiData) => {
+    (
+      studentsData?.data as
+        | { id: string; attributes: Record<string, unknown> }[]
+        | undefined
+    )?.map((studentData) => {
       // Handle different response formats for all students vs class students
       const attrs = studentData.attributes;
       const isClassStudentResponse = selectedClass !== 'All';
 
+      // For class students, name is combined; for all students, we have first_name/last_name
+      const hasFirstName =
+        'first_name' in attrs && typeof attrs.first_name === 'string';
+      const firstName = hasFirstName
+        ? (attrs.first_name as string)
+        : (attrs.name as string)?.split(' ')[0] || '';
+      const lastName = hasFirstName
+        ? (attrs.last_name as string)
+        : (attrs.name as string)?.split(' ').slice(1).join(' ') || '';
+      const fullName = hasFirstName
+        ? `${attrs.first_name} ${attrs.last_name}`
+        : (attrs.name as string) || '';
+
+      // Cast guardian_info if it exists
+      const guardianInfo = attrs.guardian_info as
+        | {
+            father_name?: string;
+            mother_name?: string;
+            phone?: string;
+            email?: string;
+            address?: string;
+          }
+        | undefined;
+
       return {
         id: studentData.id,
-        firstName: attrs.first_name,
-        lastName: attrs.last_name,
-        name: `${attrs.first_name} ${attrs.last_name}`,
-        email: attrs.email,
-        phone: attrs.phone,
+        firstName,
+        lastName,
+        name: fullName,
+        email: (attrs.email as string) || '',
+        phone: (attrs.phone as string) || '',
         dateOfBirth: isClassStudentResponse
-          ? attrs.enrollment_date || ''
-          : attrs.date_of_birth || '',
-        gender: attrs.gender,
-        uniqueId: isClassStudentResponse ? attrs.student_id : attrs.unique_id,
-        profile: attrs.profile,
-        gradeLevel: isClassStudentResponse ? selectedClass : attrs.grade_level,
-        guardianInfo: isClassStudentResponse
-          ? {
-              fatherName: '',
-              motherName: '',
-              phone: '',
-              email: '',
-              address: '',
-            }
-          : {
-              fatherName: attrs.guardian_info.father_name,
-              motherName: attrs.guardian_info.mother_name,
-              phone: attrs.guardian_info.phone,
-              email: attrs.guardian_info.email,
-              address: attrs.guardian_info.address,
-            },
+          ? (typeof attrs.enrollment_date === 'number'
+              ? new Date(attrs.enrollment_date as number).toISOString()
+              : (attrs.enrollment_date as string)) || ''
+          : (attrs.date_of_birth as string) || '',
+        gender: attrs.gender as string | undefined,
+        uniqueId: isClassStudentResponse
+          ? (attrs.student_id as string)
+          : (attrs.unique_id as string),
+        profile: attrs.profile as string | undefined,
+        gradeLevel: isClassStudentResponse
+          ? selectedClass
+          : (attrs.grade_level as string) || '',
+        guardianInfo:
+          isClassStudentResponse || !guardianInfo
+            ? {
+                fatherName: '',
+                motherName: '',
+                phone: '',
+                email: '',
+                address: '',
+              }
+            : {
+                fatherName: guardianInfo.father_name || '',
+                motherName: guardianInfo.mother_name || '',
+                phone: guardianInfo.phone || '',
+                email: guardianInfo.email || '',
+                address: guardianInfo.address || '',
+              },
         admissionDate: isClassStudentResponse
-          ? attrs.enrollment_date || ''
-          : attrs.admission_date || '',
+          ? (typeof attrs.enrollment_date === 'number'
+              ? new Date(attrs.enrollment_date as number).toISOString()
+              : (attrs.enrollment_date as string)) || ''
+          : (attrs.admission_date as string) || '',
         rollNumber: isClassStudentResponse
-          ? attrs.roll_number || studentData.id
-          : attrs.unique_id || studentData.id,
-        class: isClassStudentResponse ? selectedClass : attrs.grade_level,
+          ? (attrs.roll_number as string) || studentData.id
+          : (attrs.unique_id as string) || studentData.id,
+        class: isClassStudentResponse
+          ? selectedClass
+          : (attrs.grade_level as string),
         section: 'A',
         status: isClassStudentResponse
-          ? attrs.status === 'active'
+          ? (attrs.status as string) === 'active'
             ? 'Active'
             : 'Inactive'
           : 'Active',
         photo:
-          attrs.profile ||
+          (attrs.profile as string) ||
           'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-        academicYear: attrs.academic_year || '2024-25',
+        academicYear: (attrs.academic_year as string) || '2024-25',
         fees: {
           totalFees: 0,
           paidFees: 0,
