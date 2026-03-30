@@ -24,10 +24,11 @@ import {
   useUpdateSubjectMutation,
 } from '@/store/api/classApi';
 import { useGetFacultyQuery } from '@/store/api/facultyApi';
-import { useGetStudentsQuery } from '@/store/api/studentApi';
+import { useLazyGetUnassignedStudentsQuery } from '@/store/api/studentApi';
 
 interface Student {
-  id: string;
+  id: string; // enrollment ID
+  studentId: string; // actual student ID for API calls
   name: string;
   rollNumber: string;
   email: string;
@@ -89,6 +90,98 @@ interface ClassData {
   timeSlots: TimeSlot[];
 }
 
+// API Response Types
+interface FacultyApiData {
+  id: string;
+  attributes: {
+    name: string;
+    designation?: string;
+    email: string;
+    phone?: string;
+  };
+}
+
+interface ClassApiData {
+  id: string;
+  attributes: {
+    class: string;
+    section?: string;
+    class_teacher_id?: string;
+    teacher_id?: string;
+    class_teacher_name?: string;
+    teacher_name?: string;
+    academic_year?: string;
+    academicYear?: string;
+    room?: string;
+  };
+}
+
+interface StudentApiData {
+  id: string;
+  attributes: {
+    student_id: string;
+    first_name?: string;
+    last_name?: string;
+    roll_number?: string;
+    email: string;
+    phone?: string;
+    status?: string;
+  };
+}
+
+interface SubjectApiData {
+  id: string;
+  attributes: {
+    subject_name: string;
+    subject_code?: string;
+    teacher_id?: string;
+    teacher_name?: string;
+    credits?: number;
+  };
+}
+
+interface ExamSubjectApiData {
+  subject_id: string;
+  subject_name?: string;
+  max_marks: number;
+  duration?: number;
+  exam_date?: string;
+  start_time?: string;
+}
+
+interface ExamApiData {
+  id: string;
+  attributes: {
+    exam_name: string;
+    subjects?: ExamSubjectApiData[];
+    exam_date?: string;
+    instructions?: string;
+    exam_type?: string;
+    status?: string;
+  };
+}
+
+interface UnassignedStudentApiData {
+  id: string;
+  attributes?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+  };
+}
+
+interface UnassignedStudentData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+type ExamType = 'Unit Test' | 'Mid Term' | 'Final' | 'Assignment';
+type TabType = 'students' | 'subjects' | 'exams';
+
 interface Class {
   id: string;
   name: string;
@@ -125,14 +218,9 @@ export default function ClassManagement() {
       skip: !orgId,
     });
 
-  const {
-    data: allStudentsResponse,
-    isLoading: allStudentsLoading,
-    error: allStudentsError,
-  } = useGetStudentsQuery(orgId, {
-    skip: !orgId,
-    refetchOnMountOrArgChange: true,
-  });
+  // Lazy query to fetch unassigned students only when needed
+  const [fetchUnassignedStudents, { isLoading: unassignedStudentsLoading }] =
+    useLazyGetUnassignedStudentsQuery();
 
   // Fetch data for selected class only
   const { data: classStudentsResponse, isLoading: studentsLoading } =
@@ -174,7 +262,7 @@ export default function ClassManagement() {
 
   // Transform RTK Query data
   const teachers: Teacher[] =
-    facultyResponse?.data.map((t: any) => ({
+    facultyResponse?.data.map((t: FacultyApiData) => ({
       id: t.id,
       name: t.attributes.name,
       employeeId: t.id,
@@ -186,7 +274,7 @@ export default function ClassManagement() {
   // Memoize classes array to prevent infinite loops
   const classes: Class[] = useMemo(() => {
     return (
-      classesResponse?.data.map((classItem: any) => {
+      classesResponse?.data.map((classItem: ClassApiData) => {
         const classAttrs = classItem.attributes;
         return {
           id: classItem.id,
@@ -214,8 +302,9 @@ export default function ClassManagement() {
 
   // Transform class-specific data (only for selected class)
   const currentStudents: Student[] =
-    classStudentsResponse?.data.map((s: any) => ({
-      id: s.id,
+    classStudentsResponse?.data.map((s: StudentApiData) => ({
+      id: s.id, // enrollment ID
+      studentId: s.attributes.student_id, // actual student ID for unenroll API
       name: `${s.attributes.first_name || ''} ${s.attributes.last_name || ''}`.trim(),
       rollNumber: s.attributes.roll_number || 'N/A',
       email: s.attributes.email,
@@ -224,7 +313,7 @@ export default function ClassManagement() {
     })) || [];
 
   const currentSubjects: Subject[] =
-    subjectsResponse?.data.map((s: any) => ({
+    subjectsResponse?.data.map((s: SubjectApiData) => ({
       id: s.id,
       name: s.attributes.subject_name,
       code: s.attributes.subject_code || '',
@@ -235,27 +324,29 @@ export default function ClassManagement() {
     })) || [];
 
   const currentExams: Exam[] =
-    examsResponse?.data.map((e: any) => ({
+    examsResponse?.data.map((e: ExamApiData) => ({
       id: e.id,
       name: e.attributes.exam_name,
-      subjects: (e.attributes.subjects || []).map((examSubject: any) => {
-        const subjectDetails = currentSubjects.find(
-          (s) => s.id === examSubject.subject_id,
-        );
-        return {
-          subjectId: examSubject.subject_id,
-          subjectName:
-            examSubject.subject_name ||
-            subjectDetails?.name ||
-            'Unknown Subject',
-          marks: examSubject.max_marks,
-          duration: examSubject.duration || 0,
-          date: examSubject.exam_date || e.attributes.exam_date || '',
-          startTime: examSubject.start_time || '',
-          endTime: '',
-          room: '',
-        };
-      }),
+      subjects: (e.attributes.subjects || []).map(
+        (examSubject: ExamSubjectApiData) => {
+          const subjectDetails = currentSubjects.find(
+            (s) => s.id === examSubject.subject_id,
+          );
+          return {
+            subjectId: examSubject.subject_id,
+            subjectName:
+              examSubject.subject_name ||
+              subjectDetails?.name ||
+              'Unknown Subject',
+            marks: examSubject.max_marks,
+            duration: examSubject.duration || 0,
+            date: examSubject.exam_date || e.attributes.exam_date || '',
+            startTime: examSubject.start_time || '',
+            endTime: '',
+            room: '',
+          };
+        },
+      ),
       instructions: e.attributes.instructions || '',
       type: e.attributes.type || 'Unit Test',
       status: e.attributes.status || 'Scheduled',
@@ -277,7 +368,8 @@ export default function ClassManagement() {
 
   // Combined loading state
   const loading = classesLoading || facultyLoading;
-  const isLoadingClassData = studentsLoading || subjectsLoading || examsLoading;
+  const _isLoadingClassData =
+    studentsLoading || subjectsLoading || examsLoading;
 
   // Modal states and form data
   const [showCreateClassModal, setShowCreateClassModal] = useState(false);
@@ -302,8 +394,10 @@ export default function ClassManagement() {
   const [selectedSubjectForDelete, setSelectedSubjectForDelete] =
     useState<Subject | null>(null);
   const [selectedStudentForAssignment, setSelectedStudentForAssignment] =
-    useState<any>(null);
-  const [unassignedStudents, setUnassignedStudents] = useState<any[]>([]);
+    useState<UnassignedStudentData | null>(null);
+  const [unassignedStudents, setUnassignedStudents] = useState<
+    UnassignedStudentData[]
+  >([]);
   const [editingClass, setEditingClass] = useState<Class | null>(null);
   const [classFormData, setClassFormData] = useState({
     name: '',
@@ -327,7 +421,9 @@ export default function ClassManagement() {
     teacherId: '',
   });
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
-  const [availableClassNames, setAvailableClassNames] = useState<string[]>([]);
+  const [_availableClassNames, _setAvailableClassNames] = useState<string[]>(
+    [],
+  );
 
   const [subjectFormData, setSubjectFormData] = useState({
     name: '',
@@ -358,18 +454,18 @@ export default function ClassManagement() {
     startTime: '',
     endTime: '',
   });
-  const [selectedSlot, setSelectedSlot] = useState<{
+  const [_selectedSlot, _setSelectedSlot] = useState<{
     day: string;
     period: number;
     timeSlotId?: string;
   } | null>(null);
-  const [slotFormData, setSlotFormData] = useState({
+  const [_slotFormData, _setSlotFormData] = useState({
     subjectId: '',
     teacherId: '',
     room: '',
   });
 
-  const days = [
+  const _days = [
     'Monday',
     'Tuesday',
     'Wednesday',
@@ -575,44 +671,38 @@ export default function ClassManagement() {
     }
   };
 
-  const handleAddStudentToClass = () => {
+  const handleAddStudentToClass = async () => {
     setStudentSearchQuery('');
-
-    if (allStudentsLoading) {
-      alert('Loading students, please wait...');
-      return;
-    }
-
-    if (allStudentsError) {
-      alert('Failed to load students. Please try again.');
-      return;
-    }
-
-    // Get all students from the response
-    const allStudents = allStudentsResponse?.data || [];
-
-    // Get IDs of students already assigned to this class
-    const assignedStudentIds = new Set(currentStudents.map((s) => s.id));
-
-    // Filter to get only unassigned students
-    const unassigned = allStudents.filter(
-      (student: any) => !assignedStudentIds.has(student.id),
-    );
-
-    // Transform to the expected format
-    const formattedUnassigned = unassigned.map((s: any) => ({
-      id: s.id,
-      firstName: s.attributes?.first_name || '',
-      lastName: s.attributes?.last_name || '',
-      email: s.attributes?.email || '',
-      phone: s.attributes?.phone || '',
-    }));
-
-    setUnassignedStudents(formattedUnassigned);
     setShowAddStudentModal(true);
+
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
+
+    try {
+      // Fetch unassigned students on demand
+      const result = await fetchUnassignedStudents(orgId).unwrap();
+
+      // Transform to the expected format
+      const formattedUnassigned = (result?.data || []).map(
+        (s: UnassignedStudentApiData) => ({
+          id: s.id,
+          firstName: s.attributes?.first_name || '',
+          lastName: s.attributes?.last_name || '',
+          email: s.attributes?.email || '',
+          phone: s.attributes?.phone || '',
+        }),
+      );
+
+      setUnassignedStudents(formattedUnassigned);
+    } catch (error) {
+      console.error('Error fetching unassigned students:', error);
+      alert('Failed to load students. Please try again.');
+    }
   };
 
-  const handleSelectStudentForAssignment = (student: any) => {
+  const handleSelectStudentForAssignment = (student: UnassignedStudentData) => {
     setSelectedStudentForAssignment(student);
     setRollNumberFormData({ rollNumber: '' });
     setShowAddStudentModal(false);
@@ -641,7 +731,8 @@ export default function ClassManagement() {
         classId: selectedClass.id,
         enrollment: {
           student_id: selectedStudentForAssignment.id,
-        } as any, // TODO: Update EnrollmentRequest interface to include roll_number and academic_year if needed
+          roll_number: rollNumberFormData.rollNumber,
+        },
       }).unwrap();
 
       // Remove student from unassigned list
@@ -683,12 +774,12 @@ export default function ClassManagement() {
       await unenrollStudent({
         orgId,
         classId: selectedClass.id,
-        studentId: student.id,
+        studentId: student.studentId, // Use actual student ID, not enrollment ID
       }).unwrap();
 
       // Add student back to unassigned list
       const unenrolledStudent = {
-        id: student.id,
+        id: student.studentId, // Use student ID for consistency
         firstName: student.name.split(' ')[0] || '',
         lastName: student.name.split(' ').slice(1).join(' ') || '',
         email: student.email,
@@ -847,7 +938,7 @@ export default function ClassManagement() {
           exam_type: examFormData.type,
           exam_date: new Date(examFormData.date).getTime(),
           max_marks: examFormData.subjects[0]?.marks || 100,
-        } as any, // TODO: API might need updating to support multiple subjects per exam
+        }, // TODO: API might need updating to support multiple subjects per exam
       }).unwrap();
 
       setShowCreateExamModal(false);
@@ -972,7 +1063,7 @@ export default function ClassManagement() {
           exam_type: examFormData.type,
           exam_date: new Date(examFormData.date).getTime(),
           max_marks: examFormData.subjects[0]?.marks || 100,
-        } as any, // TODO: API might need updating to support multiple subjects per exam
+        }, // TODO: API might need updating to support multiple subjects per exam
       }).unwrap();
 
       setShowEditExamModal(false);
@@ -1048,7 +1139,7 @@ export default function ClassManagement() {
     const endTime = new Date(`2024-01-01T${timeSlotFormData.endTime}`);
     const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
 
-    const newTimeSlot: TimeSlot = {
+    const _newTimeSlot: TimeSlot = {
       id: (currentTimeSlots.length + 1).toString(),
       name: timeSlotFormData.name,
       startTime: timeSlotFormData.startTime,
@@ -1408,7 +1499,7 @@ export default function ClassManagement() {
                       ].map((tab) => (
                         <button
                           key={tab.id}
-                          onClick={() => setActiveTab(tab.id as any)}
+                          onClick={() => setActiveTab(tab.id as TabType)}
                           className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                             activeTab === tab.id
                               ? 'border-indigo-500 text-indigo-600'
@@ -2366,7 +2457,7 @@ export default function ClassManagement() {
                       onChange={(e) =>
                         setExamFormData((prev) => ({
                           ...prev,
-                          type: e.target.value as any,
+                          type: e.target.value as ExamType,
                         }))
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
@@ -2749,7 +2840,7 @@ export default function ClassManagement() {
                       onChange={(e) =>
                         setExamFormData((prev) => ({
                           ...prev,
-                          type: e.target.value as any,
+                          type: e.target.value as ExamType,
                         }))
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
@@ -3004,7 +3095,7 @@ export default function ClassManagement() {
                                 'Remove this time slot? This will affect existing timetable entries.',
                               )
                             ) {
-                              const updatedTimeSlots = currentTimeSlots.filter(
+                              const _updatedTimeSlots = currentTimeSlots.filter(
                                 (t) => t.id !== slot.id,
                               );
                               // TODO: Timetable functionality needs API implementation
@@ -3166,6 +3257,17 @@ export default function ClassManagement() {
                       );
                     },
                   );
+
+                  if (unassignedStudentsLoading) {
+                    return (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+                        <p className="mt-4 text-sm text-gray-500">
+                          Loading students...
+                        </p>
+                      </div>
+                    );
+                  }
 
                   if (unassignedStudents.length === 0) {
                     return (

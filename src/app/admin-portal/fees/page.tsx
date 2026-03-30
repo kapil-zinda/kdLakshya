@@ -18,12 +18,67 @@ type FeeType =
   | 'Admission Fee'
   | 'Other Fees';
 
-interface FeeComponent {
+interface _FeeComponent {
   type: FeeType;
   amount: number;
   isPaid: boolean;
   dueDate?: string;
   month?: string;
+}
+
+// API Response Types
+interface FeeStructureApiData {
+  id: string;
+  attributes: {
+    class_name: string;
+    academic_year: string;
+    total_amount?: number;
+    components?: {
+      admission_fee?: number;
+      registration_fee?: number;
+      tuition_fees?: number;
+      exam_fees?: number;
+      other_fees?: number;
+    };
+  };
+}
+
+interface StudentFeeApiData {
+  id: string;
+  attributes: {
+    student_id?: string;
+    total_paid?: number;
+    total_due?: number;
+    remaining_amount?: number;
+    status?: string;
+    payments?: PaymentApiData[];
+  };
+}
+
+interface StudentApiData {
+  id: string;
+  attributes: {
+    student_id?: string;
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+    roll_number?: string;
+    class_id?: string;
+  };
+}
+
+interface PaymentApiData {
+  id?: string;
+  date?: string;
+  payment_date?: string;
+  amount?: number;
+  description?: string;
+  fee_type?: string;
+  month?: string;
+  method?: string;
+  receipt_number?: string;
+  remarks?: string;
 }
 
 interface FeeStructure {
@@ -118,8 +173,8 @@ export default function FeeManagementERP() {
 
   // Filter states
   const [selectedClass, setSelectedClass] = useState('Select Class');
-  const [selectedStatus, setSelectedStatus] = useState('All');
-  const [selectedMonth, setSelectedMonth] = useState('All');
+  const [selectedStatus, _setSelectedStatus] = useState('All');
+  const [selectedMonth, _setSelectedMonth] = useState('All');
   const [selectedYear, setSelectedYear] = useState('2024-25');
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -244,7 +299,7 @@ export default function FeeManagementERP() {
 
       // Create fee structures ONLY from API data (no defaults)
       const structures: FeeStructure[] = (feeStructuresResponse.data || [])
-        .map((apiStructure: any) => {
+        .map((apiStructure: FeeStructureApiData) => {
           if (!apiStructure || !apiStructure.attributes.components) {
             return null;
           }
@@ -350,8 +405,8 @@ export default function FeeManagementERP() {
         };
 
       // Create a map of students with assigned fees
-      const studentsWithFees = new Map<string, any>();
-      (classFeesResponse.data || []).forEach((feeData: any) => {
+      const studentsWithFees = new Map<string, StudentFeeApiData>();
+      (classFeesResponse.data || []).forEach((feeData: StudentFeeApiData) => {
         const studentId = feeData.attributes.student_id;
         if (studentId) {
           studentsWithFees.set(studentId, feeData);
@@ -360,7 +415,7 @@ export default function FeeManagementERP() {
 
       // Transform API response to fee records
       const records: StudentFeeRecord[] = classStudentsResponse.data.map(
-        (studentData: any) => {
+        (studentData: StudentApiData) => {
           const studentId = studentData.attributes.student_id || studentData.id;
           const feeData = studentsWithFees.get(studentId);
 
@@ -368,7 +423,7 @@ export default function FeeManagementERP() {
             // Student has fees assigned
             const attributes = feeData.attributes;
             const payments: Payment[] = (attributes.payments || []).map(
-              (payment: any) => ({
+              (payment: PaymentApiData) => ({
                 id: payment.id,
                 date: payment.date,
                 amount: payment.amount,
@@ -555,7 +610,7 @@ export default function FeeManagementERP() {
     }
   };
 
-  const sendReminder = (record: StudentFeeRecord) => {
+  const _sendReminder = (record: StudentFeeRecord) => {
     alert(`Payment reminder sent to ${record.studentName} (${record.email})`);
   };
 
@@ -897,7 +952,7 @@ export default function FeeManagementERP() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Filter by Class
+                  Filter
                 </label>
                 <select
                   value={selectedClass}
@@ -1124,7 +1179,7 @@ export default function FeeManagementERP() {
                                     ) {
                                       updatedRecord.payments =
                                         attributes.payments.map(
-                                          (p: any, idx: number) => ({
+                                          (p: PaymentApiData, idx: number) => ({
                                             id: p.id || `payment-${idx}`,
                                             date:
                                               p.date ||
