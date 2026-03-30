@@ -1882,55 +1882,6 @@ export default function StudentManagement() {
 
               {/* Modal Content */}
               <div className="p-6 space-y-6">
-                {/* Download Template Section */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <div className="flex items-start gap-3">
-                    <svg
-                      className="w-5 h-5 text-blue-600 mt-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    <div className="flex-1">
-                      <p className="text-sm text-blue-800 dark:text-blue-200">
-                        Download the template file to see the required format.
-                        Required fields:
-                        <strong>
-                          {' '}
-                          First Name, Last Name, Email, Date of Birth, Class
-                          Name
-                        </strong>
-                      </p>
-                      <button
-                        onClick={downloadTemplate}
-                        className="mt-2 inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800 rounded-md hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
-                      >
-                        <svg
-                          className="w-4 h-4 mr-1.5"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                          />
-                        </svg>
-                        Download Template
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
                 {/* File Upload Section */}
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
