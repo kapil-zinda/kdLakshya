@@ -43,6 +43,14 @@ interface FeeStructureApiData {
   };
 }
 
+interface FeeComponents {
+  admissionFee: number;
+  registrationFee: number;
+  tuitionFees: number;
+  examFees: number;
+  otherFees: number;
+}
+
 interface StudentFeeApiData {
   id: string;
   attributes: {
@@ -52,6 +60,12 @@ interface StudentFeeApiData {
     remaining_amount?: number;
     status?: string;
     payments?: PaymentApiData[];
+    fee_structure_id?: string;
+    academic_year?: string;
+    amount?: number;
+    components?: FeeComponents;
+    email?: string;
+    phone?: string;
   };
 }
 
@@ -77,6 +91,7 @@ interface PaymentApiData {
   fee_type?: string;
   month?: string;
   method?: string;
+  payment_method?: string;
   receipt_number?: string;
   remarks?: string;
 }
@@ -424,14 +439,14 @@ export default function FeeManagementERP() {
             const attributes = feeData.attributes;
             const payments: Payment[] = (attributes.payments || []).map(
               (payment: PaymentApiData) => ({
-                id: payment.id,
-                date: payment.date,
-                amount: payment.amount,
+                id: payment.id || '',
+                date: payment.date || payment.payment_date || '',
+                amount: payment.amount || 0,
                 feeType: mapFeeType(payment.description || ''),
-                description: payment.description,
+                description: payment.description || '',
                 month: payment.month,
                 method: (payment.method as Payment['method']) || 'Cash',
-                receiptNumber: payment.receipt_number,
+                receiptNumber: payment.receipt_number || '',
                 remarks: payment.remarks || '',
               }),
             );

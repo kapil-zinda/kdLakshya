@@ -90,56 +90,7 @@ interface ClassData {
   timeSlots: TimeSlot[];
 }
 
-// API Response Types
-interface FacultyApiData {
-  id: string;
-  attributes: {
-    name: string;
-    designation?: string;
-    email: string;
-    phone?: string;
-  };
-}
-
-interface ClassApiData {
-  id: string;
-  attributes: {
-    class: string;
-    section?: string;
-    class_teacher_id?: string;
-    teacher_id?: string;
-    class_teacher_name?: string;
-    teacher_name?: string;
-    academic_year?: string;
-    academicYear?: string;
-    room?: string;
-  };
-}
-
-interface StudentApiData {
-  id: string;
-  attributes: {
-    student_id: string;
-    first_name?: string;
-    last_name?: string;
-    roll_number?: string;
-    email: string;
-    phone?: string;
-    status?: string;
-  };
-}
-
-interface SubjectApiData {
-  id: string;
-  attributes: {
-    subject_name: string;
-    subject_code?: string;
-    teacher_id?: string;
-    teacher_name?: string;
-    credits?: number;
-  };
-}
-
+// API Response Types - used for transformations where API types differ from UI types
 interface ExamSubjectApiData {
   subject_id: string;
   subject_name?: string;
@@ -147,18 +98,6 @@ interface ExamSubjectApiData {
   duration?: number;
   exam_date?: string;
   start_time?: string;
-}
-
-interface ExamApiData {
-  id: string;
-  attributes: {
-    exam_name: string;
-    subjects?: ExamSubjectApiData[];
-    exam_date?: string;
-    instructions?: string;
-    exam_type?: string;
-    status?: string;
-  };
 }
 
 interface UnassignedStudentApiData {
@@ -262,7 +201,7 @@ export default function ClassManagement() {
 
   // Transform RTK Query data
   const teachers: Teacher[] =
-    facultyResponse?.data.map((t: FacultyApiData) => ({
+    facultyResponse?.data.map((t) => ({
       id: t.id,
       name: t.attributes.name,
       employeeId: t.id,
@@ -274,19 +213,15 @@ export default function ClassManagement() {
   // Memoize classes array to prevent infinite loops
   const classes: Class[] = useMemo(() => {
     return (
-      classesResponse?.data.map((classItem: ClassApiData) => {
+      classesResponse?.data.map((classItem) => {
         const classAttrs = classItem.attributes;
         return {
           id: classItem.id,
           name: classAttrs.class,
           section: classAttrs.section || 'A',
-          classTeacherId: classAttrs.class_teacher_id || classAttrs.teacher_id,
-          classTeacherName:
-            classAttrs.class_teacher_name ||
-            classAttrs.teacher_name ||
-            'Not Assigned',
-          academicYear:
-            classAttrs.academic_year || classAttrs.academicYear || '2024-25',
+          classTeacherId: classAttrs.teacher_id || undefined,
+          classTeacherName: classAttrs.teacher_name || 'Not Assigned',
+          academicYear: classAttrs.academic_year || '2024-25',
           totalStudents: 0, // Will be updated when class is selected
           room: classAttrs.room || 'Not Assigned',
           data: {
@@ -302,21 +237,22 @@ export default function ClassManagement() {
 
   // Transform class-specific data (only for selected class)
   const currentStudents: Student[] =
-    classStudentsResponse?.data.map((s: StudentApiData) => ({
+    classStudentsResponse?.data.map((s) => ({
       id: s.id, // enrollment ID
-      studentId: s.attributes.student_id, // actual student ID for unenroll API
-      name: `${s.attributes.first_name || ''} ${s.attributes.last_name || ''}`.trim(),
-      rollNumber: s.attributes.roll_number || 'N/A',
-      email: s.attributes.email,
+      studentId: (s.attributes as { student_id?: string }).student_id || s.id, // actual student ID for unenroll API
+      name: `${(s.attributes as { first_name?: string }).first_name || ''} ${(s.attributes as { last_name?: string }).last_name || ''}`.trim(),
+      rollNumber:
+        (s.attributes as { roll_number?: string }).roll_number || 'N/A',
+      email: s.attributes.email || '',
       phone: s.attributes.phone || 'N/A',
       status: s.attributes.status === 'active' ? 'Active' : 'Inactive',
     })) || [];
 
   const currentSubjects: Subject[] =
-    subjectsResponse?.data.map((s: SubjectApiData) => ({
+    subjectsResponse?.data.map((s) => ({
       id: s.id,
-      name: s.attributes.subject_name,
-      code: s.attributes.subject_code || '',
+      name: s.attributes.name,
+      code: s.attributes.code || '',
       teacherId: s.attributes.teacher_id,
       teacherName: s.attributes.teacher_name,
       credits: s.attributes.credits || 1,
@@ -324,32 +260,44 @@ export default function ClassManagement() {
     })) || [];
 
   const currentExams: Exam[] =
-    examsResponse?.data.map((e: ExamApiData) => ({
+    examsResponse?.data.map((e) => ({
       id: e.id,
-      name: e.attributes.exam_name,
-      subjects: (e.attributes.subjects || []).map(
-        (examSubject: ExamSubjectApiData) => {
-          const subjectDetails = currentSubjects.find(
-            (s) => s.id === examSubject.subject_id,
-          );
-          return {
-            subjectId: examSubject.subject_id,
-            subjectName:
-              examSubject.subject_name ||
-              subjectDetails?.name ||
-              'Unknown Subject',
-            marks: examSubject.max_marks,
-            duration: examSubject.duration || 0,
-            date: examSubject.exam_date || e.attributes.exam_date || '',
-            startTime: examSubject.start_time || '',
-            endTime: '',
-            room: '',
-          };
-        },
-      ),
-      instructions: e.attributes.instructions || '',
-      type: e.attributes.type || 'Unit Test',
-      status: e.attributes.status || 'Scheduled',
+      name: e.attributes.name,
+      subjects: (
+        (e.attributes as { subjects?: ExamSubjectApiData[] }).subjects || []
+      ).map((examSubject: ExamSubjectApiData) => {
+        const subjectDetails = currentSubjects.find(
+          (s) => s.id === examSubject.subject_id,
+        );
+        const examDate = examSubject.exam_date || e.attributes.exam_date || '';
+        return {
+          subjectId: examSubject.subject_id,
+          subjectName:
+            examSubject.subject_name ||
+            subjectDetails?.name ||
+            'Unknown Subject',
+          marks: examSubject.max_marks,
+          duration: examSubject.duration || 0,
+          date: typeof examDate === 'number' ? String(examDate) : examDate,
+          startTime: examSubject.start_time || '',
+          endTime: '',
+          room: '',
+        };
+      }),
+      instructions:
+        (e.attributes as { instructions?: string }).instructions ||
+        e.attributes.description ||
+        '',
+      type: ((e.attributes as { type?: string }).type || 'Unit Test') as
+        | 'Unit Test'
+        | 'Mid Term'
+        | 'Final'
+        | 'Assignment',
+      status: ((e.attributes as { status?: string }).status || 'Scheduled') as
+        | 'Scheduled'
+        | 'Ongoing'
+        | 'Completed'
+        | 'Cancelled',
     })) || [];
 
   const currentTimeSlots: TimeSlot[] = []; // Time slots not yet implemented in API
@@ -421,9 +369,7 @@ export default function ClassManagement() {
     teacherId: '',
   });
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
-  const [_availableClassNames, _setAvailableClassNames] = useState<string[]>(
-    [],
-  );
+  const [availableClassNames, _setAvailableClassNames] = useState<string[]>([]);
 
   const [subjectFormData, setSubjectFormData] = useState({
     name: '',
