@@ -321,14 +321,6 @@ function AdminDashboardContent({ userData }: { userData: any }) {
           {/* Main Content */}
           <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
             {/* Welcome Section */}
-            <div className="mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Dashboard Overview
-              </h2>
-              <p className="text-muted-foreground">
-                Manage all aspects of your school from this central hub.
-              </p>
-            </div>
 
             {/* Quick Stats */}
             {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
