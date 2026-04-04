@@ -1,16 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
+import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-
-interface AdminUser {
-  email: string;
-  role: string;
-  loginTime: string;
-}
 
 export default function AdminDashboard() {
   return (
@@ -20,9 +14,7 @@ export default function AdminDashboard() {
   );
 }
 
-function AdminDashboardContent({ userData }: { userData: any }) {
-  const router = useRouter();
-
+function AdminDashboardContent({ userData }: { userData: UserData }) {
   const handleLogout = () => {
     // Clear all authentication data
     localStorage.removeItem('bearerToken');

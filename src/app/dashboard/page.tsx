@@ -3,26 +3,27 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import StudentDashboard from '@/components/dashboard/StudentDashboard';
 import TeacherDashboardCards from '@/components/dashboard/TeacherDashboardCards';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export default function DashboardPage() {
-  const renderDashboardContent = (userData: any) => {
+  const renderDashboardContent = (userData: UserData) => {
     console.log(
       'Dashboard received userData:',
       JSON.stringify(userData, null, 2),
     );
 
     // Check if user has org permission (admin)
-    if (userData.permission?.org || userData.permissions?.org) {
+    if (userData.permission?.org) {
       console.log('Admin access granted - rendering admin dashboard');
       return <AdminDashboardContent userData={userData} />;
     }
 
     // Check if user is faculty or has any team permission (teacher)
-    const permissions = userData.permission || userData.permissions || {};
+    const permissions = userData.permission || {};
     const hasTeamPermission = Object.keys(permissions).some(
       (key) => key.startsWith('team-') || key.includes('team'),
     );
@@ -45,7 +46,7 @@ export default function DashboardPage() {
 }
 
 // Admin Dashboard Content Component
-function AdminDashboardContent({ userData }: { userData: any }) {
+function AdminDashboardContent({ userData }: { userData: UserData }) {
   const router = useRouter();
   const handleLogout = () => {
     // Clear all authentication data from localStorage
