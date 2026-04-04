@@ -305,7 +305,7 @@ export default function FeeManagementERP() {
       // Fetch fee structures from API
       const queryString = `?academic_year=${encodeURIComponent(selectedYear)}`;
       const feeStructuresResponse = await makeApiCall({
-        path: `/class/${orgId}/fee-structures${queryString}`,
+        path: `classes/${orgId}/fee-structures${queryString}`,
         method: 'GET',
         baseUrl: 'default',
       }).catch(() => ({ data: [] }));
@@ -390,7 +390,7 @@ export default function FeeManagementERP() {
         `🔵 Fetching fee records for class: ${className} (ID: ${classId})`,
       );
       const classStudentsResponse = await makeApiCall({
-        path: `/class/${orgId}/classes/${classId}/students`,
+        path: `classes/${orgId}/classes/${classId}/students`,
         method: 'GET',
         baseUrl: 'default',
       });
@@ -398,7 +398,7 @@ export default function FeeManagementERP() {
       // Fetch fees for the selected class
       const feeQueryString = `?academic_year=${encodeURIComponent(selectedYear)}`;
       const classFeesResponse = await makeApiCall({
-        path: `/class/${orgId}/classes/${classId}/fees${feeQueryString}`,
+        path: `classes/${orgId}/classes/${classId}/fees${feeQueryString}`,
         method: 'GET',
         baseUrl: 'default',
       }).catch(() => ({ data: [] }));
@@ -602,7 +602,7 @@ export default function FeeManagementERP() {
 
       // Call API to record payment
       await makeApiCall({
-        path: `/class/${orgId}/fees/${feeId}/payments`,
+        path: `classes/${orgId}/fees/${feeId}/payments`,
         method: 'POST',
         baseUrl: 'default',
         payload: {
@@ -648,7 +648,7 @@ export default function FeeManagementERP() {
       }
 
       await makeApiCall({
-        path: `/class/${orgId}/classes/${classId}/fee-structures`,
+        path: `classes/${orgId}/classes/${classId}/fee-structures`,
         method: 'POST',
         baseUrl: 'default',
         payload: {
@@ -706,7 +706,7 @@ export default function FeeManagementERP() {
       setLoading(true);
       // orgId already available from useUserDataRedux
       await makeApiCall({
-        path: `/class/${orgId}/fee-structures/${structureId}`,
+        path: `classes/${orgId}/fee-structures/${structureId}`,
         method: 'DELETE',
         baseUrl: 'default',
       });
@@ -1148,7 +1148,7 @@ export default function FeeManagementERP() {
                                   const feeQueryStr = `?academic_year=${encodeURIComponent(selectedYear)}`;
                                   const studentFeesResponse = await makeApiCall(
                                     {
-                                      path: `/class/${orgId}/students/${record.studentId}/fees${feeQueryStr}`,
+                                      path: `classes/${orgId}/students/${record.studentId}/fees${feeQueryStr}`,
                                       method: 'GET',
                                       baseUrl: 'default',
                                     },
@@ -2090,7 +2090,7 @@ export default function FeeManagementERP() {
                     // Call API to update fee structure
                     if (editingStructure.id.startsWith('struct-')) {
                       await makeApiCall({
-                        path: `/class/${orgId}/classes/${classId}/fee-structures`,
+                        path: `classes/${orgId}/classes/${classId}/fee-structures`,
                         method: 'POST',
                         baseUrl: 'default',
                         payload: {
@@ -2101,7 +2101,7 @@ export default function FeeManagementERP() {
                       });
                     } else {
                       await makeApiCall({
-                        path: `/class/${orgId}/fee-structures/${editingStructure.id}`,
+                        path: `classes/${orgId}/fee-structures/${editingStructure.id}`,
                         method: 'PATCH',
                         baseUrl: 'default',
                         payload: {
@@ -2450,7 +2450,7 @@ export default function FeeManagementERP() {
 
                     // Call API to assign fee
                     await makeApiCall({
-                      path: `/class/${orgId}/classes/${classId}/students/${selectedRecord.studentId}/fees`,
+                      path: `classes/${orgId}/classes/${classId}/students/${selectedRecord.studentId}/fees`,
                       method: 'POST',
                       baseUrl: 'default',
                       payload: {
@@ -2634,7 +2634,7 @@ export default function FeeManagementERP() {
                     const feeId = selectedRecord.id.replace('unassigned-', '');
 
                     await makeApiCall({
-                      path: `/class/${orgId}/fees/${feeId}/payments/${editingPayment.id}`,
+                      path: `classes/${orgId}/fees/${feeId}/payments/${editingPayment.id}`,
                       method: 'PATCH',
                       baseUrl: 'default',
                       payload: {
@@ -2702,7 +2702,7 @@ export default function FeeManagementERP() {
                     const feeId = selectedRecord.id.replace('unassigned-', '');
 
                     await makeApiCall({
-                      path: `/class/${orgId}/fees/${feeId}/payments/${editingPayment.id}`,
+                      path: `classes/${orgId}/fees/${feeId}/payments/${editingPayment.id}`,
                       method: 'DELETE',
                       baseUrl: 'default',
                     });
