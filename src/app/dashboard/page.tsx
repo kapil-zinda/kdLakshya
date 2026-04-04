@@ -3,26 +3,27 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import StudentDashboard from '@/components/dashboard/StudentDashboard';
 import TeacherDashboardCards from '@/components/dashboard/TeacherDashboardCards';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 export default function DashboardPage() {
-  const renderDashboardContent = (userData: any) => {
+  const renderDashboardContent = (userData: UserData) => {
     console.log(
       'Dashboard received userData:',
       JSON.stringify(userData, null, 2),
     );
 
     // Check if user has org permission (admin)
-    if (userData.permission?.org || userData.permissions?.org) {
+    if (userData.permission?.org) {
       console.log('Admin access granted - rendering admin dashboard');
       return <AdminDashboardContent userData={userData} />;
     }
 
     // Check if user is faculty or has any team permission (teacher)
-    const permissions = userData.permission || userData.permissions || {};
+    const permissions = userData.permission || {};
     const hasTeamPermission = Object.keys(permissions).some(
       (key) => key.startsWith('team-') || key.includes('team'),
     );
@@ -45,7 +46,7 @@ export default function DashboardPage() {
 }
 
 // Admin Dashboard Content Component
-function AdminDashboardContent({ userData }: { userData: any }) {
+function AdminDashboardContent({ userData }: { userData: UserData }) {
   const router = useRouter();
   const handleLogout = () => {
     // Clear all authentication data from localStorage
@@ -296,15 +297,6 @@ function AdminDashboardContent({ userData }: { userData: any }) {
       </header>
 
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h2 className="text-2xl font-bold text-foreground mb-2">
-            Dashboard Overview
-          </h2>
-          <p className="text-muted-foreground">
-            Manage all aspects of your school from this central hub.
-          </p>
-        </div>
-
         {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6">
             <div className="flex items-center">
@@ -436,24 +428,6 @@ function AdminDashboardContent({ userData }: { userData: any }) {
                     <p className="text-sm text-muted-foreground mb-4">
                       {card.description}
                     </p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-1 rounded">
-                        {card.stats}
-                      </span>
-                      <svg
-                        className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 5l7 7-7 7"
-                        />
-                      </svg>
-                    </div>
                   </div>
                 </div>
               </Link>
