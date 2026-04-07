@@ -209,21 +209,9 @@ export function Header({ organization }: HeaderProps) {
                       onClick={() => handleNavigation(item.href)}
                       className={`font-medium transition-all duration-200 hover:scale-105 cursor-pointer px-3 py-1.5 rounded-md ${
                         isActive
-                          ? 'border-2'
-                          : 'text-foreground hover:bg-accent/60'
+                          ? 'border-2 border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-400 font-semibold'
+                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`}
-                      style={{
-                        color: isActive
-                          ? organization.branding.primaryColor
-                          : undefined,
-                        borderColor: isActive
-                          ? organization.branding.primaryColor
-                          : 'transparent',
-                        backgroundColor: isActive
-                          ? `${organization.branding.primaryColor}15`
-                          : undefined,
-                        fontWeight: isActive ? '600' : '500',
-                      }}
                     >
                       {item.label}
                     </button>
@@ -240,21 +228,13 @@ export function Header({ organization }: HeaderProps) {
               {isAuthenticated ? (
                 <div className="flex items-center space-x-3">
                   <Button
-                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 text-white hover:text-white"
-                    style={{
-                      backgroundColor: organization.branding.primaryColor,
-                      color: 'white',
-                    }}
+                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={() => handleNavigation('/dashboard')}
                   >
                     Dashboard
                   </Button>
                   <Button
-                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 text-white hover:text-white"
-                    style={{
-                      backgroundColor: '#ef4444',
-                      color: 'white',
-                    }}
+                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-red-500 hover:bg-red-600 text-white"
                     onClick={handleLogout}
                   >
                     Logout
@@ -262,11 +242,7 @@ export function Header({ organization }: HeaderProps) {
                 </div>
               ) : (
                 <Button
-                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 text-white hover:text-white"
-                  style={{
-                    backgroundColor: organization.branding.primaryColor,
-                    color: 'white',
-                  }}
+                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={handleAuthLogin}
                 >
                   Sign in
@@ -303,21 +279,11 @@ export function Header({ organization }: HeaderProps) {
                           handleNavigation(item.href);
                           setIsMenuOpen(false);
                         }}
-                        className={`block py-2 sm:py-3 px-3 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg w-full text-left text-foreground ${
-                          isActive ? 'border-2' : 'hover:bg-accent/60'
+                        className={`block py-2 sm:py-3 px-3 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg w-full text-left ${
+                          isActive
+                            ? 'border-2 border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-400 font-semibold'
+                            : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
-                        style={{
-                          color: isActive
-                            ? organization.branding.primaryColor
-                            : undefined,
-                          borderColor: isActive
-                            ? organization.branding.primaryColor
-                            : 'transparent',
-                          backgroundColor: isActive
-                            ? `${organization.branding.primaryColor}15`
-                            : undefined,
-                          fontWeight: isActive ? '600' : '500',
-                        }}
                       >
                         {item.label}
                       </button>
@@ -334,11 +300,7 @@ export function Header({ organization }: HeaderProps) {
                   {isAuthenticated ? (
                     <div className="space-y-3">
                       <Button
-                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg text-white hover:text-white"
-                        style={{
-                          backgroundColor: organization.branding.primaryColor,
-                          color: 'white',
-                        }}
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg bg-blue-600 hover:bg-blue-700 text-white"
                         onClick={() => {
                           handleNavigation('/dashboard');
                           setIsMenuOpen(false);
@@ -347,11 +309,7 @@ export function Header({ organization }: HeaderProps) {
                         Dashboard
                       </Button>
                       <Button
-                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg text-white hover:text-white"
-                        style={{
-                          backgroundColor: '#ef4444',
-                          color: 'white',
-                        }}
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg bg-red-500 hover:bg-red-600 text-white"
                         onClick={() => {
                           handleLogout();
                           setIsMenuOpen(false);
@@ -362,11 +320,7 @@ export function Header({ organization }: HeaderProps) {
                     </div>
                   ) : (
                     <Button
-                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg text-white hover:text-white"
-                      style={{
-                        backgroundColor: organization.branding.primaryColor,
-                        color: 'white',
-                      }}
+                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg bg-blue-600 hover:bg-blue-700 text-white"
                       onClick={() => {
                         handleAuthLogin();
                         setIsMenuOpen(false);
