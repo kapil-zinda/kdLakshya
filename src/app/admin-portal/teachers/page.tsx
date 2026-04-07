@@ -152,9 +152,7 @@ export default function TeacherManagement() {
         experience: addFormData.experience || 1,
         role: addFormData.role || 'faculty',
         bio: addFormData.bio || '',
-        photo:
-          addFormData.photo ||
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        photo: addFormData.photo || '/no-profile.svg',
         subjects: addFormData.subjects || [],
         email: addFormData.email!,
         phone: addFormData.phone!,
