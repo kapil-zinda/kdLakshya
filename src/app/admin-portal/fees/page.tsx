@@ -190,7 +190,7 @@ export default function FeeManagementERP() {
   const [selectedClass, setSelectedClass] = useState('Select Class');
   const [selectedStatus, _setSelectedStatus] = useState('All');
   const [selectedMonth, _setSelectedMonth] = useState('All');
-  const [selectedYear, setSelectedYear] = useState('2024-25');
+  const [selectedYear, setSelectedYear] = useState('2025-26');
   const [searchTerm, setSearchTerm] = useState('');
 
   // UI states
@@ -254,7 +254,7 @@ export default function FeeManagementERP() {
     'March',
   ];
 
-  const academicYears = ['2024-25'];
+  const academicYears = ['2024-25', '2025-26', '2026-27'];
 
   useEffect(() => {
     const tokenStr = localStorage.getItem('bearerToken');
