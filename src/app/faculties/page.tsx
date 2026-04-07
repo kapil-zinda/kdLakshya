@@ -88,9 +88,7 @@ export default function FacultiesPage() {
               name: member.attributes.name,
               position: member.attributes.designation,
               department: member.attributes.role || 'General',
-              image:
-                member.attributes.photo ||
-                'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+              image: member.attributes.photo || '/no-profile.svg',
               email: member.attributes.email,
               phone: member.attributes.phone,
               qualifications: [], // API doesn't provide qualifications yet

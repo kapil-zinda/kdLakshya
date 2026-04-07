@@ -40,3 +40,4 @@ next-env.d.ts
 
 # package locks
 package-lock.json
+/CLAUDE.md
