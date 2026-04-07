@@ -209,16 +209,19 @@ export function Header({ organization }: HeaderProps) {
                       onClick={() => handleNavigation(item.href)}
                       className={`font-medium transition-all duration-200 hover:scale-105 cursor-pointer px-3 py-1.5 rounded-md ${
                         isActive
-                          ? 'border-b-2 bg-accent'
+                          ? 'border-2'
                           : 'text-foreground hover:bg-accent/60'
                       }`}
                       style={{
                         color: isActive
                           ? organization.branding.primaryColor
                           : undefined,
-                        borderBottomColor: isActive
+                        borderColor: isActive
                           ? organization.branding.primaryColor
                           : 'transparent',
+                        backgroundColor: isActive
+                          ? `${organization.branding.primaryColor}15`
+                          : undefined,
                         fontWeight: isActive ? '600' : '500',
                       }}
                     >
@@ -237,10 +240,9 @@ export function Header({ organization }: HeaderProps) {
               {isAuthenticated ? (
                 <div className="flex items-center space-x-3">
                   <Button
-                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white border-2"
+                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 text-white hover:text-white"
                     style={{
                       backgroundColor: organization.branding.primaryColor,
-                      borderColor: 'rgba(255, 255, 255, 0.2)',
                       color: 'white',
                     }}
                     onClick={() => handleNavigation('/dashboard')}
@@ -248,10 +250,9 @@ export function Header({ organization }: HeaderProps) {
                     Dashboard
                   </Button>
                   <Button
-                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white border-2"
+                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 text-white hover:text-white"
                     style={{
                       backgroundColor: '#ef4444',
-                      borderColor: 'rgba(255, 255, 255, 0.2)',
                       color: 'white',
                     }}
                     onClick={handleLogout}
@@ -261,10 +262,9 @@ export function Header({ organization }: HeaderProps) {
                 </div>
               ) : (
                 <Button
-                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white border-2"
+                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 text-white hover:text-white"
                   style={{
                     backgroundColor: organization.branding.primaryColor,
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
                     color: 'white',
                   }}
                   onClick={handleAuthLogin}
@@ -304,11 +304,17 @@ export function Header({ organization }: HeaderProps) {
                           setIsMenuOpen(false);
                         }}
                         className={`block py-2 sm:py-3 px-3 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg w-full text-left text-foreground ${
-                          isActive ? 'bg-accent' : 'hover:bg-accent/60'
+                          isActive ? 'border-2' : 'hover:bg-accent/60'
                         }`}
                         style={{
                           color: isActive
                             ? organization.branding.primaryColor
+                            : undefined,
+                          borderColor: isActive
+                            ? organization.branding.primaryColor
+                            : 'transparent',
+                          backgroundColor: isActive
+                            ? `${organization.branding.primaryColor}15`
                             : undefined,
                           fontWeight: isActive ? '600' : '500',
                         }}
@@ -328,10 +334,9 @@ export function Header({ organization }: HeaderProps) {
                   {isAuthenticated ? (
                     <div className="space-y-3">
                       <Button
-                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md text-white hover:text-white border-2"
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg text-white hover:text-white"
                         style={{
                           backgroundColor: organization.branding.primaryColor,
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
                           color: 'white',
                         }}
                         onClick={() => {
@@ -342,10 +347,9 @@ export function Header({ organization }: HeaderProps) {
                         Dashboard
                       </Button>
                       <Button
-                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md text-white hover:text-white border-2"
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg text-white hover:text-white"
                         style={{
                           backgroundColor: '#ef4444',
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
                           color: 'white',
                         }}
                         onClick={() => {
@@ -358,10 +362,9 @@ export function Header({ organization }: HeaderProps) {
                     </div>
                   ) : (
                     <Button
-                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md text-white hover:text-white border-2"
+                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg text-white hover:text-white"
                       style={{
                         backgroundColor: organization.branding.primaryColor,
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
                         color: 'white',
                       }}
                       onClick={() => {
