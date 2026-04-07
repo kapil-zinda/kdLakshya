@@ -352,12 +352,17 @@ export default function LoginPage() {
           );
           setIsLoading(false);
         }
-      } catch (apiError: any) {
+      } catch (apiError: unknown) {
         console.error('❌ API call failed:', apiError);
         // Handle API errors
+        const err = apiError as {
+          response?: {
+            data?: { errors?: Array<{ detail?: string; title?: string }> };
+          };
+        };
         const errorMessage =
-          apiError.response?.data?.errors?.[0]?.detail ||
-          apiError.response?.data?.errors?.[0]?.title ||
+          err.response?.data?.errors?.[0]?.detail ||
+          err.response?.data?.errors?.[0]?.title ||
           'Invalid credentials. Please try again.';
         setError(errorMessage);
         setIsLoading(false);
@@ -483,7 +488,7 @@ export default function LoginPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
                   {error}
                 </div>
               )}
