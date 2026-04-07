@@ -760,7 +760,7 @@ export default function FeeManagementERP() {
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
               <Link
-                href="/admin-portal/dashboard"
+                href="/dashboard"
                 className="text-muted-foreground hover:text-foreground mr-4"
               >
                 <svg
