@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 
+import Image from 'next/image';
+
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
 import {
@@ -88,9 +90,7 @@ export default function FacultiesPage() {
               name: member.attributes.name,
               position: member.attributes.designation,
               department: member.attributes.role || 'General',
-              image:
-                member.attributes.photo ||
-                'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+              image: member.attributes.photo || '/no-profile.svg',
               email: member.attributes.email,
               phone: member.attributes.phone,
               qualifications: [], // API doesn't provide qualifications yet
@@ -263,10 +263,11 @@ export default function FacultiesPage() {
                   >
                     {/* Faculty Image */}
                     <div className="relative h-64 overflow-hidden">
-                      <img
+                      <Image
                         src={faculty.image}
                         alt={faculty.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        fill
+                        className="object-cover group-hover:scale-110 transition-transform duration-300"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                       <div className="absolute bottom-4 left-4 text-white">
@@ -376,10 +377,11 @@ export default function FacultiesPage() {
                 </button>
 
                 <div className="h-64 relative overflow-hidden rounded-t-2xl">
-                  <img
+                  <Image
                     src={selectedFaculty.image}
                     alt={selectedFaculty.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                   <div className="absolute bottom-6 left-6 text-white">

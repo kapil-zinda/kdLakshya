@@ -258,9 +258,7 @@ export default function StudentManagement() {
             ? 'Active'
             : 'Inactive'
           : 'Active',
-        photo:
-          (attrs.profile as string) ||
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        photo: (attrs.profile as string) || '/no-profile.svg',
         academicYear: (attrs.academic_year as string) || '2024-25',
         fees: {
           totalFees: 0,
@@ -918,7 +916,7 @@ export default function StudentManagement() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <Image
-                          src={student.photo || '/placeholder-avatar.png'}
+                          src={student.photo || '/no-profile.svg'}
                           alt={student.name}
                           width={40}
                           height={40}
@@ -997,7 +995,7 @@ export default function StudentManagement() {
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center">
                   <Image
-                    src={selectedStudent.photo || '/placeholder-avatar.png'}
+                    src={selectedStudent.photo || '/no-profile.svg'}
                     alt={selectedStudent.name}
                     width={64}
                     height={64}
@@ -1191,7 +1189,7 @@ export default function StudentManagement() {
                     src={
                       editFormData.photo ||
                       editingStudent.photo ||
-                      '/placeholder-avatar.png'
+                      '/no-profile.svg'
                     }
                     alt={editFormData.name || editingStudent.name}
                     width={64}
