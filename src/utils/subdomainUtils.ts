@@ -19,6 +19,10 @@ export function isValidSubdomain(subdomain: string): boolean {
   return validSubdomains.includes(subdomain);
 }
 
+export function isAuthSubdomain(): boolean {
+  return getSubdomain() === 'auth';
+}
+
 /**
  * Determines the correct subdomain to use for fetching organization data
  * Priority: 1. User's organization subdomain, 2. URL subdomain, 3. Default 'amity'

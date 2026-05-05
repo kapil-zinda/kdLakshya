@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 
 import { useGetUserProfileQuery } from '@/store/api/authApi';
 import { useAppSelector } from '@/store/hooks';
+import { isAuthSubdomain } from '@/utils/subdomainUtils';
 
 export interface CachedUserData {
   id: string;
@@ -33,14 +34,16 @@ export function useUserDataRedux() {
   const token = useAppSelector((state) => state.auth.token?.token);
   const reduxUser = useAppSelector((state) => state.auth.user);
 
-  // Fetch user profile using RTK Query (with automatic caching)
+  // Fetch user profile using RTK Query (with automatic caching).
+  // Never fire on the auth subdomain — it's just for login.
+  const onAuthSubdomain = isAuthSubdomain();
   const {
     data: fetchedUserData,
     isLoading,
     error,
     refetch,
   } = useGetUserProfileQuery(undefined, {
-    skip: !token, // Skip if no token
+    skip: !token || onAuthSubdomain,
   });
 
   // Merge user data with token for backward compatibility - memoized to prevent infinite re-renders
