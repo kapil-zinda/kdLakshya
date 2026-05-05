@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useGetUserProfileQuery } from '@/store/api/authApi';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout as logoutAction } from '@/store/slices/authSlice';
+import { isAuthSubdomain } from '@/utils/subdomainUtils';
 import { useUser } from '@auth0/nextjs-auth0/client';
 
 export interface UserData {
@@ -34,14 +35,16 @@ export function useAuthRedux() {
   const reduxToken = useAppSelector((state) => state.auth.token);
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
-  // Fetch user profile using RTK Query (only if we have a token)
+  // Fetch user profile using RTK Query (only if we have a token,
+  // and never on the auth subdomain — it's just for login).
+  const onAuthSubdomain = isAuthSubdomain();
   const {
     data: fetchedUserData,
     isLoading: profileLoading,
     error: profileError,
     refetch: refetchUserData,
   } = useGetUserProfileQuery(undefined, {
-    skip: !reduxToken, // Skip query if no token
+    skip: !reduxToken || onAuthSubdomain,
   });
 
   // Determine which user data to use (Redux store or fetched)

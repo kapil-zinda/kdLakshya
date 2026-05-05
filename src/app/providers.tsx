@@ -14,6 +14,7 @@ import {
   syncTokenToRedux,
   syncUserToRedux,
 } from '@/utils/reduxAuthSync';
+import { isAuthSubdomain } from '@/utils/subdomainUtils';
 import axios from 'axios';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { type ThemeProviderProps } from 'next-themes/dist/types';
@@ -133,6 +134,11 @@ export function Providers({ children }: ThemeProviderProps) {
       // Skip /users/me call for students as we already have their data
       if (isStudentUser()) {
         console.log('Student user detected, skipping /users/me call');
+        return;
+      }
+
+      // No /users/me on the auth subdomain — it has no org context and the user is mid-login.
+      if (isAuthSubdomain()) {
         return;
       }
 
