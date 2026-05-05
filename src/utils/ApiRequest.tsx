@@ -36,6 +36,11 @@ const replacePathAndQueryParams = (
   return updatedUrl;
 };
 
+// In-flight GET request deduplication. Concurrent callers asking for the same
+// URL share one promise; the entry is cleared once the request settles, so the
+// next call goes back over the wire.
+const inflightGetRequests = new Map<string, Promise<unknown>>();
+
 const replacePayloadParams = (
   payload: Record<string, unknown>,
   params: Record<string, string | number>,
@@ -101,65 +106,87 @@ export const makeApiCall = async ({
 
   const fullUrl = `${selectedBaseUrl}${updatedPath}`;
 
-  try {
-    // Get auth headers based on user type (student or admin/teacher)
-    // Use custom auth headers if provided, otherwise use default
-    let authHeaders: Record<string, string> = {};
-    if (!skipAuth) {
-      if (customAuthHeaders) {
-        authHeaders = customAuthHeaders;
-      } else {
-        authHeaders = getAuthHeaders();
-      }
+  // Get auth headers based on user type (student or admin/teacher)
+  // Use custom auth headers if provided, otherwise use default
+  let authHeaders: Record<string, string> = {};
+  if (!skipAuth) {
+    if (customAuthHeaders) {
+      authHeaders = customAuthHeaders;
+    } else {
+      authHeaders = getAuthHeaders();
+    }
+  }
+
+  const config: any = {
+    url: fullUrl,
+    method,
+    headers: {
+      'Content-Type': 'application/vnd.api+json', // Default header
+      ...headers, // Custom headers can override default
+      ...authHeaders,
+    },
+    ...(method === 'POST' || method === 'PUT' || method === 'PATCH'
+      ? { data: updatedPayload }
+      : { data: {} }), // Force empty data object for GET/DELETE to preserve Content-Type header
+    transformRequest: [
+      (data: any, headers: any) => {
+        // Ensure Content-Type is always vnd.api+json and never gets overridden by axios
+        if (headers && !headers['Content-Type']?.includes('vnd.api+json')) {
+          headers['Content-Type'] = 'application/vnd.api+json';
+        }
+        return JSON.stringify(data);
+      },
+    ],
+  };
+
+  const executeRequest = async () => {
+    try {
+      console.log('🔵 API Request:', {
+        url: fullUrl,
+        method,
+        headers: config.headers,
+        payload: updatedPayload,
+      });
+
+      const response = await axios(config);
+
+      console.log('🟢 API Response:', {
+        url: fullUrl,
+        status: response.status,
+        data: response.data,
+      });
+
+      return response.data;
+    } catch (error: any) {
+      console.error('🔴 API call failed:', {
+        url: fullUrl,
+        method,
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers,
+      });
+      throw error;
+    }
+  };
+
+  // Dedupe concurrent identical GETs so multiple components mounting at once
+  // (e.g. Providers + DashboardWrapper + PravahaChat) share a single network
+  // round-trip instead of racing.
+  if (method === 'GET') {
+    const dedupeKey = `GET:${fullUrl}`;
+    const existing = inflightGetRequests.get(dedupeKey);
+    if (existing) {
+      console.log('🔄 Deduplicating GET request:', fullUrl);
+      return existing;
     }
 
-    const config: any = {
-      url: fullUrl,
-      method,
-      headers: {
-        'Content-Type': 'application/vnd.api+json', // Default header
-        ...headers, // Custom headers can override default
-        ...authHeaders,
-      },
-      ...(method === 'POST' || method === 'PUT' || method === 'PATCH'
-        ? { data: updatedPayload }
-        : { data: {} }), // Force empty data object for GET/DELETE to preserve Content-Type header
-      transformRequest: [
-        (data: any, headers: any) => {
-          // Ensure Content-Type is always vnd.api+json and never gets overridden by axios
-          if (headers && !headers['Content-Type']?.includes('vnd.api+json')) {
-            headers['Content-Type'] = 'application/vnd.api+json';
-          }
-          return JSON.stringify(data);
-        },
-      ],
-    };
-
-    console.log('🔵 API Request:', {
-      url: fullUrl,
-      method,
-      headers: config.headers,
-      payload: updatedPayload,
+    const promise = executeRequest().finally(() => {
+      inflightGetRequests.delete(dedupeKey);
     });
-
-    const response = await axios(config);
-
-    console.log('🟢 API Response:', {
-      url: fullUrl,
-      status: response.status,
-      data: response.data,
-    });
-
-    return response.data;
-  } catch (error: any) {
-    console.error('🔴 API call failed:', {
-      url: fullUrl,
-      method,
-      error: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      headers: error.response?.headers,
-    });
-    throw error;
+    inflightGetRequests.set(dedupeKey, promise);
+    return promise;
   }
+
+  return executeRequest();
 };
