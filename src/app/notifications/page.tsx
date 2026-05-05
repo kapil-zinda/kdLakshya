@@ -92,12 +92,12 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center mb-4">
-            <Link href="/" className="text-blue-600 hover:text-blue-800 mr-4">
+            <Link href="/" className="text-primary hover:text-primary/80 mr-4">
               <svg
                 className="w-6 h-6"
                 fill="none"
@@ -112,11 +112,11 @@ export default function NotificationsPage() {
                 />
               </svg>
             </Link>
-            <h1 className="text-3xl font-bold text-gray-900">
+            <h1 className="text-3xl font-bold text-foreground">
               All Notifications
             </h1>
           </div>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Stay updated with the latest announcements and important information
           </p>
         </div>
@@ -130,8 +130,8 @@ export default function NotificationsPage() {
                 onClick={() => setSelectedCategory(category.key)}
                 className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                   selectedCategory === category.key
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-card text-foreground hover:bg-muted border border-border'
                 }`}
               >
                 {category.label}
@@ -144,8 +144,10 @@ export default function NotificationsPage() {
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="flex flex-col items-center space-y-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="text-gray-600">Loading notifications from API...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <p className="text-muted-foreground">
+                Loading notifications from API...
+              </p>
             </div>
           </div>
         ) : (
@@ -155,7 +157,7 @@ export default function NotificationsPage() {
               {filteredNotifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+                  className="bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => setSelectedNotification(notification)}
                 >
                   <div className="flex items-start justify-between">
@@ -171,15 +173,15 @@ export default function NotificationsPage() {
                             notification.category.slice(1)}
                         </span>
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      <h3 className="text-lg font-semibold text-foreground mb-2">
                         {notification.title}
                       </h3>
-                      <p className="text-gray-600 text-sm line-clamp-2">
+                      <p className="text-muted-foreground text-sm line-clamp-2">
                         {notification.content}
                       </p>
                     </div>
                     <svg
-                      className="w-5 h-5 text-gray-400 ml-4 flex-shrink-0"
+                      className="w-5 h-5 text-muted-foreground ml-4 flex-shrink-0"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -197,7 +199,7 @@ export default function NotificationsPage() {
             {/* Empty State */}
             {filteredNotifications.length === 0 && (
               <div className="text-center py-12">
-                <div className="text-gray-400 mb-4">
+                <div className="text-muted-foreground mb-4">
                   <svg
                     className="w-16 h-16 mx-auto"
                     fill="none"
@@ -212,10 +214,10 @@ export default function NotificationsPage() {
                     />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                <h3 className="text-lg font-medium text-foreground mb-2">
                   No notifications found
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   No notifications available from the API for the selected
                   category.
                 </p>
@@ -231,12 +233,12 @@ export default function NotificationsPage() {
             onClick={() => setSelectedNotification(null)}
           >
             <div
-              className="bg-white rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto"
+              className="bg-card rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-semibold text-gray-900">
+                  <h3 className="text-xl font-semibold text-foreground">
                     {selectedNotification.title}
                   </h3>
                   <div className="flex items-center mt-2">
@@ -250,7 +252,7 @@ export default function NotificationsPage() {
                 </div>
                 <button
                   onClick={() => setSelectedNotification(null)}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
                     className="w-6 h-6"
@@ -268,7 +270,7 @@ export default function NotificationsPage() {
                 </button>
               </div>
               <div className="p-6">
-                <div className="text-gray-700 leading-relaxed">
+                <div className="text-foreground leading-relaxed">
                   {selectedNotification.content}
                 </div>
               </div>

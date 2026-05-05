@@ -174,7 +174,7 @@ export default function GalleryPage() {
 
         <main className="pt-8">
           {/* Page Header */}
-          <section className="py-12 bg-white">
+          <section className="py-12 bg-card">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
               <div className="text-center mb-12">
                 <h1
@@ -189,7 +189,7 @@ export default function GalleryPage() {
                     backgroundColor: organizationData.branding.accentColor,
                   }}
                 ></div>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                   Explore our vibrant campus life, academic excellence, and
                   memorable moments captured throughout our journey.
                 </p>
@@ -204,7 +204,7 @@ export default function GalleryPage() {
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
                       selectedCategory === category
                         ? 'text-white shadow-lg'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                     style={{
                       backgroundColor:
@@ -251,7 +251,7 @@ export default function GalleryPage() {
               {/* Empty State */}
               {filteredImages.length === 0 && (
                 <div className="text-center py-12">
-                  <p className="text-gray-500">
+                  <p className="text-muted-foreground">
                     No images found in this category.
                   </p>
                 </div>

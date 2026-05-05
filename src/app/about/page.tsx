@@ -106,7 +106,7 @@ export default function AboutPage() {
           />
 
           {/* Additional About Content */}
-          {/* <section className="py-16 bg-white">
+          {/* <section className="py-16 bg-card">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
               <div className="prose prose-lg mx-auto">
                 <h2
@@ -115,7 +115,7 @@ export default function AboutPage() {
                 >
                   Our Story
                 </h2>
-                <p className="text-gray-600 leading-relaxed mb-6">
+                <p className="text-muted-foreground leading-relaxed mb-6">
                   Founded in {organizationData.founded}, {organizationData.name}{' '}
                   has been committed to providing exceptional education that
                   prepares students for success in an ever-changing world. Our
@@ -130,7 +130,7 @@ export default function AboutPage() {
                 >
                   Our Approach
                 </h2>
-                <p className="text-gray-600 leading-relaxed mb-6">
+                <p className="text-muted-foreground leading-relaxed mb-6">
                   We believe in a holistic approach to education that nurtures
                   not just academic excellence, but also character development,
                   creativity, and critical thinking. Our experienced faculty and
@@ -145,7 +145,7 @@ export default function AboutPage() {
                 >
                   Looking Forward
                 </h2>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-muted-foreground leading-relaxed">
                   As we continue to evolve and grow, we remain committed to our
                   founding principles while embracing innovation and new
                   approaches to education. We are excited about the future and
