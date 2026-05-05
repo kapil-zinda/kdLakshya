@@ -7,6 +7,8 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useAppDispatch } from '@/store/hooks';
+import { logout as logoutAction } from '@/store/slices/authSlice';
 import { OrganizationConfig } from '@/types/organization';
 import { Menu, X } from 'lucide-react';
 
@@ -27,6 +29,7 @@ export function Header({ organization }: HeaderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     // Check authentication status
@@ -125,14 +128,20 @@ export function Header({ organization }: HeaderProps) {
   };
 
   const handleLogout = () => {
+    // Clear persisted Redux auth slice so RTK Query (e.g. useGetUserProfileQuery)
+    // doesn't keep firing /users/me after the redirect.
+    dispatch(logoutAction());
+
     // Clear all authentication data (including student auth)
     localStorage.removeItem('bearerToken');
     localStorage.removeItem('adminAuth');
     localStorage.removeItem('studentAuth');
     localStorage.removeItem('authState');
     localStorage.removeItem('codeVerifier');
+    localStorage.removeItem('cachedUserData');
     sessionStorage.removeItem('authCodeProcessed');
     sessionStorage.removeItem('isAuthCallback');
+    sessionStorage.removeItem('userData');
 
     // Force re-check of auth status
     setIsAuthenticated(false);
