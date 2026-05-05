@@ -14,6 +14,7 @@ import {
   syncTokenToRedux,
   syncUserToRedux,
 } from '@/utils/reduxAuthSync';
+import { isAuthSubdomain } from '@/utils/subdomainUtils';
 import axios from 'axios';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { type ThemeProviderProps } from 'next-themes/dist/types';
@@ -25,11 +26,40 @@ const AUTH0_Client_Secret = process.env.NEXT_PUBLIC_AUTH0_Client_Secret || '';
 const AUTH0_Domain_Name = process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME || '';
 const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
 
+const PUBLIC_ROUTES = new Set([
+  '/',
+  '/gallery',
+  '/about',
+  '/faculties',
+  '/contact',
+  '/login',
+  '/student-login',
+]);
+const isPublicRoute = (p: string | null) =>
+  !!p && PUBLIC_ROUTES.has(p.split('?')[0]);
+
+const USER_DATA_TTL_MS = 24 * 60 * 60 * 1000;
+const isCachedUserDataFresh = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const raw = localStorage.getItem('cachedUserData');
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return (
+      typeof parsed?.cacheTimestamp === 'number' &&
+      Date.now() - parsed.cacheTimestamp < USER_DATA_TTL_MS
+    );
+  } catch {
+    return false;
+  }
+};
+
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null);
   const [isProcessingCode, setIsProcessingCode] = React.useState(false);
   const [isRedirecting, setIsRedirecting] = React.useState(false);
   const pathname = usePathname();
+  const fetchedUserForTokenRef = React.useRef<string | null>(null);
 
   const redirectToOrgSubdomain = async (
     orgId: string,
@@ -104,6 +134,19 @@ export function Providers({ children }: ThemeProviderProps) {
       // Skip /users/me call for students as we already have their data
       if (isStudentUser()) {
         console.log('Student user detected, skipping /users/me call');
+        return;
+      }
+
+      // No /users/me on the auth subdomain — it has no org context and the user is mid-login.
+      if (isAuthSubdomain()) {
+        return;
+      }
+
+      // Skip when cached user data is within the 24h TTL.
+      // loadUserFromStorage has already hydrated Redux from this same cache.
+      // shouldRedirect=true callers want fresh data, so bypass the cache.
+      if (!shouldRedirect && isCachedUserDataFresh()) {
+        console.log('✅ Using cached /users/me data (within 24h TTL)');
         return;
       }
 
@@ -505,47 +548,57 @@ export function Providers({ children }: ThemeProviderProps) {
     }
   };
 
-  // Initialize auth state
+  // Initialize auth state — runs once per token, not per navigation
   React.useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Check for access token in URL hash first (from cross-subdomain redirect)
-      const urlHash = window.location.hash;
-      const hashParams = new URLSearchParams(urlHash.substring(1));
-      const tokenFromHash = hashParams.get('access_token');
+    if (typeof window === 'undefined') return;
 
-      if (tokenFromHash) {
-        console.log('🔑 Found access token in URL hash, storing it');
-        setAccessTkn(tokenFromHash);
-        setItemWithTTL('bearerToken', tokenFromHash, 24); // Store for 24 hours
+    const onPublicRoute = isPublicRoute(pathname);
 
-        // Sync token to Redux store (24 hours = 86400 seconds)
-        syncTokenToRedux(tokenFromHash, 86400);
+    // Check for access token in URL hash first (from cross-subdomain redirect)
+    const urlHash = window.location.hash;
+    const hashParams = new URLSearchParams(urlHash.substring(1));
+    const tokenFromHash = hashParams.get('access_token');
 
-        // Clean the URL by removing the hash
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname + window.location.search,
-        );
+    if (tokenFromHash) {
+      console.log('🔑 Found access token in URL hash, storing it');
+      setAccessTkn(tokenFromHash);
+      setItemWithTTL('bearerToken', tokenFromHash, 24); // Store for 24 hours
 
-        // Load user data with this token
+      // Sync token to Redux store (24 hours = 86400 seconds)
+      syncTokenToRedux(tokenFromHash, 86400);
+
+      // Clean the URL by removing the hash
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname + window.location.search,
+      );
+
+      if (!onPublicRoute && fetchedUserForTokenRef.current !== tokenFromHash) {
+        fetchedUserForTokenRef.current = tokenFromHash;
         userMeData(tokenFromHash, false);
-        return;
       }
+      return;
+    }
 
-      // Check for stored token
-      const token = getItemWithTTL('bearerToken');
-      if (token) {
-        setAccessTkn(token);
+    // Check for stored token
+    const token = getItemWithTTL('bearerToken');
+    if (token) {
+      setAccessTkn(token);
 
-        // Load token and user data into Redux from localStorage
-        loadTokenFromStorage();
-        loadUserFromStorage();
+      // Load token and user data into Redux from localStorage
+      loadTokenFromStorage();
+      loadUserFromStorage();
 
-        // Only call userMeData if not on dashboard page (DashboardWrapper handles it)
-        if (pathname !== '/dashboard') {
-          userMeData(token, false); // Don't redirect on page load
-        }
+      // DashboardWrapper fetches its own /users/me; public routes don't need it.
+      // Ref guard ensures we fetch at most once per token, not per navigation.
+      if (
+        pathname !== '/dashboard' &&
+        !onPublicRoute &&
+        fetchedUserForTokenRef.current !== token
+      ) {
+        fetchedUserForTokenRef.current = token;
+        userMeData(token, false);
       }
     }
   }, [pathname, userMeData]);

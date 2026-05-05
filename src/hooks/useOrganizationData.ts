@@ -12,7 +12,7 @@ import {
   setOrganizationError,
   setOrganizationLoading,
 } from '@/store/slices/organizationSlice';
-import { getTargetSubdomain } from '@/utils/subdomainUtils';
+import { getTargetSubdomain, isAuthSubdomain } from '@/utils/subdomainUtils';
 
 import { useUserDataRedux } from './useUserDataRedux';
 
@@ -40,6 +40,11 @@ export function useOrganizationData() {
   }, [data, lastFetched]);
 
   const loadOrganizationData = useCallback(async () => {
+    // Auth subdomain has no organization of its own — skip the fetch entirely.
+    if (isAuthSubdomain()) {
+      return;
+    }
+
     // Don't fetch if we already have data that's less than 5 minutes old
     const FIVE_MINUTES = 5 * 60 * 1000;
     if (
