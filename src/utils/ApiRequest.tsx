@@ -11,13 +11,16 @@ const BaseURLAuth =
 const BaseURLWorkspace =
   process.env.NEXT_PUBLIC_BaseURLWorkspace ||
   'https://apis.testkdlakshya.uchhal.in/workspace';
+const BaseURLPravaha =
+  process.env.NEXT_PUBLIC_BaseURLPravaha ||
+  'https://apis.testkdlakshya.uchhal.in/pravaha';
 
 interface ApiRequest {
   path: string;
   headers?: Record<string, string>;
   payload?: Record<string, unknown>;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  baseUrl?: 'default' | 'auth' | 'workspace' | string; // Allow custom base URLs
+  baseUrl?: 'default' | 'auth' | 'workspace' | 'pravaha' | string; // Allow custom base URLs
   customAuthHeaders?: Record<string, string>; // Allow custom auth headers (e.g., x-api-key)
   skipAuth?: boolean; // Skip automatic auth header injection
 }
@@ -92,6 +95,8 @@ export const makeApiCall = async ({
     selectedBaseUrl = BaseURLAuth;
   } else if (baseUrl === 'workspace') {
     selectedBaseUrl = BaseURLWorkspace;
+  } else if (baseUrl === 'pravaha') {
+    selectedBaseUrl = BaseURLPravaha;
   } else if (baseUrl === 'default') {
     selectedBaseUrl = BaseURL;
   } else {
