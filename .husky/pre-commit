@@ -33,10 +33,16 @@ fi
 
 echo "Running ESLint..."
 
-# ESLint ignores dotfiles and dot-directories (.claude/, .eslintrc.json) by
-# default, and warns "File ignored by default" when one is passed explicitly -
-# so keep them out of the lint list. Prettier above still formats them.
-LINT_FILES=$(echo "$FILES" | grep -v '^\.' || true)
+# Narrow the list to what ESLint actually lints. Passing it a file its config
+# ignores - *.css and *.md via ignorePatterns in .eslintrc.json, or anything
+# under a dot-directory like .claude/ - makes it warn "File ignored ..." and
+# exit non-zero, which fails the commit over a file that was never meant to be
+# linted. Prettier above still formats the full staged list.
+LINT_FILES=$(echo "$FILES" | grep -E '\.(js|jsx|ts|tsx)$' | grep -v '^\.' || true)
+
+if [ -z "$LINT_FILES" ]; then
+  echo "No JS/TS files to lint."
+fi
 
 # Run ESLint on the staged files but don't automatically re-stage them
 echo "$LINT_FILES" | while read -r file; do

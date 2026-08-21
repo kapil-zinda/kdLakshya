@@ -5,16 +5,6 @@ import { Analytics } from '@vercel/analytics/react';
 import 'react-toastify/dist/ReactToastify.css';
 
 import type { Metadata } from 'next';
-import {
-  Inter,
-  Lato,
-  Montserrat,
-  Open_Sans,
-  Pacifico,
-  Poppins,
-  Press_Start_2P,
-  Roboto,
-} from 'next/font/google';
 
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
 import { ConfirmDialogProvider } from '@/components/ui/confirm-dialog';
@@ -22,43 +12,6 @@ import { ThemedToastContainer } from '@/components/ui/ThemedToastContainer';
 import { ReduxProvider } from '@/store/ReduxProvider';
 
 import { Providers } from './providers';
-
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const roboto = Roboto({
-  subsets: ['latin'],
-  weight: ['400', '500', '700'],
-  variable: '--font-roboto',
-});
-const openSans = Open_Sans({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  variable: '--font-open-sans',
-});
-const lato = Lato({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-lato',
-});
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-montserrat',
-});
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-poppins',
-});
-const pressStart2P = Press_Start_2P({
-  subsets: ['latin'],
-  weight: '400',
-  variable: '--font-press-start-2p',
-});
-const pacifico = Pacifico({
-  subsets: ['latin'],
-  weight: '400',
-  variable: '--font-pacifico',
-});
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || 'https://kd-lakshya.vercel.app';
@@ -165,6 +118,27 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/*
+          Loaded as a stylesheet rather than via next/font on purpose. The
+          org-configurable font (ThemeApplier, and the picker in
+          admin-portal/school-settings) is applied by its real family name -
+          `font-family: 'Poppins', sans-serif` - and next/font deliberately
+          exposes only a hashed family plus a CSS variable, so a by-name lookup
+          finds nothing and every org silently falls back to sans-serif. This
+          also keeps the production build from having to reach
+          fonts.gstatic.com, which times out in CI.
+        */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Press+Start+2P&family=Pacifico&display=swap"
+          rel="stylesheet"
+        />
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
@@ -178,9 +152,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
       </head>
-      <body
-        className={`${inter.variable} ${roboto.variable} ${openSans.variable} ${lato.variable} ${montserrat.variable} ${poppins.variable} ${pressStart2P.variable} ${pacifico.variable} ${inter.className}`}
-      >
+      <body>
         <ReduxProvider>
           <Providers>
             <ConfirmDialogProvider>
