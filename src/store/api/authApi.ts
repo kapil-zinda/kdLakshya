@@ -83,14 +83,57 @@ export interface ProcessedOrgData {
  * 'view'/'other' (plain student). `user_permissions.user_type` is a
  * secondary signal used only if `role` is missing.
  *
- * `attributes.role`/`attributes.type` are NOT read here - the backend's
- * UserAttributesObject schema doesn't define either field, so checking them
- * always silently fell through to 'student' regardless of the real role.
+ * `user_permissions` is only present when the request asks for
+ * `?include=permission` AND the backend fills it in. When it is missing this
+ * falls back to `attributes.permissions`, which is the raw stored permission
+ * document. That document is keyed by *scope*, not by role - an org admin is
+ * `{"org": "*"}`, not `{"role": "*"}` - so the role has to be resolved out of
+ * it. Reading `user_permissions.role` alone meant an org admin with
+ * `{"org": "*"}` matched nothing and fell through to the 'student' default,
+ * which routed them to the student dashboard and showed them no data.
  */
+const ROLE_PRECEDENCE = [
+  '*',
+  'head',
+  'superwise',
+  'manage',
+  'lead',
+  'edit',
+  'view',
+  'other',
+] as const;
+
+/**
+ * Resolve the highest-ranking role out of a scope-keyed permission document,
+ * e.g. {"org": "*"} or {"team-12": "manage"}. Mirrors the levels in the
+ * backend's ROLE_PERMISSIONS (commons/rbac/rbac_utils.py).
+ */
+const roleFromPermissionMap = (
+  permissions?: Record<string, unknown>,
+): string | undefined => {
+  if (!permissions) {
+    return undefined;
+  }
+
+  // An org-scoped role outranks any class-scoped one by construction.
+  const orgRole = permissions['org'];
+  if (typeof orgRole === 'string') {
+    return orgRole;
+  }
+
+  const held = Object.values(permissions).filter(
+    (value): value is string => typeof value === 'string',
+  );
+
+  return ROLE_PRECEDENCE.find((candidate) => held.includes(candidate));
+};
+
 export const determineUserRole = (
   userData: UserApiResponse['data'],
 ): 'admin' | 'teacher' | 'student' => {
-  const role = userData.user_permissions?.role;
+  const role =
+    userData.user_permissions?.role ??
+    roleFromPermissionMap(userData.attributes?.permissions);
 
   if (role === '*' || role === 'head' || role === 'superwise') {
     return 'admin';
@@ -102,9 +145,13 @@ export const determineUserRole = (
     return 'student';
   }
 
-  // Defensive fallback if `role` wasn't populated for some reason.
-  const userType = userData.user_permissions?.user_type;
-  if (userType === 'faculty') {
+  // Defensive fallback if no role could be resolved at all. `attributes.role`
+  // carries the faculty record's own role ("faculty", "staff", ...), which is a
+  // weaker signal than the RBAC role above but still beats defaulting a member
+  // of staff to 'student'.
+  const userType =
+    userData.user_permissions?.user_type ?? userData.attributes?.type;
+  if (userType === 'faculty' || userData.attributes?.role === 'faculty') {
     return 'teacher';
   }
   if (userType === 'admin_staff') {
