@@ -328,6 +328,8 @@ export function Providers({ children }: ThemeProviderProps) {
 
         // Mark code as processed temporarily
         sessionStorage.setItem('authCodeProcessed', 'true');
+        // A successful exchange ends any retry sequence.
+        sessionStorage.removeItem('authExchangeRetried');
 
         // Only redirect immediately after OAuth callback, not on normal homepage visits
         const wasAuthCallback = sessionStorage.getItem('isAuthCallback');
@@ -481,7 +483,35 @@ export function Providers({ children }: ThemeProviderProps) {
           console.error('Response data:', err.response?.data);
           console.error('Response status:', err.response?.status);
         }
-        sessionStorage.setItem('authCodeProcessed', 'true');
+
+        // Retrying login here used to be unconditional, and it looped forever:
+        // this set 'authCodeProcessed' and loginHandler() removed it again as
+        // its first act, so the guard never held. Auth0 still has a session, so
+        // it hands back a fresh code immediately, the exchange fails again, and
+        // the browser ping-pongs between the app and Auth0 - which also burns
+        // the Auth0 tenant's rate limit for everybody else.
+        const status = err.response?.status ?? 0;
+
+        // A 5xx is our own server failing (a missing AUTH0_CLIENT_SECRET, say).
+        // Another trip through Auth0 cannot fix that, so do not attempt one.
+        if (status >= 500) {
+          toast.error(
+            'Sign-in is temporarily unavailable. Please try again shortly.',
+          );
+          return;
+        }
+
+        // Otherwise the code itself was rejected (expired, or already
+        // redeemed). One fresh login attempt is worth making; a second means
+        // something is durably wrong, so stop rather than loop.
+        const RETRY_KEY = 'authExchangeRetried';
+        if (sessionStorage.getItem(RETRY_KEY)) {
+          sessionStorage.removeItem(RETRY_KEY);
+          toast.error('Could not complete sign-in. Please try again.');
+          return;
+        }
+
+        sessionStorage.setItem(RETRY_KEY, 'true');
         loginHandler();
       } finally {
         setIsProcessingCode(false);
