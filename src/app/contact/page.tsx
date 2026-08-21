@@ -138,7 +138,7 @@ export default function ContactPage() {
 
         <main className="pt-8">
           {/* Page Header */}
-          <section className="py-12 bg-white">
+          <section className="py-12 bg-card">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
               <div className="text-center mb-12">
                 <h1
@@ -153,7 +153,7 @@ export default function ContactPage() {
                     backgroundColor: organizationData.branding.accentColor,
                   }}
                 ></div>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                   We are here to help and answer any questions you might have.
                   We look forward to hearing from you.
                 </p>
@@ -162,7 +162,7 @@ export default function ContactPage() {
           </section>
 
           {/* Contact Information & Form */}
-          <section className="py-16 bg-gray-50">
+          <section className="py-16 bg-muted/50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
               <div className="grid lg:grid-cols-2 gap-12">
                 {/* Contact Information */}
@@ -192,10 +192,10 @@ export default function ContactPage() {
                         />
                       </div>
                       <div>
-                        <h3 className="font-medium text-gray-900 mb-2">
+                        <h3 className="font-medium text-foreground mb-2">
                           Address
                         </h3>
-                        <p className="text-gray-600 leading-relaxed">
+                        <p className="text-muted-foreground leading-relaxed">
                           {organizationData.contact.address.street}
                           <br />
                           {/* {organizationData.contact.address.city},{' '}
@@ -222,10 +222,10 @@ export default function ContactPage() {
                         />
                       </div>
                       <div>
-                        <h3 className="font-medium text-gray-900 mb-2">
+                        <h3 className="font-medium text-foreground mb-2">
                           Phone
                         </h3>
-                        <p className="text-gray-600">
+                        <p className="text-muted-foreground">
                           <a
                             href={`tel:${organizationData.contact.phone}`}
                             className="hover:underline"
@@ -251,10 +251,10 @@ export default function ContactPage() {
                         />
                       </div>
                       <div>
-                        <h3 className="font-medium text-gray-900 mb-2">
+                        <h3 className="font-medium text-foreground mb-2">
                           Email
                         </h3>
-                        <p className="text-gray-600">
+                        <p className="text-muted-foreground">
                           <a
                             href={`mailto:${organizationData.contact.email}`}
                             className="hover:underline"
@@ -267,11 +267,11 @@ export default function ContactPage() {
                   </div>
 
                   {/* Office Hours */}
-                  <div className="mt-8 p-6 bg-white rounded-2xl shadow-lg">
-                    <h3 className="font-medium text-gray-900 mb-4">
+                  <div className="mt-8 p-6 bg-card rounded-2xl shadow-lg">
+                    <h3 className="font-medium text-foreground mb-4">
                       Office Hours
                     </h3>
-                    <div className="space-y-2 text-sm text-gray-600">
+                    <div className="space-y-2 text-sm text-muted-foreground">
                       <div className="flex justify-between">
                         <span>Monday - Friday:</span>
                         <span>8:00 AM - 5:00 PM</span>
@@ -304,7 +304,7 @@ export default function ContactPage() {
                       <div>
                         <label
                           htmlFor="name"
-                          className="block text-sm font-medium text-gray-700 mb-2"
+                          className="block text-sm font-medium text-foreground mb-2"
                         >
                           Full Name *
                         </label>
@@ -315,12 +315,10 @@ export default function ContactPage() {
                           required
                           value={formData.name}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-colors"
+                          className="w-full px-4 py-3 bg-background text-foreground border border-input rounded-lg focus:ring-2 focus:border-transparent transition-colors"
                           style={
                             {
                               '--tw-ring-color': `${organizationData.branding.primaryColor}30`,
-                              backgroundColor: 'white',
-                              color: '#111827',
                             } as React.CSSProperties
                           }
                         />
@@ -328,7 +326,7 @@ export default function ContactPage() {
                       <div>
                         <label
                           htmlFor="email"
-                          className="block text-sm font-medium text-gray-700 mb-2"
+                          className="block text-sm font-medium text-foreground mb-2"
                         >
                           Email Address *
                         </label>
@@ -339,11 +337,7 @@ export default function ContactPage() {
                           required
                           value={formData.email}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-colors"
-                          style={{
-                            backgroundColor: 'white',
-                            color: '#111827',
-                          }}
+                          className="w-full px-4 py-3 bg-background text-foreground border border-input rounded-lg focus:ring-2 focus:border-transparent transition-colors"
                         />
                       </div>
                     </div>
@@ -352,7 +346,7 @@ export default function ContactPage() {
                       <div>
                         <label
                           htmlFor="phone"
-                          className="block text-sm font-medium text-gray-700 mb-2"
+                          className="block text-sm font-medium text-foreground mb-2"
                         >
                           Phone Number
                         </label>
@@ -362,17 +356,13 @@ export default function ContactPage() {
                           name="phone"
                           value={formData.phone}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-colors"
-                          style={{
-                            backgroundColor: 'white',
-                            color: '#111827',
-                          }}
+                          className="w-full px-4 py-3 bg-background text-foreground border border-input rounded-lg focus:ring-2 focus:border-transparent transition-colors"
                         />
                       </div>
                       <div>
                         <label
                           htmlFor="subject"
-                          className="block text-sm font-medium text-gray-700 mb-2"
+                          className="block text-sm font-medium text-foreground mb-2"
                         >
                           Subject *
                         </label>
@@ -382,11 +372,7 @@ export default function ContactPage() {
                           required
                           value={formData.subject}
                           onChange={handleChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-colors"
-                          style={{
-                            backgroundColor: 'white',
-                            color: '#111827',
-                          }}
+                          className="w-full px-4 py-3 bg-background text-foreground border border-input rounded-lg focus:ring-2 focus:border-transparent transition-colors"
                         >
                           <option value="">Select a subject</option>
                           <option value="admission">Admission Inquiry</option>
@@ -401,7 +387,7 @@ export default function ContactPage() {
                     <div>
                       <label
                         htmlFor="message"
-                        className="block text-sm font-medium text-gray-700 mb-2"
+                        className="block text-sm font-medium text-foreground mb-2"
                       >
                         Message *
                       </label>
@@ -412,12 +398,8 @@ export default function ContactPage() {
                         rows={5}
                         value={formData.message}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-colors resize-none"
+                        className="w-full px-4 py-3 bg-background text-foreground border border-input rounded-lg focus:ring-2 focus:border-transparent transition-colors resize-none"
                         placeholder="Please tell us how we can help you..."
-                        style={{
-                          backgroundColor: 'white',
-                          color: '#111827',
-                        }}
                       ></textarea>
                     </div>
 

@@ -9,8 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiService } from '@/services/api';
-import { clearReduxAuth } from '@/utils/reduxAuthSync';
-import axios from 'axios';
 
 interface StudentLoginData {
   firstName: string;
@@ -188,7 +186,10 @@ export default function LoginPage() {
 
       const password = convertToAPIFormat(studentData.dateOfBirth);
 
-      console.log('🎓 Attempting student login for org:', orgId);
+      console.log('🎓 Attempting student login with:', {
+        username: username,
+        orgId,
+      });
 
       // Call external API directly
       console.log('📡 Calling student auth API');
@@ -212,13 +213,15 @@ export default function LoginPage() {
           },
         });
 
-        const basicAuthToken =
-          data.data?.attributes?.credentials?.basic_auth_token ||
-          data.data?.attributes?.basic_auth_token;
+        console.log('📥 Login response data:', JSON.stringify(data, null, 2));
 
-        if (data.data && basicAuthToken) {
+        if (data.data) {
           // Store student authentication data
           const attrs = data.data.attributes;
+          const basicAuthToken =
+            attrs.credentials?.basic_auth_token ||
+            attrs.basic_auth_token ||
+            btoa(`${username}:${password}`);
 
           const studentAuthData = {
             id: data.data.id,
@@ -239,24 +242,19 @@ export default function LoginPage() {
             authenticatedAt: attrs.authenticated_at || new Date().toISOString(),
           };
 
-          // A student's credential is an api key, not an Auth0 bearer token.
-          // It used to be copied into `bearerToken` as well "for
-          // compatibility", but every reader of that key sends its value as
-          // `Authorization: Bearer ...`, so the api key was presented to the
-          // authorizer as a bearer token. The authorizer then handed it to
-          // Auth0's /userinfo, which of course rejected a base64
-          // `username:password` string - and a rejected token has no email, so
-          // the authorizer reported it as an auth failure. That made every
-          // student request through those paths fail with 401/403 for reasons
-          // that looked entirely random. Keep the api key in `studentAuth`
-          // only, so `bearerToken` unambiguously means "staff Auth0 token".
+          console.log('💾 Storing student data:', studentAuthData);
+
+          // Store in localStorage
           localStorage.setItem('studentAuth', JSON.stringify(studentAuthData));
 
-          // Drop any staff session left behind on a shared device, including
-          // the persisted Redux copy - otherwise a stale bearer token outranks
-          // this student's api key on every subsequent request.
-          localStorage.removeItem('bearerToken');
-          clearReduxAuth();
+          // Also create a basic auth token entry for compatibility
+          localStorage.setItem(
+            'bearerToken',
+            JSON.stringify({
+              value: basicAuthToken,
+              expiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+            }),
+          );
 
           // Check if we need to redirect back to original subdomain
           const currentHost = window.location.host;
@@ -318,16 +316,18 @@ export default function LoginPage() {
                 const port = currentHost.split(':')[1] || '3000';
                 // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
                 const redirectUrl = `http://${targetSubdomain}.localhost:${port}/#student_auth=${encodedAuthData}`;
+                console.log('🔗 Student redirect URL (dev):', redirectUrl);
                 console.log(
-                  `🔗 Redirecting to org subdomain (dev): ${targetSubdomain}`,
+                  '📦 Passing student auth data via URL hash for cross-subdomain auth',
                 );
                 window.location.href = redirectUrl;
               } else {
                 const domain = currentHost.split('.').slice(1).join('.');
                 // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
                 const redirectUrl = `https://${targetSubdomain}.${domain}/#student_auth=${encodedAuthData}`;
+                console.log('🔗 Student redirect URL (prod):', redirectUrl);
                 console.log(
-                  `🔗 Redirecting to org subdomain: ${targetSubdomain}`,
+                  '📦 Passing student auth data via URL hash for cross-subdomain auth',
                 );
                 window.location.href = redirectUrl;
               }
@@ -352,17 +352,17 @@ export default function LoginPage() {
           );
           setIsLoading(false);
         }
-      } catch (apiError) {
+      } catch (apiError: unknown) {
         console.error('❌ API call failed:', apiError);
-        // Surface the auth service's own JSON:API error text when it sent one
-        const errorDocument = axios.isAxiosError(apiError)
-          ? (apiError.response?.data as
-              | { errors?: Array<{ detail?: string; title?: string }> }
-              | undefined)
-          : undefined;
+        // Handle API errors
+        const err = apiError as {
+          response?: {
+            data?: { errors?: Array<{ detail?: string; title?: string }> };
+          };
+        };
         const errorMessage =
-          errorDocument?.errors?.[0]?.detail ||
-          errorDocument?.errors?.[0]?.title ||
+          err.response?.data?.errors?.[0]?.detail ||
+          err.response?.data?.errors?.[0]?.title ||
           'Invalid credentials. Please try again.';
         setError(errorMessage);
         setIsLoading(false);
@@ -488,7 +488,7 @@ export default function LoginPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
                   {error}
                 </div>
               )}

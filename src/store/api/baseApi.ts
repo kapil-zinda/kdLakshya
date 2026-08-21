@@ -128,6 +128,7 @@ export const baseApi = createApi({
     'Results',
     'SiteConfig',
     'Content',
+    'Gallery',
   ],
   endpoints: () => ({}),
 });
@@ -203,5 +204,29 @@ export const workspaceApi = createApi({
   refetchOnFocus: false,
   refetchOnReconnect: false,
   tagTypes: ['Files', 'S3'],
+  endpoints: () => ({}),
+});
+
+// Public base query without authentication for public endpoints
+const publicBaseQuery = fetchBaseQuery({
+  baseUrl: API_CONFIG.EXTERNAL_API,
+  timeout: 30000,
+  prepareHeaders: (headers) => {
+    if (!headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/vnd.api+json');
+    }
+    return headers;
+  },
+});
+
+// Create public API for endpoints that don't require authentication
+export const publicApi = createApi({
+  reducerPath: 'publicApi',
+  baseQuery: publicBaseQuery,
+  keepUnusedDataFor: 300,
+  refetchOnMountOrArgChange: false,
+  refetchOnFocus: false,
+  refetchOnReconnect: false,
+  tagTypes: ['Gallery', 'PublicContent'],
   endpoints: () => ({}),
 });

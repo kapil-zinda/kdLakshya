@@ -9,8 +9,8 @@ const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
 interface UserMeData {
   id: string;
   orgId: string;
-  permissions: Record<string, any>;
-  attributes: any;
+  permissions: Record<string, string>;
+  attributes: Record<string, unknown>;
 }
 
 /**

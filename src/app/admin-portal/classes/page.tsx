@@ -5,10 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
-import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
-import { ApiService } from '@/services/api';
 import {
   useCreateClassMutation,
   useCreateExamMutation,
@@ -27,11 +24,11 @@ import {
   useUpdateSubjectMutation,
 } from '@/store/api/classApi';
 import { useGetFacultyQuery } from '@/store/api/facultyApi';
-import { useGetStudentsQuery } from '@/store/api/studentApi';
-import { toast } from 'react-toastify';
+import { useLazyGetUnassignedStudentsQuery } from '@/store/api/studentApi';
 
 interface Student {
-  id: string;
+  id: string; // enrollment ID
+  studentId: string; // actual student ID for API calls
   name: string;
   rollNumber: string;
   email: string;
@@ -93,14 +90,36 @@ interface ClassData {
   timeSlots: TimeSlot[];
 }
 
-/** A student with no class yet, as the add-student modal lists them. */
-interface UnassignedStudent {
-  id: string;
-  firstName?: string;
-  lastName?: string;
-  email?: string;
-  phone?: string;
+// API Response Types - used for transformations where API types differ from UI types
+interface ExamSubjectApiData {
+  subject_id: string;
+  subject_name?: string;
+  max_marks: number;
+  duration?: number;
+  exam_date?: string;
+  start_time?: string;
 }
+
+interface UnassignedStudentApiData {
+  id: string;
+  attributes?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+  };
+}
+
+interface UnassignedStudentData {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+}
+
+type ExamType = 'Unit Test' | 'Mid Term' | 'Final' | 'Assignment';
+type TabType = 'students' | 'subjects' | 'exams';
 
 interface Class {
   id: string;
@@ -115,15 +134,6 @@ interface Class {
 }
 
 export default function ClassManagement() {
-  return (
-    <DashboardWrapper allowedRoles={['admin']} redirectTo="/">
-      {() => <ClassManagementContent />}
-    </DashboardWrapper>
-  );
-}
-
-function ClassManagementContent() {
-  const confirm = useConfirm();
   const router = useRouter();
 
   // Get orgId from Redux
@@ -147,26 +157,28 @@ function ClassManagementContent() {
       skip: !orgId,
     });
 
-  // Subscribed purely to warm the RTK Query cache for the add-student modal.
-  useGetStudentsQuery(orgId, {
-    skip: !orgId,
-  });
+  // Lazy query to fetch unassigned students only when needed
+  const [fetchUnassignedStudents, { isLoading: unassignedStudentsLoading }] =
+    useLazyGetUnassignedStudentsQuery();
 
   // Fetch data for selected class only
-  const { data: classStudentsResponse } = useGetClassStudentsQuery(
-    { orgId, classId: selectedClassId! },
-    { skip: !orgId || !selectedClassId },
-  );
+  const { data: classStudentsResponse, isLoading: studentsLoading } =
+    useGetClassStudentsQuery(
+      { orgId, classId: selectedClassId! },
+      { skip: !orgId || !selectedClassId, refetchOnMountOrArgChange: true },
+    );
 
-  const { data: subjectsResponse } = useGetSubjectsForClassQuery(
-    { orgId, classId: selectedClassId! },
-    { skip: !orgId || !selectedClassId },
-  );
+  const { data: subjectsResponse, isLoading: subjectsLoading } =
+    useGetSubjectsForClassQuery(
+      { orgId, classId: selectedClassId! },
+      { skip: !orgId || !selectedClassId },
+    );
 
-  const { data: examsResponse } = useGetExamsForClassQuery(
-    { orgId, classId: selectedClassId! },
-    { skip: !orgId || !selectedClassId },
-  );
+  const { data: examsResponse, isLoading: examsLoading } =
+    useGetExamsForClassQuery(
+      { orgId, classId: selectedClassId! },
+      { skip: !orgId || !selectedClassId },
+    );
 
   // RTK Query mutations for class operations
   const [createClass] = useCreateClassMutation();
@@ -207,12 +219,8 @@ function ClassManagementContent() {
           id: classItem.id,
           name: classAttrs.class,
           section: classAttrs.section || 'A',
-          classTeacherId:
-            classAttrs.class_teacher_id || classAttrs.teacher_id || undefined,
-          classTeacherName:
-            classAttrs.class_teacher_name ||
-            classAttrs.teacher_name ||
-            'Not Assigned',
+          classTeacherId: classAttrs.teacher_id || undefined,
+          classTeacherName: classAttrs.teacher_name || 'Not Assigned',
           academicYear: classAttrs.academic_year || '2024-25',
           totalStudents: 0, // Will be updated when class is selected
           room: classAttrs.room || 'Not Assigned',
@@ -230,10 +238,12 @@ function ClassManagementContent() {
   // Transform class-specific data (only for selected class)
   const currentStudents: Student[] =
     classStudentsResponse?.data.map((s) => ({
-      id: s.id,
-      name: `${s.attributes.first_name || ''} ${s.attributes.last_name || ''}`.trim(),
-      rollNumber: s.attributes.roll_number || 'N/A',
-      email: s.attributes.email,
+      id: s.id, // enrollment ID
+      studentId: (s.attributes as { student_id?: string }).student_id || s.id, // actual student ID for unenroll API
+      name: `${(s.attributes as { first_name?: string }).first_name || ''} ${(s.attributes as { last_name?: string }).last_name || ''}`.trim(),
+      rollNumber:
+        (s.attributes as { roll_number?: string }).roll_number || 'N/A',
+      email: s.attributes.email || '',
       phone: s.attributes.phone || 'N/A',
       status: s.attributes.status === 'active' ? 'Active' : 'Inactive',
     })) || [];
@@ -241,8 +251,11 @@ function ClassManagementContent() {
   const currentSubjects: Subject[] =
     subjectsResponse?.data.map((s) => ({
       id: s.id,
-      name: s.attributes.subject_name,
-      code: s.attributes.subject_code || '',
+      // The service stores these as subject_name/subject_code (see
+      // createSubject, which renames on the way out); the bare name/code
+      // spellings are only a fallback for older payloads.
+      name: s.attributes.subject_name || s.attributes.name || '',
+      code: s.attributes.subject_code || s.attributes.code || '',
       teacherId: s.attributes.teacher_id,
       teacherName: s.attributes.teacher_name,
       credits: s.attributes.credits || 1,
@@ -252,31 +265,45 @@ function ClassManagementContent() {
   const currentExams: Exam[] =
     examsResponse?.data.map((e) => ({
       id: e.id,
-      name: e.attributes.exam_name,
-      subjects: (e.attributes.subjects || []).map((examSubject) => {
+      name: e.attributes.exam_name || e.attributes.name || '',
+      subjects: (
+        (e.attributes as { subjects?: ExamSubjectApiData[] }).subjects || []
+      ).map((examSubject: ExamSubjectApiData) => {
         const subjectDetails = currentSubjects.find(
           (s) => s.id === examSubject.subject_id,
         );
+        const examDate = examSubject.exam_date || e.attributes.exam_date || '';
         return {
           subjectId: examSubject.subject_id,
           subjectName:
             examSubject.subject_name ||
             subjectDetails?.name ||
             'Unknown Subject',
-          marks: examSubject.max_marks || 0,
+          marks: examSubject.max_marks,
           duration: examSubject.duration || 0,
-          date: String(examSubject.exam_date || e.attributes.exam_date || ''),
+          date: typeof examDate === 'number' ? String(examDate) : examDate,
           startTime: examSubject.start_time || '',
           endTime: '',
           room: '',
         };
       }),
-      instructions: e.attributes.instructions || '',
-      // The service stores these as free-form strings; this page only renders
-      // them, so narrow to the display union it declares.
-      type: (e.attributes.type as Exam['type']) || 'Unit Test',
-      status: (e.attributes.status as Exam['status']) || 'Scheduled',
+      instructions:
+        (e.attributes as { instructions?: string }).instructions ||
+        e.attributes.description ||
+        '',
+      type: ((e.attributes as { type?: string }).type || 'Unit Test') as
+        | 'Unit Test'
+        | 'Mid Term'
+        | 'Final'
+        | 'Assignment',
+      status: ((e.attributes as { status?: string }).status || 'Scheduled') as
+        | 'Scheduled'
+        | 'Ongoing'
+        | 'Completed'
+        | 'Cancelled',
     })) || [];
+
+  const currentTimeSlots: TimeSlot[] = []; // Time slots not yet implemented in API
 
   // Find selected class and update with current data
   const selectedClass = classes.find((c) => c.id === selectedClassId) || null;
@@ -285,13 +312,15 @@ function ClassManagementContent() {
       students: currentStudents,
       subjects: currentSubjects,
       exams: currentExams,
-      timeSlots: [], // Time slot management isn't implemented in the API yet
+      timeSlots: currentTimeSlots,
     };
     selectedClass.totalStudents = currentStudents.length;
   }
 
   // Combined loading state
   const loading = classesLoading || facultyLoading;
+  const _isLoadingClassData =
+    studentsLoading || subjectsLoading || examsLoading;
 
   // Modal states and form data
   const [showCreateClassModal, setShowCreateClassModal] = useState(false);
@@ -305,6 +334,7 @@ function ClassManagementContent() {
   );
   const [selectedExamForDelete, setSelectedExamForDelete] =
     useState<Exam | null>(null);
+  const [showTimeSlotModal, setShowTimeSlotModal] = useState(false);
   const [showAssignTeacherModal, setShowAssignTeacherModal] = useState(false);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
   const [showRollNumberModal, setShowRollNumberModal] = useState(false);
@@ -315,12 +345,10 @@ function ClassManagementContent() {
   const [selectedSubjectForDelete, setSelectedSubjectForDelete] =
     useState<Subject | null>(null);
   const [selectedStudentForAssignment, setSelectedStudentForAssignment] =
-    useState<UnassignedStudent | null>(null);
+    useState<UnassignedStudentData | null>(null);
   const [unassignedStudents, setUnassignedStudents] = useState<
-    UnassignedStudent[]
+    UnassignedStudentData[]
   >([]);
-  const [isLoadingUnassigned, setIsLoadingUnassigned] = useState(false);
-  const [unassignedLoadError, setUnassignedLoadError] = useState(false);
   const [editingClass, setEditingClass] = useState<Class | null>(null);
   const [classFormData, setClassFormData] = useState({
     name: '',
@@ -344,34 +372,7 @@ function ClassManagementContent() {
     teacherId: '',
   });
   const [studentSearchQuery, setStudentSearchQuery] = useState('');
-  // Suggestions for the Class Name field: names already used by this
-  // school's classes, plus standard defaults so a brand-new school with
-  // zero classes isn't stuck with an empty dropdown on its very first
-  // class. The field itself is free text - these are suggestions, not a
-  // restriction, since not every org is K-12 (colleges/institutes too).
-  const availableClassNames = useMemo(() => {
-    const defaults = [
-      'Nursery',
-      'LKG',
-      'UKG',
-      'Class 1',
-      'Class 2',
-      'Class 3',
-      'Class 4',
-      'Class 5',
-      'Class 6',
-      'Class 7',
-      'Class 8',
-      'Class 9',
-      'Class 10',
-      'Class 11',
-      'Class 12',
-    ];
-    const existing = Array.from(
-      new Set(classes.map((c) => c.name).filter(Boolean)),
-    );
-    return Array.from(new Set([...existing, ...defaults]));
-  }, [classes]);
+  const [availableClassNames, _setAvailableClassNames] = useState<string[]>([]);
 
   const [subjectFormData, setSubjectFormData] = useState({
     name: '',
@@ -397,6 +398,31 @@ function ClassManagementContent() {
     endTime: '',
     room: '',
   });
+  const [timeSlotFormData, setTimeSlotFormData] = useState({
+    name: '',
+    startTime: '',
+    endTime: '',
+  });
+  const [_selectedSlot, _setSelectedSlot] = useState<{
+    day: string;
+    period: number;
+    timeSlotId?: string;
+  } | null>(null);
+  const [_slotFormData, _setSlotFormData] = useState({
+    subjectId: '',
+    teacherId: '',
+    room: '',
+  });
+
+  const _days = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Friday',
+    'Saturday',
+  ];
+
   // Auth checking useEffect
   useEffect(() => {
     const tokenStr = localStorage.getItem('bearerToken');
@@ -429,12 +455,12 @@ function ClassManagementContent() {
 
   const handleCreateClass = async () => {
     if (!classFormData.name || !classFormData.section) {
-      toast.error('Please fill in required fields');
+      alert('Please fill in required fields');
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
@@ -459,10 +485,10 @@ function ClassManagementContent() {
         academicYear: '2024-25',
         room: '',
       });
-      toast.success('Class created successfully!');
+      alert('Class created successfully!');
     } catch (error) {
       console.error('Error creating class:', error);
-      toast.error('Failed to create class. Please try again.');
+      alert('Failed to create class. Please try again.');
     }
   };
 
@@ -483,12 +509,12 @@ function ClassManagementContent() {
       !editClassFormData.section ||
       !editingClass
     ) {
-      toast.error('Please fill in required fields');
+      alert('Please fill in required fields');
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
@@ -515,24 +541,24 @@ function ClassManagementContent() {
         academicYear: '',
         room: '',
       });
-      toast.success('Class updated successfully!');
+      alert('Class updated successfully!');
     } catch (error) {
       console.error('Error updating class:', error);
-      toast.error('Failed to update class. Please try again.');
+      alert('Failed to update class. Please try again.');
     }
   };
 
   const handleDeleteClass = async (classToDelete: Class) => {
     if (
-      !(await confirm(
+      !confirm(
         `Are you sure you want to delete ${classToDelete.name} - ${classToDelete.section}? This action cannot be undone.`,
-      ))
+      )
     ) {
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
@@ -548,10 +574,10 @@ function ClassManagementContent() {
         setSelectedClassId(null);
       }
 
-      toast.success('Class deleted successfully!');
+      alert('Class deleted successfully!');
     } catch (error) {
       console.error('Error deleting class:', error);
-      toast.error('Failed to delete class. Please try again.');
+      alert('Failed to delete class. Please try again.');
     }
   };
 
@@ -566,12 +592,12 @@ function ClassManagementContent() {
 
   const handleUpdateClassTeacher = async () => {
     if (!selectedClass) {
-      toast.error('No class selected');
+      alert('No class selected');
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
@@ -587,42 +613,45 @@ function ClassManagementContent() {
 
       setShowAssignTeacherModal(false);
       setAssignTeacherFormData({ teacherId: '' });
-      toast.success('Class teacher updated successfully!');
+      alert('Class teacher updated successfully!');
     } catch (error) {
       console.error('Error updating class teacher:', error);
-      toast.error('Failed to update class teacher. Please try again.');
+      alert('Failed to update class teacher. Please try again.');
     }
   };
 
   const handleAddStudentToClass = async () => {
     setStudentSearchQuery('');
     setShowAddStudentModal(true);
-    setIsLoadingUnassigned(true);
-    setUnassignedLoadError(false);
+
+    if (!orgId) {
+      alert('Organization ID not found');
+      return;
+    }
 
     try {
-      const response = await ApiService.getUnassignedStudents(orgId);
-      const students = (response?.data || []).map((s) => {
-        const attrs = s.attributes || {};
-        return {
+      // Fetch unassigned students on demand
+      const result = await fetchUnassignedStudents(orgId).unwrap();
+
+      // Transform to the expected format
+      const formattedUnassigned = (result?.data || []).map(
+        (s: UnassignedStudentApiData) => ({
           id: s.id,
-          firstName: attrs.first_name,
-          lastName: attrs.last_name,
-          email: attrs.email,
-          phone: attrs.phone,
-        };
-      });
-      setUnassignedStudents(students);
+          firstName: s.attributes?.first_name || '',
+          lastName: s.attributes?.last_name || '',
+          email: s.attributes?.email || '',
+          phone: s.attributes?.phone || '',
+        }),
+      );
+
+      setUnassignedStudents(formattedUnassigned);
     } catch (error) {
       console.error('Error fetching unassigned students:', error);
-      setUnassignedLoadError(true);
-      setUnassignedStudents([]);
-    } finally {
-      setIsLoadingUnassigned(false);
+      alert('Failed to load students. Please try again.');
     }
   };
 
-  const handleSelectStudentForAssignment = (student: UnassignedStudent) => {
+  const handleSelectStudentForAssignment = (student: UnassignedStudentData) => {
     setSelectedStudentForAssignment(student);
     setRollNumberFormData({ rollNumber: '' });
     setShowAddStudentModal(false);
@@ -635,12 +664,12 @@ function ClassManagementContent() {
       !rollNumberFormData.rollNumber ||
       !selectedClass
     ) {
-      toast.error('Please enter a roll number');
+      alert('Please enter a roll number');
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
@@ -663,29 +692,29 @@ function ClassManagementContent() {
       setShowRollNumberModal(false);
       setSelectedStudentForAssignment(null);
       setRollNumberFormData({ rollNumber: '' });
-      toast.success('Student added to class successfully!');
+      alert('Student added to class successfully!');
     } catch (error) {
       console.error('Error assigning student to class:', error);
-      toast.error('Failed to add student to class. Please try again.');
+      alert('Failed to add student to class. Please try again.');
     }
   };
 
   const handleUnenrollStudent = async (student: Student) => {
     if (!selectedClass) {
-      toast.error('No class selected');
+      alert('No class selected');
       return;
     }
 
     if (
-      !(await confirm(
+      !confirm(
         `Are you sure you want to remove ${student.name} from ${selectedClass.name} - Section ${selectedClass.section}? This action will unenroll the student from this class.`,
-      ))
+      )
     ) {
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
@@ -694,12 +723,12 @@ function ClassManagementContent() {
       await unenrollStudent({
         orgId,
         classId: selectedClass.id,
-        studentId: student.id,
+        studentId: student.studentId, // Use actual student ID, not enrollment ID
       }).unwrap();
 
       // Add student back to unassigned list
       const unenrolledStudent = {
-        id: student.id,
+        id: student.studentId, // Use student ID for consistency
         firstName: student.name.split(' ')[0] || '',
         lastName: student.name.split(' ').slice(1).join(' ') || '',
         email: student.email,
@@ -708,26 +737,26 @@ function ClassManagementContent() {
 
       setUnassignedStudents((prev) => [...prev, unenrolledStudent]);
 
-      toast.success('Student removed from class successfully!');
+      alert('Student removed from class successfully!');
     } catch (error) {
       console.error('Error unenrolling student from class:', error);
-      toast.error('Failed to remove student from class. Please try again.');
+      alert('Failed to remove student from class. Please try again.');
     }
   };
 
   const handleAddSubject = async () => {
     if (!subjectFormData.name || !subjectFormData.teacherId) {
-      toast.error('Please fill in required fields (Subject Name and Teacher)');
+      alert('Please fill in required fields (Subject Name and Teacher)');
       return;
     }
 
     if (!selectedClass) {
-      toast.error('No class selected');
+      alert('No class selected');
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
@@ -752,26 +781,26 @@ function ClassManagementContent() {
         credits: 1,
         type: 'Core',
       });
-      toast.success('Subject added successfully!');
+      alert('Subject added successfully!');
     } catch (error) {
       console.error('Error creating subject:', error);
-      toast.error('Failed to create subject. Please try again.');
+      alert('Failed to create subject. Please try again.');
     }
   };
 
   const handleEditSubject = async () => {
     if (!editSubjectFormData.teacherId) {
-      toast.error('Please select a teacher');
+      alert('Please select a teacher');
       return;
     }
 
     if (!selectedClass || !selectedSubjectForEdit) {
-      toast.error('No class or subject selected');
+      alert('No class or subject selected');
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
@@ -789,21 +818,21 @@ function ClassManagementContent() {
       setShowEditSubjectModal(false);
       setSelectedSubjectForEdit(null);
       setEditSubjectFormData({ teacherId: '' });
-      toast.success('Subject updated successfully!');
+      alert('Subject updated successfully!');
     } catch (error) {
       console.error('Error updating subject:', error);
-      toast.error('Failed to update subject. Please try again.');
+      alert('Failed to update subject. Please try again.');
     }
   };
 
   const handleDeleteSubject = async () => {
     if (!selectedClass || !selectedSubjectForDelete) {
-      toast.error('No class or subject selected');
+      alert('No class or subject selected');
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
@@ -817,10 +846,10 @@ function ClassManagementContent() {
 
       setShowDeleteSubjectModal(false);
       setSelectedSubjectForDelete(null);
-      toast.success('Subject deleted successfully!');
+      alert('Subject deleted successfully!');
     } catch (error) {
       console.error('Error deleting subject:', error);
-      toast.error('Failed to delete subject. Please try again.');
+      alert('Failed to delete subject. Please try again.');
     }
   };
 
@@ -830,35 +859,35 @@ function ClassManagementContent() {
       !examFormData.date ||
       examFormData.subjects.length === 0
     ) {
-      toast.error(
+      alert(
         'Please fill in required fields (Name, Date) and add at least one subject',
       );
       return;
     }
 
     if (!selectedClass) {
-      toast.error('No class selected');
+      alert('No class selected');
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
     try {
       // Use RTK Query mutation - cache will auto-invalidate and refetch!
+      // Note: The API expects a specific format, adapting from old code
       await createExam({
         orgId,
         classId: selectedClass.id,
         examData: {
-          exam_name: examFormData.name,
-          exam_date: examFormData.date,
-          subjects: examFormData.subjects.map((s) => ({
-            subject_id: s.subjectId,
-            max_marks: s.marks,
-          })),
-        },
+          subjectId: examFormData.subjects[0]?.subjectId || '', // Simplified for now
+          name: examFormData.name,
+          exam_type: examFormData.type,
+          exam_date: new Date(examFormData.date).getTime(),
+          max_marks: examFormData.subjects[0]?.marks || 100,
+        }, // TODO: API might need updating to support multiple subjects per exam
       }).unwrap();
 
       setShowCreateExamModal(false);
@@ -879,10 +908,10 @@ function ClassManagementContent() {
         endTime: '',
         room: '',
       });
-      toast.success('Exam created successfully!');
+      alert('Exam created successfully!');
     } catch (error) {
       console.error('Error creating exam:', error);
-      toast.error('Failed to create exam. Please try again.');
+      alert('Failed to create exam. Please try again.');
     }
   };
 
@@ -893,7 +922,7 @@ function ClassManagementContent() {
       !tempExamSubject.startTime ||
       !tempExamSubject.endTime
     ) {
-      toast.error(
+      alert(
         'Please fill in all subject details including date, start time, and end time',
       );
       return;
@@ -956,19 +985,19 @@ function ClassManagementContent() {
       !examFormData.date ||
       examFormData.subjects.length === 0
     ) {
-      toast.error(
+      alert(
         'Please fill in required fields (Name, Date) and add at least one subject',
       );
       return;
     }
 
     if (!selectedClass || !selectedExamForEdit) {
-      toast.error('No exam selected');
+      alert('No exam selected');
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
@@ -979,13 +1008,11 @@ function ClassManagementContent() {
         classId: selectedClass.id,
         examId: selectedExamForEdit.id,
         examData: {
-          exam_name: examFormData.name,
-          exam_date: examFormData.date,
-          subjects: examFormData.subjects.map((s) => ({
-            subject_id: s.subjectId,
-            max_marks: s.marks,
-          })),
-        },
+          name: examFormData.name,
+          exam_type: examFormData.type,
+          exam_date: new Date(examFormData.date).getTime(),
+          max_marks: examFormData.subjects[0]?.marks || 100,
+        }, // TODO: API might need updating to support multiple subjects per exam
       }).unwrap();
 
       setShowEditExamModal(false);
@@ -1007,21 +1034,21 @@ function ClassManagementContent() {
         endTime: '',
         room: '',
       });
-      toast.success('Exam updated successfully!');
+      alert('Exam updated successfully!');
     } catch (error) {
       console.error('Error updating exam:', error);
-      toast.error('Failed to update exam. Please try again.');
+      alert('Failed to update exam. Please try again.');
     }
   };
 
   const handleDeleteExam = async () => {
     if (!selectedClass || !selectedExamForDelete) {
-      toast.error('No exam selected');
+      alert('No exam selected');
       return;
     }
 
     if (!orgId) {
-      toast.error('Organization ID not found');
+      alert('Organization ID not found');
       return;
     }
 
@@ -1035,11 +1062,45 @@ function ClassManagementContent() {
 
       setShowDeleteExamModal(false);
       setSelectedExamForDelete(null);
-      toast.success('Exam deleted successfully!');
+      alert('Exam deleted successfully!');
     } catch (error) {
       console.error('Error deleting exam:', error);
-      toast.error('Failed to delete exam. Please try again.');
+      alert('Failed to delete exam. Please try again.');
     }
+  };
+
+  const handleAddTimeSlot = () => {
+    if (
+      !timeSlotFormData.name ||
+      !timeSlotFormData.startTime ||
+      !timeSlotFormData.endTime
+    ) {
+      alert('Please fill in all time slot fields');
+      return;
+    }
+
+    if (!selectedClass) {
+      alert('No class selected');
+      return;
+    }
+
+    const startTime = new Date(`2024-01-01T${timeSlotFormData.startTime}`);
+    const endTime = new Date(`2024-01-01T${timeSlotFormData.endTime}`);
+    const duration = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+
+    const _newTimeSlot: TimeSlot = {
+      id: (currentTimeSlots.length + 1).toString(),
+      name: timeSlotFormData.name,
+      startTime: timeSlotFormData.startTime,
+      endTime: timeSlotFormData.endTime,
+      duration: Math.round(duration),
+    };
+
+    // TODO: Timetable functionality needs API implementation
+    // For now, just close the modal
+    setShowTimeSlotModal(false);
+    setTimeSlotFormData({ name: '', startTime: '', endTime: '' });
+    alert('Time slot functionality is not yet fully implemented.');
   };
 
   const getStatusColor = (status: string) => {
@@ -1380,16 +1441,14 @@ function ClassManagementContent() {
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                   <div className="border-b border-gray-200">
                     <nav className="-mb-px flex space-x-8 px-6">
-                      {(
-                        [
-                          { id: 'students', label: 'Students', icon: '👥' },
-                          { id: 'subjects', label: 'Subjects', icon: '📚' },
-                          { id: 'exams', label: 'Exams', icon: '📝' },
-                        ] as const
-                      ).map((tab) => (
+                      {[
+                        { id: 'students', label: 'Students', icon: '👥' },
+                        { id: 'subjects', label: 'Subjects', icon: '📚' },
+                        { id: 'exams', label: 'Exams', icon: '📝' },
+                      ].map((tab) => (
                         <button
                           key={tab.id}
-                          onClick={() => setActiveTab(tab.id)}
+                          onClick={() => setActiveTab(tab.id as TabType)}
                           className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                             activeTab === tab.id
                               ? 'border-indigo-500 text-indigo-600'
@@ -1780,7 +1839,6 @@ function ClassManagementContent() {
                     </label>
                     <input
                       type="text"
-                      list="class-name-suggestions"
                       value={classFormData.name}
                       onChange={(e) =>
                         setClassFormData((prev) => ({
@@ -1788,14 +1846,9 @@ function ClassManagementContent() {
                           name: e.target.value,
                         }))
                       }
-                      placeholder="e.g. Class 10, Nursery, Grade 5..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter class name"
                     />
-                    <datalist id="class-name-suggestions">
-                      {availableClassNames.map((className) => (
-                        <option key={className} value={className} />
-                      ))}
-                    </datalist>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1885,9 +1938,7 @@ function ClassManagementContent() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Class Name <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      list="class-name-suggestions-edit"
+                    <select
                       value={editClassFormData.name}
                       onChange={(e) =>
                         setEditClassFormData((prev) => ({
@@ -1895,14 +1946,15 @@ function ClassManagementContent() {
                           name: e.target.value,
                         }))
                       }
-                      placeholder="e.g. Class 10, Nursery, Grade 5..."
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    />
-                    <datalist id="class-name-suggestions-edit">
+                    >
+                      <option value="">Select Class</option>
                       {availableClassNames.map((className) => (
-                        <option key={className} value={className} />
+                        <option key={className} value={className}>
+                          {className}
+                        </option>
                       ))}
-                    </datalist>
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2354,7 +2406,7 @@ function ClassManagementContent() {
                       onChange={(e) =>
                         setExamFormData((prev) => ({
                           ...prev,
-                          type: e.target.value as Exam['type'],
+                          type: e.target.value as ExamType,
                         }))
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
@@ -2737,7 +2789,7 @@ function ClassManagementContent() {
                       onChange={(e) =>
                         setExamFormData((prev) => ({
                           ...prev,
-                          type: e.target.value as Exam['type'],
+                          type: e.target.value as ExamType,
                         }))
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
@@ -2888,6 +2940,140 @@ function ClassManagementContent() {
           </div>
         )}
 
+        {/* Time Slot Management Modal */}
+        {showTimeSlotModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Manage Time Slots
+                </h3>
+              </div>
+              <div className="p-6">
+                {/* Add Time Slot Form */}
+                <div className="mb-6 p-4 border border-gray-200 rounded-lg">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                    Add New Time Slot
+                  </h4>
+                  <div className="grid grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Slot Name
+                      </label>
+                      <input
+                        type="text"
+                        value={timeSlotFormData.name}
+                        onChange={(e) =>
+                          setTimeSlotFormData((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Period 1"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Start Time
+                      </label>
+                      <input
+                        type="time"
+                        value={timeSlotFormData.startTime}
+                        onChange={(e) =>
+                          setTimeSlotFormData((prev) => ({
+                            ...prev,
+                            startTime: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        End Time
+                      </label>
+                      <input
+                        type="time"
+                        value={timeSlotFormData.endTime}
+                        onChange={(e) =>
+                          setTimeSlotFormData((prev) => ({
+                            ...prev,
+                            endTime: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <div className="flex items-end">
+                      <button
+                        onClick={handleAddTimeSlot}
+                        className="w-full px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                      >
+                        Add Time Slot
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Time Slots List */}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">
+                    Current Time Slots
+                  </h4>
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {currentTimeSlots.map((slot) => (
+                      <div
+                        key={slot.id}
+                        className="flex items-center justify-between bg-gray-50 p-3 rounded"
+                      >
+                        <div className="flex-1">
+                          <span className="font-medium text-gray-900">
+                            {slot.name}
+                          </span>
+                          <span className="text-gray-600 ml-2">
+                            {slot.startTime} - {slot.endTime} ({slot.duration}{' '}
+                            min)
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => {
+                            if (
+                              selectedClass &&
+                              confirm(
+                                'Remove this time slot? This will affect existing timetable entries.',
+                              )
+                            ) {
+                              const _updatedTimeSlots = currentTimeSlots.filter(
+                                (t) => t.id !== slot.id,
+                              );
+                              // TODO: Timetable functionality needs API implementation
+                              alert(
+                                'Time slot removal is not yet fully implemented.',
+                              );
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
+                <button
+                  onClick={() => setShowTimeSlotModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Assign Teacher Modal */}
         {showAssignTeacherModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -3001,33 +3187,6 @@ function ClassManagementContent() {
                 </div>
 
                 {(() => {
-                  if (isLoadingUnassigned) {
-                    return (
-                      <div className="text-center py-8">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-2 text-sm text-gray-500">
-                          Loading unassigned students...
-                        </p>
-                      </div>
-                    );
-                  }
-
-                  if (unassignedLoadError) {
-                    return (
-                      <div className="text-center py-8">
-                        <p className="text-sm text-red-600">
-                          Failed to load unassigned students.
-                        </p>
-                        <button
-                          onClick={handleAddStudentToClass}
-                          className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
-                        >
-                          Retry
-                        </button>
-                      </div>
-                    );
-                  }
-
                   // Filter students based on search query
                   const filteredStudents = unassignedStudents.filter(
                     (student) => {
@@ -3047,6 +3206,17 @@ function ClassManagementContent() {
                       );
                     },
                   );
+
+                  if (unassignedStudentsLoading) {
+                    return (
+                      <div className="text-center py-8">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+                        <p className="mt-4 text-sm text-gray-500">
+                          Loading students...
+                        </p>
+                      </div>
+                    );
+                  }
 
                   if (unassignedStudents.length === 0) {
                     return (

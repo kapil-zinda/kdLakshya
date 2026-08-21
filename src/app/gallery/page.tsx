@@ -1,47 +1,97 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import Image from 'next/image';
 
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
+import { getCDNUrl } from '@/config/cdn';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
-import { ApiService, type GalleryImage } from '@/services/api';
+import { ApiService } from '@/services/api';
+import { useGetGalleryQuery } from '@/store/api/galleryApi';
+import { getSubdomain } from '@/utils/subdomainUtils';
+
+/** A gallery item as this page renders it, after CDN-URL resolution. */
+interface GalleryItem {
+  id: string;
+  src: string;
+  alt: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+}
 
 export default function GalleryPage() {
   const { organizationData, loading } = useOrganizationData();
-  const [images, setImages] = useState<GalleryImage[]>([]);
-  const [imagesLoading, setImagesLoading] = useState(true);
-  const [imagesError, setImagesError] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+  const [selectedImage, setSelectedImage] = useState<GalleryItem | null>(null);
+  const [orgId, setOrgId] = useState<string>('');
 
+  // Get orgId from subdomain (public access)
   useEffect(() => {
-    if (!organizationData?.orgId) return;
-
-    let cancelled = false;
-    setImagesLoading(true);
-    setImagesError(false);
-
-    ApiService.getGalleryImages(organizationData.orgId)
-      .then((data) => {
-        if (!cancelled) setImages(data);
-      })
-      .catch((err) => {
-        console.error('Failed to load gallery images:', err);
-        if (!cancelled) setImagesError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setImagesLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
+    const fetchOrgId = async () => {
+      try {
+        const subdomain = getSubdomain() || 'spd'; // Default to 'spd' if no subdomain
+        const orgData = await ApiService.getOrganization(subdomain);
+        setOrgId(orgData.data.id);
+      } catch (error) {
+        console.error('Error fetching organization ID:', error);
+      }
     };
-  }, [organizationData?.orgId]);
 
-  if (loading) {
+    fetchOrgId();
+  }, []);
+
+  // Fetch gallery data from API (public endpoint - no auth required)
+  const {
+    data: galleryData,
+    isLoading: isGalleryLoading,
+    error: galleryError,
+  } = useGetGalleryQuery(
+    { orgId, params: { active_only: 'true' } },
+    { skip: !orgId },
+  );
+
+  // Transform API data to match component structure
+  const galleryImages = useMemo(() => {
+    if (!galleryData?.data) return [];
+    return galleryData.data
+      .map((item) => {
+        const imageUrl = item.attributes.image_url;
+        // If image_url doesn't start with http, add CloudFront domain
+        const src = getCDNUrl(imageUrl);
+
+        return {
+          id: item.id,
+          src,
+          alt: item.attributes.title,
+          title: item.attributes.title,
+          description: item.attributes.description,
+          tags: item.attributes.tags,
+        };
+      })
+      .sort((a, b) => {
+        // Sort by order if available in attributes
+        const orderA =
+          galleryData.data.find((d) => d.id === a.id)?.attributes.order || 0;
+        const orderB =
+          galleryData.data.find((d) => d.id === b.id)?.attributes.order || 0;
+        return orderA - orderB;
+      });
+  }, [galleryData]);
+
+  // Extract unique tags from gallery images to create categories
+  const categories = useMemo(() => {
+    if (!galleryImages.length) return ['All'];
+    const allTags = new Set<string>();
+    galleryImages.forEach((image) => {
+      image.tags?.forEach((tag) => allTags.add(tag));
+    });
+    return ['All', ...Array.from(allTags).sort()];
+  }, [galleryImages]);
+
+  if (loading || isGalleryLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center space-y-4">
@@ -67,18 +117,26 @@ export default function GalleryPage() {
     );
   }
 
-  // The first tag on an image doubles as its category for filtering.
-  const categories = [
-    'All',
-    ...Array.from(
-      new Set(images.map((img) => img.tags?.[0]).filter(Boolean) as string[]),
-    ),
-  ];
+  if (galleryError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-foreground mb-2">
+            Error Loading Gallery
+          </h1>
+          <p className="text-muted-foreground">
+            Unable to load gallery images. Please try again later.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
+  // Filter images by selected category (tag)
   const filteredImages =
     selectedCategory === 'All'
-      ? images
-      : images.filter((img) => img.tags?.[0] === selectedCategory);
+      ? galleryImages
+      : galleryImages.filter((img) => img.tags?.includes(selectedCategory));
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -128,7 +186,7 @@ export default function GalleryPage() {
 
         <main className="pt-8">
           {/* Page Header */}
-          <section className="py-12 bg-white">
+          <section className="py-12 bg-card">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
               <div className="text-center mb-12">
                 <h1
@@ -143,92 +201,75 @@ export default function GalleryPage() {
                     backgroundColor: organizationData.branding.accentColor,
                   }}
                 ></div>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                   Explore our vibrant campus life, academic excellence, and
                   memorable moments captured throughout our journey.
                 </p>
               </div>
 
               {/* Category Filter */}
-              {categories.length > 2 && (
-                <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-12">
-                  {categories.map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => setSelectedCategory(category)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
+              <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-12">
+                {categories.map((category) => (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
+                      selectedCategory === category
+                        ? 'text-white shadow-lg'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    }`}
+                    style={{
+                      backgroundColor:
                         selectedCategory === category
-                          ? 'text-white shadow-lg'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                      style={{
-                        backgroundColor:
-                          selectedCategory === category
-                            ? organizationData.branding.primaryColor
-                            : undefined,
-                      }}
-                    >
-                      {category}
-                    </button>
-                  ))}
-                </div>
-              )}
+                          ? organizationData.branding.primaryColor
+                          : undefined,
+                    }}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
 
               {/* Gallery Grid */}
-              {imagesLoading ? (
-                <div className="flex justify-center py-12">
-                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-                </div>
-              ) : imagesError ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                {filteredImages.map((image) => (
+                  <div
+                    key={image.id}
+                    className="group cursor-pointer overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+                    onClick={() => setSelectedImage(image)}
+                  >
+                    <div className="relative aspect-square">
+                      <Image
+                        src={image.src}
+                        alt={image.alt}
+                        fill
+                        unoptimized
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className="object-cover group-hover:scale-110 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                        <h3 className="text-white font-medium text-sm">
+                          {image.title}
+                        </h3>
+                        {image.tags && image.tags.length > 0 && (
+                          <p className="text-white/80 text-xs">
+                            {image.tags.join(', ')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Empty State */}
+              {filteredImages.length === 0 && (
                 <div className="text-center py-12">
-                  <p className="text-gray-500">
-                    Could not load the gallery right now. Please try again
-                    later.
+                  <p className="text-muted-foreground">
+                    No images found in this category.
                   </p>
                 </div>
-              ) : (
-                <>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                    {filteredImages.map((image) => (
-                      <div
-                        key={image.id}
-                        className="group cursor-pointer overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
-                        onClick={() => setSelectedImage(image)}
-                      >
-                        <div className="relative aspect-square">
-                          <Image
-                            src={image.image_url}
-                            alt={image.title || 'Gallery image'}
-                            fill
-                            unoptimized
-                            sizes="(max-width: 768px) 50vw, 33vw"
-                            className="object-cover group-hover:scale-110 transition-transform duration-300"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"></div>
-                          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                            <h3 className="text-white font-medium text-sm">
-                              {image.title}
-                            </h3>
-                            <p className="text-white/80 text-xs">
-                              {image.tags?.[0]}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Empty State */}
-                  {filteredImages.length === 0 && (
-                    <div className="text-center py-12">
-                      <p className="text-gray-500">
-                        {images.length === 0
-                          ? 'No photos have been added to the gallery yet.'
-                          : 'No images found in this category.'}
-                      </p>
-                    </div>
-                  )}
-                </>
               )}
             </div>
           </section>
@@ -250,8 +291,8 @@ export default function GalleryPage() {
                 ×
               </button>
               <Image
-                src={selectedImage.image_url}
-                alt={selectedImage.title || 'Gallery image'}
+                src={selectedImage.src}
+                alt={selectedImage.alt}
                 width={1600}
                 height={1200}
                 unoptimized
@@ -261,7 +302,16 @@ export default function GalleryPage() {
                 <h3 className="text-white font-medium text-lg">
                   {selectedImage.title}
                 </h3>
-                <p className="text-white/80">{selectedImage.tags?.[0]}</p>
+                {selectedImage.description && (
+                  <p className="text-white/90 text-sm mb-2">
+                    {selectedImage.description}
+                  </p>
+                )}
+                {selectedImage.tags && selectedImage.tags.length > 0 && (
+                  <p className="text-white/80 text-sm">
+                    {selectedImage.tags.join(', ')}
+                  </p>
+                )}
               </div>
             </div>
           </div>

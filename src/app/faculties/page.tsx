@@ -101,9 +101,7 @@ export default function FacultiesPage() {
               name: member.attributes.name,
               position: member.attributes.designation,
               department: member.attributes.role || 'General',
-              image:
-                member.attributes.photo ||
-                'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
+              image: member.attributes.photo || '/no-profile.svg',
               email: member.attributes.email,
               phone: member.attributes.phone,
               qualifications: [], // API doesn't provide qualifications yet
@@ -218,7 +216,7 @@ export default function FacultiesPage() {
 
         <main className="pt-8">
           {/* Page Header */}
-          <section className="py-12 bg-white">
+          <section className="py-12 bg-card">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl">
               <div className="text-center mb-12">
                 <h1
@@ -233,7 +231,7 @@ export default function FacultiesPage() {
                     backgroundColor: organizationData.branding.accentColor,
                   }}
                 ></div>
-                <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                   Meet our dedicated team of educators who are committed to
                   nurturing young minds and fostering academic excellence.
                 </p>
@@ -248,7 +246,7 @@ export default function FacultiesPage() {
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
                       selectedSubject === subject
                         ? 'text-white shadow-lg'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        : 'bg-muted text-muted-foreground hover:bg-muted/80'
                     }`}
                     style={{
                       backgroundColor:
@@ -265,13 +263,13 @@ export default function FacultiesPage() {
           </section>
 
           {/* Faculty Grid */}
-          <section className="py-16 bg-gray-50">
+          <section className="py-16 bg-muted/50">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {filteredFaculty.map((faculty) => (
                   <div
                     key={faculty.id}
-                    className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 overflow-hidden cursor-pointer"
+                    className="group bg-card rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 overflow-hidden cursor-pointer"
                     onClick={() => setSelectedFaculty(faculty)}
                   >
                     {/* Faculty Image */}
@@ -310,16 +308,16 @@ export default function FacultiesPage() {
                           />
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-foreground">
                             {faculty.department}
                           </p>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-muted-foreground">
                             {faculty.experience}
                           </p>
                         </div>
                       </div>
 
-                      <p className="text-gray-600 text-sm leading-relaxed mb-4 line-clamp-3">
+                      <p className="text-muted-foreground text-sm leading-relaxed mb-4 line-clamp-3">
                         {faculty.bio}
                       </p>
 
@@ -328,19 +326,19 @@ export default function FacultiesPage() {
                           {faculty.email && (
                             <a
                               href={`mailto:${faculty.email}`}
-                              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                              className="p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <Mail className="h-4 w-4 text-gray-600" />
+                              <Mail className="h-4 w-4 text-muted-foreground" />
                             </a>
                           )}
                           {faculty.phone && (
                             <a
                               href={`tel:${faculty.phone}`}
-                              className="p-2 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+                              className="p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <Phone className="h-4 w-4 text-gray-600" />
+                              <Phone className="h-4 w-4 text-muted-foreground" />
                             </a>
                           )}
                         </div>
@@ -362,7 +360,7 @@ export default function FacultiesPage() {
               {/* Empty State */}
               {filteredFaculty.length === 0 && (
                 <div className="text-center py-12">
-                  <p className="text-gray-500">
+                  <p className="text-muted-foreground">
                     No faculty members found teaching this subject.
                   </p>
                 </div>
@@ -380,7 +378,7 @@ export default function FacultiesPage() {
             onClick={() => setSelectedFaculty(null)}
           >
             <div
-              className="bg-white rounded-2xl max-w-2xl max-h-[90vh] overflow-y-auto"
+              className="bg-card rounded-2xl max-w-2xl max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="relative">
@@ -425,7 +423,7 @@ export default function FacultiesPage() {
                       <BookOpen className="h-5 w-5 mr-2" />
                       About
                     </h3>
-                    <p className="text-gray-600 leading-relaxed">
+                    <p className="text-muted-foreground leading-relaxed">
                       {selectedFaculty.bio}
                     </p>
                   </div>
@@ -451,7 +449,9 @@ export default function FacultiesPage() {
                                   organizationData.branding.accentColor,
                               }}
                             ></span>
-                            <span className="text-gray-600">{qual}</span>
+                            <span className="text-muted-foreground">
+                              {qual}
+                            </span>
                           </li>
                         ),
                       )}

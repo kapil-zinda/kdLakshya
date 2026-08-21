@@ -7,6 +7,8 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useAppDispatch } from '@/store/hooks';
+import { logout as logoutAction } from '@/store/slices/authSlice';
 import { OrganizationConfig } from '@/types/organization';
 import { Menu, X } from 'lucide-react';
 
@@ -27,6 +29,7 @@ export function Header({ organization }: HeaderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     // Check authentication status
@@ -125,16 +128,22 @@ export function Header({ organization }: HeaderProps) {
   };
 
   const handleLogout = () => {
-    // Clear all authentication data (including student auth and the
-    // redux-persist snapshot, or a shared computer stays logged in)
+    // Clear the persisted Redux auth slice so RTK Query (e.g.
+    // useGetUserProfileQuery) doesn't keep firing /users/me after the redirect.
+    dispatch(logoutAction());
+
+    // Clear all authentication data - including student auth and the
+    // redux-persist snapshot, or a shared computer stays logged in.
     localStorage.removeItem('bearerToken');
     localStorage.removeItem('adminAuth');
     localStorage.removeItem('studentAuth');
     localStorage.removeItem('authState');
     localStorage.removeItem('codeVerifier');
     localStorage.removeItem('persist:root');
+    localStorage.removeItem('cachedUserData');
     sessionStorage.removeItem('authCodeProcessed');
     sessionStorage.removeItem('isAuthCallback');
+    sessionStorage.removeItem('userData');
 
     // Force re-check of auth status
     setIsAuthenticated(false);
@@ -211,18 +220,9 @@ export function Header({ organization }: HeaderProps) {
                       onClick={() => handleNavigation(item.href)}
                       className={`font-medium transition-all duration-200 hover:scale-105 cursor-pointer px-3 py-1.5 rounded-md ${
                         isActive
-                          ? 'border-b-2 bg-accent'
-                          : 'text-foreground hover:bg-accent/60'
+                          ? 'border-2 border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-400 font-semibold'
+                          : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
                       }`}
-                      style={{
-                        color: isActive
-                          ? organization.branding.primaryColor
-                          : undefined,
-                        borderBottomColor: isActive
-                          ? organization.branding.primaryColor
-                          : 'transparent',
-                        fontWeight: isActive ? '600' : '500',
-                      }}
                     >
                       {item.label}
                     </button>
@@ -239,23 +239,13 @@ export function Header({ organization }: HeaderProps) {
               {isAuthenticated ? (
                 <div className="flex items-center space-x-3">
                   <Button
-                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white border-2"
-                    style={{
-                      backgroundColor: organization.branding.primaryColor,
-                      borderColor: 'rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                    }}
+                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={() => handleNavigation('/dashboard')}
                   >
                     Dashboard
                   </Button>
                   <Button
-                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white border-2"
-                    style={{
-                      backgroundColor: '#ef4444',
-                      borderColor: 'rgba(255, 255, 255, 0.2)',
-                      color: 'white',
-                    }}
+                    className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-red-500 hover:bg-red-600 text-white"
                     onClick={handleLogout}
                   >
                     Logout
@@ -263,12 +253,7 @@ export function Header({ organization }: HeaderProps) {
                 </div>
               ) : (
                 <Button
-                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-sm hover:shadow-md transition-all duration-300 hover:scale-105 text-white hover:text-white border-2"
-                  style={{
-                    backgroundColor: organization.branding.primaryColor,
-                    borderColor: 'rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                  }}
+                  className="font-medium px-4 sm:px-6 py-2 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg transition-all duration-300 hover:scale-105 bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={handleAuthLogin}
                 >
                   Sign in
@@ -305,15 +290,11 @@ export function Header({ organization }: HeaderProps) {
                           handleNavigation(item.href);
                           setIsMenuOpen(false);
                         }}
-                        className={`block py-2 sm:py-3 px-3 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg w-full text-left text-foreground ${
-                          isActive ? 'bg-accent' : 'hover:bg-accent/60'
+                        className={`block py-2 sm:py-3 px-3 font-medium transition-colors duration-200 text-sm sm:text-base rounded-lg w-full text-left ${
+                          isActive
+                            ? 'border-2 border-blue-600 text-blue-600 bg-blue-50 dark:bg-blue-950 dark:text-blue-400 dark:border-blue-400 font-semibold'
+                            : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
                         }`}
-                        style={{
-                          color: isActive
-                            ? organization.branding.primaryColor
-                            : undefined,
-                          fontWeight: isActive ? '600' : '500',
-                        }}
                       >
                         {item.label}
                       </button>
@@ -330,12 +311,7 @@ export function Header({ organization }: HeaderProps) {
                   {isAuthenticated ? (
                     <div className="space-y-3">
                       <Button
-                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md text-white hover:text-white border-2"
-                        style={{
-                          backgroundColor: organization.branding.primaryColor,
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
-                          color: 'white',
-                        }}
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg bg-blue-600 hover:bg-blue-700 text-white"
                         onClick={() => {
                           handleNavigation('/dashboard');
                           setIsMenuOpen(false);
@@ -344,12 +320,7 @@ export function Header({ organization }: HeaderProps) {
                         Dashboard
                       </Button>
                       <Button
-                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md text-white hover:text-white border-2"
-                        style={{
-                          backgroundColor: '#ef4444',
-                          borderColor: 'rgba(255, 255, 255, 0.2)',
-                          color: 'white',
-                        }}
+                        className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg bg-red-500 hover:bg-red-600 text-white"
                         onClick={() => {
                           handleLogout();
                           setIsMenuOpen(false);
@@ -360,12 +331,7 @@ export function Header({ organization }: HeaderProps) {
                     </div>
                   ) : (
                     <Button
-                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md text-white hover:text-white border-2"
-                      style={{
-                        backgroundColor: organization.branding.primaryColor,
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
-                        color: 'white',
-                      }}
+                      className="w-full font-medium py-2.5 sm:py-3 text-sm sm:text-base rounded-full shadow-md hover:shadow-lg bg-blue-600 hover:bg-blue-700 text-white"
                       onClick={() => {
                         handleAuthLogin();
                         setIsMenuOpen(false);

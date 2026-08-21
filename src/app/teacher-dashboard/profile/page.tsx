@@ -6,6 +6,7 @@ import Image from 'next/image';
 
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { getCDNUrl } from '@/config/cdn';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import toast, { Toaster } from 'react-hot-toast';
 
@@ -53,6 +54,10 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
 
     try {
       // Use full user data from Redux (has all fields including email, type, phone, etc.)
+      const rawPhotoUrl = fullUserData.profilePhoto || '';
+      // If photo URL doesn't start with http, add CloudFront domain
+      const profilePhotoUrl = getCDNUrl(rawPhotoUrl);
+
       const profileData = {
         id: fullUserData.id || '',
         orgId: fullUserData.orgId || '',
@@ -62,7 +67,7 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
         phone: fullUserData.phone || '',
         designation: fullUserData.designation || '',
         experience: fullUserData.experience || '',
-        profilePhoto: fullUserData.profilePhoto || '',
+        profilePhoto: profilePhotoUrl,
         type: fullUserData.type || '',
         role: fullUserData.role || '',
       };
@@ -70,8 +75,8 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
       setTeacherData(profileData);
 
       // Set profile photo URL if available
-      if (profileData.profilePhoto) {
-        setProfilePhotoUrl(profileData.profilePhoto);
+      if (profilePhotoUrl) {
+        setProfilePhotoUrl(profilePhotoUrl);
       }
 
       // Sync to localStorage for backward compatibility
@@ -106,6 +111,10 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
     try {
       if (!teacherData?.id) {
         throw new Error('Teacher ID not found');
+      }
+
+      if (!fullUserData?.orgId) {
+        throw new Error('Organization ID not found');
       }
 
       const tokenData = localStorage.getItem('bearerToken');
@@ -153,20 +162,25 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
         throw new Error(`S3 upload failed: ${uploadResponse.status}`);
       }
 
-      // Best-effort preview URL for this session; the upload is already
-      // saved server-side (profile_picture_key) regardless of whether this
-      // particular URL is publicly viewable.
-      const photoUrl = signedUrl.split('?')[0];
+      // The presigned URL minus its query is the stored object's location.
+      // No follow-up PUT of this path is needed: the profile-picture endpoint
+      // above persists the S3 key on the faculty record when it issues the
+      // URL, so writing it again here would only risk clobbering that key.
+      const filePath = signedUrl.split('?')[0];
+
+      // getCDNUrl fronts a bare S3 key with the CloudFront domain and returns
+      // an already-complete URL unchanged.
+      const displayUrl = getCDNUrl(filePath);
 
       // Update teacher data with new photo URL
       const updatedTeacherData = {
         ...teacherData,
-        profilePhoto: photoUrl,
+        profilePhoto: displayUrl,
       };
       setTeacherData(updatedTeacherData);
 
       // Update the displayed photo URL
-      setProfilePhotoUrl(photoUrl);
+      setProfilePhotoUrl(displayUrl);
 
       toast.success('Profile photo updated successfully!', {
         id: uploadToast,

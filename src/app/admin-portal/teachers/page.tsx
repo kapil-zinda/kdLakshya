@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 import { BulkImportModal } from '@/components/admin/BulkImportModal';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { getCDNUrl } from '@/config/cdn';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
 import {
@@ -211,9 +212,7 @@ function TeacherManagementContent() {
         experience: addFormData.experience || 1,
         role: addFormData.role || 'faculty',
         bio: addFormData.bio || '',
-        photo:
-          addFormData.photo ||
-          'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+        photo: addFormData.photo || '/no-profile.svg',
         subjects: addFormData.subjects || [],
         email: addFormData.email!,
         phone: addFormData.phone!,
@@ -349,7 +348,7 @@ function TeacherManagementContent() {
       if (editFormData.designation)
         facultyData.designation = editFormData.designation;
       if (editFormData.bio) facultyData.bio = editFormData.bio;
-      if (editFormData.photo) facultyData.photo = editFormData.photo;
+      if (editFormData.photo) facultyData.photo = getCDNUrl(editFormData.photo);
       if (editFormData.subjects) facultyData.subjects = editFormData.subjects;
       if (editFormData.email) facultyData.email = editFormData.email;
       if (editFormData.phone) facultyData.phone = editFormData.phone;

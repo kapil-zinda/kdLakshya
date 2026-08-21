@@ -3,9 +3,8 @@
 import { useMemo } from 'react';
 
 import { useGetUserProfileQuery } from '@/store/api/authApi';
-import { baseApi, classApi, workspaceApi } from '@/store/api/baseApi';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { logout as logoutAction } from '@/store/slices/authSlice';
+import { useAppSelector } from '@/store/hooks';
+import { isAuthSubdomain } from '@/utils/subdomainUtils';
 
 export interface CachedUserData {
   id: string;
@@ -13,7 +12,7 @@ export interface CachedUserData {
   firstName: string;
   lastName: string;
   role: string;
-  permissions: Record<string, unknown>;
+  permissions: Record<string, any>;
   orgId: string;
   accessToken?: string;
   type?: string;
@@ -31,19 +30,20 @@ export interface CachedUserData {
  * const { userData, isLoading, refetch } = useUserDataRedux();
  */
 export function useUserDataRedux() {
-  const dispatch = useAppDispatch();
   // Get token from Redux store
   const token = useAppSelector((state) => state.auth.token?.token);
   const reduxUser = useAppSelector((state) => state.auth.user);
 
-  // Fetch user profile using RTK Query (with automatic caching)
+  // Fetch user profile using RTK Query (with automatic caching).
+  // Never fire on the auth subdomain — it's just for login.
+  const onAuthSubdomain = isAuthSubdomain();
   const {
     data: fetchedUserData,
     isLoading,
     error,
     refetch,
   } = useGetUserProfileQuery(undefined, {
-    skip: !token, // Skip if no token
+    skip: !token || onAuthSubdomain,
   });
 
   // Merge user data with token for backward compatibility - memoized to prevent infinite re-renders
@@ -57,26 +57,11 @@ export function useUserDataRedux() {
     return null;
   }, [fetchedUserData, reduxUser, token]);
 
-  // Fully logs the user out: clears Redux auth state, the persisted
-  // redux-persist snapshot, and legacy auth keys some older screens still read.
+  // For backward compatibility with old code
   const clearUserData = () => {
-    dispatch(logoutAction());
-    // Purge all cached query results app-wide, not just wait for their
-    // 5-minute keepUnusedDataFor TTL to expire - without this, a
-    // previous user's PII (fees, attendance, profile) could still render
-    // from cache for up to 5 minutes on a shared device after logout.
-    dispatch(baseApi.util.resetApiState());
-    dispatch(classApi.util.resetApiState());
-    dispatch(workspaceApi.util.resetApiState());
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('persist:root');
-      localStorage.removeItem('bearerToken');
-      localStorage.removeItem('studentAuth');
-      localStorage.removeItem('adminAuth');
-      localStorage.removeItem('cachedUserData');
-      localStorage.removeItem('authState');
-      localStorage.removeItem('codeVerifier');
-    }
+    console.warn(
+      'clearUserData is deprecated. Use logout action from Redux instead.',
+    );
   };
 
   const refreshUserData = async () => {

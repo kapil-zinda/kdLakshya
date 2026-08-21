@@ -1041,6 +1041,20 @@ export interface StudentListResponse {
   data: StudentResponse['data'][];
 }
 
+export interface FetchAllDataResult {
+  subdomain: SubdomainResponse;
+  content: ContentResponse;
+  products: Product[];
+  userInfo: UserInfoResponse;
+  hero?: HeroResponse;
+  about?: AboutResponse;
+  siteConfig?: SiteConfigResponse;
+  branding?: BrandingResponse;
+  programs?: ProgramsResponse;
+  stats?: StatsResponse;
+  news?: NewsResponse;
+}
+
 // API service functions
 export class ApiService {
   // Clear cache for specific resource
@@ -1169,15 +1183,22 @@ export class ApiService {
   static async getOrganization(
     subdomain: string,
   ): Promise<OrganizationResponse> {
-    try {
-      const response = await externalApi.get(
-        `/organizations/subdomain/${subdomain}`,
-      );
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching organization data:', error);
-      throw new Error('Failed to fetch organization data');
-    }
+    const cacheKey = `organization_${subdomain}`;
+    const cached = apiCache.get<OrganizationResponse>(cacheKey);
+    if (cached) return cached;
+
+    return apiCache.dedupe(cacheKey, async () => {
+      try {
+        const response = await externalApi.get(
+          `/organizations/subdomain/${subdomain}`,
+        );
+        apiCache.set(cacheKey, response.data, 300000);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching organization data:', error);
+        throw new Error('Failed to fetch organization data');
+      }
+    });
   }
 
   // Get organization data by ID
@@ -1411,13 +1432,20 @@ export class ApiService {
 
   // Get site configuration by organization ID
   static async getSiteConfig(orgId: string): Promise<SiteConfigResponse> {
-    try {
-      const response = await externalApi.get(`/${orgId}/siteconfig`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching site config:', error);
-      throw new Error('Failed to fetch site configuration');
-    }
+    const cacheKey = `siteconfig_${orgId}`;
+    const cached = apiCache.get<SiteConfigResponse>(cacheKey);
+    if (cached) return cached;
+
+    return apiCache.dedupe(cacheKey, async () => {
+      try {
+        const response = await externalApi.get(`/${orgId}/siteconfig`);
+        apiCache.set(cacheKey, response.data, 300000);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching site config:', error);
+        throw new Error('Failed to fetch site configuration');
+      }
+    });
   }
 
   // Update site configuration by organization ID
@@ -1483,13 +1511,20 @@ export class ApiService {
 
   // Get about section data by organization ID
   static async getAbout(orgId: string): Promise<AboutResponse> {
-    try {
-      const response = await externalApi.get(`/${orgId}/about`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching about data:', error);
-      throw new Error('Failed to fetch about section data');
-    }
+    const cacheKey = `about_${orgId}`;
+    const cached = apiCache.get<AboutResponse>(cacheKey);
+    if (cached) return cached;
+
+    return apiCache.dedupe(cacheKey, async () => {
+      try {
+        const response = await externalApi.get(`/${orgId}/about`);
+        apiCache.set(cacheKey, response.data, 300000);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching about data:', error);
+        throw new Error('Failed to fetch about section data');
+      }
+    });
   }
 
   // Update about section data by organization ID
@@ -1553,13 +1588,20 @@ export class ApiService {
 
   // Get hero section data by organization ID
   static async getHero(orgId: string): Promise<HeroResponse> {
-    try {
-      const response = await externalApi.get(`/${orgId}/hero`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching hero data:', error);
-      throw new Error('Failed to fetch hero section data');
-    }
+    const cacheKey = `hero_${orgId}`;
+    const cached = apiCache.get<HeroResponse>(cacheKey);
+    if (cached) return cached;
+
+    return apiCache.dedupe(cacheKey, async () => {
+      try {
+        const response = await externalApi.get(`/${orgId}/hero`);
+        apiCache.set(cacheKey, response.data, 300000);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching hero data:', error);
+        throw new Error('Failed to fetch hero section data');
+      }
+    });
   }
 
   // Update hero section data by organization ID
@@ -1616,13 +1658,20 @@ export class ApiService {
 
   // Get branding data by organization ID
   static async getBranding(orgId: string): Promise<BrandingResponse> {
-    try {
-      const response = await externalApi.get(`/${orgId}/branding`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching branding data:', error);
-      throw new Error('Failed to fetch branding data');
-    }
+    const cacheKey = `branding_${orgId}`;
+    const cached = apiCache.get<BrandingResponse>(cacheKey);
+    if (cached) return cached;
+
+    return apiCache.dedupe(cacheKey, async () => {
+      try {
+        const response = await externalApi.get(`/${orgId}/branding`);
+        apiCache.set(cacheKey, response.data, 300000);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching branding data:', error);
+        throw new Error('Failed to fetch branding data');
+      }
+    });
   }
 
   // Update branding data by organization ID
@@ -2160,24 +2209,38 @@ export class ApiService {
 
   // Get programs data by organization ID
   static async getPrograms(orgId: string): Promise<ProgramsResponse> {
-    try {
-      const response = await externalApi.get(`/${orgId}/programs`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching programs data:', error);
-      throw new Error('Failed to fetch programs data');
-    }
+    const cacheKey = `programs_${orgId}`;
+    const cached = apiCache.get<ProgramsResponse>(cacheKey);
+    if (cached) return cached;
+
+    return apiCache.dedupe(cacheKey, async () => {
+      try {
+        const response = await externalApi.get(`/${orgId}/programs`);
+        apiCache.set(cacheKey, response.data, 300000);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching programs data:', error);
+        throw new Error('Failed to fetch programs data');
+      }
+    });
   }
 
   // Get stats data by organization ID
   static async getStats(orgId: string): Promise<StatsResponse> {
-    try {
-      const response = await externalApi.get(`/${orgId}/stats`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching stats data:', error);
-      throw new Error('Failed to fetch stats data');
-    }
+    const cacheKey = `stats_${orgId}`;
+    const cached = apiCache.get<StatsResponse>(cacheKey);
+    if (cached) return cached;
+
+    return apiCache.dedupe(cacheKey, async () => {
+      try {
+        const response = await externalApi.get(`/${orgId}/stats`);
+        apiCache.set(cacheKey, response.data, 300000);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching stats data:', error);
+        throw new Error('Failed to fetch stats data');
+      }
+    });
   }
 
   // Create statistic
@@ -2306,13 +2369,20 @@ export class ApiService {
 
   // Get news/notifications data by organization ID
   static async getNews(orgId: string): Promise<NewsListResponse> {
-    try {
-      const response = await externalApi.get(`/${orgId}/news`);
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching news data:', error);
-      throw new Error('Failed to fetch news/notifications data');
-    }
+    const cacheKey = `news_${orgId}`;
+    const cached = apiCache.get<NewsListResponse>(cacheKey);
+    if (cached) return cached;
+
+    return apiCache.dedupe(cacheKey, async () => {
+      try {
+        const response = await externalApi.get(`/${orgId}/news`);
+        apiCache.set(cacheKey, response.data, 300000);
+        return response.data;
+      } catch (error) {
+        console.error('Error fetching news data:', error);
+        throw new Error('Failed to fetch news/notifications data');
+      }
+    });
   }
 
   // Additional method to get user data (using the real API structure)
@@ -4438,93 +4508,97 @@ export class ApiService {
   }
 
   // Combined function to fetch all data in sequence
-  static async fetchAllData(subdomainParam?: string): Promise<{
-    subdomain: SubdomainResponse;
-    content: ContentResponse;
-    products: Product[];
-    userInfo: UserInfoResponse;
-    hero?: HeroResponse;
-    about?: AboutResponse;
-    siteConfig?: SiteConfigResponse;
-    branding?: BrandingResponse;
-    programs?: ProgramsResponse;
-    stats?: StatsResponse;
-    news?: NewsResponse;
-  }> {
-    try {
-      // Determine subdomain from parameter, URL, or default
-      let targetSubdomain = subdomainParam;
+  static async fetchAllData(
+    subdomainParam?: string,
+  ): Promise<FetchAllDataResult> {
+    // Determine subdomain from parameter, URL, or default
+    let targetSubdomain = subdomainParam;
 
-      if (!targetSubdomain && typeof window !== 'undefined') {
-        // Try to extract subdomain from current URL
-        const hostname = window.location.hostname;
-        if (hostname.includes('.')) {
-          targetSubdomain = hostname.split('.')[0];
-        }
+    if (!targetSubdomain && typeof window !== 'undefined') {
+      // Try to extract subdomain from current URL
+      const hostname = window.location.hostname;
+      if (hostname.includes('.')) {
+        targetSubdomain = hostname.split('.')[0];
       }
-
-      // Default to 'auth' if no subdomain found
-      targetSubdomain = targetSubdomain || 'auth';
-
-      console.log('Fetching data for subdomain:', targetSubdomain);
-
-      // Step 1: Get subdomain data first
-      const subdomainData = await this.getSubdomain(targetSubdomain);
-      const orgId = subdomainData.config.organizationId;
-
-      // Step 2: Get remaining data in parallel (they can run concurrently)
-      const [
-        contentData,
-        productsData,
-        userInfoData,
-        heroData,
-        aboutData,
-        siteConfigData,
-        brandingData,
-        programsData,
-        statsData,
-        newsData,
-      ] = await Promise.allSettled([
-        this.getContent(),
-        this.getProducts(),
-        this.getUserInfo(subdomainData.subdomain),
-        orgId ? this.getHero(orgId) : Promise.reject('No org ID'),
-        orgId ? this.getAbout(orgId) : Promise.reject('No org ID'),
-        orgId ? this.getSiteConfig(orgId) : Promise.reject('No org ID'),
-        orgId ? this.getBranding(orgId) : Promise.reject('No org ID'),
-        orgId ? this.getPrograms(orgId) : Promise.reject('No org ID'),
-        orgId ? this.getStats(orgId) : Promise.reject('No org ID'),
-        orgId ? this.getNews(orgId) : Promise.reject('No org ID'),
-      ]);
-
-      return {
-        subdomain: subdomainData,
-        content:
-          contentData.status === 'fulfilled'
-            ? contentData.value
-            : ({} as ContentResponse),
-        products: productsData.status === 'fulfilled' ? productsData.value : [],
-        userInfo:
-          userInfoData.status === 'fulfilled'
-            ? userInfoData.value
-            : { users: 0, active: false },
-        hero: heroData.status === 'fulfilled' ? heroData.value : undefined,
-        about: aboutData.status === 'fulfilled' ? aboutData.value : undefined,
-        siteConfig:
-          siteConfigData.status === 'fulfilled'
-            ? siteConfigData.value
-            : undefined,
-        branding:
-          brandingData.status === 'fulfilled' ? brandingData.value : undefined,
-        programs:
-          programsData.status === 'fulfilled' ? programsData.value : undefined,
-        stats: statsData.status === 'fulfilled' ? statsData.value : undefined,
-        news: newsData.status === 'fulfilled' ? newsData.value : undefined,
-      };
-    } catch (error) {
-      console.error('Error fetching all API data:', error);
-      throw new Error('Failed to fetch required data');
     }
+
+    // Default to 'auth' if no subdomain found
+    targetSubdomain = targetSubdomain || 'auth';
+
+    const cacheKey = `fetchAllData_${targetSubdomain}`;
+    const cached = apiCache.get<FetchAllDataResult>(cacheKey);
+    if (cached) return cached;
+
+    return apiCache.dedupe(cacheKey, async () => {
+      try {
+        console.log('Fetching data for subdomain:', targetSubdomain);
+
+        // Step 1: Get subdomain data first
+        const subdomainData = await this.getSubdomain(targetSubdomain!);
+        const orgId = subdomainData.config.organizationId;
+
+        // Step 2: Get remaining data in parallel (they can run concurrently)
+        const [
+          contentData,
+          productsData,
+          userInfoData,
+          heroData,
+          aboutData,
+          siteConfigData,
+          brandingData,
+          programsData,
+          statsData,
+          newsData,
+        ] = await Promise.allSettled([
+          this.getContent(),
+          this.getProducts(),
+          this.getUserInfo(subdomainData.subdomain),
+          orgId ? this.getHero(orgId) : Promise.reject('No org ID'),
+          orgId ? this.getAbout(orgId) : Promise.reject('No org ID'),
+          orgId ? this.getSiteConfig(orgId) : Promise.reject('No org ID'),
+          orgId ? this.getBranding(orgId) : Promise.reject('No org ID'),
+          orgId ? this.getPrograms(orgId) : Promise.reject('No org ID'),
+          orgId ? this.getStats(orgId) : Promise.reject('No org ID'),
+          orgId ? this.getNews(orgId) : Promise.reject('No org ID'),
+        ]);
+
+        const result: FetchAllDataResult = {
+          subdomain: subdomainData,
+          content:
+            contentData.status === 'fulfilled'
+              ? contentData.value
+              : ({} as ContentResponse),
+          products:
+            productsData.status === 'fulfilled' ? productsData.value : [],
+          userInfo:
+            userInfoData.status === 'fulfilled'
+              ? userInfoData.value
+              : { users: 0, active: false },
+          hero: heroData.status === 'fulfilled' ? heroData.value : undefined,
+          about: aboutData.status === 'fulfilled' ? aboutData.value : undefined,
+          siteConfig:
+            siteConfigData.status === 'fulfilled'
+              ? siteConfigData.value
+              : undefined,
+          branding:
+            brandingData.status === 'fulfilled'
+              ? brandingData.value
+              : undefined,
+          programs:
+            programsData.status === 'fulfilled'
+              ? programsData.value
+              : undefined,
+          stats: statsData.status === 'fulfilled' ? statsData.value : undefined,
+          news: newsData.status === 'fulfilled' ? newsData.value : undefined,
+        };
+
+        apiCache.set(cacheKey, result, 300000);
+        return result;
+      } catch (error) {
+        console.error('Error fetching all API data:', error);
+        throw new Error('Failed to fetch required data');
+      }
+    });
   }
 }
 
