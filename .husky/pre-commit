@@ -33,8 +33,13 @@ fi
 
 echo "Running ESLint..."
 
+# ESLint ignores dotfiles and dot-directories (.claude/, .eslintrc.json) by
+# default, and warns "File ignored by default" when one is passed explicitly -
+# so keep them out of the lint list. Prettier above still formats them.
+LINT_FILES=$(echo "$FILES" | grep -v '^\.' || true)
+
 # Run ESLint on the staged files but don't automatically re-stage them
-echo "$FILES" | while read -r file; do
+echo "$LINT_FILES" | while read -r file; do
   if [ -f "$file" ]; then
     npx eslint "$file" --fix
   fi
