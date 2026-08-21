@@ -125,12 +125,14 @@ export function Header({ organization }: HeaderProps) {
   };
 
   const handleLogout = () => {
-    // Clear all authentication data (including student auth)
+    // Clear all authentication data (including student auth and the
+    // redux-persist snapshot, or a shared computer stays logged in)
     localStorage.removeItem('bearerToken');
     localStorage.removeItem('adminAuth');
     localStorage.removeItem('studentAuth');
     localStorage.removeItem('authState');
     localStorage.removeItem('codeVerifier');
+    localStorage.removeItem('persist:root');
     sessionStorage.removeItem('authCodeProcessed');
     sessionStorage.removeItem('isAuthCallback');
 

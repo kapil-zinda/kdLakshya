@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 
+import { useOrganizationData } from '@/hooks/useOrganizationData';
 import Api from '@/services/api';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
@@ -82,6 +83,7 @@ interface AttendanceData {
 }
 
 const StudentAttendance: React.FC = () => {
+  const { organizationData } = useOrganizationData();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [attendanceData, setAttendanceData] = useState<AttendanceData[]>([]);
@@ -571,9 +573,13 @@ const StudentAttendance: React.FC = () => {
         <div className="print-only">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-black">
-              SHREE LAHARI SINGH MEMO. INTER COLLEGE GHANGHAULI, ALIGARH
+              {organizationData?.name || 'School'}
             </h1>
-            <p className="text-black">Phone No. 9897470696</p>
+            {organizationData?.contact?.phone && (
+              <p className="text-black">
+                Phone No. {organizationData.contact.phone}
+              </p>
+            )}
             <h2 className="text-xl font-bold mt-4 text-black">
               Attendance Report - {monthData.month} {monthData.year}
             </h2>

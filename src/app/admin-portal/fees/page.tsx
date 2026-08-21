@@ -5,10 +5,20 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
+import type {
+  ApiCollection,
+  ApiResource,
+  ClassStudentAttributes,
+  FeeAttributes,
+  FeeStructureAttributes,
+} from '@/services/api';
 import { useGetClassesQuery } from '@/store/api/classApi';
 import { makeApiCall } from '@/utils/ApiRequest';
+import { toast } from 'react-toastify';
 
 // Types
 type FeeType =
@@ -17,14 +27,6 @@ type FeeType =
   | 'Registration Fee'
   | 'Admission Fee'
   | 'Other Fees';
-
-interface FeeComponent {
-  type: FeeType;
-  amount: number;
-  isPaid: boolean;
-  dueDate?: string;
-  month?: string;
-}
 
 interface FeeStructure {
   id: string;
@@ -89,7 +91,25 @@ const mapFeeType = (apiType: string): FeeType => {
   return 'Other Fees';
 };
 
+// Indian schools run an April-March academic year - "2024-25" means the
+// year that started April 2024.
+const getCurrentAcademicYear = () => {
+  const now = new Date();
+  const startYear =
+    now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  return `${startYear}-${String((startYear + 1) % 100).padStart(2, '0')}`;
+};
+
 export default function FeeManagementERP() {
+  return (
+    <DashboardWrapper allowedRoles={['admin']} redirectTo="/">
+      {() => <FeeManagementERPContent />}
+    </DashboardWrapper>
+  );
+}
+
+function FeeManagementERPContent() {
+  const confirm = useConfirm();
   // Get orgId from Redux
   const { userData } = useUserDataRedux();
   const orgId = userData?.orgId;
@@ -118,9 +138,12 @@ export default function FeeManagementERP() {
 
   // Filter states
   const [selectedClass, setSelectedClass] = useState('Select Class');
-  const [selectedStatus, setSelectedStatus] = useState('All');
-  const [selectedMonth, setSelectedMonth] = useState('All');
-  const [selectedYear, setSelectedYear] = useState('2024-25');
+  // The "Filter by Status"/"Filter by Month" selects are commented out in the
+  // markup below, so these stay at their defaults - kept as values so the
+  // filtering logic stays intact for when that UI comes back.
+  const selectedStatus: string = 'All';
+  const selectedMonth: string = 'All';
+  const [selectedYear, setSelectedYear] = useState(getCurrentAcademicYear());
   const [searchTerm, setSearchTerm] = useState('');
 
   // UI states
@@ -184,7 +207,18 @@ export default function FeeManagementERP() {
     'March',
   ];
 
-  const academicYears = ['2024-25'];
+  // Selectable range around the current academic year instead of a
+  // single hardcoded year that goes stale every year.
+  const academicYears = (() => {
+    const [currentStartStr] = getCurrentAcademicYear().split('-');
+    const currentStartYear = parseInt(currentStartStr, 10);
+    const years: string[] = [];
+    for (let offset = -3; offset <= 1; offset++) {
+      const start = currentStartYear + offset;
+      years.push(`${start}-${String((start + 1) % 100).padStart(2, '0')}`);
+    }
+    return years;
+  })();
 
   useEffect(() => {
     const tokenStr = localStorage.getItem('bearerToken');
@@ -234,17 +268,18 @@ export default function FeeManagementERP() {
 
       // Fetch fee structures from API
       const queryString = `?academic_year=${encodeURIComponent(selectedYear)}`;
-      const feeStructuresResponse = await makeApiCall({
-        path: `/class/${orgId}/fee-structures${queryString}`,
-        method: 'GET',
-        baseUrl: 'default',
-      }).catch(() => ({ data: [] }));
+      const feeStructuresResponse: ApiCollection<FeeStructureAttributes> =
+        await makeApiCall({
+          path: `/class/${orgId}/fee-structures${queryString}`,
+          method: 'GET',
+          baseUrl: 'default',
+        }).catch(() => ({ data: [] }));
 
       // Don't fetch fees for all classes - let handleClassSelection do it per class
 
       // Create fee structures ONLY from API data (no defaults)
       const structures: FeeStructure[] = (feeStructuresResponse.data || [])
-        .map((apiStructure: any) => {
+        .map((apiStructure) => {
           if (!apiStructure || !apiStructure.attributes.components) {
             return null;
           }
@@ -254,8 +289,8 @@ export default function FeeManagementERP() {
 
           return {
             id: apiStructure.id,
-            className,
-            academicYear: apiStructure.attributes.academic_year,
+            className: className ?? '',
+            academicYear: apiStructure.attributes.academic_year ?? '',
             totalAmount: apiStructure.attributes.total_amount || 0,
             components: {
               admissionFee: components.admission_fee || 0,
@@ -319,39 +354,46 @@ export default function FeeManagementERP() {
       console.log(
         `🔵 Fetching fee records for class: ${className} (ID: ${classId})`,
       );
-      const classStudentsResponse = await makeApiCall({
-        path: `/class/${orgId}/classes/${classId}/students`,
-        method: 'GET',
-        baseUrl: 'default',
-      });
+      const classStudentsResponse: ApiCollection<ClassStudentAttributes> =
+        await makeApiCall({
+          path: `/class/${orgId}/classes/${classId}/students`,
+          method: 'GET',
+          baseUrl: 'default',
+        });
 
       // Fetch fees for the selected class
       const feeQueryString = `?academic_year=${encodeURIComponent(selectedYear)}`;
-      const classFeesResponse = await makeApiCall({
-        path: `/class/${orgId}/classes/${classId}/fees${feeQueryString}`,
-        method: 'GET',
-        baseUrl: 'default',
-      }).catch(() => ({ data: [] }));
+      const classFeesResponse: ApiCollection<FeeAttributes> = await makeApiCall(
+        {
+          path: `/class/${orgId}/classes/${classId}/fees${feeQueryString}`,
+          method: 'GET',
+          baseUrl: 'default',
+        },
+      ).catch(() => ({ data: [] }));
 
-      // Find the fee structure for this class
-      const structure = feeStructures.find((s) => s.className === className) ||
-        feeStructures[0] || {
-          id: 'default',
-          className,
-          academicYear: selectedYear,
-          totalAmount: 0,
-          components: {
-            admissionFee: 0,
-            registrationFee: 0,
-            tuitionFees: 0,
-            examFees: 0,
-            otherFees: 0,
-          },
-        };
+      // Find the fee structure for this class - if none exists, use an
+      // honest zero-amount placeholder rather than borrowing an unrelated
+      // class's structure (which previously showed a nonzero total that
+      // belonged to a different class entirely).
+      const structure = feeStructures.find(
+        (s) => s.className === className,
+      ) || {
+        id: 'default',
+        className,
+        academicYear: selectedYear,
+        totalAmount: 0,
+        components: {
+          admissionFee: 0,
+          registrationFee: 0,
+          tuitionFees: 0,
+          examFees: 0,
+          otherFees: 0,
+        },
+      };
 
       // Create a map of students with assigned fees
-      const studentsWithFees = new Map<string, any>();
-      (classFeesResponse.data || []).forEach((feeData: any) => {
+      const studentsWithFees = new Map<string, ApiResource<FeeAttributes>>();
+      (classFeesResponse.data || []).forEach((feeData) => {
         const studentId = feeData.attributes.student_id;
         if (studentId) {
           studentsWithFees.set(studentId, feeData);
@@ -360,7 +402,7 @@ export default function FeeManagementERP() {
 
       // Transform API response to fee records
       const records: StudentFeeRecord[] = classStudentsResponse.data.map(
-        (studentData: any) => {
+        (studentData) => {
           const studentId = studentData.attributes.student_id || studentData.id;
           const feeData = studentsWithFees.get(studentId);
 
@@ -368,15 +410,15 @@ export default function FeeManagementERP() {
             // Student has fees assigned
             const attributes = feeData.attributes;
             const payments: Payment[] = (attributes.payments || []).map(
-              (payment: any) => ({
-                id: payment.id,
-                date: payment.date,
-                amount: payment.amount,
+              (payment, idx) => ({
+                id: payment.id || `payment-${idx}`,
+                date: payment.date || '',
+                amount: payment.amount ?? 0,
                 feeType: mapFeeType(payment.description || ''),
-                description: payment.description,
+                description: payment.description || '',
                 month: payment.month,
                 method: (payment.method as Payment['method']) || 'Cash',
-                receiptNumber: payment.receipt_number,
+                receiptNumber: payment.receipt_number || '',
                 remarks: payment.remarks || '',
               }),
             );
@@ -394,7 +436,16 @@ export default function FeeManagementERP() {
               className,
               academicYear: attributes.academic_year || selectedYear,
               totalAmount: attributes.amount || structure.totalAmount,
-              components: attributes.components || structure.components,
+              components: attributes.components
+                ? {
+                    admissionFee: attributes.components.admission_fee || 0,
+                    registrationFee:
+                      attributes.components.registration_fee || 0,
+                    tuitionFees: attributes.components.tuition_fees || 0,
+                    examFees: attributes.components.exam_fees || 0,
+                    otherFees: attributes.components.other_fees || 0,
+                  }
+                : structure.components,
             };
 
             return {
@@ -420,8 +471,8 @@ export default function FeeManagementERP() {
               studentName: `${studentData.attributes.first_name} ${studentData.attributes.last_name}`,
               class: className,
               rollNumber: studentData.attributes.roll_number || studentData.id,
-              email: studentData.attributes.email,
-              phone: studentData.attributes.phone,
+              email: studentData.attributes.email || '',
+              phone: studentData.attributes.phone || '',
               academicYear: selectedYear,
               feeStructure: structure,
               payments: [],
@@ -502,6 +553,10 @@ export default function FeeManagementERP() {
 
   const submitPayment = async () => {
     if (!selectedRecord || !paymentData.amount) return;
+    if (parseFloat(paymentData.amount) <= 0) {
+      toast.error('Payment amount must be greater than zero.');
+      return;
+    }
 
     try {
       // orgId already available from useUserDataRedux
@@ -542,7 +597,7 @@ export default function FeeManagementERP() {
         },
       });
 
-      alert(
+      toast.success(
         `Payment of ₹${paymentData.amount} recorded successfully for ${selectedRecord.studentName}`,
       );
       setShowPaymentModal(false);
@@ -551,19 +606,62 @@ export default function FeeManagementERP() {
       loadFeeData();
     } catch (error) {
       console.error('Error recording payment:', error);
-      alert('Failed to record payment. Please try again.');
+      toast.error('Failed to record payment. Please try again.');
     }
   };
 
-  const sendReminder = (record: StudentFeeRecord) => {
-    alert(`Payment reminder sent to ${record.studentName} (${record.email})`);
+  // No backend endpoint exists to actually send a reminder (email/SMS/
+  // WhatsApp) - rather than fake a "sent" toast, open a pre-filled email
+  // to the guardian, same honest pattern used for the public Contact form.
+  const csvCell = (value: string | number) => {
+    const str = String(value ?? '');
+    return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+  };
+
+  // Real CSV export of what's currently on screen - the button used to
+  // just call window.print(), which opens the browser's print dialog
+  // instead of downloading a file an admin can open in Excel/Sheets.
+  const exportReport = () => {
+    const headers = [
+      'Student Name',
+      'Class',
+      'Roll Number',
+      'Academic Year',
+      'Total Fee',
+      'Total Paid',
+      'Total Due',
+      'Status',
+    ];
+    const rows = filteredRecords.map((r) => [
+      r.studentName,
+      r.class,
+      r.rollNumber,
+      r.academicYear,
+      r.feeStructure.totalAmount,
+      r.totalPaid,
+      r.totalDue,
+      r.status,
+    ]);
+    const csv = [headers, ...rows]
+      .map((row) => row.map(csvCell).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `fee-report-${selectedYear}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   // Create fee structure handler
   const handleCreateFeeStructure = async () => {
     try {
       if (!createFeeStructureData.className) {
-        alert('Please select a class');
+        toast.error('Please select a class');
         return;
       }
 
@@ -572,7 +670,7 @@ export default function FeeManagementERP() {
       const classId = classIdMap.get(createFeeStructureData.className);
 
       if (!classId) {
-        alert('Invalid class selected');
+        toast.error('Invalid class selected');
         setLoading(false);
         return;
       }
@@ -598,7 +696,7 @@ export default function FeeManagementERP() {
         },
       });
 
-      alert('Fee structure created successfully!');
+      toast.success('Fee structure created successfully!');
       setShowCreateFeeStructureModal(false);
       setCreateFeeStructureData({
         className: '',
@@ -614,7 +712,7 @@ export default function FeeManagementERP() {
       setLoading(false);
     } catch (error) {
       console.error('Error creating fee structure:', error);
-      alert('Failed to create fee structure. Please try again.');
+      toast.error('Failed to create fee structure. Please try again.');
       setLoading(false);
     }
   };
@@ -625,9 +723,9 @@ export default function FeeManagementERP() {
     className: string,
   ) => {
     if (
-      !confirm(
+      !(await confirm(
         `Are you sure you want to delete the fee structure for ${className}?`,
-      )
+      ))
     ) {
       return;
     }
@@ -641,14 +739,14 @@ export default function FeeManagementERP() {
         baseUrl: 'default',
       });
 
-      alert('Fee structure deleted successfully!');
+      toast.success('Fee structure deleted successfully!');
 
       // Reload fee data
       await loadFeeData();
       setLoading(false);
     } catch (error) {
       console.error('Error deleting fee structure:', error);
-      alert('Failed to delete fee structure. Please try again.');
+      toast.error('Failed to delete fee structure. Please try again.');
       setLoading(false);
     }
   };
@@ -731,7 +829,7 @@ export default function FeeManagementERP() {
               </button>
               <ThemeToggle />
               <button
-                onClick={() => window.print()}
+                onClick={exportReport}
                 className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors"
               >
                 Export Report
@@ -1076,13 +1174,12 @@ export default function FeeManagementERP() {
                                 try {
                                   // Fetch student fees from API
                                   const feeQueryStr = `?academic_year=${encodeURIComponent(selectedYear)}`;
-                                  const studentFeesResponse = await makeApiCall(
-                                    {
+                                  const studentFeesResponse: ApiCollection<FeeAttributes> =
+                                    await makeApiCall({
                                       path: `/class/${orgId}/students/${record.studentId}/fees${feeQueryStr}`,
                                       method: 'GET',
                                       baseUrl: 'default',
-                                    },
-                                  );
+                                    });
 
                                   // Update the record with fresh data from API
                                   const updatedRecord = { ...record };
@@ -1124,7 +1221,7 @@ export default function FeeManagementERP() {
                                     ) {
                                       updatedRecord.payments =
                                         attributes.payments.map(
-                                          (p: any, idx: number) => ({
+                                          (p, idx: number) => ({
                                             id: p.id || `payment-${idx}`,
                                             date:
                                               p.date ||
@@ -1386,6 +1483,8 @@ export default function FeeManagementERP() {
               </label>
               <input
                 type="number"
+                min="0.01"
+                step="0.01"
                 value={paymentData.amount}
                 onChange={(e) =>
                   setPaymentData({ ...paymentData, amount: e.target.value })
@@ -2032,7 +2131,7 @@ export default function FeeManagementERP() {
                     } else {
                       await makeApiCall({
                         path: `/class/${orgId}/fee-structures/${editingStructure.id}`,
-                        method: 'PATCH',
+                        method: 'PUT',
                         baseUrl: 'default',
                         payload: {
                           data: {
@@ -2041,7 +2140,7 @@ export default function FeeManagementERP() {
                         },
                       });
                     }
-                    alert('Fee structure updated successfully!');
+                    toast.success('Fee structure updated successfully!');
 
                     // Update the fee structure in the state
                     const updatedStructures = feeStructures.map((s) =>
@@ -2088,7 +2187,9 @@ export default function FeeManagementERP() {
                     loadFeeData();
                   } catch (error) {
                     console.error('Error saving fee structure:', error);
-                    alert('Failed to save fee structure. Please try again.');
+                    toast.error(
+                      'Failed to save fee structure. Please try again.',
+                    );
                   }
                 }}
                 className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium"
@@ -2339,7 +2440,7 @@ export default function FeeManagementERP() {
                 onClick={async () => {
                   try {
                     if (!selectedFeeStructureId) {
-                      alert('Please select a fee structure');
+                      toast.error('Please select a fee structure');
                       return;
                     }
 
@@ -2347,7 +2448,7 @@ export default function FeeManagementERP() {
                     const classId = classIdMap.get(selectedRecord.class);
 
                     if (!classId) {
-                      alert('Class ID not found');
+                      toast.error('Class ID not found');
                       return;
                     }
 
@@ -2357,7 +2458,7 @@ export default function FeeManagementERP() {
                     );
 
                     if (!feeStructure) {
-                      alert('Fee structure not found');
+                      toast.error('Fee structure not found');
                       return;
                     }
 
@@ -2373,7 +2474,26 @@ export default function FeeManagementERP() {
                         other_fees: feeStructure.components.otherFees,
                       },
                       academic_year: selectedYear,
-                      due_date: '31/03/2025',
+                      // Due date is the end of the fee structure's own
+                      // academic year (e.g. "2024-25" -> 31/03/2025), not a
+                      // hardcoded date that becomes wrong every year.
+                      due_date: (() => {
+                        const parts = (feeStructure.academicYear || '').split(
+                          '-',
+                        );
+                        const startYear = parseInt(parts[0], 10);
+                        if (!isNaN(startYear)) {
+                          let endYear = parts[1]
+                            ? parseInt(parts[1], 10)
+                            : startYear + 1;
+                          if (endYear < 100) {
+                            endYear =
+                              Math.floor(startYear / 100) * 100 + endYear;
+                          }
+                          return `31/03/${endYear}`;
+                        }
+                        return `31/03/${new Date().getFullYear() + 1}`;
+                      })(),
                       description: `Fee for ${selectedRecord.class}`,
                       fee_type: 'annual',
                     };
@@ -2390,7 +2510,7 @@ export default function FeeManagementERP() {
                       },
                     });
 
-                    alert('Fee assigned successfully!');
+                    toast.success('Fee assigned successfully!');
                     setShowAssignFeeModal(false);
                     setSelectedFeeStructureId('');
 
@@ -2398,7 +2518,7 @@ export default function FeeManagementERP() {
                     await handleClassSelection(selectedRecord.class);
                   } catch (error) {
                     console.error('Error assigning fee:', error);
-                    alert('Failed to assign fee. Please try again.');
+                    toast.error('Failed to assign fee. Please try again.');
                   }
                 }}
                 disabled={!selectedFeeStructureId}
@@ -2435,6 +2555,8 @@ export default function FeeManagementERP() {
                 </label>
                 <input
                   type="number"
+                  min="0.01"
+                  step="0.01"
                   value={editingPayment.amount}
                   onChange={(e) =>
                     setEditingPayment({
@@ -2559,13 +2681,17 @@ export default function FeeManagementERP() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={async () => {
+                  if (editingPayment.amount <= 0) {
+                    toast.error('Payment amount must be greater than zero.');
+                    return;
+                  }
                   try {
                     // orgId already available from useUserDataRedux
                     const feeId = selectedRecord.id.replace('unassigned-', '');
 
                     await makeApiCall({
                       path: `/class/${orgId}/fees/${feeId}/payments/${editingPayment.id}`,
-                      method: 'PATCH',
+                      method: 'PUT',
                       baseUrl: 'default',
                       payload: {
                         data: {
@@ -2582,7 +2708,7 @@ export default function FeeManagementERP() {
                       },
                     });
 
-                    alert('Payment updated successfully!');
+                    toast.success('Payment updated successfully!');
                     setShowEditPaymentModal(false);
                     setEditingPayment(null);
 
@@ -2590,7 +2716,7 @@ export default function FeeManagementERP() {
                     setShowDetailsModal(false);
                   } catch (error) {
                     console.error('Error updating payment:', error);
-                    alert('Failed to update payment. Please try again.');
+                    toast.error('Failed to update payment. Please try again.');
                   }
                 }}
                 className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium"
@@ -2637,7 +2763,7 @@ export default function FeeManagementERP() {
                       baseUrl: 'default',
                     });
 
-                    alert('Payment deleted successfully!');
+                    toast.success('Payment deleted successfully!');
                     setShowDeletePaymentModal(false);
                     setEditingPayment(null);
 
@@ -2645,7 +2771,7 @@ export default function FeeManagementERP() {
                     setShowDetailsModal(false);
                   } catch (error) {
                     console.error('Error deleting payment:', error);
-                    alert('Failed to delete payment. Please try again.');
+                    toast.error('Failed to delete payment. Please try again.');
                   }
                 }}
                 className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 font-medium"

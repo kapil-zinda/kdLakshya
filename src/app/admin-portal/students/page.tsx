@@ -2,20 +2,39 @@
 
 import { useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { BulkImportModal } from '@/components/admin/BulkImportModal';
+import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
+import { ApiService } from '@/services/api';
 import {
   useGetClassesQuery,
   useGetClassStudentsQuery,
+  type ClassStudent,
 } from '@/store/api/classApi';
 import {
   useCreateStudentMutation,
   useGetStudentsQuery,
   useUpdateStudentMutation,
+  type Student as ApiStudent,
+  type UpdateStudentRequest,
 } from '@/store/api/studentApi';
+import { toast } from 'react-toastify';
+
+/**
+ * A row from either source this page reads: `/students` returns the full
+ * student record, `/classes/{id}/students` returns the thinner enrolment row.
+ * Every field is optional because which ones arrive depends on which query
+ * ran - the transform below branches on `isClassStudentResponse`.
+ */
+interface StudentRow {
+  id: string;
+  attributes: Partial<ApiStudent & ClassStudent>;
+}
 
 interface Student {
   id: string;
@@ -43,7 +62,9 @@ interface Student {
   section?: string;
   bloodGroup?: string;
   emergencyContact?: string;
-  photo?: string;
+  // Always populated by the transform below (falls back to a placeholder),
+  // so the avatar renders without a null check.
+  photo: string;
   academicYear?: string;
   status?: 'Active' | 'Inactive' | 'Transferred';
   fees?: {
@@ -66,6 +87,14 @@ interface Student {
 }
 
 export default function StudentManagement() {
+  return (
+    <DashboardWrapper allowedRoles={['admin']} redirectTo="/">
+      {() => <StudentManagementContent />}
+    </DashboardWrapper>
+  );
+}
+
+function StudentManagementContent() {
   // Get orgId from Redux
   const { userData } = useUserDataRedux();
   const orgId = userData?.orgId;
@@ -77,6 +106,7 @@ export default function StudentManagement() {
   const [editFormData, setEditFormData] = useState<Partial<Student>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [addFormData, setAddFormData] = useState({
     firstName: '',
     lastName: '',
@@ -97,10 +127,14 @@ export default function StudentManagement() {
   const router = useRouter();
 
   // RTK Query hooks for data fetching
-  const { data: classesResponse, isLoading: classesLoading } =
-    useGetClassesQuery(orgId!, {
-      skip: !orgId,
-    });
+  const {
+    data: classesResponse,
+    isLoading: classesLoading,
+    isError: classesError,
+    refetch: refetchClasses,
+  } = useGetClassesQuery(orgId!, {
+    skip: !orgId,
+  });
 
   // Get the selected class ID
   const classIdMap = new Map(
@@ -110,18 +144,26 @@ export default function StudentManagement() {
     selectedClass !== 'All' ? classIdMap.get(selectedClass) : undefined;
 
   // Fetch all students or class-specific students based on selection
-  const { data: allStudentsResponse, isLoading: allStudentsLoading } =
-    useGetStudentsQuery(orgId!, {
-      skip: !orgId || selectedClass !== 'All',
-    });
+  const {
+    data: allStudentsResponse,
+    isLoading: allStudentsLoading,
+    isError: allStudentsError,
+    refetch: refetchAllStudents,
+  } = useGetStudentsQuery(orgId!, {
+    skip: !orgId || selectedClass !== 'All',
+  });
 
-  const { data: classStudentsResponse, isLoading: classStudentsLoading } =
-    useGetClassStudentsQuery(
-      { orgId: orgId!, classId: selectedClassId! },
-      {
-        skip: !orgId || !selectedClassId || selectedClass === 'All',
-      },
-    );
+  const {
+    data: classStudentsResponse,
+    isLoading: classStudentsLoading,
+    isError: classStudentsError,
+    refetch: refetchClassStudents,
+  } = useGetClassStudentsQuery(
+    { orgId: orgId!, classId: selectedClassId! },
+    {
+      skip: !orgId || !selectedClassId || selectedClass === 'All',
+    },
+  );
 
   // RTK Query mutations
   const [createStudent] = useCreateStudentMutation();
@@ -132,29 +174,36 @@ export default function StudentManagement() {
     selectedClass === 'All' ? allStudentsResponse : classStudentsResponse;
   const filterLoading =
     selectedClass === 'All' ? allStudentsLoading : classStudentsLoading;
+  const filterError =
+    selectedClass === 'All' ? allStudentsError : classStudentsError;
   const loading = classesLoading || filterLoading;
+  const hasError = classesError || filterError;
 
-  // Transform API data to Student format
+  // Transform API data to Student format. The two queries return different
+  // shapes, so widen to the row union before mapping.
   const students: Student[] =
-    studentsData?.data.map((studentData: any) => {
+    ((studentsData?.data ?? []) as StudentRow[]).map((studentData) => {
       // Handle different response formats for all students vs class students
       const attrs = studentData.attributes;
       const isClassStudentResponse = selectedClass !== 'All';
 
       return {
         id: studentData.id,
-        firstName: attrs.first_name,
-        lastName: attrs.last_name,
-        name: `${attrs.first_name} ${attrs.last_name}`,
-        email: attrs.email,
-        phone: attrs.phone,
-        dateOfBirth: isClassStudentResponse
-          ? attrs.enrollment_date || ''
-          : attrs.date_of_birth || '',
+        firstName: attrs.first_name ?? '',
+        lastName: attrs.last_name ?? '',
+        name: `${attrs.first_name ?? ''} ${attrs.last_name ?? ''}`.trim(),
+        email: attrs.email ?? '',
+        phone: attrs.phone ?? '',
+        dateOfBirth: String(
+          (isClassStudentResponse
+            ? attrs.enrollment_date
+            : attrs.date_of_birth) || '',
+        ),
         gender: attrs.gender,
         uniqueId: isClassStudentResponse ? attrs.student_id : attrs.unique_id,
         profile: attrs.profile,
-        gradeLevel: isClassStudentResponse ? selectedClass : attrs.grade_level,
+        gradeLevel:
+          (isClassStudentResponse ? selectedClass : attrs.grade_level) ?? '',
         guardianInfo: isClassStudentResponse
           ? {
               fatherName: '',
@@ -164,15 +213,17 @@ export default function StudentManagement() {
               address: '',
             }
           : {
-              fatherName: attrs.guardian_info.father_name,
-              motherName: attrs.guardian_info.mother_name,
-              phone: attrs.guardian_info.phone,
-              email: attrs.guardian_info.email,
-              address: attrs.guardian_info.address,
+              fatherName: attrs.guardian_info?.father_name ?? '',
+              motherName: attrs.guardian_info?.mother_name ?? '',
+              phone: attrs.guardian_info?.phone ?? '',
+              email: attrs.guardian_info?.email ?? '',
+              address: attrs.guardian_info?.address ?? '',
             },
-        admissionDate: isClassStudentResponse
-          ? attrs.enrollment_date || ''
-          : attrs.admission_date || '',
+        admissionDate: String(
+          (isClassStudentResponse
+            ? attrs.enrollment_date
+            : attrs.admission_date) || '',
+        ),
         rollNumber: isClassStudentResponse
           ? attrs.roll_number || studentData.id
           : attrs.unique_id || studentData.id,
@@ -186,7 +237,7 @@ export default function StudentManagement() {
         photo:
           attrs.profile ||
           'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
-        academicYear: attrs.academic_year || '2024-25',
+        academicYear: '2024-25',
         fees: {
           totalFees: 0,
           paidFees: 0,
@@ -249,26 +300,6 @@ export default function StudentManagement() {
     return searchMatch;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active':
-        return 'bg-green-100 text-green-800';
-      case 'Inactive':
-        return 'bg-red-100 text-red-800';
-      case 'Transferred':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getGradeColor = (grade: string) => {
-    if (grade.includes('A+')) return 'text-green-600';
-    if (grade.includes('A')) return 'text-blue-600';
-    if (grade.includes('B')) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
   const handleEditStudent = (student: Student) => {
     setEditingStudent(student);
     setEditFormData({ ...student });
@@ -280,7 +311,7 @@ export default function StudentManagement() {
 
     try {
       // Convert editFormData to API format
-      const updateData: any = {};
+      const updateData: UpdateStudentRequest = {};
 
       if (editFormData.firstName) updateData.firstName = editFormData.firstName;
       if (editFormData.lastName) updateData.lastName = editFormData.lastName;
@@ -304,10 +335,10 @@ export default function StudentManagement() {
 
       setEditingStudent(null);
       setEditFormData({});
-      alert('Student details updated successfully!');
+      toast.success('Student details updated successfully!');
     } catch (error) {
       console.error('Error updating student:', error);
-      alert('Failed to update student. Please try again.');
+      toast.error('Failed to update student. Please try again.');
     }
   };
 
@@ -316,7 +347,7 @@ export default function StudentManagement() {
     setEditFormData({});
   };
 
-  const updateFormField = (field: string, value: any) => {
+  const updateFormField = (field: keyof Student, value: string) => {
     setEditFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -324,35 +355,21 @@ export default function StudentManagement() {
   };
 
   const updateNestedField = (
-    parentField: string,
-    childField: string,
-    value: any,
+    parentField: 'guardianInfo',
+    childField: keyof Student['guardianInfo'],
+    value: string,
   ) => {
     setEditFormData((prev) => ({
       ...prev,
       [parentField]: {
-        ...(prev[parentField as keyof Student] as any),
-        [childField]: value,
-      },
-    }));
-  };
-
-  const updateAddFormField = (field: string, value: any) => {
-    setAddFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const updateAddFormNestedField = (
-    parentField: string,
-    childField: string,
-    value: any,
-  ) => {
-    setAddFormData((prev) => ({
-      ...prev,
-      [parentField]: {
-        ...(prev[parentField as keyof typeof prev] as any),
+        // Seeded with blanks so a partially-filled form still produces the
+        // complete guardian block the update request expects.
+        fatherName: '',
+        motherName: '',
+        phone: '',
+        email: '',
+        address: '',
+        ...prev[parentField],
         [childField]: value,
       },
     }));
@@ -360,12 +377,12 @@ export default function StudentManagement() {
 
   const handleAddStudent = async () => {
     if (!addFormData.firstName || !addFormData.lastName) {
-      alert('Please fill in required fields: First Name and Last Name');
+      toast.error('Please fill in required fields: First Name and Last Name');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -400,10 +417,10 @@ export default function StudentManagement() {
           address: '',
         },
       });
-      alert('Student added successfully!');
+      toast.success('Student added successfully!');
     } catch (error) {
       console.error('Error creating student:', error);
-      alert('Failed to create student. Please try again.');
+      toast.error('Failed to create student. Please try again.');
     }
   };
 
@@ -432,6 +449,26 @@ export default function StudentManagement() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background gap-4 px-4 text-center">
+        <p className="text-muted-foreground">
+          Couldn&apos;t load students. This may be a temporary connection issue.
+        </p>
+        <button
+          onClick={() => {
+            refetchClasses();
+            refetchAllStudents();
+            refetchClassStudents();
+          }}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -467,6 +504,25 @@ export default function StudentManagement() {
             </div>
             <div className="flex items-center space-x-4">
               <ThemeToggle />
+              <button
+                onClick={() => setShowBulkImportModal(true)}
+                className="flex items-center px-4 py-2 bg-white text-indigo-600 border border-indigo-600 text-sm font-medium rounded-md hover:bg-indigo-50 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 12m4-4v12"
+                  />
+                </svg>
+                Import CSV
+              </button>
               <button
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors"
@@ -590,9 +646,12 @@ export default function StudentManagement() {
                   <tr key={student.id} className="hover:bg-muted/50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <img
+                        <Image
                           src={student.photo}
                           alt={student.name}
+                          width={40}
+                          height={40}
+                          unoptimized
                           className="w-10 h-10 rounded-full object-cover mr-3"
                         />
                         <div>
@@ -667,9 +726,12 @@ export default function StudentManagement() {
               {/* Modal Header */}
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center">
-                  <img
+                  <Image
                     src={selectedStudent.photo}
                     alt={selectedStudent.name}
+                    width={64}
+                    height={64}
+                    unoptimized
                     className="w-16 h-16 rounded-full object-cover mr-4"
                   />
                   <div>
@@ -856,9 +918,12 @@ export default function StudentManagement() {
               {/* Edit Modal Header */}
               <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <div className="flex items-center">
-                  <img
+                  <Image
                     src={editFormData.photo || editingStudent.photo}
                     alt={editFormData.name || editingStudent.name}
+                    width={64}
+                    height={64}
+                    unoptimized
                     className="w-16 h-16 rounded-full object-cover mr-4"
                   />
                   <div>
@@ -1134,6 +1199,53 @@ export default function StudentManagement() {
             </div>
           </div>
         )}
+
+        <BulkImportModal
+          title="Import Students from CSV"
+          open={showBulkImportModal}
+          onClose={() => setShowBulkImportModal(false)}
+          templateFilename="students_template.csv"
+          templateHeaders={[
+            'first_name',
+            'last_name',
+            'email',
+            'date_of_birth (DD/MM/YYYY)',
+            'phone',
+            'gender',
+          ]}
+          requiredHeaders={[
+            'first_name',
+            'last_name',
+            'email',
+            'date_of_birth (DD/MM/YYYY)',
+          ]}
+          onImport={async (rows) => {
+            if (!orgId) throw new Error('Organization not found');
+            const payload = rows.map((row) => ({
+              first_name: row['first_name'],
+              last_name: row['last_name'],
+              email: row['email'],
+              date_of_birth: row['date_of_birth (DD/MM/YYYY)'],
+              phone: row['phone'] || '',
+              gender: row['gender'] || '',
+            }));
+            const response = await ApiService.bulkCreateStudents(
+              orgId,
+              payload,
+            );
+            return {
+              succeeded: response.meta?.succeeded ?? 0,
+              failed: response.meta?.failed ?? 0,
+              errors: (response.errors || []).map((e) => ({
+                index: e.index,
+                error: e.error,
+              })),
+            };
+          }}
+          onSuccess={() => {
+            refetchAllStudents();
+          }}
+        />
 
         {/* Add Student Modal */}
         {showAddModal && (

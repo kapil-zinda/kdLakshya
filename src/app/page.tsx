@@ -1,18 +1,19 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import { useRouter } from 'next/navigation';
 
 import { OrganizationTemplate } from '@/components/template/OrganizationTemplate';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
+import { determineUserRole } from '@/store/api/authApi';
 
 export default function Home() {
   const { organizationData, loading } = useOrganizationData();
   const router = useRouter();
   const hasInitialized = useRef(false);
 
-  const handleAuth0Callback = async () => {
+  const handleAuth0Callback = useCallback(async () => {
     try {
       // Check for auth data in URL hash (both Auth0 and student auth cross-subdomain)
       const hash = window.location.hash.substring(1);
@@ -90,29 +91,8 @@ export default function Home() {
 
           console.log('👤 Successfully fetched user data:', userData);
 
-          // Determine user role
-          let role = 'student';
-          if (userData.attributes && userData.attributes.role === 'faculty') {
-            role = 'teacher';
-          } else if (
-            userData.attributes &&
-            userData.attributes.type === 'faculty'
-          ) {
-            role = 'teacher';
-          } else if (userData.user_permissions) {
-            if (
-              userData.user_permissions['admin'] ||
-              userData.user_permissions['organization_admin'] ||
-              userData.user_permissions['org']
-            ) {
-              role = 'admin';
-            } else if (
-              userData.user_permissions['teacher'] ||
-              userData.user_permissions['instructor']
-            ) {
-              role = 'teacher';
-            }
-          }
+          // Determine user role (shared with authApi.ts - same /users/me shape)
+          const role = determineUserRole(userData);
 
           // Cache user data in localStorage
           const processedUserData = {
@@ -184,9 +164,9 @@ export default function Home() {
       window.history.replaceState({}, '', '/');
       return false;
     }
-  };
+  }, [router]);
 
-  const checkStudentAuth = () => {
+  const checkStudentAuth = useCallback(() => {
     // Check if user is logged in as a student and redirect accordingly
     const studentAuth = localStorage.getItem('studentAuth');
     if (studentAuth) {
@@ -203,7 +183,7 @@ export default function Home() {
       }
     }
     return false;
-  };
+  }, [router]);
 
   useEffect(() => {
     // Prevent infinite loop - only run once on mount
@@ -234,7 +214,9 @@ export default function Home() {
     };
 
     initializeAuth();
-  }, []); // Empty deps - run only once on mount
+    // Both callbacks are useCallback-stable, and the hasInitialized ref above
+    // keeps this to a single run regardless.
+  }, [checkStudentAuth, handleAuth0Callback]);
 
   if (loading) {
     return (

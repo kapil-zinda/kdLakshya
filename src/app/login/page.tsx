@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiService } from '@/services/api';
+import { clearReduxAuth } from '@/utils/reduxAuthSync';
+import axios from 'axios';
 
 interface StudentLoginData {
   firstName: string;
@@ -186,10 +188,7 @@ export default function LoginPage() {
 
       const password = convertToAPIFormat(studentData.dateOfBirth);
 
-      console.log('🎓 Attempting student login with:', {
-        username: username,
-        orgId,
-      });
+      console.log('🎓 Attempting student login for org:', orgId);
 
       // Call external API directly
       console.log('📡 Calling student auth API');
@@ -213,15 +212,13 @@ export default function LoginPage() {
           },
         });
 
-        console.log('📥 Login response data:', JSON.stringify(data, null, 2));
+        const basicAuthToken =
+          data.data?.attributes?.credentials?.basic_auth_token ||
+          data.data?.attributes?.basic_auth_token;
 
-        if (data.data) {
+        if (data.data && basicAuthToken) {
           // Store student authentication data
           const attrs = data.data.attributes;
-          const basicAuthToken =
-            attrs.credentials?.basic_auth_token ||
-            attrs.basic_auth_token ||
-            btoa(`${username}:${password}`);
 
           const studentAuthData = {
             id: data.data.id,
@@ -242,19 +239,24 @@ export default function LoginPage() {
             authenticatedAt: attrs.authenticated_at || new Date().toISOString(),
           };
 
-          console.log('💾 Storing student data:', studentAuthData);
-
-          // Store in localStorage
+          // A student's credential is an api key, not an Auth0 bearer token.
+          // It used to be copied into `bearerToken` as well "for
+          // compatibility", but every reader of that key sends its value as
+          // `Authorization: Bearer ...`, so the api key was presented to the
+          // authorizer as a bearer token. The authorizer then handed it to
+          // Auth0's /userinfo, which of course rejected a base64
+          // `username:password` string - and a rejected token has no email, so
+          // the authorizer reported it as an auth failure. That made every
+          // student request through those paths fail with 401/403 for reasons
+          // that looked entirely random. Keep the api key in `studentAuth`
+          // only, so `bearerToken` unambiguously means "staff Auth0 token".
           localStorage.setItem('studentAuth', JSON.stringify(studentAuthData));
 
-          // Also create a basic auth token entry for compatibility
-          localStorage.setItem(
-            'bearerToken',
-            JSON.stringify({
-              value: basicAuthToken,
-              expiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
-            }),
-          );
+          // Drop any staff session left behind on a shared device, including
+          // the persisted Redux copy - otherwise a stale bearer token outranks
+          // this student's api key on every subsequent request.
+          localStorage.removeItem('bearerToken');
+          clearReduxAuth();
 
           // Check if we need to redirect back to original subdomain
           const currentHost = window.location.host;
@@ -316,18 +318,16 @@ export default function LoginPage() {
                 const port = currentHost.split(':')[1] || '3000';
                 // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
                 const redirectUrl = `http://${targetSubdomain}.localhost:${port}/#student_auth=${encodedAuthData}`;
-                console.log('🔗 Student redirect URL (dev):', redirectUrl);
                 console.log(
-                  '📦 Passing student auth data via URL hash for cross-subdomain auth',
+                  `🔗 Redirecting to org subdomain (dev): ${targetSubdomain}`,
                 );
                 window.location.href = redirectUrl;
               } else {
                 const domain = currentHost.split('.').slice(1).join('.');
                 // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
                 const redirectUrl = `https://${targetSubdomain}.${domain}/#student_auth=${encodedAuthData}`;
-                console.log('🔗 Student redirect URL (prod):', redirectUrl);
                 console.log(
-                  '📦 Passing student auth data via URL hash for cross-subdomain auth',
+                  `🔗 Redirecting to org subdomain: ${targetSubdomain}`,
                 );
                 window.location.href = redirectUrl;
               }
@@ -352,12 +352,17 @@ export default function LoginPage() {
           );
           setIsLoading(false);
         }
-      } catch (apiError: any) {
+      } catch (apiError) {
         console.error('❌ API call failed:', apiError);
-        // Handle API errors
+        // Surface the auth service's own JSON:API error text when it sent one
+        const errorDocument = axios.isAxiosError(apiError)
+          ? (apiError.response?.data as
+              | { errors?: Array<{ detail?: string; title?: string }> }
+              | undefined)
+          : undefined;
         const errorMessage =
-          apiError.response?.data?.errors?.[0]?.detail ||
-          apiError.response?.data?.errors?.[0]?.title ||
+          errorDocument?.errors?.[0]?.detail ||
+          errorDocument?.errors?.[0]?.title ||
           'Invalid credentials. Please try again.';
         setError(errorMessage);
         setIsLoading(false);

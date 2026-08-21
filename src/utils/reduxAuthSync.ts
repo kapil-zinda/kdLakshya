@@ -12,6 +12,28 @@ import {
 } from '@/store/slices/authSlice';
 
 /**
+ * Role hint cookie, readable by middleware.ts (which can't see localStorage
+ * or Redux state) so it can redirect away from a role-mismatched protected
+ * route before the page shell renders, instead of only after client-side
+ * DashboardWrapper catches it. This is a UX/defense-in-depth improvement,
+ * not a security boundary by itself - like localStorage, a client can set
+ * this cookie to any value, so real authorization still lives entirely in
+ * the backend's own RBAC checks on every API call.
+ */
+const ROLE_COOKIE_NAME = 'dias_role';
+const ROLE_COOKIE_MAX_AGE_SECONDS = 24 * 60 * 60;
+
+export const setRoleCookie = (role: string) => {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${ROLE_COOKIE_NAME}=${role}; path=/; max-age=${ROLE_COOKIE_MAX_AGE_SECONDS}; samesite=lax`;
+};
+
+export const clearRoleCookie = () => {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${ROLE_COOKIE_NAME}=; path=/; max-age=0`;
+};
+
+/**
  * Sync token to Redux store
  * Call this whenever you receive a new token
  */
@@ -32,7 +54,7 @@ export const syncUserToRedux = (userData: {
   lastName: string;
   role: string;
   orgId: string;
-  permissions?: Record<string, any>;
+  permissions?: Record<string, unknown>;
 }) => {
   const user: User = {
     id: userData.id,
@@ -55,6 +77,7 @@ export const syncUserToRedux = (userData: {
       expiresAt: existingExpiry, // Preserve existing expiry
     }),
   );
+  setRoleCookie(user.role);
 
   console.log('✅ User data synced to Redux store');
 };
@@ -86,6 +109,7 @@ export const syncAuthToRedux = (
   };
 
   store.dispatch(setCredentials({ user, token, expiresAt }));
+  setRoleCookie(user.role);
   console.log('✅ Auth state fully synced to Redux store');
 };
 
@@ -95,6 +119,7 @@ export const syncAuthToRedux = (
  */
 export const clearReduxAuth = () => {
   store.dispatch(logout());
+  clearRoleCookie();
   console.log('✅ Redux auth state cleared');
 };
 

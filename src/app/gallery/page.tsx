@@ -1,83 +1,45 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import Image from 'next/image';
 
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
-
-const galleryImages = [
-  {
-    id: 1,
-    src: 'https://images.unsplash.com/photo-1562774053-701939374585?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Campus View',
-    category: 'Campus',
-    title: 'Beautiful Campus Grounds',
-  },
-  {
-    id: 2,
-    src: 'https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Students in Classroom',
-    category: 'Academic',
-    title: 'Interactive Learning Environment',
-  },
-  {
-    id: 3,
-    src: 'https://images.unsplash.com/photo-1581092795442-bcd3bfa0f8a4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Laboratory',
-    category: 'Facilities',
-    title: 'State-of-the-art Science Lab',
-  },
-  {
-    id: 4,
-    src: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Sports Activities',
-    category: 'Sports',
-    title: 'Athletic Excellence',
-  },
-  {
-    id: 5,
-    src: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Library',
-    category: 'Facilities',
-    title: 'Modern Library',
-  },
-  {
-    id: 6,
-    src: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Cultural Event',
-    category: 'Events',
-    title: 'Cultural Celebrations',
-  },
-  {
-    id: 7,
-    src: 'https://images.unsplash.com/photo-1523580846011-d3a5bc25702b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Graduation Ceremony',
-    category: 'Events',
-    title: 'Graduation Day',
-  },
-  {
-    id: 8,
-    src: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
-    alt: 'Art Class',
-    category: 'Academic',
-    title: 'Creative Arts Program',
-  },
-];
-
-const categories = [
-  'All',
-  'Campus',
-  'Academic',
-  'Facilities',
-  'Sports',
-  'Events',
-];
+import { ApiService, type GalleryImage } from '@/services/api';
 
 export default function GalleryPage() {
   const { organizationData, loading } = useOrganizationData();
+  const [images, setImages] = useState<GalleryImage[]>([]);
+  const [imagesLoading, setImagesLoading] = useState(true);
+  const [imagesError, setImagesError] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedImage, setSelectedImage] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<GalleryImage | null>(null);
+
+  useEffect(() => {
+    if (!organizationData?.orgId) return;
+
+    let cancelled = false;
+    setImagesLoading(true);
+    setImagesError(false);
+
+    ApiService.getGalleryImages(organizationData.orgId)
+      .then((data) => {
+        if (!cancelled) setImages(data);
+      })
+      .catch((err) => {
+        console.error('Failed to load gallery images:', err);
+        if (!cancelled) setImagesError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setImagesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationData?.orgId]);
 
   if (loading) {
     return (
@@ -105,10 +67,18 @@ export default function GalleryPage() {
     );
   }
 
+  // The first tag on an image doubles as its category for filtering.
+  const categories = [
+    'All',
+    ...Array.from(
+      new Set(images.map((img) => img.tags?.[0]).filter(Boolean) as string[]),
+    ),
+  ];
+
   const filteredImages =
     selectedCategory === 'All'
-      ? galleryImages
-      : galleryImages.filter((img) => img.category === selectedCategory);
+      ? images
+      : images.filter((img) => img.tags?.[0] === selectedCategory);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -180,63 +150,85 @@ export default function GalleryPage() {
               </div>
 
               {/* Category Filter */}
-              <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-12">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
-                      selectedCategory === category
-                        ? 'text-white shadow-lg'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                    style={{
-                      backgroundColor:
+              {categories.length > 2 && (
+                <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-12">
+                  {categories.map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 hover:scale-105 ${
                         selectedCategory === category
-                          ? organizationData.branding.primaryColor
-                          : undefined,
-                    }}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
+                          ? 'text-white shadow-lg'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                      style={{
+                        backgroundColor:
+                          selectedCategory === category
+                            ? organizationData.branding.primaryColor
+                            : undefined,
+                      }}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               {/* Gallery Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-                {filteredImages.map((image) => (
-                  <div
-                    key={image.id}
-                    className="group cursor-pointer overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
-                    onClick={() => setSelectedImage(image)}
-                  >
-                    <div className="relative aspect-square">
-                      <img
-                        src={image.src}
-                        alt={image.alt}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"></div>
-                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
-                        <h3 className="text-white font-medium text-sm">
-                          {image.title}
-                        </h3>
-                        <p className="text-white/80 text-xs">
-                          {image.category}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Empty State */}
-              {filteredImages.length === 0 && (
+              {imagesLoading ? (
+                <div className="flex justify-center py-12">
+                  <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                </div>
+              ) : imagesError ? (
                 <div className="text-center py-12">
                   <p className="text-gray-500">
-                    No images found in this category.
+                    Could not load the gallery right now. Please try again
+                    later.
                   </p>
                 </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+                    {filteredImages.map((image) => (
+                      <div
+                        key={image.id}
+                        className="group cursor-pointer overflow-hidden rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+                        onClick={() => setSelectedImage(image)}
+                      >
+                        <div className="relative aspect-square">
+                          <Image
+                            src={image.image_url}
+                            alt={image.title || 'Gallery image'}
+                            fill
+                            unoptimized
+                            sizes="(max-width: 768px) 50vw, 33vw"
+                            className="object-cover group-hover:scale-110 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"></div>
+                          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
+                            <h3 className="text-white font-medium text-sm">
+                              {image.title}
+                            </h3>
+                            <p className="text-white/80 text-xs">
+                              {image.tags?.[0]}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Empty State */}
+                  {filteredImages.length === 0 && (
+                    <div className="text-center py-12">
+                      <p className="text-gray-500">
+                        {images.length === 0
+                          ? 'No photos have been added to the gallery yet.'
+                          : 'No images found in this category.'}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </section>
@@ -257,16 +249,19 @@ export default function GalleryPage() {
               >
                 ×
               </button>
-              <img
-                src={selectedImage.src}
-                alt={selectedImage.alt}
-                className="max-w-full max-h-full object-contain rounded-lg"
+              <Image
+                src={selectedImage.image_url}
+                alt={selectedImage.title || 'Gallery image'}
+                width={1600}
+                height={1200}
+                unoptimized
+                className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
               />
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent rounded-b-lg">
                 <h3 className="text-white font-medium text-lg">
                   {selectedImage.title}
                 </h3>
-                <p className="text-white/80">{selectedImage.category}</p>
+                <p className="text-white/80">{selectedImage.tags?.[0]}</p>
               </div>
             </div>
           </div>

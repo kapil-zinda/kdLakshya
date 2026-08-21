@@ -6,9 +6,12 @@ export interface UserData {
   userEmail: string;
   firstName: string;
   lastName: string;
-  permission: {
-    [key: string]: string;
-  };
+  /**
+   * The backend's RBAC block (`user_permissions`), whose values are a mix of
+   * strings, numbers, and nested objects depending on the key - callers narrow
+   * the key they care about.
+   */
+  permission: Record<string, unknown>;
   allowedTeams: string[];
   type?: string;
   role?: string;

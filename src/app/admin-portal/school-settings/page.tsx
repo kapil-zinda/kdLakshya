@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
-import { ApiService } from '@/services/api';
+import { ApiService, type OrganizationPatch } from '@/services/api';
 import { useAppDispatch } from '@/store/hooks';
 import { clearOrganizationData } from '@/store/slices/organizationSlice';
 
@@ -67,62 +69,61 @@ interface SchoolSettings {
 }
 
 export default function SchoolSettings() {
+  return (
+    <DashboardWrapper allowedRoles={['admin']} redirectTo="/">
+      {() => <SchoolSettingsContent />}
+    </DashboardWrapper>
+  );
+}
+
+function SchoolSettingsContent() {
+  // Neutral placeholders, not a specific real-looking (but wrong) school -
+  // these should only ever be visible for the brief window before the
+  // real organization data loads (the Save button stays disabled via
+  // dataLoading until then, so these can't accidentally be saved over
+  // real settings).
   const [settings, setSettings] = useState<SchoolSettings>({
     // Basic Information
-    name: 'SHREE LAHARI SINGH MEMO. INTER COLLEGE',
-    subdomain: 'spd',
-    description: 'Leading educational institution focused on excellence',
-    buildingStreet: '123 Main Street, Block A',
-    city: 'GHANGHAULI',
-    state: 'UTTAR PRADESH',
-    country: 'India',
-    pincode: '202001',
-    pocName: 'Principal Name',
-    pocEmail: 'principal@school.edu.in',
-    phone: '+91 571 123 4567',
-    establishedYear: '1985',
+    name: '',
+    subdomain: '',
+    description: '',
+    buildingStreet: '',
+    city: '',
+    state: '',
+    country: '',
+    pincode: '',
+    pocName: '',
+    pocEmail: '',
+    phone: '',
+    establishedYear: '',
 
     // Branding
     primaryColor: '#1e40af',
     secondaryColor: '#059669',
     accentColor: '#dc2626',
-    logo: 'https://images.unsplash.com/photo-1562774053-701939374585?w=200&h=200&fit=crop',
+    logo: '',
     fontFamily: 'Arial',
 
     // About Section
-    aboutTitle: 'About Our School',
-    aboutContent:
-      'We are committed to providing quality education that nurtures young minds and builds character. Our institution has been a beacon of learning excellence for decades.',
-    mission:
-      'To provide quality education that develops critical thinking, creativity, and character in our students.',
-    vision:
-      'To be a leading educational institution that prepares students for success in a global society.',
-    values: [
-      'Excellence in Education',
-      'Character Development',
-      'Innovation and Creativity',
-      'Community Service',
-      'Lifelong Learning',
-    ],
-    aboutImages: [
-      'https://images.unsplash.com/photo-1523050854058-8df90110c9d1?w=400&h=300&fit=crop',
-      'https://images.unsplash.com/photo-1509062522246-3755977927d7?w=400&h=300&fit=crop',
-    ],
+    aboutTitle: '',
+    aboutContent: '',
+    mission: '',
+    vision: '',
+    values: [],
+    aboutImages: [],
 
     // Hero Section
-    heroTitle: 'Welcome to Excellence',
-    heroSubtitle: 'Nurturing Minds, Building Futures',
-    heroDescription:
-      'Join our community of learners where every student is empowered to achieve their full potential through innovative teaching and holistic development.',
-    heroImage:
-      'https://images.unsplash.com/photo-1523050854058-8df90110c9d1?w=1200&h=800&fit=crop',
+    heroTitle: '',
+    heroSubtitle: '',
+    heroDescription: '',
+    heroImage: '',
 
     // Social Media
-    facebookUrl: 'https://facebook.com/shreelaharischool',
-    twitterUrl: 'https://twitter.com/shreelaharischool',
-    instagramUrl: 'https://instagram.com/shreelaharischool',
-    linkedinUrl: 'https://linkedin.com/company/shreelaharischool',
-    youtubeUrl: 'https://youtube.com/shreelaharischool',
+    facebookUrl: '',
+    twitterUrl: '',
+    instagramUrl: '',
+    linkedinUrl: '',
+    youtubeUrl: '',
 
     // Statistics
     statistics: [],
@@ -232,8 +233,7 @@ export default function SchoolSettings() {
         heroTitle: organizationData.hero?.title || prev.heroTitle,
         heroSubtitle: organizationData.hero?.subtitle || prev.heroSubtitle,
         heroDescription:
-          organizationData.hero?.ctaButtons?.primary?.text ||
-          prev.heroDescription,
+          organizationData.hero?.description || prev.heroDescription,
         heroImage: organizationData.hero?.backgroundImage || prev.heroImage,
 
         // Social media
@@ -245,7 +245,7 @@ export default function SchoolSettings() {
 
         // Statistics
         statistics:
-          organizationData.stats?.items?.map((stat: any) => ({
+          organizationData.stats?.items?.map((stat) => ({
             id: stat.id,
             label: stat.label,
             value: stat.value,
@@ -301,6 +301,7 @@ export default function SchoolSettings() {
             'pocName',
             'pocEmail',
             'phone',
+            'establishedYear',
           ];
           const modifiedBasicFields = Array.from(modifiedFields).filter(
             (field) => basicFields.includes(field),
@@ -317,7 +318,7 @@ export default function SchoolSettings() {
           // - If ANY address field changes, send COMPLETE address
           // - If ANY contact field changes, send COMPLETE contact
           // - Send other fields only if modified
-          const organizationData: any = {};
+          const organizationData: OrganizationPatch = {};
 
           // Check main org fields
           if (modifiedFields.has('name')) {
@@ -328,6 +329,12 @@ export default function SchoolSettings() {
           }
           if (modifiedFields.has('description')) {
             organizationData.description = settings.description.trim();
+          }
+          if (modifiedFields.has('establishedYear')) {
+            const foundedYear = parseInt(settings.establishedYear, 10);
+            if (!isNaN(foundedYear)) {
+              organizationData.founded = foundedYear;
+            }
           }
 
           // Check if ANY address field was modified
@@ -429,6 +436,7 @@ export default function SchoolSettings() {
           const heroData = {
             headline: settings.heroTitle,
             subheadline: settings.heroSubtitle,
+            description: settings.heroDescription,
             ctaText: 'Learn More', // Default CTA text
             ctaLink: '/about', // Default CTA link
             image: settings.heroImage,
@@ -459,6 +467,22 @@ export default function SchoolSettings() {
           break;
 
         case 'statistics':
+          // Delete statistics that were removed from the list (the trash
+          // icon only used to filter them out of local state - it never
+          // called the backend, so they reappeared on the next refetch).
+          const currentStatIds = new Set(
+            settings.statistics.map((s) => s.id).filter(Boolean),
+          );
+          const removedStatIds = (originalSettings?.statistics || [])
+            .map((s) => s.id)
+            .filter((id): id is string => !!id && !currentStatIds.has(id));
+
+          if (removedStatIds.length > 0) {
+            await Promise.all(
+              removedStatIds.map((id) => ApiService.deleteStat(orgId, id)),
+            );
+          }
+
           // Save statistics - create or update each statistic
           const savePromises = settings.statistics.map(async (stat) => {
             if (stat.id) {
@@ -506,7 +530,10 @@ export default function SchoolSettings() {
     }
   };
 
-  const updateSetting = (field: keyof SchoolSettings, value: any) => {
+  const updateSetting = (
+    field: keyof SchoolSettings,
+    value: SchoolSettings[keyof SchoolSettings],
+  ) => {
     setSettings((prev) => ({
       ...prev,
       [field]: value,
@@ -935,9 +962,12 @@ export default function SchoolSettings() {
                       />
                       {settings.logo && (
                         <div className="mt-2">
-                          <img
+                          <Image
                             src={settings.logo}
                             alt="Logo Preview"
+                            width={80}
+                            height={80}
+                            unoptimized
                             className="w-20 h-20 object-cover rounded"
                           />
                         </div>
@@ -1282,9 +1312,12 @@ export default function SchoolSettings() {
                             (image, index) =>
                               image && (
                                 <div key={index} className="relative">
-                                  <img
+                                  <Image
                                     src={image}
                                     alt={`About image ${index + 1}`}
+                                    width={320}
+                                    height={96}
+                                    unoptimized
                                     className="w-full h-24 object-cover rounded-md"
                                     onError={(e) => {
                                       (
@@ -1365,9 +1398,12 @@ export default function SchoolSettings() {
                     />
                     {settings.heroImage && (
                       <div className="mt-2">
-                        <img
+                        <Image
                           src={settings.heroImage}
                           alt="Hero Preview"
+                          width={800}
+                          height={128}
+                          unoptimized
                           className="w-full h-32 object-cover rounded"
                         />
                       </div>

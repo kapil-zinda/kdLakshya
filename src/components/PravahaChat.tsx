@@ -4,8 +4,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import Image from 'next/image';
 
-import { useOrganizationData } from '@/hooks/useOrganizationData';
-import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { makeApiCall } from '@/utils/ApiRequest';
 
 interface Message {
@@ -15,15 +13,6 @@ interface Message {
   timestamp: number;
 }
 
-interface ChatSession {
-  sessionId: string;
-  subdomain: string;
-  type: string;
-  org_id: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export function PravahaChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -31,71 +20,6 @@ export function PravahaChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { userData } = useUserDataRedux();
-  const { organizationData } = useOrganizationData();
-
-  // Create or restore session when chat opens
-  const initializeSession = useCallback(async () => {
-    try {
-      const orgId = organizationData?.orgId || userData?.orgId;
-      const subdomain = organizationData?.subdomain || 'kdlakshya';
-
-      if (!orgId) {
-        console.error('Organization ID not found');
-        return;
-      }
-
-      // Check localStorage for existing session
-      const storedSessionId = localStorage.getItem('pravahaSessionId');
-      const newSessionId = storedSessionId || `sess_${Date.now()}`;
-
-      // Create or retrieve session from backend
-      const response = await makeApiCall({
-        path: '/chat/session',
-        method: 'POST',
-        baseUrl: 'pravaha',
-        skipAuth: true,
-        payload: {
-          data: {
-            type: 'session',
-            attributes: {
-              sessionId: newSessionId,
-              subdomain: subdomain,
-              type: userData?.role || 'student',
-              org_id: orgId,
-            },
-          },
-        },
-      });
-
-      const returnedSessionId = response.data.attributes.sessionId;
-      setSessionId(returnedSessionId);
-      localStorage.setItem('pravahaSessionId', returnedSessionId);
-
-      // Load message history if session exists
-      await loadMessageHistory(returnedSessionId);
-    } catch (error) {
-      console.error('Error initializing session:', error);
-      // Fallback to client-side session
-      const fallbackSessionId = `sess_${Date.now()}`;
-      setSessionId(fallbackSessionId);
-      localStorage.setItem('pravahaSessionId', fallbackSessionId);
-      // Add welcome message on error
-      setMessages([
-        {
-          id: 'welcome',
-          text: 'Hi! How can I assist you today?',
-          sender: 'ai',
-          timestamp: Date.now(),
-        },
-      ]);
-    }
-  }, [
-    organizationData?.orgId,
-    organizationData?.subdomain,
-    userData?.orgId,
-    userData?.role,
-  ]);
 
   // Load message history from backend
   const loadMessageHistory = useCallback(async (sid: string) => {
@@ -103,21 +27,32 @@ export function PravahaChat() {
       const response = await makeApiCall({
         path: `/chat/session/${sid}/messages`,
         method: 'GET',
-        baseUrl: 'pravaha',
-        skipAuth: true,
+        baseUrl: 'ragantic',
       });
 
-      const history = response.data.attributes.history || [];
+      // Each backend entry is one query+response exchange, not a single
+      // chat turn - expand it into a user message followed by an AI message.
+      const exchanges: {
+        id: string;
+        query: string;
+        response: string;
+        timestamp: number;
+      }[] = response.data.attributes.messages || [];
 
-      // Convert backend history to Message format
-      const loadedMessages: Message[] = history.map(
-        (msg: { role: string; text: string; timestamp: string }) => ({
-          id: `${msg.role}-${new Date(msg.timestamp).getTime()}`,
-          text: msg.text,
-          sender: msg.role === 'user' ? ('user' as const) : ('ai' as const),
-          timestamp: new Date(msg.timestamp).getTime(),
-        }),
-      );
+      const loadedMessages: Message[] = exchanges.flatMap((exchange) => [
+        {
+          id: `${exchange.id}-user`,
+          text: exchange.query,
+          sender: 'user' as const,
+          timestamp: exchange.timestamp * 1000,
+        },
+        {
+          id: `${exchange.id}-ai`,
+          text: exchange.response,
+          sender: 'ai' as const,
+          timestamp: exchange.timestamp * 1000,
+        },
+      ]);
 
       if (loadedMessages.length > 0) {
         setMessages(loadedMessages);
@@ -146,6 +81,50 @@ export function PravahaChat() {
     }
   }, []);
 
+  // Create or restore session when chat opens. org_id/user_id come from the
+  // caller's own auth token server-side - this widget is only ever shown to
+  // logged-in users (student, teacher, or admin), so no org/subdomain needs
+  // to be sent up here at all.
+  const initializeSession = useCallback(async () => {
+    try {
+      const storedSessionId = localStorage.getItem('pravahaSessionId');
+
+      const response = await makeApiCall({
+        path: '/chat/session',
+        method: 'POST',
+        baseUrl: 'ragantic',
+        payload: {
+          data: {
+            type: 'session',
+            attributes: storedSessionId ? { sessionId: storedSessionId } : {},
+          },
+        },
+      });
+
+      const returnedSessionId = response.data.attributes.sessionId;
+      setSessionId(returnedSessionId);
+      localStorage.setItem('pravahaSessionId', returnedSessionId);
+
+      // Load message history if session exists
+      await loadMessageHistory(returnedSessionId);
+    } catch (error) {
+      console.error('Error initializing session:', error);
+      // Fallback to client-side session
+      const fallbackSessionId = `sess_${Date.now()}`;
+      setSessionId(fallbackSessionId);
+      localStorage.setItem('pravahaSessionId', fallbackSessionId);
+      // Add welcome message on error
+      setMessages([
+        {
+          id: 'welcome',
+          text: 'Hi! How can I assist you today?',
+          sender: 'ai',
+          timestamp: Date.now(),
+        },
+      ]);
+    }
+  }, [loadMessageHistory]);
+
   // Initialize session when chat opens
   useEffect(() => {
     if (isOpen && !sessionId) {
@@ -173,46 +152,18 @@ export function PravahaChat() {
     setIsLoading(true);
 
     try {
-      // Get auth token from localStorage
-      const tokenStr = localStorage.getItem('bearerToken');
-      let authToken = '';
-      if (tokenStr) {
-        const tokenData = JSON.parse(tokenStr);
-        authToken = tokenData.value;
-      }
-
-      // Get org_id from organizationData (loaded from subdomain)
-      const orgId = organizationData?.orgId || userData?.orgId;
-
-      if (!orgId) {
-        throw new Error('Organization ID not found. Please refresh the page.');
-      }
-
-      // Get subdomain from organizationData (loaded dynamically)
-      const subdomain = organizationData?.subdomain || 'kdlakshya';
-
-      console.log('Sending Pravaha chat request:', {
-        org_id: orgId,
-        has_token: !!authToken,
-        subdomain,
-        sessionId,
-      });
-
+      // org_id/user_id come from the caller's own auth token server-side -
+      // no need to resolve or send them from here.
       const response = await makeApiCall({
         path: '/chat/query',
         method: 'POST',
-        baseUrl: 'pravaha',
-        skipAuth: true,
+        baseUrl: 'ragantic',
         payload: {
           data: {
-            type: 'pravaha_query',
+            type: 'chat_query',
             attributes: {
               query: userMessage.text,
-              org_id: orgId,
-              auth_token: authToken,
-              subdomain: subdomain,
               sessionId: sessionId,
-              type: userData?.role || 'student',
             },
           },
         },

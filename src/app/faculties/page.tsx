@@ -48,6 +48,17 @@ export default function FacultiesPage() {
         const orgId = apiData.subdomain.config.organizationId;
         console.log('🏫 Using cached Organization ID:', orgId);
 
+        // Without an org the faculty URL can't be built, so skip the request
+        // and land on the same empty state the fetch-failure path uses.
+        if (!orgId) {
+          console.error(
+            '❌ No organization ID in subdomain config; skipping faculty fetch',
+          );
+          setFacultyMembers([]);
+          setSubjects(['All']);
+          return;
+        }
+
         // Fetch faculty data
         console.log('🎓 Fetching faculty data...');
 

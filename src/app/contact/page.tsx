@@ -7,6 +7,7 @@ import { Header } from '@/components/template/Header';
 import { Button } from '@/components/ui/button';
 import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { Mail, MapPin, Phone } from 'lucide-react';
+import { toast } from 'react-toastify';
 
 export default function ContactPage() {
   const { organizationData, loading } = useOrganizationData();
@@ -20,9 +21,33 @@ export default function ContactPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log('Form submitted:', formData);
-    alert('Thank you for your message! We will get back to you soon.');
+
+    // There is no backend inbox for this form yet, so rather than claim
+    // the message was sent (and silently drop it), open the visitor's own
+    // email client addressed to the school with the message pre-filled.
+    const contactEmail = organizationData?.contact?.email;
+    if (!contactEmail) {
+      toast.error(
+        'Sorry, we could not find a contact email for this school. Please try calling us instead.',
+      );
+      return;
+    }
+
+    const body = [
+      `Name: ${formData.name}`,
+      `Email: ${formData.email}`,
+      formData.phone ? `Phone: ${formData.phone}` : null,
+      '',
+      formData.message,
+    ]
+      .filter(Boolean)
+      .join('\n');
+
+    const mailtoUrl = `mailto:${contactEmail}?subject=${encodeURIComponent(
+      formData.subject || 'Website inquiry',
+    )}&body=${encodeURIComponent(body)}`;
+
+    window.location.href = mailtoUrl;
     setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
   };
 
@@ -404,8 +429,12 @@ export default function ContactPage() {
                         borderColor: organizationData.branding.primaryColor,
                       }}
                     >
-                      Send Message
+                      Send Message via Email
                     </Button>
+                    <p className="text-sm text-gray-500 text-center">
+                      This opens your email app with your message pre-filled,
+                      addressed to {organizationData.contact.email}.
+                    </p>
                   </form>
                 </div>
               </div>

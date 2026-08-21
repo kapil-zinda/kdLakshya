@@ -11,7 +11,7 @@ interface UserApiResponse {
       name?: string;
       role?: string;
       type?: string;
-      permissions?: Record<string, any>;
+      permissions?: Record<string, unknown>;
       org_id?: string;
       orgId?: string;
       org?: string;
@@ -21,7 +21,14 @@ interface UserApiResponse {
       profile_photo?: string;
       photo?: string;
     };
-    user_permissions?: Record<string, any>;
+    user_permissions?: {
+      role?: string; // '*' | 'head' | 'superwise' | 'manage' | 'lead' | 'edit' | 'view' | 'other'
+      role_description?: string;
+      role_level?: number;
+      permissions?: string[];
+      user_type?: string; // 'student' | 'faculty' | 'admin_staff'
+      class_assignments?: Record<string, unknown>;
+    };
   };
 }
 
@@ -32,7 +39,7 @@ export interface ProcessedUserData {
   firstName: string;
   lastName: string;
   role: 'admin' | 'teacher' | 'student';
-  permissions: Record<string, any>;
+  permissions: Record<string, unknown>;
   orgId: string;
   type?: string;
   phone?: string;
@@ -66,39 +73,41 @@ export interface ProcessedOrgData {
   email?: string;
 }
 
-// Helper function to determine user role
-const determineUserRole = (
+/**
+ * Determine the app-level role ('admin' | 'teacher' | 'student') for a user.
+ *
+ * Keys off `user_permissions.role`, the real field the backend returns
+ * (services/auth/open-api.yaml UserPermissionsObject) - one of the RBAC
+ * roles: '*'/'head' (org admin), 'superwise' (clerk/office staff), 'manage'
+ * (class teacher), 'lead' (subject teacher), 'edit' (student monitor),
+ * 'view'/'other' (plain student). `user_permissions.user_type` is a
+ * secondary signal used only if `role` is missing.
+ *
+ * `attributes.role`/`attributes.type` are NOT read here - the backend's
+ * UserAttributesObject schema doesn't define either field, so checking them
+ * always silently fell through to 'student' regardless of the real role.
+ */
+export const determineUserRole = (
   userData: UserApiResponse['data'],
 ): 'admin' | 'teacher' | 'student' => {
-  // Check user role from attributes first
-  if (userData.attributes?.role === 'faculty') {
+  const role = userData.user_permissions?.role;
+
+  if (role === '*' || role === 'head' || role === 'superwise') {
+    return 'admin';
+  }
+  if (role === 'manage' || role === 'lead') {
     return 'teacher';
   }
+  if (role === 'edit' || role === 'view' || role === 'other') {
+    return 'student';
+  }
 
-  if (userData.attributes?.type === 'faculty') {
+  // Defensive fallback if `role` wasn't populated for some reason.
+  const userType = userData.user_permissions?.user_type;
+  if (userType === 'faculty') {
     return 'teacher';
   }
-
-  // Check permissions
-  if (userData.user_permissions) {
-    if (
-      userData.user_permissions['admin'] ||
-      userData.user_permissions['organization_admin'] ||
-      userData.user_permissions['org']
-    ) {
-      return 'admin';
-    }
-
-    if (
-      userData.user_permissions['teacher'] ||
-      userData.user_permissions['instructor']
-    ) {
-      return 'teacher';
-    }
-  }
-
-  // Check permissions in attributes
-  if (userData.attributes?.permissions?.['org']) {
+  if (userType === 'admin_staff') {
     return 'admin';
   }
 

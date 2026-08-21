@@ -17,6 +17,10 @@ export interface Class {
   section: string;
   teacher_id?: string | null;
   teacher_name?: string;
+  // Set when a faculty member is the class teacher rather than just assigned
+  // to the class; the teacher dashboards grant access off either pair.
+  class_teacher_id?: string | null;
+  class_teacher_name?: string;
   room: string;
   academic_year: string;
   description?: string;
@@ -68,9 +72,13 @@ export interface UpdateClassRequest {
 
 export interface ClassStudent {
   id: string;
-  name: string;
+  student_id?: string;
+  first_name?: string;
+  last_name?: string;
+  roll_number?: string;
   email: string;
   phone?: string;
+  is_monitor?: boolean;
   enrollment_date?: number;
   status: string;
 }
@@ -87,8 +95,13 @@ export interface Subject {
   id: string;
   orgId: string;
   classId: string;
-  name: string;
-  code: string;
+  /**
+   * Named subject_name/subject_code on the wire - createSubject and
+   * updateSubject rename the client-side `name` on the way out, and every
+   * page reads these spellings back.
+   */
+  subject_name: string;
+  subject_code?: string;
   teacher_id?: string;
   teacher_name?: string;
   description?: string;
@@ -135,15 +148,30 @@ export interface UpdateSubjectRequest {
   credits?: number;
 }
 
+/** One subject scheduled inside an exam. */
+export interface ExamSubjectDetail {
+  subject_id: string;
+  subject_name?: string;
+  max_marks?: number;
+  duration?: number;
+  exam_date?: string | number;
+  start_time?: string;
+}
+
 export interface Exam {
   id: string;
   orgId: string;
-  classId: string;
-  subjectId: string;
-  name: string;
-  exam_type: string;
-  exam_date: number;
-  max_marks: number;
+  classId?: string;
+  /** Named exam_name on the wire, matching CreateExamRequest. */
+  exam_name: string;
+  exam_type?: string;
+  exam_date?: string | number;
+  /** Per-subject schedule; an exam covers one or more subjects. */
+  subjects?: ExamSubjectDetail[];
+  max_marks?: number;
+  instructions?: string;
+  type?: string;
+  status?: string;
   description?: string;
   createdAt: number;
   updatedAt: number;
@@ -171,26 +199,28 @@ export interface ExamListResponse {
   }[];
 }
 
-export interface CreateExamRequest {
-  subjectId: string;
-  name: string;
-  exam_type: string;
-  exam_date: number;
+export interface ExamSubjectMarks {
+  subject_id: string;
   max_marks: number;
-  description?: string;
+}
+
+export interface CreateExamRequest {
+  exam_name: string;
+  exam_date: string; // "YYYY-MM-DD"
+  subjects: ExamSubjectMarks[];
 }
 
 export interface UpdateExamRequest {
-  subjectId?: string;
-  name?: string;
-  exam_type?: string;
-  exam_date?: number;
-  max_marks?: number;
-  description?: string;
+  exam_name?: string;
+  exam_date?: string; // "YYYY-MM-DD"
+  subjects?: ExamSubjectMarks[];
 }
 
 export interface EnrollmentRequest {
   student_id: string;
+  // Required by the backend (missing it 400s the whole enrollment) - the
+  // roll number the admin assigns when adding a student to a class.
+  roll_number: string;
 }
 
 export interface ClassFeesParams {
@@ -215,7 +245,7 @@ export const classApi = baseClassApi.injectEndpoints({
      */
     getClasses: builder.query<ClassListResponse, string>({
       query: (orgId) => `/${orgId}/classes`,
-      providesTags: (result, error, orgId) =>
+      providesTags: (result) =>
         result
           ? [
               ...result.data.map(({ id }) => ({
@@ -322,7 +352,7 @@ export const classApi = baseClassApi.injectEndpoints({
      * Enroll student in class
      */
     enrollStudentInClass: builder.mutation<
-      any,
+      unknown,
       { orgId: string; classId: string; enrollment: EnrollmentRequest }
     >({
       query: ({ orgId, classId, enrollment }) => ({
@@ -405,7 +435,10 @@ export const classApi = baseClassApi.injectEndpoints({
     }),
 
     /**
-     * Update subject
+     * Update subject. Real route is PUT /{org_id}/subjects/{subject_id} (not
+     * PATCH, and not nested under /class/{classId}); the backend only
+     * accepts subject_name/teacher_id, so `name` is renamed the same way
+     * createSubject already does.
      */
     updateSubject: builder.mutation<
       SubjectResponse,
@@ -416,30 +449,37 @@ export const classApi = baseClassApi.injectEndpoints({
         subjectData: UpdateSubjectRequest;
       }
     >({
-      query: ({ orgId, classId, subjectId, subjectData }) => ({
-        url: `/${orgId}/subjects/class/${classId}/${subjectId}`,
-        method: 'PATCH',
-        body: {
-          data: {
-            type: 'subjects',
-            attributes: subjectData,
+      query: ({ orgId, subjectId, subjectData }) => {
+        const { name, ...rest } = subjectData;
+        return {
+          url: `/${orgId}/subjects/${subjectId}`,
+          method: 'PUT',
+          body: {
+            data: {
+              type: 'subjects',
+              attributes: {
+                ...rest,
+                ...(name !== undefined ? { subject_name: name } : {}),
+              },
+            },
           },
-        },
-      }),
+        };
+      },
       invalidatesTags: (result, error, { classId }) => [
         { type: 'Subjects', id: classId },
       ],
     }),
 
     /**
-     * Delete subject
+     * Delete subject. Real route is DELETE /{org_id}/subjects/{subject_id}
+     * (not nested under /class/{classId}).
      */
     deleteSubject: builder.mutation<
       void,
       { orgId: string; classId: string; subjectId: string }
     >({
-      query: ({ orgId, classId, subjectId }) => ({
-        url: `/${orgId}/subjects/class/${classId}/${subjectId}`,
+      query: ({ orgId, subjectId }) => ({
+        url: `/${orgId}/subjects/${subjectId}`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, { classId }) => [
@@ -465,19 +505,21 @@ export const classApi = baseClassApi.injectEndpoints({
     }),
 
     /**
-     * Create exam for class
+     * Create exam for class.
+     * Real route is POST /{org_id}/exams (not nested under /classes/{classId})
+     * - class_id is a body field, not a path segment.
      */
     createExam: builder.mutation<
       ExamResponse,
       { orgId: string; classId: string; examData: CreateExamRequest }
     >({
       query: ({ orgId, classId, examData }) => ({
-        url: `/${orgId}/classes/${classId}/exams`,
+        url: `/${orgId}/exams`,
         method: 'POST',
         body: {
           data: {
             type: 'exams',
-            attributes: examData,
+            attributes: { ...examData, class_id: classId },
           },
         },
       }),
@@ -487,7 +529,8 @@ export const classApi = baseClassApi.injectEndpoints({
     }),
 
     /**
-     * Update exam
+     * Update exam. Real route is PUT /{org_id}/exams/{exam_id} (not PATCH,
+     * and not nested under /classes/{classId}).
      */
     updateExam: builder.mutation<
       ExamResponse,
@@ -498,9 +541,9 @@ export const classApi = baseClassApi.injectEndpoints({
         examData: UpdateExamRequest;
       }
     >({
-      query: ({ orgId, classId, examId, examData }) => ({
-        url: `/${orgId}/classes/${classId}/exams/${examId}`,
-        method: 'PATCH',
+      query: ({ orgId, examId, examData }) => ({
+        url: `/${orgId}/exams/${examId}`,
+        method: 'PUT',
         body: {
           data: {
             type: 'exams',
@@ -514,14 +557,15 @@ export const classApi = baseClassApi.injectEndpoints({
     }),
 
     /**
-     * Delete exam
+     * Delete exam. Real route is DELETE /{org_id}/exams/{exam_id} (not
+     * nested under /classes/{classId}).
      */
     deleteExam: builder.mutation<
       void,
       { orgId: string; classId: string; examId: string }
     >({
-      query: ({ orgId, classId, examId }) => ({
-        url: `/${orgId}/classes/${classId}/exams/${examId}`,
+      query: ({ orgId, examId }) => ({
+        url: `/${orgId}/exams/${examId}`,
         method: 'DELETE',
       }),
       invalidatesTags: (result, error, { classId }) => [
@@ -533,7 +577,10 @@ export const classApi = baseClassApi.injectEndpoints({
      * Get exams for a teacher
      * Returns all exams where the teacher is assigned
      */
-    getTeacherExams: builder.query<any, { orgId: string; teacherId: string }>({
+    getTeacherExams: builder.query<
+      ExamListResponse,
+      { orgId: string; teacherId: string }
+    >({
       query: ({ orgId, teacherId }) => `/${orgId}/exams/teacher/${teacherId}`,
       providesTags: (result, error, { teacherId }) => [
         { type: 'Exams', id: `teacher-${teacherId}` },
@@ -548,7 +595,7 @@ export const classApi = baseClassApi.injectEndpoints({
      * Get fees for students in a class
      */
     getClassFees: builder.query<
-      any,
+      unknown,
       { orgId: string; classId: string; params?: ClassFeesParams }
     >({
       query: ({ orgId, classId, params }) => ({
@@ -563,7 +610,7 @@ export const classApi = baseClassApi.injectEndpoints({
     /**
      * Get fee summary for class or organization
      */
-    getFeeSummary: builder.query<any, { orgId: string; classId?: string }>({
+    getFeeSummary: builder.query<unknown, { orgId: string; classId?: string }>({
       query: ({ orgId, classId }) =>
         classId
           ? `/${orgId}/classes/${classId}/fees/summary`

@@ -1,363 +1,199 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
+import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
+import { ApiService, type GalleryImage } from '@/services/api';
+import { toast } from 'react-toastify';
 
-interface Photo {
-  id: string;
-  title: string;
-  description: string;
-  url: string;
-  category: string;
-  album: string;
-  uploadDate: string;
-  fileSize: string;
-  dimensions: string;
-  tags: string[];
-  isPublished: boolean;
-}
+const CLOUD_FRONT_ORG_DATA_URL = (
+  process.env.NEXT_PUBLIC_OrgDataCloudFrontUrl ||
+  'https://d2kwquvuus8ixo.cloudfront.net'
+).replace(/\/$/, '');
 
-interface Album {
-  id: string;
-  name: string;
-  description: string;
-  coverPhoto: string;
-  photoCount: number;
-  category: string;
-  createdDate: string;
-}
+const TAG_SUGGESTIONS = [
+  'Events',
+  'Sports',
+  'Academic',
+  'Cultural',
+  'Infrastructure',
+  'Staff',
+  'Students',
+  'Awards',
+];
 
 export default function GalleryManagement() {
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [albums, setAlbums] = useState<Album[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedAlbum, setSelectedAlbum] = useState('All');
-  const [viewMode, setViewMode] = useState<'photos' | 'albums'>('albums');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [showCreateAlbumModal, setShowCreateAlbumModal] = useState(false);
-  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
-  const [uploadFiles, setUploadFiles] = useState<FileList | null>(null);
-  const [albumFormData, setAlbumFormData] = useState({
-    name: '',
-    description: '',
-    category: 'Events',
-  });
-  const router = useRouter();
+  return (
+    <DashboardWrapper allowedRoles={['admin']} redirectTo="/">
+      {() => <GalleryManagementContent />}
+    </DashboardWrapper>
+  );
+}
 
-  const categories = [
-    'All',
-    'Events',
-    'Sports',
-    'Academic',
-    'Cultural',
-    'Infrastructure',
-    'Staff',
-    'Students',
-    'Awards',
-    'Festivals',
-    'Other',
-  ];
+function GalleryManagementContent() {
+  const confirm = useConfirm();
+  const { userData } = useUserDataRedux();
+  const orgId = userData?.orgId;
+
+  const [photos, setPhotos] = useState<GalleryImage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [selectedTag, setSelectedTag] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedPhoto, setSelectedPhoto] = useState<GalleryImage | null>(null);
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    done: number;
+    total: number;
+  } | null>(null);
+
+  const loadPhotos = useCallback(async () => {
+    if (!orgId) return;
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const images = await ApiService.getGalleryImages(orgId);
+      setPhotos(images);
+    } catch (error) {
+      console.error('Failed to load gallery images:', error);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [orgId]);
 
   useEffect(() => {
-    const tokenStr = localStorage.getItem('bearerToken');
-    if (!tokenStr) {
-      router.push('/');
-      return;
-    }
-    try {
-      const tokenItem = JSON.parse(tokenStr);
-      const now = new Date().getTime();
-      if (now > tokenItem.expiry) {
-        localStorage.removeItem('bearerToken');
-        router.push('/');
-        return;
-      }
-    } catch (e) {
-      localStorage.removeItem('bearerToken');
-      router.push('/');
-      return;
-    }
+    loadPhotos();
+  }, [loadPhotos]);
 
-    // Load sample data
-    const samplePhotos: Photo[] = [
-      {
-        id: '1',
-        title: 'Annual Sports Day 2024',
-        description: 'Students participating in various sports activities',
-        url: 'https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=400&h=300&fit=crop',
-        category: 'Sports',
-        album: 'Sports Day 2024',
-        uploadDate: '2024-01-15',
-        fileSize: '2.4 MB',
-        dimensions: '1920x1080',
-        tags: ['sports', 'students', 'athletics'],
-        isPublished: true,
-      },
-      {
-        id: '2',
-        title: 'Science Exhibition',
-        description: 'Students showcasing their science projects',
-        url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop',
-        category: 'Academic',
-        album: 'Science Fair 2024',
-        uploadDate: '2024-01-12',
-        fileSize: '1.8 MB',
-        dimensions: '1920x1080',
-        tags: ['science', 'exhibition', 'students'],
-        isPublished: true,
-      },
-      {
-        id: '3',
-        title: 'Cultural Program',
-        description: 'Annual cultural celebration with dance and music',
-        url: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=400&h=300&fit=crop',
-        category: 'Cultural',
-        album: 'Cultural Night 2024',
-        uploadDate: '2024-01-10',
-        fileSize: '3.1 MB',
-        dimensions: '1920x1080',
-        tags: ['culture', 'dance', 'music'],
-        isPublished: true,
-      },
-      {
-        id: '4',
-        title: 'New Library Building',
-        description: 'Our newly constructed modern library facility',
-        url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop',
-        category: 'Infrastructure',
-        album: 'Campus Infrastructure',
-        uploadDate: '2024-01-08',
-        fileSize: '2.7 MB',
-        dimensions: '1920x1080',
-        tags: ['library', 'building', 'infrastructure'],
-        isPublished: true,
-      },
-      {
-        id: '5',
-        title: 'Teachers Training Workshop',
-        description: 'Professional development session for faculty',
-        url: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=400&h=300&fit=crop',
-        category: 'Staff',
-        album: 'Faculty Development',
-        uploadDate: '2024-01-05',
-        fileSize: '1.9 MB',
-        dimensions: '1920x1080',
-        tags: ['teachers', 'training', 'workshop'],
-        isPublished: true,
-      },
-      {
-        id: '6',
-        title: 'Academic Awards Ceremony',
-        description: 'Recognizing student achievements and excellence',
-        url: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&h=300&fit=crop',
-        category: 'Awards',
-        album: 'Awards Ceremony 2024',
-        uploadDate: '2024-01-03',
-        fileSize: '2.2 MB',
-        dimensions: '1920x1080',
-        tags: ['awards', 'students', 'achievement'],
-        isPublished: true,
-      },
-    ];
-
-    const sampleAlbums: Album[] = [
-      {
-        id: '1',
-        name: 'Sports Day 2024',
-        description:
-          'Annual sports day celebration with various athletic events',
-        coverPhoto:
-          'https://images.unsplash.com/photo-1544717297-fa95b6ee9643?w=300&h=200&fit=crop',
-        photoCount: 24,
-        category: 'Sports',
-        createdDate: '2024-01-15',
-      },
-      {
-        id: '2',
-        name: 'Science Fair 2024',
-        description: 'Student science projects and experiments showcase',
-        coverPhoto:
-          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop',
-        photoCount: 18,
-        category: 'Academic',
-        createdDate: '2024-01-12',
-      },
-      {
-        id: '3',
-        name: 'Cultural Night 2024',
-        description: 'Traditional and modern cultural performances',
-        coverPhoto:
-          'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=300&h=200&fit=crop',
-        photoCount: 32,
-        category: 'Cultural',
-        createdDate: '2024-01-10',
-      },
-      {
-        id: '4',
-        name: 'Campus Infrastructure',
-        description: 'School buildings, facilities and campus views',
-        coverPhoto:
-          'https://images.unsplash.com/photo-1562774053-701939374585?w=300&h=200&fit=crop',
-        photoCount: 15,
-        category: 'Infrastructure',
-        createdDate: '2024-01-08',
-      },
-      {
-        id: '5',
-        name: 'Faculty Development',
-        description: 'Teacher training programs and workshops',
-        coverPhoto:
-          'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=300&h=200&fit=crop',
-        photoCount: 12,
-        category: 'Staff',
-        createdDate: '2024-01-05',
-      },
-      {
-        id: '6',
-        name: 'Awards Ceremony 2024',
-        description: 'Student recognition and achievement celebration',
-        coverPhoto:
-          'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=300&h=200&fit=crop',
-        photoCount: 20,
-        category: 'Awards',
-        createdDate: '2024-01-03',
-      },
-    ];
-
-    setPhotos(samplePhotos);
-    setAlbums(sampleAlbums);
-    setLoading(false);
-  }, [router]);
+  const tags = [
+    'All',
+    ...Array.from(
+      new Set(photos.map((p) => p.tags?.[0]).filter(Boolean) as string[]),
+    ),
+  ];
 
   const filteredPhotos = photos.filter((photo) => {
-    const categoryMatch =
-      selectedCategory === 'All' || photo.category === selectedCategory;
-    const albumMatch = selectedAlbum === 'All' || photo.album === selectedAlbum;
+    const tagMatch = selectedTag === 'All' || photo.tags?.[0] === selectedTag;
+    const term = searchTerm.toLowerCase();
     const searchMatch =
-      photo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      photo.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      photo.tags.some((tag) =>
-        tag.toLowerCase().includes(searchTerm.toLowerCase()),
-      );
-    return categoryMatch && albumMatch && searchMatch;
+      !term ||
+      (photo.title || '').toLowerCase().includes(term) ||
+      (photo.description || '').toLowerCase().includes(term) ||
+      (photo.tags || []).some((tag) => tag.toLowerCase().includes(term));
+    return tagMatch && searchMatch;
   });
 
-  const filteredAlbums = albums.filter((album) => {
-    const categoryMatch =
-      selectedCategory === 'All' || album.category === selectedCategory;
-    const searchMatch =
-      album.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      album.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return categoryMatch && searchMatch;
-  });
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const files = event.target.files;
-    if (files) {
-      setUploadFiles(files);
-      setShowUploadModal(true);
-    }
-  };
+    event.target.value = '';
+    if (!files || files.length === 0 || !orgId || !userData?.id) return;
 
-  const processUpload = () => {
-    if (!uploadFiles) return;
+    setUploading(true);
+    setUploadProgress({ done: 0, total: files.length });
 
-    // In a real application, you would upload files to a server
-    // For demo purposes, we'll simulate the upload
-    const newPhotos: Photo[] = [];
+    let failures = 0;
 
-    for (let i = 0; i < uploadFiles.length; i++) {
-      const file = uploadFiles[i];
-      const newPhoto: Photo = {
-        id: (photos.length + i + 1).toString(),
-        title: file.name.split('.')[0],
-        description: 'Uploaded photo',
-        url: URL.createObjectURL(file), // In production, this would be the server URL
-        category: 'Other',
-        album: 'Uploads',
-        uploadDate: new Date().toISOString().split('T')[0],
-        fileSize: `${(file.size / (1024 * 1024)).toFixed(1)} MB`,
-        dimensions: '1920x1080',
-        tags: [],
-        isPublished: false,
-      };
-      newPhotos.push(newPhoto);
-    }
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const signedUrlResponse = await ApiService.getOrgImageSignedUrl(
+          userData.id,
+          'gallery',
+        );
+        await ApiService.uploadFileToS3(
+          signedUrlResponse.data.signed_url,
+          file,
+        );
 
-    setPhotos((prev) => [...prev, ...newPhotos]);
-    setShowUploadModal(false);
-    setUploadFiles(null);
-    alert(`Successfully uploaded ${newPhotos.length} photo(s)`);
-  };
-
-  const handleCreateAlbum = () => {
-    if (!albumFormData.name) {
-      alert('Please enter album name');
-      return;
+        const imageUrl = `${CLOUD_FRONT_ORG_DATA_URL}/${signedUrlResponse.data.file_path}`;
+        await ApiService.createGalleryImage(orgId, {
+          image_url: imageUrl,
+          title: file.name.replace(/\.[^/.]+$/, ''),
+          description: '',
+          tags: [],
+          active: true,
+        });
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error);
+        failures++;
+      }
+      setUploadProgress({ done: i + 1, total: files.length });
     }
 
-    const newAlbum: Album = {
-      id: (albums.length + 1).toString(),
-      name: albumFormData.name,
-      description: albumFormData.description,
-      coverPhoto:
-        'https://images.unsplash.com/photo-1562774053-701939374585?w=300&h=200&fit=crop',
-      photoCount: 0,
-      category: albumFormData.category,
-      createdDate: new Date().toISOString().split('T')[0],
-    };
+    setUploading(false);
+    setUploadProgress(null);
+    await loadPhotos();
 
-    setAlbums((prev) => [...prev, newAlbum]);
-    setShowCreateAlbumModal(false);
-    setAlbumFormData({ name: '', description: '', category: 'Events' });
-    alert('Album created successfully!');
-  };
-
-  const togglePhotoSelection = (photoId: string) => {
-    setSelectedPhotos((prev) =>
-      prev.includes(photoId)
-        ? prev.filter((id) => id !== photoId)
-        : [...prev, photoId],
-    );
-  };
-
-  const handleBulkDelete = () => {
-    if (selectedPhotos.length === 0) {
-      alert('Please select photos to delete');
-      return;
-    }
-
-    if (confirm(`Delete ${selectedPhotos.length} selected photo(s)?`)) {
-      setPhotos((prev) =>
-        prev.filter((photo) => !selectedPhotos.includes(photo.id)),
+    if (failures > 0) {
+      toast.error(
+        `${files.length - failures} of ${files.length} photo(s) uploaded. ${failures} failed — please try again.`,
       );
-      setSelectedPhotos([]);
-      alert('Photos deleted successfully');
     }
   };
 
-  const handleBulkPublish = () => {
-    if (selectedPhotos.length === 0) {
-      alert('Please select photos to publish');
-      return;
+  const handleToggleActive = async (photo: GalleryImage) => {
+    if (!orgId) return;
+    try {
+      const updated = await ApiService.updateGalleryImage(orgId, photo.id, {
+        active: !photo.active,
+      });
+      setPhotos((prev) =>
+        prev.map((p) => (p.id === photo.id ? { ...p, ...updated } : p)),
+      );
+      setSelectedPhoto((prev) =>
+        prev && prev.id === photo.id ? { ...prev, ...updated } : prev,
+      );
+    } catch (error) {
+      console.error('Failed to update photo:', error);
+      toast.error('Failed to update photo. Please try again.');
     }
+  };
 
-    setPhotos((prev) =>
-      prev.map((photo) =>
-        selectedPhotos.includes(photo.id)
-          ? { ...photo, isPublished: true }
-          : photo,
-      ),
-    );
-    setSelectedPhotos([]);
-    alert(`${selectedPhotos.length} photo(s) published successfully`);
+  const handleDelete = async (photo: GalleryImage) => {
+    if (!orgId) return;
+    if (!(await confirm(`Delete "${photo.title || 'this photo'}"?`))) return;
+    try {
+      await ApiService.deleteGalleryImage(orgId, photo.id);
+      setPhotos((prev) => prev.filter((p) => p.id !== photo.id));
+      setSelectedPhoto(null);
+    } catch (error) {
+      console.error('Failed to delete photo:', error);
+      toast.error('Failed to delete photo. Please try again.');
+    }
+  };
+
+  const handleSaveDetails = async (
+    photo: GalleryImage,
+    updates: { title: string; description: string; tags: string[] },
+  ) => {
+    if (!orgId) return;
+    try {
+      const updated = await ApiService.updateGalleryImage(
+        orgId,
+        photo.id,
+        updates,
+      );
+      setPhotos((prev) =>
+        prev.map((p) => (p.id === photo.id ? { ...p, ...updated } : p)),
+      );
+      setSelectedPhoto((prev) =>
+        prev && prev.id === photo.id ? { ...prev, ...updated } : prev,
+      );
+      toast.success('Photo details saved');
+    } catch (error) {
+      console.error('Failed to save photo details:', error);
+      toast.error('Failed to save photo details. Please try again.');
+    }
   };
 
   if (loading) {
@@ -400,7 +236,11 @@ export default function GalleryManagement() {
             <div className="flex items-center space-x-4">
               <ThemeToggle />
               {/* Upload Photos */}
-              <label className="cursor-pointer flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">
+              <label
+                className={`cursor-pointer flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors ${
+                  uploading ? 'opacity-60 pointer-events-none' : ''
+                }`}
+              >
                 <svg
                   className="w-4 h-4 mr-2"
                   fill="none"
@@ -414,58 +254,18 @@ export default function GalleryManagement() {
                     d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                   />
                 </svg>
-                Upload Photos
+                {uploading
+                  ? `Uploading ${uploadProgress?.done ?? 0}/${uploadProgress?.total ?? 0}...`
+                  : 'Upload Photos'}
                 <input
                   type="file"
                   multiple
                   accept="image/*"
                   className="hidden"
+                  disabled={uploading}
                   onChange={handleFileUpload}
                 />
               </label>
-              {/* Create Album */}
-              <button
-                onClick={() => setShowCreateAlbumModal(true)}
-                className="flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
-              >
-                <svg
-                  className="w-4 h-4 mr-2"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-                Create Album
-              </button>
-              {/* View Toggle */}
-              <div className="flex items-center bg-muted rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('albums')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'albums'
-                      ? 'bg-card text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Albums
-                </button>
-                <button
-                  onClick={() => setViewMode('photos')}
-                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                    viewMode === 'photos'
-                      ? 'bg-card text-foreground shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  Photos
-                </button>
-              </div>
             </div>
           </div>
         </div>
@@ -474,230 +274,201 @@ export default function GalleryManagement() {
       <main className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         {/* Filters and Search */}
         <div className="mb-6 space-y-4">
-          {/* Category Filter */}
-          <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
-              Filter by Category
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    selectedCategory === category
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-muted text-foreground hover:bg-accent'
-                  }`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Search and Album Filter */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
+          {tags.length > 1 && (
+            <div>
               <label className="block text-sm font-medium text-foreground mb-2">
-                Search
+                Filter by Tag
               </label>
-              <input
-                type="text"
-                placeholder="Search photos, albums, or tags..."
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            {viewMode === 'photos' && (
-              <div className="sm:w-48">
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Filter by Album
-                </label>
-                <select
-                  value={selectedAlbum}
-                  onChange={(e) => setSelectedAlbum(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="All">All Albums</option>
-                  {albums.map((album) => (
-                    <option key={album.id} value={album.name}>
-                      {album.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          {/* Bulk Actions for Photos */}
-          {viewMode === 'photos' && selectedPhotos.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-blue-900">
-                  {selectedPhotos.length} photo(s) selected
-                </span>
-                <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
                   <button
-                    onClick={handleBulkPublish}
-                    className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                    key={tag}
+                    onClick={() => setSelectedTag(tag)}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                      selectedTag === tag
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-muted text-foreground hover:bg-accent'
+                    }`}
                   >
-                    Publish
+                    {tag}
                   </button>
-                  <button
-                    onClick={handleBulkDelete}
-                    className="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
-                  <button
-                    onClick={() => setSelectedPhotos([])}
-                    className="px-3 py-1 bg-gray-400 text-white text-sm rounded-md hover:bg-gray-500"
-                  >
-                    Clear
-                  </button>
-                </div>
+                ))}
               </div>
             </div>
           )}
+
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Search
+            </label>
+            <input
+              type="text"
+              placeholder="Search photos by title, description, or tag..."
+              className="w-full sm:max-w-md px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
 
-        {/* Content based on view mode */}
-        {viewMode === 'albums' ? (
-          /* Albums Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredAlbums.map((album) => (
-              <div
-                key={album.id}
-                className="bg-card rounded-lg shadow-sm border border-border hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden"
-                onClick={() => {
-                  setSelectedAlbum(album.name);
-                  setViewMode('photos');
-                }}
-              >
-                <div className="aspect-video bg-muted overflow-hidden">
-                  <img
-                    src={album.coverPhoto}
-                    alt={album.name}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
-                  />
-                </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-foreground mb-2">
-                    {album.name}
-                  </h3>
-                  <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                    {album.description}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          album.category === 'Events'
-                            ? 'bg-blue-100 text-blue-800'
-                            : album.category === 'Sports'
-                              ? 'bg-green-100 text-green-800'
-                              : album.category === 'Academic'
-                                ? 'bg-purple-100 text-purple-800'
-                                : album.category === 'Cultural'
-                                  ? 'bg-pink-100 text-pink-800'
-                                  : 'bg-muted text-muted-foreground'
-                        }`}
-                      >
-                        {album.category}
-                      </span>
-                    </div>
-                    <span className="text-sm text-muted-foreground">
-                      {album.photoCount} photos
-                    </span>
-                  </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Created: {new Date(album.createdDate).toLocaleDateString()}
-                  </div>
-                </div>
-              </div>
-            ))}
+        {loadError ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">
+              Could not load the gallery right now.
+            </p>
+            <button
+              onClick={loadPhotos}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+            >
+              Retry
+            </button>
           </div>
         ) : (
-          /* Photos Grid */
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {filteredPhotos.map((photo) => (
-              <div
-                key={photo.id}
-                className="relative group bg-card rounded-lg shadow-sm border border-border overflow-hidden hover:shadow-md transition-all duration-200"
-              >
-                {/* Selection Checkbox */}
-                <div className="absolute top-2 left-2 z-10">
-                  <input
-                    type="checkbox"
-                    checked={selectedPhotos.includes(photo.id)}
-                    onChange={() => togglePhotoSelection(photo.id)}
-                    className="w-4 h-4 text-indigo-600 bg-background border-border rounded focus:ring-indigo-500"
-                  />
-                </div>
-
-                {/* Published Status */}
-                {photo.isPublished && (
-                  <div className="absolute top-2 right-2 z-10">
-                    <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                      Published
-                    </span>
-                  </div>
-                )}
-
-                {/* Photo */}
+          <>
+            {/* Photos Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+              {filteredPhotos.map((photo) => (
                 <div
-                  className="aspect-square bg-muted overflow-hidden cursor-pointer"
-                  onClick={() => setSelectedPhoto(photo)}
+                  key={photo.id}
+                  className="relative group bg-card rounded-lg shadow-sm border border-border overflow-hidden hover:shadow-md transition-all duration-200"
                 >
-                  <img
-                    src={photo.url}
-                    alt={photo.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                  />
-                </div>
-
-                {/* Photo Info */}
-                <div className="p-3">
-                  <h4 className="text-sm font-semibold text-foreground truncate mb-1">
-                    {photo.title}
-                  </h4>
-                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                    {photo.description}
-                  </p>
-                  <div className="flex items-center justify-between">
+                  {/* Published Status */}
+                  <div className="absolute top-2 right-2 z-10">
                     <span
-                      className={`text-xs px-2 py-1 rounded-full font-medium ${
-                        photo.category === 'Events'
-                          ? 'bg-blue-100 text-blue-800'
-                          : photo.category === 'Sports'
-                            ? 'bg-green-100 text-green-800'
-                            : photo.category === 'Academic'
-                              ? 'bg-purple-100 text-purple-800'
-                              : photo.category === 'Cultural'
-                                ? 'bg-pink-100 text-pink-800'
-                                : 'bg-muted text-muted-foreground'
+                      className={`text-xs px-2 py-1 rounded-full ${
+                        photo.active
+                          ? 'bg-green-500 text-white'
+                          : 'bg-yellow-500 text-white'
                       }`}
                     >
-                      {photo.category}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {photo.fileSize}
+                      {photo.active ? 'Published' : 'Hidden'}
                     </span>
                   </div>
+
+                  {/* Photo */}
+                  <div
+                    className="relative aspect-square bg-muted overflow-hidden cursor-pointer"
+                    onClick={() => setSelectedPhoto(photo)}
+                  >
+                    <Image
+                      src={photo.image_url}
+                      alt={photo.title || 'Gallery photo'}
+                      fill
+                      unoptimized
+                      sizes="(max-width: 768px) 50vw, 25vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-200"
+                    />
+                  </div>
+
+                  {/* Photo Info */}
+                  <div className="p-3">
+                    <h4 className="text-sm font-semibold text-foreground truncate mb-1">
+                      {photo.title || 'Untitled'}
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
+                      {photo.description}
+                    </p>
+                    {photo.tags && photo.tags.length > 0 && (
+                      <span className="text-xs px-2 py-1 rounded-full font-medium bg-blue-100 text-blue-800">
+                        {photo.tags[0]}
+                      </span>
+                    )}
+                  </div>
                 </div>
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {filteredPhotos.length === 0 && (
+              <div className="text-center py-12">
+                <svg
+                  className="w-16 h-16 mx-auto text-muted-foreground mb-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                <h3 className="text-lg font-medium text-foreground mb-2">
+                  No photos found
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {photos.length === 0
+                    ? 'Upload your first photo to get started'
+                    : 'Try a different tag or search term'}
+                </p>
+                {photos.length === 0 && (
+                  <label className="cursor-pointer px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 inline-block">
+                    Upload Photos
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleFileUpload}
+                    />
+                  </label>
+                )}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
 
-        {/* Empty State */}
-        {((viewMode === 'albums' && filteredAlbums.length === 0) ||
-          (viewMode === 'photos' && filteredPhotos.length === 0)) && (
-          <div className="text-center py-12">
+        {/* Photo Detail Modal */}
+        {selectedPhoto && (
+          <PhotoDetailModal
+            key={selectedPhoto.id}
+            photo={selectedPhoto}
+            onClose={() => setSelectedPhoto(null)}
+            onToggleActive={() => handleToggleActive(selectedPhoto)}
+            onDelete={() => handleDelete(selectedPhoto)}
+            onSave={(updates) => handleSaveDetails(selectedPhoto, updates)}
+          />
+        )}
+      </main>
+    </div>
+  );
+}
+
+function PhotoDetailModal({
+  photo,
+  onClose,
+  onToggleActive,
+  onDelete,
+  onSave,
+}: {
+  photo: GalleryImage;
+  onClose: () => void;
+  onToggleActive: () => void;
+  onDelete: () => void;
+  onSave: (updates: {
+    title: string;
+    description: string;
+    tags: string[];
+  }) => void;
+}) {
+  const [title, setTitle] = useState(photo.title || '');
+  const [description, setDescription] = useState(photo.description || '');
+  const [tag, setTag] = useState(photo.tags?.[0] || '');
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
+      <div className="bg-card rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-foreground">
+            {photo.title || 'Untitled photo'}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground"
+          >
             <svg
-              className="w-16 h-16 mx-auto text-muted-foreground mb-4"
+              className="w-6 h-6"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -705,395 +476,124 @@ export default function GalleryManagement() {
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={1}
-                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
               />
             </svg>
-            <h3 className="text-lg font-medium text-foreground mb-2">
-              No {viewMode} found
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {viewMode === 'albums'
-                ? 'Create your first album to organize photos'
-                : 'Upload photos or adjust your filters'}
-            </p>
-            {viewMode === 'albums' ? (
-              <button
-                onClick={() => setShowCreateAlbumModal(true)}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
-              >
-                Create Album
-              </button>
-            ) : (
-              <label className="cursor-pointer px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 inline-block">
-                Upload Photos
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleFileUpload}
+          </button>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Photo Display */}
+            <div className="space-y-4">
+              <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+                <Image
+                  src={photo.image_url}
+                  alt={photo.title || 'Gallery photo'}
+                  fill
+                  unoptimized
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover"
                 />
-              </label>
-            )}
-          </div>
-        )}
-
-        {/* Upload Photos Modal */}
-        {showUploadModal && uploadFiles && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-card rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
-              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">
-                  Upload Photos
-                </h3>
+              </div>
+              <div className="flex items-center justify-between">
                 <button
-                  onClick={() => {
-                    setShowUploadModal(false);
-                    setUploadFiles(null);
-                  }}
-                  className="text-muted-foreground hover:text-foreground"
+                  onClick={onToggleActive}
+                  className={`px-4 py-2 rounded-md text-sm font-medium ${
+                    photo.active
+                      ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                      : 'bg-green-100 text-green-800 hover:bg-green-200'
+                  }`}
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  {photo.active
+                    ? 'Hide from public gallery'
+                    : 'Publish to public gallery'}
+                </button>
+                <button
+                  onClick={onDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
+                >
+                  Delete Photo
                 </button>
               </div>
-              <div className="p-6">
-                <p className="text-sm text-muted-foreground mb-4">
-                  Ready to upload {uploadFiles.length} file(s)
-                </p>
-                <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
-                  {Array.from(uploadFiles).map((file, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-2 bg-muted rounded"
-                    >
-                      <span className="text-sm text-foreground truncate">
-                        {file.name}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {(file.size / (1024 * 1024)).toFixed(1)} MB
-                      </span>
-                    </div>
+            </div>
+
+            {/* Photo Details */}
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Description
+                </label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Tag (shown as its category on the public gallery)
+                </label>
+                <input
+                  type="text"
+                  list="gallery-tag-suggestions"
+                  value={tag}
+                  onChange={(e) => setTag(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="e.g. Sports"
+                />
+                <datalist id="gallery-tag-suggestions">
+                  {TAG_SUGGESTIONS.map((suggestion) => (
+                    <option key={suggestion} value={suggestion} />
                   ))}
-                </div>
-                <div className="flex items-center justify-end space-x-3">
-                  <button
-                    onClick={() => {
-                      setShowUploadModal(false);
-                      setUploadFiles(null);
-                    }}
-                    className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
+                </datalist>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">
+                  Status
+                </label>
+                <div>
+                  <span
+                    className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                      photo.active
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-yellow-100 text-yellow-800'
+                    }`}
                   >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={processUpload}
-                    className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
-                  >
-                    Upload Photos
-                  </button>
+                    {photo.active ? 'Published' : 'Hidden'}
+                  </span>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Create Album Modal */}
-        {showCreateAlbumModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-card rounded-lg max-w-md w-full">
-              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">
-                  Create New Album
-                </h3>
+              <div className="flex justify-end pt-2">
                 <button
-                  onClick={() => setShowCreateAlbumModal(false)}
-                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() =>
+                    onSave({
+                      title,
+                      description,
+                      tags: tag ? [tag] : [],
+                    })
+                  }
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md"
                 >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
+                  Save Details
                 </button>
               </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Album Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={albumFormData.name}
-                    onChange={(e) =>
-                      setAlbumFormData((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter album name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={albumFormData.description}
-                    onChange={(e) =>
-                      setAlbumFormData((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    rows={3}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter album description"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={albumFormData.category}
-                    onChange={(e) =>
-                      setAlbumFormData((prev) => ({
-                        ...prev,
-                        category: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    {categories
-                      .filter((cat) => cat !== 'All')
-                      .map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-                <div className="flex items-center justify-end space-x-3 pt-4">
-                  <button
-                    onClick={() => setShowCreateAlbumModal(false)}
-                    className="px-4 py-2 text-sm font-medium text-foreground bg-muted hover:bg-accent rounded-md"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleCreateAlbum}
-                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
-                  >
-                    Create Album
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
-        )}
-
-        {/* Photo Detail Modal */}
-        {selectedPhoto && (
-          <div className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4">
-            <div className="bg-card rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
-              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-foreground">
-                  {selectedPhoto.title}
-                </h3>
-                <button
-                  onClick={() => setSelectedPhoto(null)}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <svg
-                    className="w-6 h-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Photo Display */}
-                  <div className="space-y-4">
-                    <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                      <img
-                        src={selectedPhoto.url}
-                        alt={selectedPhoto.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <button
-                        onClick={() => {
-                          setPhotos((prev) =>
-                            prev.map((p) =>
-                              p.id === selectedPhoto.id
-                                ? { ...p, isPublished: !p.isPublished }
-                                : p,
-                            ),
-                          );
-                          setSelectedPhoto((prev) =>
-                            prev
-                              ? { ...prev, isPublished: !prev.isPublished }
-                              : null,
-                          );
-                        }}
-                        className={`px-4 py-2 rounded-md text-sm font-medium ${
-                          selectedPhoto.isPublished
-                            ? 'bg-red-100 text-red-800 hover:bg-red-200'
-                            : 'bg-green-100 text-green-800 hover:bg-green-200'
-                        }`}
-                      >
-                        {selectedPhoto.isPublished ? 'Unpublish' : 'Publish'}
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm('Delete this photo?')) {
-                            setPhotos((prev) =>
-                              prev.filter((p) => p.id !== selectedPhoto.id),
-                            );
-                            setSelectedPhoto(null);
-                            alert('Photo deleted successfully');
-                          }
-                        }}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
-                      >
-                        Delete Photo
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Photo Details */}
-                  <div className="space-y-4">
-                    <div>
-                      <h4 className="text-lg font-semibold text-foreground mb-4">
-                        Photo Details
-                      </h4>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">
-                            Description
-                          </label>
-                          <p className="text-sm text-foreground">
-                            {selectedPhoto.description}
-                          </p>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium text-muted-foreground">
-                              Category
-                            </label>
-                            <p className="text-sm text-foreground">
-                              {selectedPhoto.category}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-muted-foreground">
-                              Album
-                            </label>
-                            <p className="text-sm text-foreground">
-                              {selectedPhoto.album}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="text-sm font-medium text-muted-foreground">
-                              File Size
-                            </label>
-                            <p className="text-sm text-foreground">
-                              {selectedPhoto.fileSize}
-                            </p>
-                          </div>
-                          <div>
-                            <label className="text-sm font-medium text-muted-foreground">
-                              Dimensions
-                            </label>
-                            <p className="text-sm text-foreground">
-                              {selectedPhoto.dimensions}
-                            </p>
-                          </div>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">
-                            Upload Date
-                          </label>
-                          <p className="text-sm text-foreground">
-                            {new Date(
-                              selectedPhoto.uploadDate,
-                            ).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-muted-foreground">
-                            Status
-                          </label>
-                          <span
-                            className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                              selectedPhoto.isPublished
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}
-                          >
-                            {selectedPhoto.isPublished ? 'Published' : 'Draft'}
-                          </span>
-                        </div>
-                        {selectedPhoto.tags.length > 0 && (
-                          <div>
-                            <label className="text-sm font-medium text-muted-foreground">
-                              Tags
-                            </label>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {selectedPhoto.tags.map((tag, index) => (
-                                <span
-                                  key={index}
-                                  className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                                >
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
+        </div>
+      </div>
     </div>
   );
 }

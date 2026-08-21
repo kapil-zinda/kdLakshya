@@ -1,4 +1,11 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { getStudentApiKey } from '@/utils/authHeaders';
+import {
+  createApi,
+  fetchBaseQuery,
+  type BaseQueryFn,
+  type FetchArgs,
+  type FetchBaseQueryError,
+} from '@reduxjs/toolkit/query/react';
 
 import type { RootState } from '../index';
 
@@ -15,17 +22,38 @@ const API_CONFIG = {
     'https://apis.testkdlakshya.uchhal.in',
 };
 
+/**
+ * Set the Authorization header for whichever session is active.
+ *
+ * Staff (teacher/admin) authenticate with an Auth0 bearer token, which lives in
+ * the Redux store. Students authenticate with an api key, which lives in
+ * localStorage and never reaches Redux - so relying on the Redux token alone
+ * sent student requests with no credential at all, and API Gateway answered
+ * 401. Both credential kinds travel on `Authorization`; the scheme distinguishes
+ * them, which is also what lets the gateway name that one header as the
+ * authorizer's identity source.
+ */
+const applyAuthorization = (headers: Headers, state: RootState) => {
+  const token = state.auth.token?.token;
+
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+    return;
+  }
+
+  const apiKey = getStudentApiKey();
+
+  if (apiKey) {
+    headers.set('Authorization', `ApiKey ${apiKey}`);
+  }
+};
+
 // Base query with automatic token injection
 const baseQueryWithAuth = fetchBaseQuery({
   baseUrl: API_CONFIG.EXTERNAL_API,
   timeout: 60000, // 60s timeout increased to prevent timeout errors
   prepareHeaders: (headers, { getState }) => {
-    // Get token from Redux store
-    const token = (getState() as RootState).auth.token?.token;
-
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
+    applyAuthorization(headers, getState() as RootState);
 
     if (!headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/vnd.api+json');
@@ -36,7 +64,11 @@ const baseQueryWithAuth = fetchBaseQuery({
 });
 
 // Base query with retry logic for 500 errors (Lambda cold starts)
-const baseQueryWithRetry = async (args: any, api: any, extraOptions: any) => {
+const baseQueryWithRetry: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
   console.log('🔵 [RTK Query] Request:', args);
 
   let result = await baseQueryWithAuth(args, api, extraOptions);
@@ -45,8 +77,9 @@ const baseQueryWithRetry = async (args: any, api: any, extraOptions: any) => {
     console.error('🔴 [RTK Query] Error:', {
       args,
       error: result.error,
-      status: (result.error as any).status,
-      data: (result.error as any).data,
+      status: result.error.status,
+      // FETCH_ERROR variants carry no payload, so only read `data` when present.
+      data: 'data' in result.error ? result.error.data : undefined,
     });
   } else {
     console.log('🟢 [RTK Query] Success:', {
@@ -56,7 +89,7 @@ const baseQueryWithRetry = async (args: any, api: any, extraOptions: any) => {
   }
 
   // Retry on 500 errors (Lambda cold start)
-  if (result.error && (result.error as any).status === 500) {
+  if (result.error && result.error.status === 500) {
     console.log('🔄 Retrying request due to 500 error (Lambda cold start)...');
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1s
     result = await baseQueryWithAuth(args, api, extraOptions);
@@ -104,13 +137,7 @@ const classBaseQuery = fetchBaseQuery({
   baseUrl: API_CONFIG.CLASS_API,
   timeout: 30000,
   prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth.token?.token;
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-      console.log('🔑 [classApi] Token added to headers');
-    } else {
-      console.warn('⚠️ [classApi] No token found in Redux store');
-    }
+    applyAuthorization(headers, getState() as RootState);
     if (!headers.has('Content-Type')) {
       headers.set('Content-Type', 'application/json');
     }
@@ -119,7 +146,11 @@ const classBaseQuery = fetchBaseQuery({
 });
 
 // Class API query with retry logic for 500 errors
-const classQueryWithRetry = async (args: any, api: any, extraOptions: any) => {
+const classQueryWithRetry: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
   let result = await classBaseQuery(args, api, extraOptions);
 
   // Retry on 500 errors (Lambda cold start)
@@ -160,10 +191,7 @@ export const workspaceApi = createApi({
     baseUrl: API_CONFIG.WORKSPACE_API,
     timeout: 30000,
     prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token?.token;
-      if (token) {
-        headers.set('Authorization', `Bearer ${token}`);
-      }
+      applyAuthorization(headers, getState() as RootState);
       if (!headers.has('Content-Type')) {
         headers.set('Content-Type', 'application/json');
       }

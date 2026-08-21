@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import Link from 'next/link';
 
@@ -63,6 +63,11 @@ export default function TeacherExamsPage() {
 }
 
 function ExamsContent({ userData }: { userData: UserData }) {
+  const [deepLinkExamId] = useState<string | null>(() =>
+    typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('examId')
+      : null,
+  );
   const [exams, setExams] = useState<Exam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedExam, setSelectedExam] = useState<Exam | null>(null);
@@ -80,24 +85,31 @@ function ExamsContent({ userData }: { userData: UserData }) {
   const orgId = userData.orgId;
   const teacherId = userData.userId;
 
-  useEffect(() => {
-    loadExams();
-  }, [orgId, teacherId]);
-
-  const loadExams = async () => {
+  const loadExams = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await ApiService.getTeacherExams(orgId, teacherId);
 
-      const examsList: Exam[] = response.data.map((e: any) => ({
+      const examsList: Exam[] = response.data.map((e) => ({
         id: e.id,
-        exam_name: e.attributes.exam_name,
-        class_id: e.attributes.class_id,
+        exam_name: e.attributes.exam_name ?? '',
+        class_id: e.attributes.class_id ?? '',
         class_name: e.attributes.class_name || 'Unknown Class',
         academic_year: e.attributes.academic_year,
-        exam_date: e.attributes.exam_date,
-        subjects: e.attributes.subjects || [],
-        teacher_subjects: e.attributes.teacher_subjects || [],
+        exam_date: String(e.attributes.exam_date ?? ''),
+        subjects: (e.attributes.subjects ?? []).map((subject) => ({
+          ...subject,
+          max_marks: subject.max_marks ?? 0,
+        })),
+        teacher_subjects: (e.attributes.teacher_subjects ?? []).map((ts) => ({
+          id: ts.id ?? ts.subject_id ?? '',
+          subject_name: ts.subject_name ?? '',
+          teacher_id: ts.teacher_id ?? '',
+          teacher_name: ts.teacher_name ?? '',
+          class_id: ts.class_id ?? '',
+          class_name: ts.class_name ?? '',
+          academic_year: ts.academic_year ?? '',
+        })),
       }));
 
       setExams(examsList);
@@ -107,7 +119,11 @@ function ExamsContent({ userData }: { userData: UserData }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [orgId, teacherId]);
+
+  useEffect(() => {
+    loadExams();
+  }, [loadExams]);
 
   const handleExamClick = async (exam: Exam) => {
     try {
@@ -148,6 +164,20 @@ function ExamsContent({ userData }: { userData: UserData }) {
     }
   };
 
+  // Deep-link support: opening this page as /teacher-dashboard/exams?examId=X
+  // (from the "Enter Marks" link on a just-created exam in Classes) jumps
+  // straight to that exam's subject list instead of leaving the teacher to
+  // find it again in a plain list.
+  const [deepLinkHandled, setDeepLinkHandled] = React.useState(false);
+  useEffect(() => {
+    if (deepLinkHandled || !deepLinkExamId || exams.length === 0) return;
+    const match = exams.find((e) => e.id === deepLinkExamId);
+    if (match) {
+      handleExamClick(match);
+    }
+    setDeepLinkHandled(true);
+  }, [deepLinkExamId, exams, deepLinkHandled]);
+
   const handleEnterMarks = async (subject: ExamSubject) => {
     if (!selectedExam) return;
 
@@ -159,10 +189,10 @@ function ExamsContent({ userData }: { userData: UserData }) {
         orgId,
         selectedExam.class_id,
       );
-      const classStudents: Student[] = classResponse.data.map((s: any) => ({
-        id: s.attributes.student_id,
-        name: `${s.attributes?.first_name || ''} ${s.attributes?.last_name || ''}`.trim(),
-        roll_number: s.attributes?.roll_number || '',
+      const classStudents: Student[] = classResponse.data.map((s) => ({
+        id: s.attributes.student_id || s.id,
+        name: `${s.attributes.first_name || ''} ${s.attributes.last_name || ''}`.trim(),
+        roll_number: s.attributes.roll_number || '',
       }));
 
       // Get existing results for this exam and subject
@@ -175,12 +205,12 @@ function ExamsContent({ userData }: { userData: UserData }) {
 
         const studentMarks: StudentMark[] = classStudents.map((student) => {
           const existingResult = resultsResponse.data.find(
-            (r: any) => r.attributes.student_id === student.id,
+            (r) => r.attributes.student_id === student.id,
           );
 
           if (existingResult) {
-            const subjectMark = existingResult.attributes.marks.find(
-              (m: any) => m.subject_id === subject.subject_id,
+            const subjectMark = (existingResult.attributes.marks ?? []).find(
+              (m) => m.subject_id === subject.subject_id,
             );
             return {
               student_id: student.id,

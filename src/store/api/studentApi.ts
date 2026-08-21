@@ -4,7 +4,7 @@
  * Handles all student-related operations with automatic caching and state management
  */
 
-import { baseApi } from './baseApi';
+import { baseApi, classApi } from './baseApi';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -161,11 +161,23 @@ const formatDate = (dateStr: string): string => {
 };
 
 /**
+ * Shape the class/student service expects on write: a JSON:API document whose
+ * `attributes` is the snake_cased subset of fields being sent, so it stays a
+ * loose record rather than a fixed interface.
+ */
+interface StudentWritePayload {
+  data: {
+    type: 'students';
+    attributes: Record<string, unknown>;
+  };
+}
+
+/**
  * Transform create student request to API format
  */
 const transformCreateStudentRequest = (
   studentData: CreateStudentRequest,
-): any => {
+): StudentWritePayload => {
   return {
     data: {
       type: 'students',
@@ -197,8 +209,8 @@ const transformCreateStudentRequest = (
  */
 const transformUpdateStudentRequest = (
   studentData: UpdateStudentRequest,
-): any => {
-  const attributes: any = {};
+): StudentWritePayload => {
+  const attributes: Record<string, unknown> = {};
 
   if (studentData.firstName) attributes.first_name = studentData.firstName;
   if (studentData.lastName) attributes.last_name = studentData.lastName;
@@ -214,19 +226,18 @@ const transformUpdateStudentRequest = (
   if (studentData.classId) attributes.class_id = studentData.classId;
 
   if (studentData.guardianInfo) {
-    attributes.guardian_info = {};
+    const guardianInfo: Record<string, unknown> = {};
     if (studentData.guardianInfo.fatherName)
-      attributes.guardian_info.father_name =
-        studentData.guardianInfo.fatherName;
+      guardianInfo.father_name = studentData.guardianInfo.fatherName;
     if (studentData.guardianInfo.motherName)
-      attributes.guardian_info.mother_name =
-        studentData.guardianInfo.motherName;
+      guardianInfo.mother_name = studentData.guardianInfo.motherName;
     if (studentData.guardianInfo.phone)
-      attributes.guardian_info.phone = studentData.guardianInfo.phone;
+      guardianInfo.phone = studentData.guardianInfo.phone;
     if (studentData.guardianInfo.email)
-      attributes.guardian_info.email = studentData.guardianInfo.email;
+      guardianInfo.email = studentData.guardianInfo.email;
     if (studentData.guardianInfo.address)
-      attributes.guardian_info.address = studentData.guardianInfo.address;
+      guardianInfo.address = studentData.guardianInfo.address;
+    attributes.guardian_info = guardianInfo;
   }
 
   return {
@@ -254,7 +265,7 @@ export const studentApi = baseApi.injectEndpoints({
      */
     getStudents: builder.query<StudentListResponse, string>({
       query: (orgId) => `/${orgId}/students`,
-      providesTags: (result, error, orgId) =>
+      providesTags: (result) =>
         result
           ? [
               ...result.data.map(({ id }) => ({
@@ -337,11 +348,20 @@ export const studentApi = baseApi.injectEndpoints({
         ],
       },
     ),
+  }),
 
-    // ========================================================================
-    // STUDENT FEE OPERATIONS
-    // ========================================================================
+  overrideExisting: false,
+});
 
+// ============================================================================
+// STUDENT FEE OPERATIONS
+// ============================================================================
+// Fees live under the classes service (/{org_id}/students/{student_id}/fees),
+// not the auth service that the rest of this file's endpoints use - so this
+// is injected into classApi rather than baseApi/studentApi.
+
+export const studentFeesApi = classApi.injectEndpoints({
+  endpoints: (builder) => ({
     /**
      * Get fees for a specific student
      */
@@ -370,7 +390,9 @@ export const {
   useCreateStudentMutation,
   useUpdateStudentMutation,
   useDeleteStudentMutation,
+} = studentApi;
 
+export const {
   // Fee operations
   useGetStudentFeesQuery,
-} = studentApi;
+} = studentFeesApi;

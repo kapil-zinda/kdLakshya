@@ -1,6 +1,295 @@
 import { makeApiCall } from '@/utils/ApiRequest';
+import { studentApiKeyHeader } from '@/utils/authHeaders';
 import { convertGoogleDriveUrl } from '@/utils/imageUtils';
 import axios from 'axios';
+
+// ---------------------------------------------------------------------------
+// Error helpers
+//
+// Everything in here throws either an axios error (from makeApiCall) or a
+// plain Error, so these narrow `catch (error: unknown)` without the casts
+// that used to be spread across every handler.
+// ---------------------------------------------------------------------------
+
+/** HTTP status of a failed request, or undefined for non-HTTP failures. */
+const errorStatus = (error: unknown): number | undefined =>
+  axios.isAxiosError(error) ? error.response?.status : undefined;
+
+/** Response body of a failed request, if the failure reached the server. */
+const errorData = (error: unknown): unknown =>
+  axios.isAxiosError(error) ? error.response?.data : undefined;
+
+const errorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : String(error);
+
+/**
+ * Message the backend sent for a failed request, falling back to the
+ * transport-level message. Mirrors the JSON:API error documents these services
+ * return: `{ errors: [{ detail }] }`, or a bare `{ message }`.
+ */
+const backendErrorMessage = (error: unknown): string => {
+  const data = errorData(error);
+  if (data && typeof data === 'object') {
+    const doc = data as {
+      errors?: Array<{ detail?: string }>;
+      message?: string;
+    };
+    if (doc.errors?.[0]?.detail) return doc.errors[0].detail;
+    if (doc.message) return doc.message;
+  }
+  return errorMessage(error);
+};
+
+/** The fields the error logs in this file consistently report. */
+const errorDetails = (error: unknown) => ({
+  message: errorMessage(error),
+  status: errorStatus(error),
+  statusText: axios.isAxiosError(error)
+    ? error.response?.statusText
+    : undefined,
+  data: errorData(error),
+});
+
+// ---------------------------------------------------------------------------
+// Generic JSON:API envelopes
+//
+// Used for the endpoints this legacy service layer never modelled. `A` is the
+// resource's `attributes` shape: pass a concrete interface where callers read
+// fields, and leave the default loose record where the response is only
+// checked for presence.
+// ---------------------------------------------------------------------------
+
+export interface ApiResource<A = Record<string, unknown>> {
+  id: string;
+  type?: string;
+  attributes: A;
+  links?: { self?: string };
+}
+
+export interface ApiDocument<A = Record<string, unknown>> {
+  data: ApiResource<A>;
+  meta?: Record<string, unknown>;
+}
+
+export interface ApiCollection<A = Record<string, unknown>> {
+  data: ApiResource<A>[];
+  meta?: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// Attribute shapes for the class-service resources this layer returns.
+//
+// Every field is optional: these endpoints are shared with the newer RTK Query
+// layer and have grown fields over time, so callers must handle absence rather
+// than trust the envelope.
+// ---------------------------------------------------------------------------
+
+export interface FeeComponents {
+  admission_fee?: number;
+  registration_fee?: number;
+  tuition_fees?: number;
+  exam_fees?: number;
+  other_fees?: number;
+}
+
+export interface FeePaymentRecord {
+  id?: string;
+  receipt_number?: string;
+  date?: string;
+  description?: string;
+  method?: string;
+  amount?: number;
+  month?: string;
+  remarks?: string;
+  // Alternate spellings the fees endpoints have returned; callers read either.
+  payment_date?: string;
+  payment_method?: string;
+  fee_type?: string;
+}
+
+export interface FeeAttributes {
+  student_id?: string;
+  student_name?: string;
+  class_id?: string;
+  academic_year?: string;
+  amount?: number;
+  components?: FeeComponents;
+  fee_structure_id?: string;
+  total_paid?: number;
+  total_due?: number;
+  remaining_amount?: number;
+  amount_paid?: number;
+  amount_due?: number;
+  status?: string;
+  payment_status?: string;
+  /** Denormalised student contact, present on some fee payloads. */
+  email?: string;
+  phone?: string;
+  due_date?: string;
+  description?: string;
+  fee_type?: string;
+  payments?: FeePaymentRecord[];
+}
+
+export interface FeeStructureAttributes {
+  class_id?: string;
+  class_name?: string;
+  academic_year?: string;
+  components?: FeeComponents;
+  total?: number;
+  total_amount?: number;
+}
+
+export interface ClassStudentAttributes {
+  student_id?: string;
+  first_name?: string;
+  last_name?: string;
+  roll_number?: string;
+  email?: string;
+  phone?: string;
+  is_monitor?: boolean;
+}
+
+export interface SubjectAttributes {
+  name?: string;
+  subject_name?: string;
+  code?: string;
+  class_id?: string;
+  teacher_id?: string;
+  teacher_name?: string;
+}
+
+export interface ExamSubjectEntry {
+  subject_id: string;
+  subject_name?: string;
+  max_marks?: number;
+  exam_date?: string;
+  duration?: number;
+  start_time?: string;
+}
+
+export interface ExamAttributes {
+  name?: string;
+  exam_name?: string;
+  exam_type?: string;
+  exam_date?: string | number;
+  max_marks?: number;
+  class_id?: string;
+  class_name?: string;
+  academic_year?: string;
+  description?: string;
+  subjects?: ExamSubjectEntry[];
+  /** Only the subjects the requesting teacher owns, when the route scopes it. */
+  teacher_subjects?: TeacherSubjectEntry[];
+}
+
+/** A teacher's subject assignment, as embedded in a teacher-scoped exam. */
+export interface TeacherSubjectEntry {
+  id?: string;
+  subject_id?: string;
+  subject_name?: string;
+  teacher_id?: string;
+  teacher_name?: string;
+  class_id?: string;
+  class_name?: string;
+  academic_year?: string;
+}
+
+export interface ResultMarkEntry {
+  subject_id: string;
+  max_marks?: number;
+  marks_obtained?: number;
+  grade?: string;
+  remarks?: string;
+}
+
+export interface ResultAttributes {
+  exam_id?: string;
+  student_id?: string;
+  class_id?: string;
+  marks?: ResultMarkEntry[];
+  total_marks?: number;
+  total_obtained?: number;
+  percentage?: number;
+  grade?: string;
+  remarks?: string;
+}
+
+export interface UserRoleAttributes {
+  user_id?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  first_name?: string;
+  last_name?: string;
+}
+
+/** One day of a student's attendance: status codes are P/A/L/H. */
+export interface AttendanceDay {
+  date: string;
+  status: string;
+  student_id?: string;
+}
+
+/** `GET /{orgId}/attendance/student/{id}?month=MM-YYYY` */
+export interface MonthlyAttendanceResponse {
+  data: AttendanceDay[];
+}
+
+/**
+ * `GET /{orgId}/attendance/class/{classId}`. `data` is null when no attendance
+ * has been recorded for the class yet - see getClassAttendance, which maps the
+ * backend's 404 onto that rather than throwing.
+ */
+export interface ClassAttendanceResponse {
+  data: ApiResource<AttendanceDay | AttendanceDay[]> | null;
+}
+
+/**
+ * `POST /{orgId}/{students|faculty}/bulk`. The backend isolates per-row
+ * failures, so a partial success reports counts in `meta` and the rejected
+ * rows in `errors`.
+ */
+export interface BulkImportResponse {
+  meta?: { succeeded?: number; failed?: number };
+  errors?: Array<{ index: number; error: string }>;
+}
+
+/**
+ * PATCH body for an organization. Address and contact are sent whole - the
+ * backend replaces the sub-object rather than merging it.
+ */
+export interface OrganizationPatch {
+  name?: string;
+  subdomain?: string;
+  description?: string;
+  founded?: number;
+  address?: {
+    building_street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    pincode?: string;
+  };
+  contact?: {
+    poc_name?: string;
+    poc_email?: string;
+    phone?: string;
+  };
+}
+
+/** Headers/params a caller can add to one of the axios-shaped wrappers below. */
+interface RequestConfig {
+  headers?: Record<string, string>;
+  /**
+   * NOTE: accepted for call-site compatibility but NOT forwarded - makeApiCall
+   * has no query-param option, so callers that need a query string build it
+   * into the path (see getFeeStructures).
+   */
+  params?: Record<string, string | number | undefined>;
+}
+
+type RequestPayload = Record<string, unknown>;
 
 // Cache configuration
 interface CacheEntry<T> {
@@ -10,11 +299,12 @@ interface CacheEntry<T> {
 }
 
 class ApiCache {
-  private cache: Map<string, CacheEntry<any>> = new Map();
-  private pendingRequests: Map<string, Promise<any>> = new Map();
+  private cache: Map<string, CacheEntry<unknown>> = new Map();
+  private pendingRequests: Map<string, Promise<unknown>> = new Map();
 
-  // Get cached data if valid
-  get<T>(key: string, ttl: number = 30000): T | null {
+  // Get cached data if valid. Expiry is fixed when the entry is written, so
+  // reads take no ttl of their own.
+  get<T>(key: string): T | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
 
@@ -96,7 +386,7 @@ const API_CONFIG = {
 
 // External API instance (for real endpoints like users/me)
 const externalApi = {
-  get: async (url: string, config?: any) => {
+  get: async (url: string, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'GET',
@@ -105,7 +395,7 @@ const externalApi = {
     });
     return { data: response };
   },
-  post: async (url: string, data?: any, config?: any) => {
+  post: async (url: string, data?: RequestPayload, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'POST',
@@ -115,7 +405,7 @@ const externalApi = {
     });
     return { data: response };
   },
-  put: async (url: string, data?: any, config?: any) => {
+  put: async (url: string, data?: RequestPayload, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'PUT',
@@ -125,7 +415,7 @@ const externalApi = {
     });
     return { data: response };
   },
-  patch: async (url: string, data?: any, config?: any) => {
+  patch: async (url: string, data?: RequestPayload, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'PATCH',
@@ -135,7 +425,7 @@ const externalApi = {
     });
     return { data: response };
   },
-  delete: async (url: string, config?: any) => {
+  delete: async (url: string, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'DELETE',
@@ -148,7 +438,7 @@ const externalApi = {
 
 // Class API instance (for class endpoints)
 const classApi = {
-  get: async (url: string, config?: any) => {
+  get: async (url: string, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'GET',
@@ -157,7 +447,7 @@ const classApi = {
     });
     return { data: response };
   },
-  post: async (url: string, data?: any, config?: any) => {
+  post: async (url: string, data?: RequestPayload, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'POST',
@@ -167,7 +457,7 @@ const classApi = {
     });
     return { data: response };
   },
-  put: async (url: string, data?: any, config?: any) => {
+  put: async (url: string, data?: RequestPayload, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'PUT',
@@ -177,7 +467,7 @@ const classApi = {
     });
     return { data: response };
   },
-  patch: async (url: string, data?: any, config?: any) => {
+  patch: async (url: string, data?: RequestPayload, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'PATCH',
@@ -187,7 +477,7 @@ const classApi = {
     });
     return { data: response };
   },
-  delete: async (url: string, config?: any) => {
+  delete: async (url: string, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'DELETE',
@@ -200,7 +490,7 @@ const classApi = {
 
 // Workspace API instance (for workspace endpoints like S3)
 const workspaceApi = {
-  get: async (url: string, config?: any) => {
+  get: async (url: string, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'GET',
@@ -209,7 +499,7 @@ const workspaceApi = {
     });
     return { data: response };
   },
-  post: async (url: string, data?: any, config?: any) => {
+  post: async (url: string, data?: RequestPayload, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'POST',
@@ -219,7 +509,7 @@ const workspaceApi = {
     });
     return { data: response };
   },
-  put: async (url: string, data?: any, config?: any) => {
+  put: async (url: string, data?: RequestPayload, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'PUT',
@@ -229,7 +519,7 @@ const workspaceApi = {
     });
     return { data: response };
   },
-  patch: async (url: string, data?: any, config?: any) => {
+  patch: async (url: string, data?: RequestPayload, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'PATCH',
@@ -239,7 +529,7 @@ const workspaceApi = {
     });
     return { data: response };
   },
-  delete: async (url: string, config?: any) => {
+  delete: async (url: string, config?: RequestConfig) => {
     const response = await makeApiCall({
       path: url,
       method: 'DELETE',
@@ -258,9 +548,9 @@ const retryRequest = async <T>(
 ): Promise<T> => {
   try {
     return await requestFn();
-  } catch (error: any) {
-    const status = error.response?.status;
-    const shouldRetry = status >= 500 && retries > 0;
+  } catch (error) {
+    const status = errorStatus(error);
+    const shouldRetry = status !== undefined && status >= 500 && retries > 0;
 
     if (shouldRetry) {
       console.warn(
@@ -285,6 +575,7 @@ export interface OrganizationResponse {
       code?: string;
       logo?: string;
       description?: string;
+      founded?: number;
       address?: {
         building_street: string;
         city: string;
@@ -342,6 +633,7 @@ export interface HeroResponse {
       orgId: string;
       headline: string;
       subheadline: string;
+      description?: string;
       ctaText: string;
       ctaLink: string;
       image: string;
@@ -366,6 +658,9 @@ interface SingleNewsResponse {
       title: string;
       content: string;
       image: string;
+      category?: string;
+      isNew?: boolean;
+      isActive?: boolean;
       publishedAt: number;
       createdAt: number;
       updatedAt: number;
@@ -388,6 +683,9 @@ interface NewsListResponse {
       title: string;
       content: string;
       image: string;
+      category?: string;
+      isNew?: boolean;
+      isActive?: boolean;
       publishedAt: number;
       createdAt: number;
       updatedAt: number;
@@ -436,7 +734,32 @@ interface S3SignedUrlResponse {
     file_path: string;
     bucket: string;
     expires_in: number;
+    upload_id?: string;
   };
+}
+
+export interface GalleryImageAttributes {
+  image_url: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
+  order?: number;
+  active?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GalleryImage extends GalleryImageAttributes {
+  id: string;
+}
+
+interface GalleryListResponse {
+  data: { type: string; id: string; attributes: GalleryImageAttributes }[];
+  meta?: { total: number };
+}
+
+interface GalleryItemResponse {
+  data: { type: string; id: string; attributes: GalleryImageAttributes };
 }
 
 interface FacultyListResponse {
@@ -576,6 +899,9 @@ export interface NewsResponse {
       title: string;
       content: string;
       image: string;
+      category?: string;
+      isNew?: boolean;
+      isActive?: boolean;
       publishedAt: number;
       createdAt: number;
       updatedAt: number;
@@ -593,7 +919,17 @@ export interface SubdomainResponse {
   config: {
     theme: string;
     language: string;
-    [key: string]: any;
+    /** Org this subdomain resolves to - everything downstream keys off it. */
+    organizationId?: string;
+    name?: string;
+    founded?: number;
+    contact?: { email?: string; phone?: string; address?: string };
+    logo?: string;
+    primaryColor?: string;
+    secondaryColor?: string;
+    accentColor?: string;
+    fontFamily?: string;
+    [key: string]: unknown;
   };
 }
 
@@ -628,9 +964,9 @@ export interface ContentResponse {
     title: string;
     content: string;
     image?: string;
-    data?: any;
+    data?: { code?: string; [key: string]: unknown };
   }>;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface Product {
@@ -639,13 +975,13 @@ export interface Product {
   price: number;
   description?: string;
   image?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface UserInfoResponse {
   users: number;
   active: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ClassResponse {
@@ -766,6 +1102,7 @@ export class ApiService {
           code: orgResponse.data.attributes.code,
           logo: orgResponse.data.attributes.logo,
           contact: orgResponse.data.attributes.contact,
+          founded: orgResponse.data.attributes.founded,
           // Include site config theme data
           primaryColor:
             siteConfig?.data.attributes.theme.primaryColor || '#059669',
@@ -823,7 +1160,7 @@ export class ApiService {
   }
 
   // Step 4: Get user info with subdomain (removed - use external API only)
-  static async getUserInfo(subdomain: string): Promise<UserInfoResponse> {
+  static async getUserInfo(_subdomain: string): Promise<UserInfoResponse> {
     // User info API has been removed - return default values
     return { users: 0, active: false };
   }
@@ -856,9 +1193,9 @@ export class ApiService {
 
       if (accessToken) {
         if (isStudentAuth) {
-          // Students use x-api-key header
-          headers['x-api-key'] = accessToken;
-          console.log('🎓 Using student x-api-key for org fetch');
+          // Student api keys ride on Authorization too, so the gateway can use
+          // that single header as the authorizer's identity source.
+          Object.assign(headers, studentApiKeyHeader(accessToken));
         } else {
           // Admin/teachers use Bearer token
           headers['Authorization'] = `Bearer ${accessToken}`;
@@ -879,23 +1216,7 @@ export class ApiService {
   // Update organization data by ID
   static async updateOrganization(
     orgId: string,
-    organizationData: {
-      name?: string;
-      subdomain?: string;
-      description?: string;
-      address?: {
-        building_street?: string;
-        city?: string;
-        state?: string;
-        country?: string;
-        pincode?: string;
-      };
-      contact?: {
-        poc_name?: string;
-        poc_email?: string;
-        phone?: string;
-      };
-    },
+    organizationData: OrganizationPatch,
   ): Promise<OrganizationResponse> {
     try {
       // Get authentication token
@@ -1247,6 +1568,7 @@ export class ApiService {
     heroData: {
       headline: string;
       subheadline: string;
+      description?: string;
       ctaText: string;
       ctaLink: string;
       image: string;
@@ -1364,6 +1686,9 @@ export class ApiService {
       title: string;
       content: string;
       image: string;
+      category?: string;
+      isNew?: boolean;
+      isActive?: boolean;
       publishedAt?: number;
     },
   ): Promise<SingleNewsResponse> {
@@ -1429,9 +1754,12 @@ export class ApiService {
     orgId: string,
     newsId: string,
     newsData: {
-      title: string;
-      content: string;
-      image: string;
+      title?: string;
+      content?: string;
+      image?: string;
+      category?: string;
+      isNew?: boolean;
+      isActive?: boolean;
       publishedAt?: number;
     },
   ): Promise<SingleNewsResponse> {
@@ -1516,7 +1844,7 @@ export class ApiService {
     const cacheKey = `faculty_${orgId}`;
 
     // Check cache first (1 min TTL for faculty)
-    const cached = apiCache.get<FacultyListResponse>(cacheKey, 60000);
+    const cached = apiCache.get<FacultyListResponse>(cacheKey);
     if (cached) {
       console.log('✅ Using cached faculty data');
       return cached;
@@ -1530,8 +1858,8 @@ export class ApiService {
         // Filter to return only faculty members (exclude staff)
         const filteredData = {
           ...response.data,
-          data: response.data.data.filter(
-            (member: any) => member.attributes.role === 'faculty',
+          data: (response.data.data as ApiResource<{ role?: string }>[]).filter(
+            (member) => member.attributes.role === 'faculty',
           ),
         };
 
@@ -1677,6 +2005,159 @@ export class ApiService {
     }
   }
 
+  // Get a signed S3 upload URL for an org-wide image (gallery, hero, about, favicon, logo)
+  static async getOrgImageSignedUrl(
+    userId: string,
+    imageType: 'gallery' | 'hero' | 'about' | 'favicon' | 'logo',
+  ): Promise<S3SignedUrlResponse> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const requestBody = {
+        type: 'upload',
+        id: userId,
+        attributes: {
+          title: 'org_image',
+          image_type: imageType,
+        },
+      };
+
+      const response = await workspaceApi.post('/s3/signed-url', requestBody, {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error('Error getting org image signed URL:', error);
+      throw new Error('Failed to get S3 signed URL');
+    }
+  }
+
+  // Get all gallery images for an org (public endpoint, no auth required)
+  static async getGalleryImages(orgId: string): Promise<GalleryImage[]> {
+    try {
+      const response = await externalApi.get(`/${orgId}/gallery`);
+      const body = response.data as GalleryListResponse;
+      return (body.data || []).map((item) => ({
+        id: item.id,
+        ...item.attributes,
+      }));
+    } catch (error) {
+      console.error('Error fetching gallery images:', error);
+      throw new Error('Failed to fetch gallery images');
+    }
+  }
+
+  // Create a gallery image record pointing at an already-uploaded file (admin only)
+  static async createGalleryImage(
+    orgId: string,
+    attributes: GalleryImageAttributes,
+  ): Promise<GalleryImage> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+      const tokenItem = JSON.parse(tokenStr);
+
+      const response = await externalApi.post(
+        `/${orgId}/gallery`,
+        { data: { type: 'gallery_image', attributes } },
+        { headers: { Authorization: `Bearer ${tokenItem.value}` } },
+      );
+      const body = response.data as GalleryItemResponse;
+      return { id: body.data.id, ...body.data.attributes };
+    } catch (error) {
+      console.error('Error creating gallery image:', error);
+      throw new Error('Failed to create gallery image');
+    }
+  }
+
+  // Finalize a gallery image after an S3 upload, attaching metadata to the upload_id
+  static async updateGalleryImageByUploadId(
+    orgId: string,
+    uploadId: string,
+    attributes: GalleryImageAttributes,
+  ): Promise<GalleryImage> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+      const tokenItem = JSON.parse(tokenStr);
+
+      const response = await externalApi.put(
+        `/${orgId}/gallery/upload/${uploadId}`,
+        { data: { type: 'gallery_image', attributes } },
+        { headers: { Authorization: `Bearer ${tokenItem.value}` } },
+      );
+      const body = response.data as GalleryItemResponse;
+      return { id: body.data.id, ...body.data.attributes };
+    } catch (error) {
+      console.error('Error finalizing gallery image:', error);
+      throw new Error('Failed to save gallery image');
+    }
+  }
+
+  // Toggle active/inactive or edit metadata for an existing gallery image
+  static async updateGalleryImage(
+    orgId: string,
+    galleryId: string,
+    attributes: Partial<GalleryImageAttributes>,
+  ): Promise<GalleryImage> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+      const tokenItem = JSON.parse(tokenStr);
+
+      const response = await externalApi.put(
+        `/${orgId}/gallery/${galleryId}`,
+        { data: { type: 'gallery_image', attributes } },
+        { headers: { Authorization: `Bearer ${tokenItem.value}` } },
+      );
+      const body = response.data as GalleryItemResponse;
+      return { id: body.data.id, ...body.data.attributes };
+    } catch (error) {
+      console.error('Error updating gallery image:', error);
+      throw new Error('Failed to update gallery image');
+    }
+  }
+
+  // Delete a gallery image (admin only)
+  static async deleteGalleryImage(
+    orgId: string,
+    galleryId: string,
+  ): Promise<void> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+      const tokenItem = JSON.parse(tokenStr);
+
+      await externalApi.delete(`/${orgId}/gallery/${galleryId}`, {
+        headers: { Authorization: `Bearer ${tokenItem.value}` },
+      });
+    } catch (error) {
+      console.error('Error deleting gallery image:', error);
+      throw new Error('Failed to delete gallery image');
+    }
+  }
+
   // Get programs data by organization ID
   static async getPrograms(orgId: string): Promise<ProgramsResponse> {
     try {
@@ -1802,6 +2283,27 @@ export class ApiService {
     }
   }
 
+  static async deleteStat(orgId: string, statId: string): Promise<void> {
+    const tokenStr = localStorage.getItem('bearerToken');
+    if (!tokenStr) {
+      throw new Error('No authentication token found');
+    }
+
+    const tokenItem = JSON.parse(tokenStr);
+    const now = new Date().getTime();
+
+    if (now > tokenItem.expiry) {
+      localStorage.removeItem('bearerToken');
+      throw new Error('Authentication token has expired');
+    }
+
+    await externalApi.delete(`/${orgId}/stats/${statId}`, {
+      headers: {
+        Authorization: `Bearer ${tokenItem.value}`,
+      },
+    });
+  }
+
   // Get news/notifications data by organization ID
   static async getNews(orgId: string): Promise<NewsListResponse> {
     try {
@@ -1818,7 +2320,7 @@ export class ApiService {
     const cacheKey = `user_me_${token.substring(0, 10)}`;
 
     // Check cache first (5 min TTL for user data)
-    const cached = apiCache.get<RealUserResponse>(cacheKey, 300000);
+    const cached = apiCache.get<RealUserResponse>(cacheKey);
     if (cached) {
       console.log('✅ Using cached user data');
       return cached;
@@ -1861,7 +2363,7 @@ export class ApiService {
     const cacheKey = `classes_${orgId}`;
 
     // Check cache first (30 sec TTL for classes)
-    const cached = apiCache.get<ClassListResponse>(cacheKey, 30000);
+    const cached = apiCache.get<ClassListResponse>(cacheKey);
     if (cached) {
       console.log('✅ Using cached classes data');
       return cached;
@@ -1909,14 +2411,9 @@ export class ApiService {
           // Cache the result
           apiCache.set(cacheKey, response.data, 30000);
           return response.data;
-        } catch (error: any) {
+        } catch (error) {
           console.error('❌ Error fetching classes:', error);
-          console.error('Error details:', {
-            message: error.message,
-            status: error.response?.status,
-            statusText: error.response?.statusText,
-            data: error.response?.data,
-          });
+          console.error('Error details:', errorDetails(error));
           throw error; // Let retryRequest handle the retry
         }
       });
@@ -2064,7 +2561,10 @@ export class ApiService {
   }
 
   // Get students enrolled in a specific class
-  static async getClassStudents(orgId: string, classId: string): Promise<any> {
+  static async getClassStudents(
+    orgId: string,
+    classId: string,
+  ): Promise<ApiCollection<ClassStudentAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2103,7 +2603,7 @@ export class ApiService {
       status?: 'pending' | 'partial' | 'completed';
       academic_year?: string;
     },
-  ): Promise<any> {
+  ): Promise<ApiCollection<FeeAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2135,7 +2635,10 @@ export class ApiService {
   // Get fee summary for organization or class
   // If classId is provided, gets summary for that class: /{orgId}/classes/{classId}/fees/summary
   // If classId is not provided, gets org-wide summary: /{orgId}/fees/summary
-  static async getFeeSummary(orgId: string, classId?: string): Promise<any> {
+  static async getFeeSummary(
+    orgId: string,
+    classId?: string,
+  ): Promise<ApiDocument> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2174,7 +2677,7 @@ export class ApiService {
     params?: {
       academic_year?: string;
     },
-  ): Promise<any> {
+  ): Promise<ApiCollection<FeeStructureAttributes>> {
     try {
       // Build query string from params
       const queryString = params?.academic_year
@@ -2207,7 +2710,7 @@ export class ApiService {
         other_fees: number;
       };
     },
-  ): Promise<any> {
+  ): Promise<ApiDocument<FeeStructureAttributes>> {
     try {
       return await makeApiCall({
         path: `/${orgId}/classes/${classId}/fee-structures`,
@@ -2240,7 +2743,7 @@ export class ApiService {
         other_fees: number;
       };
     },
-  ): Promise<any> {
+  ): Promise<ApiDocument<FeeStructureAttributes>> {
     try {
       return await makeApiCall({
         path: `/${orgId}/fee-structures/${feeStructureId}`,
@@ -2262,7 +2765,7 @@ export class ApiService {
   static async deleteFeeStructure(
     orgId: string,
     feeStructureId: string,
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       return await makeApiCall({
         path: `/${orgId}/fee-structures/${feeStructureId}`,
@@ -2285,7 +2788,7 @@ export class ApiService {
       description?: string;
       fee_type?: string;
     },
-  ): Promise<any> {
+  ): Promise<ApiDocument<FeeAttributes>> {
     try {
       return await makeApiCall({
         path: `/${orgId}/fees/${feeId}`,
@@ -2322,7 +2825,7 @@ export class ApiService {
       description?: string;
       fee_type?: string;
     },
-  ): Promise<any> {
+  ): Promise<ApiDocument<FeeAttributes>> {
     try {
       return await makeApiCall({
         path: `/${orgId}/classes/${classId}/students/${studentId}/fees`,
@@ -2353,7 +2856,7 @@ export class ApiService {
       month?: string;
       remarks?: string;
     },
-  ): Promise<any> {
+  ): Promise<ApiDocument<FeeAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2404,7 +2907,7 @@ export class ApiService {
       month?: string;
       remarks?: string;
     },
-  ): Promise<any> {
+  ): Promise<ApiDocument<FeeAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2446,7 +2949,7 @@ export class ApiService {
     orgId: string,
     feeId: string,
     paymentId: string,
-  ): Promise<any> {
+  ): Promise<unknown> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2486,7 +2989,7 @@ export class ApiService {
       status?: 'pending' | 'partial' | 'completed';
       academic_year?: string;
     },
-  ): Promise<any> {
+  ): Promise<ApiCollection<FeeAttributes>> {
     try {
       // Check for student authentication (uses x-api-key instead of Bearer token)
       let customAuthHeaders: Record<string, string> | undefined;
@@ -2494,9 +2997,7 @@ export class ApiService {
       if (studentAuthStr) {
         const studentAuth = JSON.parse(studentAuthStr);
         if (studentAuth.basicAuthToken) {
-          customAuthHeaders = {
-            'x-api-key': studentAuth.basicAuthToken,
-          };
+          customAuthHeaders = studentApiKeyHeader(studentAuth.basicAuthToken);
         }
       }
       // If no student auth, makeApiCall will automatically use Bearer token from Redux
@@ -2534,7 +3035,7 @@ export class ApiService {
       roll_number: string;
       academic_year: string;
     },
-  ): Promise<any> {
+  ): Promise<ApiDocument<ClassStudentAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2619,7 +3120,7 @@ export class ApiService {
       class_id: string;
       teacher_id: string;
     },
-  ): Promise<any> {
+  ): Promise<ApiDocument<SubjectAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2660,7 +3161,7 @@ export class ApiService {
   static async getSubjectsForClass(
     orgId: string,
     classId: string,
-  ): Promise<any> {
+  ): Promise<ApiCollection<SubjectAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2697,7 +3198,7 @@ export class ApiService {
     orgId: string,
     subjectId: string,
     teacherId: string,
-  ): Promise<any> {
+  ): Promise<ApiDocument<SubjectAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2781,7 +3282,7 @@ export class ApiService {
         start_time?: string;
       }>;
     },
-  ): Promise<any> {
+  ): Promise<ApiDocument<ExamAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2813,20 +3314,19 @@ export class ApiService {
         },
       );
       return response.data;
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error) {
       console.error('Error creating exam:', error);
       // Preserve backend error message if available
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to create exam: ${backendMessage}`);
     }
   }
 
   // Get all exams for a specific class
-  static async getExamsForClass(orgId: string, classId: string): Promise<any> {
+  static async getExamsForClass(
+    orgId: string,
+    classId: string,
+  ): Promise<ApiCollection<ExamAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2852,12 +3352,14 @@ export class ApiService {
         },
       );
       return response.data;
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error) {
       console.error('Error fetching exams for class:', error);
 
       // Check for CORS error
-      if (error.message?.includes('CORS') || error.code === 'ERR_NETWORK') {
+      if (
+        errorMessage(error).includes('CORS') ||
+        (axios.isAxiosError(error) && error.code === 'ERR_NETWORK')
+      ) {
         console.error(
           '❌ CORS error detected. API Gateway needs CORS configuration.',
         );
@@ -2866,16 +3368,13 @@ export class ApiService {
       }
 
       // Preserve backend error message if available
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to fetch exams for class: ${backendMessage}`);
     }
   }
 
   // Get all exams for an organization
-  static async getExams(orgId: string): Promise<any> {
+  static async getExams(orgId: string): Promise<ApiCollection<ExamAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2921,7 +3420,7 @@ export class ApiService {
         start_time?: string;
       }>;
     },
-  ): Promise<any> {
+  ): Promise<ApiDocument<ExamAttributes>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -2953,14 +3452,10 @@ export class ApiService {
         },
       );
       return response.data;
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error) {
       console.error('Error updating exam:', error);
       // Preserve backend error message if available
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to update exam: ${backendMessage}`);
     }
   }
@@ -2988,20 +3483,19 @@ export class ApiService {
           Authorization: `Bearer ${tokenItem.value}`,
         },
       });
-    } catch (error: any) {
-      // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (error) {
       console.error('Error deleting exam:', error);
       // Preserve backend error message if available
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to delete exam: ${backendMessage}`);
     }
   }
 
   // Get class by ID
-  static async getClassById(orgId: string, classId: string): Promise<any> {
+  static async getClassById(
+    orgId: string,
+    classId: string,
+  ): Promise<ClassResponse> {
     try {
       const tokenStr = localStorage.getItem('bearerToken');
       if (!tokenStr) {
@@ -3023,12 +3517,9 @@ export class ApiService {
         },
       });
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching class:', error);
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to fetch class: ${backendMessage}`);
     }
   }
@@ -3038,7 +3529,7 @@ export class ApiService {
     orgId: string,
     teacherId: string,
     classId: string,
-  ): Promise<any> {
+  ): Promise<ApiCollection<SubjectAttributes>> {
     try {
       const tokenStr = localStorage.getItem('bearerToken');
       if (!tokenStr) {
@@ -3064,24 +3555,29 @@ export class ApiService {
       );
 
       // Filter subjects assigned to this teacher
-      const teacherSubjects = response.data.data.filter((subject: any) => {
+      const subjects = response.data.data as Array<
+        ApiResource<SubjectAttributes> & {
+          relationships?: { teachers?: { data?: Array<{ id: string }> } };
+        }
+      >;
+      const teacherSubjects = subjects.filter((subject) => {
         const teachers = subject.relationships?.teachers?.data || [];
-        return teachers.some((t: any) => t.id === teacherId);
+        return teachers.some((t) => t.id === teacherId);
       });
 
       return { data: teacherSubjects };
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching teacher subjects:', error);
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to fetch teacher subjects: ${backendMessage}`);
     }
   }
 
   // Get all exams for a teacher
-  static async getTeacherExams(orgId: string, teacherId: string): Promise<any> {
+  static async getTeacherExams(
+    orgId: string,
+    teacherId: string,
+  ): Promise<ApiCollection<ExamAttributes>> {
     try {
       const tokenStr = localStorage.getItem('bearerToken');
       if (!tokenStr) {
@@ -3106,18 +3602,18 @@ export class ApiService {
         },
       );
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching teacher exams:', error);
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to fetch teacher exams: ${backendMessage}`);
     }
   }
 
   // Get exam by ID
-  static async getExamById(orgId: string, examId: string): Promise<any> {
+  static async getExamById(
+    orgId: string,
+    examId: string,
+  ): Promise<ApiDocument<ExamAttributes>> {
     try {
       const tokenStr = localStorage.getItem('bearerToken');
       if (!tokenStr) {
@@ -3139,12 +3635,9 @@ export class ApiService {
         },
       });
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching exam:', error);
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to fetch exam: ${backendMessage}`);
     }
   }
@@ -3161,7 +3654,7 @@ export class ApiService {
         updated_by: string;
       }>;
     },
-  ): Promise<any> {
+  ): Promise<ApiDocument<ResultAttributes>> {
     try {
       const tokenStr = localStorage.getItem('bearerToken');
       if (!tokenStr) {
@@ -3192,12 +3685,9 @@ export class ApiService {
         },
       );
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating result:', error);
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to create result: ${backendMessage}`);
     }
   }
@@ -3209,7 +3699,7 @@ export class ApiService {
     subjectId: string,
     marksObtained: number,
     updatedBy: string,
-  ): Promise<any> {
+  ): Promise<ApiDocument<ResultAttributes>> {
     try {
       const tokenStr = localStorage.getItem('bearerToken');
       if (!tokenStr) {
@@ -3243,12 +3733,9 @@ export class ApiService {
         },
       );
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating result:', error);
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to update result: ${backendMessage}`);
     }
   }
@@ -3258,7 +3745,7 @@ export class ApiService {
     orgId: string,
     examId: string,
     subjectId: string,
-  ): Promise<any> {
+  ): Promise<ApiCollection<ResultAttributes>> {
     try {
       const tokenStr = localStorage.getItem('bearerToken');
       if (!tokenStr) {
@@ -3283,12 +3770,9 @@ export class ApiService {
         },
       );
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching results:', error);
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to fetch results: ${backendMessage}`);
     }
   }
@@ -3298,7 +3782,7 @@ export class ApiService {
     orgId: string,
     studentId: string,
     examId: string,
-  ): Promise<any> {
+  ): Promise<ApiDocument<ResultAttributes>> {
     try {
       // Get student authentication token
       const studentAuthStr = localStorage.getItem('studentAuth');
@@ -3318,17 +3802,14 @@ export class ApiService {
         {
           headers: {
             'Content-Type': 'application/vnd.api+json',
-            'x-api-key': basicAuthToken,
+            ...studentApiKeyHeader(basicAuthToken),
           },
         },
       );
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching student result for exam:', error);
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to fetch student result: ${backendMessage}`);
     }
   }
@@ -3337,7 +3818,7 @@ export class ApiService {
   static async getExamsForStudentClass(
     orgId: string,
     classId: string,
-  ): Promise<any> {
+  ): Promise<ApiCollection<ExamAttributes>> {
     try {
       // Get student authentication token
       const studentAuthStr = localStorage.getItem('studentAuth');
@@ -3357,17 +3838,14 @@ export class ApiService {
         {
           headers: {
             'Content-Type': 'application/vnd.api+json',
-            'x-api-key': basicAuthToken,
+            ...studentApiKeyHeader(basicAuthToken),
           },
         },
       );
       return response.data;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching exams for class:', error);
-      const backendMessage =
-        error.response?.data?.errors?.[0]?.detail ||
-        error.response?.data?.message ||
-        error.message;
+      const backendMessage = backendErrorMessage(error);
       throw new Error(`Failed to fetch exams: ${backendMessage}`);
     }
   }
@@ -3377,7 +3855,7 @@ export class ApiService {
     const cacheKey = `students_${orgId}`;
 
     // Check cache first (30 sec TTL for students)
-    const cached = apiCache.get<StudentListResponse>(cacheKey, 30000);
+    const cached = apiCache.get<StudentListResponse>(cacheKey);
     if (cached) {
       console.log('✅ Using cached students data');
       return cached;
@@ -3415,6 +3893,166 @@ export class ApiService {
         }
       });
     });
+  }
+
+  // Bulk-create students (CSV import). Backend isolates per-row failures -
+  // a bad row doesn't abort the whole batch - and returns a succeeded/
+  // failed summary the caller can show the admin directly.
+  static async bulkCreateStudents(
+    orgId: string,
+    students: Array<Record<string, unknown>>,
+  ): Promise<BulkImportResponse> {
+    const tokenStr = localStorage.getItem('bearerToken');
+    if (!tokenStr) {
+      throw new Error('No authentication token found');
+    }
+
+    const tokenItem = JSON.parse(tokenStr);
+    const now = new Date().getTime();
+
+    if (now > tokenItem.expiry) {
+      localStorage.removeItem('bearerToken');
+      throw new Error('Authentication token has expired');
+    }
+
+    const response = await externalApi.post(
+      `/${orgId}/students/bulk`,
+      {
+        data: students.map((attributes) => ({
+          type: 'students',
+          attributes,
+        })),
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/vnd.api+json',
+        },
+      },
+    );
+    this.clearCache('students', orgId);
+    return response.data;
+  }
+
+  // Bulk-create faculty (CSV import). Same isolated-per-row-failure
+  // contract as bulkCreateStudents.
+  static async bulkCreateFaculty(
+    orgId: string,
+    faculty: Array<Record<string, unknown>>,
+  ): Promise<BulkImportResponse> {
+    const tokenStr = localStorage.getItem('bearerToken');
+    if (!tokenStr) {
+      throw new Error('No authentication token found');
+    }
+
+    const tokenItem = JSON.parse(tokenStr);
+    const now = new Date().getTime();
+
+    if (now > tokenItem.expiry) {
+      localStorage.removeItem('bearerToken');
+      throw new Error('Authentication token has expired');
+    }
+
+    const response = await externalApi.post(
+      `/${orgId}/faculty/bulk`,
+      {
+        data: faculty.map((attributes) => ({
+          type: 'faculty',
+          attributes,
+        })),
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+          'Content-Type': 'application/vnd.api+json',
+        },
+      },
+    );
+    return response.data;
+  }
+
+  // Role management - promoting an existing faculty member to an
+  // org-admin role ("head"/"superwise") is the actual working path to a
+  // second admin account: it reuses the faculty member's existing,
+  // already-Auth0-backed login rather than the separate "create admin
+  // user" backend flow, which writes to a table the login authorizer
+  // never checks and so can never actually sign in.
+  private static authHeaders() {
+    const tokenStr = localStorage.getItem('bearerToken');
+    if (!tokenStr) {
+      throw new Error('No authentication token found');
+    }
+    const tokenItem = JSON.parse(tokenStr);
+    const now = new Date().getTime();
+    if (now > tokenItem.expiry) {
+      localStorage.removeItem('bearerToken');
+      throw new Error('Authentication token has expired');
+    }
+    return { Authorization: `Bearer ${tokenItem.value}` };
+  }
+
+  static async getUsersByRole(
+    orgId: string,
+    role: string,
+  ): Promise<ApiCollection<UserRoleAttributes>> {
+    const response = await externalApi.get(`/${orgId}/users/by-role/${role}`, {
+      headers: this.authHeaders(),
+    });
+    return response.data;
+  }
+
+  static async assignUserRole(
+    orgId: string,
+    userId: string,
+    role: string,
+  ): Promise<ApiDocument<UserRoleAttributes>> {
+    const response = await externalApi.put(
+      `/${orgId}/roles/users/${userId}`,
+      { data: { type: 'roles', attributes: { role } } },
+      { headers: this.authHeaders() },
+    );
+    return response.data;
+  }
+
+  static async removeUserRole(
+    orgId: string,
+    userId: string,
+  ): Promise<ApiDocument<UserRoleAttributes>> {
+    const response = await externalApi.delete(
+      `/${orgId}/roles/users/${userId}`,
+      { headers: this.authHeaders() },
+    );
+    return response.data;
+  }
+
+  // Students not currently enrolled in any class - used by the admin
+  // "Add Student to Class" flow. Not cached like getStudents() since it's
+  // only fetched on-demand when that modal opens.
+  static async getUnassignedStudents(
+    orgId: string,
+  ): Promise<ApiCollection<ClassStudentAttributes>> {
+    const tokenStr = localStorage.getItem('bearerToken');
+    if (!tokenStr) {
+      throw new Error('No authentication token found');
+    }
+
+    const tokenItem = JSON.parse(tokenStr);
+    const now = new Date().getTime();
+
+    if (now > tokenItem.expiry) {
+      localStorage.removeItem('bearerToken');
+      throw new Error('Authentication token has expired');
+    }
+
+    const response = await externalApi.get(
+      `/${orgId}/students?unassigned=true`,
+      {
+        headers: {
+          Authorization: `Bearer ${tokenItem.value}`,
+        },
+      },
+    );
+    return response.data;
   }
 
   // Create new student
@@ -3564,7 +4202,7 @@ export class ApiService {
       };
 
       // Build request body with only provided fields
-      const attributes: any = {};
+      const attributes: Record<string, unknown> = {};
 
       if (studentData.firstName) attributes.first_name = studentData.firstName;
       if (studentData.lastName) attributes.last_name = studentData.lastName;
@@ -3624,7 +4262,7 @@ export class ApiService {
   static async getClassAttendance(
     orgId: string,
     classId: string,
-  ): Promise<any> {
+  ): Promise<ClassAttendanceResponse> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -3652,6 +4290,14 @@ export class ApiService {
 
       return response.data;
     } catch (error) {
+      // A 404 genuinely means "no attendance recorded for this class yet" -
+      // a normal, common state, not a failure. Any other status is a real
+      // fetch error and should be treated differently by the caller (not
+      // silently defaulted to "everyone present", which risks overwriting
+      // real data on save).
+      if (errorStatus(error) === 404) {
+        return { data: null };
+      }
       console.error('Error fetching class attendance:', error);
       throw new Error('Failed to fetch class attendance');
     }
@@ -3662,7 +4308,7 @@ export class ApiService {
     orgId: string,
     studentId: string,
     month: string, // Format: MM-YYYY
-  ): Promise<any> {
+  ): Promise<MonthlyAttendanceResponse> {
     try {
       // Get student authentication token
       const studentAuthStr = localStorage.getItem('studentAuth');
@@ -3681,7 +4327,46 @@ export class ApiService {
         `/${orgId}/attendance/student/${studentId}/${month}`,
         {
           headers: {
-            'x-api-key': basicAuthToken,
+            ...studentApiKeyHeader(basicAuthToken),
+            'Content-Type': 'application/vnd.api+json',
+          },
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching student monthly attendance:', error);
+      throw new Error('Failed to fetch student monthly attendance');
+    }
+  }
+
+  // Same endpoint as getStudentMonthlyAttendance, but authenticated with a
+  // staff bearer token instead of a student's x-api-key - for teachers/
+  // admins looking up a student's monthly attendance from the class roster.
+  static async getStudentMonthlyAttendanceAsStaff(
+    orgId: string,
+    studentId: string,
+    month: string, // Format: MM-YYYY
+  ): Promise<MonthlyAttendanceResponse> {
+    try {
+      const tokenStr = localStorage.getItem('bearerToken');
+      if (!tokenStr) {
+        throw new Error('No authentication token found');
+      }
+
+      const tokenItem = JSON.parse(tokenStr);
+      const now = new Date().getTime();
+
+      if (now > tokenItem.expiry) {
+        localStorage.removeItem('bearerToken');
+        throw new Error('Authentication token has expired');
+      }
+
+      const response = await classApi.get(
+        `/${orgId}/attendance/student/${studentId}/${month}`,
+        {
+          headers: {
+            Authorization: `Bearer ${tokenItem.value}`,
             'Content-Type': 'application/vnd.api+json',
           },
         },
@@ -3705,7 +4390,7 @@ export class ApiService {
       date: string;
       student_roll_no: string;
     }>,
-  ): Promise<any> {
+  ): Promise<ApiDocument<AttendanceDay | AttendanceDay[]>> {
     try {
       // Get authentication token
       const tokenStr = localStorage.getItem('bearerToken');
@@ -3879,7 +4564,7 @@ export const transformApiDataToOrganizationConfig = (apiData: {
     tagline: hero?.data.attributes.headline || 'Excellence in Education',
     description:
       hero?.data.attributes.subheadline || 'A premier educational institution.',
-    founded: new Date().getFullYear() - 10, // Default to 10 years ago
+    founded: subdomain?.config?.founded || new Date().getFullYear() - 10,
 
     contact: {
       email: subdomain.config.contact?.email || 'info@school.edu',
@@ -3910,6 +4595,7 @@ export const transformApiDataToOrganizationConfig = (apiData: {
         content.title ||
         'Welcome to Our Institution',
       subtitle: hero?.data.attributes.subheadline || 'Excellence in Education',
+      description: hero?.data.attributes.description || '',
       backgroundImage:
         hero?.data.attributes.image ||
         branding?.data.attributes.banner ||
@@ -3978,6 +4664,7 @@ export const transformApiDataToOrganizationConfig = (apiData: {
     stats: {
       title: 'Our Achievements',
       items: stats?.data.map((stat) => ({
+        id: stat.id,
         label: stat.attributes.label,
         value: stat.attributes.value,
         icon: stat.attributes.icon,

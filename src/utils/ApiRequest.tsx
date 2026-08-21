@@ -2,7 +2,7 @@
 
 import { userData } from '@/app/interfaces/userInterface';
 import { getAuthHeaders } from '@/utils/authHeaders';
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 
 const BaseURL = process.env.NEXT_PUBLIC_BaseURL || '';
 const BaseURLAuth =
@@ -11,16 +11,16 @@ const BaseURLAuth =
 const BaseURLWorkspace =
   process.env.NEXT_PUBLIC_BaseURLWorkspace ||
   'https://apis.testkdlakshya.uchhal.in/workspace';
-const BaseURLPravaha =
-  process.env.NEXT_PUBLIC_BaseURLPravaha ||
-  'https://apis.testkdlakshya.uchhal.in/pravaha';
+const BaseURLRagantic =
+  process.env.NEXT_PUBLIC_BaseURLRagantic ||
+  'https://apis.testkdlakshya.uchhal.in/ragantic';
 
 interface ApiRequest {
   path: string;
   headers?: Record<string, string>;
   payload?: Record<string, unknown>;
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
-  baseUrl?: 'default' | 'auth' | 'workspace' | 'pravaha' | string; // Allow custom base URLs
+  baseUrl?: 'default' | 'auth' | 'workspace' | 'ragantic' | string; // Allow custom base URLs
   customAuthHeaders?: Record<string, string>; // Allow custom auth headers (e.g., x-api-key)
   skipAuth?: boolean; // Skip automatic auth header injection
 }
@@ -95,8 +95,8 @@ export const makeApiCall = async ({
     selectedBaseUrl = BaseURLAuth;
   } else if (baseUrl === 'workspace') {
     selectedBaseUrl = BaseURLWorkspace;
-  } else if (baseUrl === 'pravaha') {
-    selectedBaseUrl = BaseURLPravaha;
+  } else if (baseUrl === 'ragantic') {
+    selectedBaseUrl = BaseURLRagantic;
   } else if (baseUrl === 'default') {
     selectedBaseUrl = BaseURL;
   } else {
@@ -118,7 +118,7 @@ export const makeApiCall = async ({
       }
     }
 
-    const config: any = {
+    const config: AxiosRequestConfig = {
       url: fullUrl,
       method,
       headers: {
@@ -130,10 +130,14 @@ export const makeApiCall = async ({
         ? { data: updatedPayload }
         : { data: {} }), // Force empty data object for GET/DELETE to preserve Content-Type header
       transformRequest: [
-        (data: any, headers: any) => {
+        (data, requestHeaders) => {
           // Ensure Content-Type is always vnd.api+json and never gets overridden by axios
-          if (headers && !headers['Content-Type']?.includes('vnd.api+json')) {
-            headers['Content-Type'] = 'application/vnd.api+json';
+          const contentType = requestHeaders.get('Content-Type');
+          if (
+            typeof contentType !== 'string' ||
+            !contentType.includes('vnd.api+json')
+          ) {
+            requestHeaders.set('Content-Type', 'application/vnd.api+json');
           }
           return JSON.stringify(data);
         },
@@ -156,15 +160,23 @@ export const makeApiCall = async ({
     });
 
     return response.data;
-  } catch (error: any) {
-    console.error('🔴 API call failed:', {
-      url: fullUrl,
-      method,
-      error: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      headers: error.response?.headers,
-    });
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('🔴 API call failed:', {
+        url: fullUrl,
+        method,
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers,
+      });
+    } else {
+      console.error('🔴 API call failed:', {
+        url: fullUrl,
+        method,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
     throw error;
   }
 };

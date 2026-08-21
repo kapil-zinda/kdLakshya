@@ -6,25 +6,17 @@ import Link from 'next/link';
 
 import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
-import { ApiService } from '@/services/api';
+import { ApiService, type StudentListResponse } from '@/services/api';
 import {
-  useCreateExamMutation,
-  useCreateSubjectMutation,
-  useDeleteExamMutation,
-  useDeleteSubjectMutation,
   useGetClassesQuery,
   useGetClassStudentsQuery,
   useGetExamsForClassQuery,
   useGetSubjectsForClassQuery,
-  useUpdateExamMutation,
-  useUpdateSubjectMutation,
 } from '@/store/api/classApi';
 import { useGetFacultyQuery } from '@/store/api/facultyApi';
-import {
-  useGetStudentsQuery,
-  useUpdateStudentMutation,
-} from '@/store/api/studentApi';
+import { useGetStudentsQuery } from '@/store/api/studentApi';
 import { toast } from 'react-toastify';
 
 interface Student {
@@ -94,6 +86,8 @@ interface ClassesContentProps {
 }
 
 function ClassesContent({ userData }: ClassesContentProps) {
+  const confirm = useConfirm();
+
   // Get org ID from userData prop
   const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
   const isLocalhost =
@@ -127,7 +121,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
   const [selectedExamForView, setSelectedExamForView] = useState<Exam | null>(
     null,
   );
-  const [unassignedStudents, setUnassignedStudents] = useState<any[]>([]);
+  const [unassignedStudents, setUnassignedStudents] = useState<
+    StudentListResponse['data']
+  >([]);
   const [classMonitor, setClassMonitor] = useState<Student | null>(null);
 
   // RTK Query hooks for data fetching
@@ -145,37 +141,29 @@ function ClassesContent({ userData }: ClassesContentProps) {
       skip: !orgId,
     });
 
-  const { data: allStudentsResponse } = useGetStudentsQuery(orgId, {
+  // Subscribed purely to warm the RTK Query cache for the add-student modal.
+  useGetStudentsQuery(orgId, {
     skip: !orgId,
   });
 
   // Fetch data for selected class only
-  const { data: classStudentsResponse, isLoading: studentsLoading } =
+  const { data: classStudentsResponse, isError: isClassStudentsError } =
     useGetClassStudentsQuery(
       { orgId, classId: selectedClassId! },
       { skip: !orgId || !selectedClassId },
     );
 
-  const { data: subjectsResponse, isLoading: subjectsLoading } =
+  const { data: subjectsResponse, isError: isSubjectsError } =
     useGetSubjectsForClassQuery(
       { orgId, classId: selectedClassId! },
       { skip: !orgId || !selectedClassId },
     );
 
-  const { data: examsResponse, isLoading: examsLoading } =
+  const { data: examsResponse, isError: isExamsError } =
     useGetExamsForClassQuery(
       { orgId, classId: selectedClassId! },
       { skip: !orgId || !selectedClassId },
     );
-
-  // RTK Query mutations
-  const [createSubject] = useCreateSubjectMutation();
-  const [updateSubject] = useUpdateSubjectMutation();
-  const [deleteSubject] = useDeleteSubjectMutation();
-  const [createExam] = useCreateExamMutation();
-  const [updateExam] = useUpdateExamMutation();
-  const [deleteExam] = useDeleteExamMutation();
-  const [updateStudent] = useUpdateStudentMutation();
 
   const [subjectFormData, setSubjectFormData] = useState({
     name: '',
@@ -207,7 +195,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
   // Transform RTK Query data
   const teachers: Teacher[] =
-    facultyResponse?.data.map((t: any) => ({
+    facultyResponse?.data.map((t) => ({
       id: t.id,
       name: t.attributes.name,
       email: t.attributes.email,
@@ -225,7 +213,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
     return (
       classesResponse?.data
-        .filter((classItem: any) => {
+        .filter((classItem) => {
           const classAttrs = classItem.attributes;
           const teamId = classItem.id;
 
@@ -236,20 +224,19 @@ function ClassesContent({ userData }: ClassesContentProps) {
             classAttrs.teacher_id === userId
           );
         })
-        .map((classItem: any) => {
+        .map((classItem) => {
           const classAttrs = classItem.attributes;
           return {
             id: classItem.id,
             name: classAttrs.class,
             section: classAttrs.section || 'A',
             classTeacherId:
-              classAttrs.class_teacher_id || classAttrs.teacher_id,
+              classAttrs.class_teacher_id || classAttrs.teacher_id || undefined,
             classTeacherName:
               classAttrs.class_teacher_name ||
               classAttrs.teacher_name ||
               userData.firstName,
-            academicYear:
-              classAttrs.academic_year || classAttrs.academicYear || '2024-25',
+            academicYear: classAttrs.academic_year || '2024-25',
             totalStudents: 0, // Will be updated when class is selected
             room: classAttrs.room || 'Not Assigned',
             data: {
@@ -270,7 +257,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
   // Transform class-specific data (only for selected class)
   const currentStudents: Student[] =
-    classStudentsResponse?.data.map((s: any) => ({
+    classStudentsResponse?.data.map((s) => ({
       id: s.id,
       name: `${s.attributes.first_name || ''} ${s.attributes.last_name || ''}`.trim(),
       rollNumber: s.attributes.roll_number || 'N/A',
@@ -280,7 +267,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
     })) || [];
 
   const currentSubjects: Subject[] =
-    subjectsResponse?.data.map((s: any) => ({
+    subjectsResponse?.data.map((s) => ({
       id: s.id,
       name: s.attributes.subject_name,
       code: s.attributes.subject_code || '',
@@ -290,10 +277,10 @@ function ClassesContent({ userData }: ClassesContentProps) {
     })) || [];
 
   const currentExams: Exam[] =
-    examsResponse?.data.map((e: any) => ({
+    examsResponse?.data.map((e) => ({
       id: e.id,
       name: e.attributes.exam_name,
-      subjects: (e.attributes.subjects || []).map((examSubject: any) => {
+      subjects: (e.attributes.subjects || []).map((examSubject) => {
         const subjectDetails = currentSubjects.find(
           (s) => s.id === examSubject.subject_id,
         );
@@ -303,16 +290,18 @@ function ClassesContent({ userData }: ClassesContentProps) {
             examSubject.subject_name ||
             subjectDetails?.name ||
             'Unknown Subject',
-          marks: examSubject.max_marks,
+          marks: examSubject.max_marks || 0,
           duration: examSubject.duration || 0,
-          date: examSubject.exam_date || e.attributes.exam_date || '',
+          date: String(examSubject.exam_date || e.attributes.exam_date || ''),
           startTime: examSubject.start_time || '',
           endTime: '',
         };
       }),
       instructions: e.attributes.instructions || '',
-      type: e.attributes.type || 'Unit Test',
-      status: e.attributes.status || 'Scheduled',
+      // The service stores these as free-form strings; the page only renders
+      // them, so narrow to the display union it declares.
+      type: (e.attributes.type as Exam['type']) || 'Unit Test',
+      status: (e.attributes.status as Exam['status']) || 'Scheduled',
     })) || [];
 
   // Find selected class and update with current data
@@ -328,7 +317,6 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
   // Combined loading state
   const isLoading = classesLoading || facultyLoading;
-  const isLoadingClassData = studentsLoading || subjectsLoading || examsLoading;
 
   // Auto-select first class when classes are loaded
   useEffect(() => {
@@ -346,21 +334,20 @@ function ClassesContent({ userData }: ClassesContentProps) {
       // Fetch class monitor - this would need to be implemented in your API
       // For now, we'll look for a student with a monitor flag or role
       const studentsData = await ApiService.getClassStudents(orgId, classId);
-      const monitor = studentsData.data.find(
-        (s: any) => s.attributes.isMonitor || s.attributes.is_monitor,
-      );
+      const monitor = studentsData.data.find((s) => s.attributes.is_monitor);
 
       if (monitor) {
+        // The class service returns snake_case attributes (same fields the
+        // Attendance page reads); the camelCase spellings this used to try
+        // first never existed, which left the monitor's name blank.
         setClassMonitor({
           id: monitor.id,
           name:
-            monitor.attributes.name ||
-            `${monitor.attributes.firstName || ''} ${monitor.attributes.lastName || ''}`.trim(),
-          rollNumber:
-            monitor.attributes.rollNumber ||
-            monitor.attributes.roll_number ||
-            'N/A',
-          email: monitor.attributes.email,
+            [monitor.attributes.first_name, monitor.attributes.last_name]
+              .filter(Boolean)
+              .join(' ') || 'Unknown',
+          rollNumber: monitor.attributes.roll_number || 'N/A',
+          email: monitor.attributes.email || '',
           phone: monitor.attributes.phone || 'N/A',
           status: 'Active',
         });
@@ -406,6 +393,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       });
 
       setShowAddSubjectModal(false);
+      toast.success('Subject created successfully!');
       // Cache auto-invalidates via RTK Query
     } catch (error) {
       console.error('Error creating subject:', error);
@@ -472,7 +460,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
       const assignedIds = new Set(currentStudents.map((s) => s.id));
 
       // Filter unassigned students
-      const unassigned = allStudents.filter((s: any) => !assignedIds.has(s.id));
+      const unassigned = allStudents.filter((s) => !assignedIds.has(s.id));
 
       setUnassignedStudents(unassigned);
       setShowAddStudentModal(true);
@@ -481,7 +469,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
     }
   };
 
-  const handleAssignStudent = async (student: any) => {
+  const handleAssignStudent = async (
+    student: StudentListResponse['data'][number],
+  ) => {
     if (!selectedClass) return;
 
     // Prompt for roll number
@@ -510,17 +500,18 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
   const handleRemoveStudent = async (student: Student) => {
     if (!selectedClass) return;
-    if (!confirm(`Remove ${student.name} from this class?`)) return;
+    if (!(await confirm(`Remove ${student.name} from this class?`))) return;
 
     try {
-      // TODO: Implement removeStudentFromClass API method
-      // await ApiService.removeStudentFromClass(
-      //   orgId,
-      //   selectedClass.id,
-      //   student.id,
-      // );
-      toast.error('Remove student functionality not yet implemented');
-      // // Cache auto-invalidates via RTK Query
+      await ApiService.unenrollStudentFromClass(
+        orgId,
+        selectedClass.id,
+        student.id,
+        selectedClass.academicYear || '2024-25',
+      );
+
+      // Cache auto-invalidates via RTK Query
+      toast.success(`${student.name} removed from class`);
     } catch (error) {
       console.error('Error removing student:', error);
       toast.error('Failed to remove student');
@@ -622,6 +613,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
       });
 
       setShowCreateExamModal(false);
+      toast.success(
+        'Exam created! Enter marks for it from the exam row once results are ready.',
+      );
       // Cache auto-invalidates via RTK Query
     } catch (error) {
       console.error('Error creating exam:', error);
@@ -673,9 +667,9 @@ function ClassesContent({ userData }: ClassesContentProps) {
     if (!selectedClass) return;
 
     if (
-      !confirm(
+      !(await confirm(
         `Are you sure you want to delete "${exam.name}"? This action cannot be undone.`,
-      )
+      ))
     ) {
       return;
     }
@@ -693,7 +687,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
   // Class Monitor handlers
   const handleAssignClassMonitor = async (student: Student) => {
     if (!selectedClass) return;
-    if (!confirm(`Assign ${student.name} as class monitor?`)) return;
+    if (!(await confirm(`Assign ${student.name} as class monitor?`))) return;
 
     try {
       // Use orgId from userData prop (no API call needed!)
@@ -720,7 +714,8 @@ function ClassesContent({ userData }: ClassesContentProps) {
 
   const handleRemoveClassMonitor = async () => {
     if (!selectedClass || !classMonitor) return;
-    if (!confirm(`Remove ${classMonitor.name} as class monitor?`)) return;
+    if (!(await confirm(`Remove ${classMonitor.name} as class monitor?`)))
+      return;
 
     try {
       // Use orgId from userData prop (no API call needed!)
@@ -1064,15 +1059,17 @@ function ClassesContent({ userData }: ClassesContentProps) {
                 <div className="bg-card rounded-lg shadow-sm border border-border">
                   <div className="border-b border-border">
                     <nav className="-mb-px flex space-x-8 px-6">
-                      {[
-                        { id: 'students', label: 'Students', icon: '👥' },
-                        { id: 'subjects', label: 'Subjects', icon: '📚' },
-                        { id: 'exams', label: 'Exams', icon: '📝' },
-                        // { id: 'monitor', label: 'Class Monitor', icon: '⭐' },
-                      ].map((tab) => (
+                      {(
+                        [
+                          { id: 'students', label: 'Students', icon: '👥' },
+                          { id: 'subjects', label: 'Subjects', icon: '📚' },
+                          { id: 'exams', label: 'Exams', icon: '📝' },
+                          // { id: 'monitor', label: 'Class Monitor', icon: '⭐' },
+                        ] as const
+                      ).map((tab) => (
                         <button
                           key={tab.id}
-                          onClick={() => setActiveTab(tab.id as any)}
+                          onClick={() => setActiveTab(tab.id)}
                           className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
                             activeTab === tab.id
                               ? 'border-indigo-500 text-indigo-600'
@@ -1121,7 +1118,12 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           </div>
                         </div>
 
-                        {currentStudents.length > 0 ? (
+                        {isClassStudentsError ? (
+                          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg text-center">
+                            Failed to load students for this class. Please
+                            refresh and try again.
+                          </div>
+                        ) : currentStudents.length > 0 ? (
                           <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-border">
                               <thead className="bg-muted">
@@ -1255,7 +1257,12 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           </button>
                         </div>
 
-                        {currentSubjects.length > 0 ? (
+                        {isSubjectsError ? (
+                          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg text-center">
+                            Failed to load subjects for this class. Please
+                            refresh and try again.
+                          </div>
+                        ) : currentSubjects.length > 0 ? (
                           <div className="overflow-x-auto">
                             <table className="min-w-full divide-y divide-border">
                               <thead className="bg-muted">
@@ -1397,7 +1404,12 @@ function ClassesContent({ userData }: ClassesContentProps) {
                           </button>
                         </div>
 
-                        {currentExams.length > 0 ? (
+                        {isExamsError ? (
+                          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded-lg text-center">
+                            Failed to load exams for this class. Please refresh
+                            and try again.
+                          </div>
+                        ) : currentExams.length > 0 ? (
                           <div className="grid grid-cols-1 gap-4">
                             {currentExams.map((exam) => (
                               <div
@@ -1478,6 +1490,25 @@ function ClassesContent({ userData }: ClassesContentProps) {
                                         />
                                       </svg>
                                     </button>
+                                    <Link
+                                      href={`/teacher-dashboard/exams?examId=${exam.id}`}
+                                      className="p-2 text-green-600 hover:bg-green-500/10 rounded-lg transition-colors"
+                                      title="Enter Marks"
+                                    >
+                                      <svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                        />
+                                      </svg>
+                                    </Link>
                                     <button
                                       onClick={() => {
                                         setSelectedExamForEdit(exam);
@@ -1707,15 +1738,19 @@ function ClassesContent({ userData }: ClassesContentProps) {
             <div className="px-6 py-4">
               {unassignedStudents.length > 0 ? (
                 <div className="space-y-2">
-                  {unassignedStudents.map((student: any) => (
+                  {unassignedStudents.map((student) => (
                     <div
                       key={student.id}
                       className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted"
                     >
                       <div>
                         <p className="text-sm font-medium text-foreground">
-                          {student.attributes.name ||
-                            `${student.attributes.firstName || ''} ${student.attributes.lastName || ''}`.trim()}
+                          {[
+                            student.attributes.first_name,
+                            student.attributes.last_name,
+                          ]
+                            .filter(Boolean)
+                            .join(' ') || 'Unnamed student'}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {student.attributes.email}
@@ -2048,7 +2083,7 @@ function ClassesContent({ userData }: ClassesContentProps) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mb-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
                   <div>
                     <label className="block text-xs font-medium text-foreground mb-1">
                       Date

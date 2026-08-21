@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+import axios from 'axios';
+
 interface StudentLoginRequest {
   username: string;
   password: string;
@@ -47,9 +49,6 @@ export async function POST(request: NextRequest) {
     // Call the backend API for student authentication
     const { makeApiCall } = await import('@/utils/ApiRequest');
 
-    console.log('Calling student auth API');
-    console.log('With credentials:', { username: username.trim(), password });
-
     try {
       const responseData = await makeApiCall({
         path: '/students/auth',
@@ -67,20 +66,18 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      console.log('API Response data:', responseData);
-
       // Successful login - return the full student data with token
-      console.log('Login successful, returning data');
       return NextResponse.json({
         success: true,
         data: responseData.data,
       });
-    } catch (error: any) {
+    } catch (error) {
       // Handle API errors
       console.error('API Error:', error);
 
-      // Check if error response exists
-      if (error.response) {
+      // Pass the upstream auth service's own JSON:API error document
+      // straight through, so the client sees the real reason and status.
+      if (axios.isAxiosError(error) && error.response) {
         return NextResponse.json(error.response.data, {
           status: error.response.status,
         });
@@ -94,7 +91,10 @@ export async function POST(request: NextRequest) {
               status: '500',
               code: 'API_ERROR',
               title: 'API Error',
-              detail: error.message || 'Failed to authenticate',
+              detail:
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to authenticate',
             },
           ],
         },
