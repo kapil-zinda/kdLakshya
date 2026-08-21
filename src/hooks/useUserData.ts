@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
+import { determineUserRole } from '@/store/api/authApi';
 
 export interface CachedUserData {
   id: string;
@@ -8,7 +10,7 @@ export interface CachedUserData {
   firstName: string;
   lastName: string;
   role: string;
-  permissions: Record<string, any>;
+  permissions: Record<string, unknown>;
   orgId: string;
   accessToken: string;
   cacheTimestamp: number;
@@ -27,7 +29,7 @@ export function useUserData() {
   const [isLoading, setIsLoading] = useState(true);
 
   // Load cached user data from localStorage
-  const loadCachedData = () => {
+  const loadCachedData = useCallback(() => {
     try {
       if (typeof window === 'undefined') return null;
 
@@ -48,24 +50,27 @@ export function useUserData() {
       console.error('Error loading cached user data:', error);
       return null;
     }
-  };
+  }, []);
 
   // Save user data to cache
-  const cacheUserData = (data: Omit<CachedUserData, 'cacheTimestamp'>) => {
-    try {
-      if (typeof window === 'undefined') return;
+  const cacheUserData = useCallback(
+    (data: Omit<CachedUserData, 'cacheTimestamp'>) => {
+      try {
+        if (typeof window === 'undefined') return;
 
-      const dataWithTimestamp = {
-        ...data,
-        cacheTimestamp: Date.now(),
-      };
+        const dataWithTimestamp = {
+          ...data,
+          cacheTimestamp: Date.now(),
+        };
 
-      localStorage.setItem(USER_DATA_KEY, JSON.stringify(dataWithTimestamp));
-      setUserData(dataWithTimestamp);
-    } catch (error) {
-      console.error('Error caching user data:', error);
-    }
-  };
+        localStorage.setItem(USER_DATA_KEY, JSON.stringify(dataWithTimestamp));
+        setUserData(dataWithTimestamp);
+      } catch (error) {
+        console.error('Error caching user data:', error);
+      }
+    },
+    [],
+  );
 
   // Clear cached user data
   const clearUserData = () => {
@@ -80,113 +85,86 @@ export function useUserData() {
   };
 
   // Fetch user data from backend API
-  const fetchUserDataFromBackend = async (accessToken: string) => {
-    try {
-      const { makeApiCall } = await import('@/utils/ApiRequest');
+  const fetchUserDataFromBackend = useCallback(
+    async (accessToken: string) => {
+      try {
+        const { makeApiCall } = await import('@/utils/ApiRequest');
 
-      console.log('Fetching user data from API...');
+        console.log('Fetching user data from API...');
 
-      const data = await makeApiCall({
-        path: '/users/me?include=permission',
-        method: 'GET',
-        baseUrl: 'auth',
-      });
-      const userData = data.data;
+        const data = await makeApiCall({
+          path: '/users/me?include=permission',
+          method: 'GET',
+          baseUrl: 'auth',
+        });
+        const userData = data.data;
 
-      console.log(
-        'Full user data from API:',
-        JSON.stringify(userData, null, 2),
-      );
+        console.log(
+          'Full user data from API:',
+          JSON.stringify(userData, null, 2),
+        );
 
-      // Determine user role based on permissions
-      let role = 'student';
+        // Determine user role (shared with authApi.ts - same /users/me shape)
+        const role = determineUserRole(userData);
 
-      // Check user role from attributes first
-      if (userData.attributes && userData.attributes.role === 'faculty') {
-        role = 'teacher'; // Faculty should have teacher access
-      } else if (
-        userData.attributes &&
-        userData.attributes.type === 'faculty'
-      ) {
-        role = 'teacher'; // Also check type field for backward compatibility
-      } else if (userData.user_permissions) {
-        if (
-          userData.user_permissions['admin'] ||
-          userData.user_permissions['organization_admin'] ||
-          userData.user_permissions['org']
-        ) {
-          role = 'admin';
-        } else if (
-          userData.user_permissions['teacher'] ||
-          userData.user_permissions['instructor']
-        ) {
-          role = 'teacher';
+        console.log('Determined role:', role);
+
+        // For localhost development, use hardcoded orgId
+        const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
+        const isLocalhost =
+          typeof window !== 'undefined' &&
+          (window.location.hostname === 'localhost' ||
+            window.location.hostname === '127.0.0.1' ||
+            window.location.hostname.startsWith('localhost:'));
+
+        const orgId = isLocalhost
+          ? LOCALHOST_ORG_ID
+          : userData.attributes.org_id ||
+            userData.attributes.orgId ||
+            userData.attributes.org;
+
+        if (isLocalhost) {
+          console.log('🏠 Using hardcoded localhost orgId:', LOCALHOST_ORG_ID);
         }
+
+        console.log('Extracted orgId:', orgId);
+
+        const processedUserData = {
+          id: userData.id,
+          email: userData.attributes.email,
+          firstName:
+            userData.attributes.first_name ||
+            userData.attributes.name?.split(' ')[0] ||
+            'User',
+          lastName:
+            userData.attributes.last_name ||
+            userData.attributes.name?.split(' ').slice(1).join(' ') ||
+            '',
+          role: role as 'admin' | 'teacher' | 'student',
+          permissions:
+            userData.attributes.permissions || userData.user_permissions || {},
+          orgId: orgId || '',
+          accessToken,
+          type: userData.attributes.type || userData.attributes.role,
+          phone: userData.attributes.phone || '',
+          designation: userData.attributes.designation || '',
+          experience: userData.attributes.experience || '',
+          profilePhoto:
+            userData.attributes.profile_photo ||
+            userData.attributes.photo ||
+            '',
+        };
+
+        // Cache the data
+        cacheUserData(processedUserData);
+        return processedUserData;
+      } catch (error) {
+        console.error('Error fetching user data from backend:', error);
+        throw error;
       }
-
-      // Also check permissions object in attributes for org permission
-      if (
-        userData.attributes &&
-        userData.attributes.permissions &&
-        userData.attributes.permissions['org']
-      ) {
-        role = 'admin'; // Users with org permission get admin access
-      }
-
-      console.log('Determined role:', role);
-
-      // For localhost development, use hardcoded orgId
-      const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
-      const isLocalhost =
-        typeof window !== 'undefined' &&
-        (window.location.hostname === 'localhost' ||
-          window.location.hostname === '127.0.0.1' ||
-          window.location.hostname.startsWith('localhost:'));
-
-      const orgId = isLocalhost
-        ? LOCALHOST_ORG_ID
-        : userData.attributes.org_id ||
-          userData.attributes.orgId ||
-          userData.attributes.org;
-
-      if (isLocalhost) {
-        console.log('🏠 Using hardcoded localhost orgId:', LOCALHOST_ORG_ID);
-      }
-
-      console.log('Extracted orgId:', orgId);
-
-      const processedUserData = {
-        id: userData.id,
-        email: userData.attributes.email,
-        firstName:
-          userData.attributes.first_name ||
-          userData.attributes.name?.split(' ')[0] ||
-          'User',
-        lastName:
-          userData.attributes.last_name ||
-          userData.attributes.name?.split(' ').slice(1).join(' ') ||
-          '',
-        role: role as 'admin' | 'teacher' | 'student',
-        permissions:
-          userData.attributes.permissions || userData.user_permissions || {},
-        orgId: orgId || '',
-        accessToken,
-        type: userData.attributes.type || userData.attributes.role,
-        phone: userData.attributes.phone || '',
-        designation: userData.attributes.designation || '',
-        experience: userData.attributes.experience || '',
-        profilePhoto:
-          userData.attributes.profile_photo || userData.attributes.photo || '',
-      };
-
-      // Cache the data
-      cacheUserData(processedUserData);
-      return processedUserData;
-    } catch (error) {
-      console.error('Error fetching user data from backend:', error);
-      throw error;
-    }
-  };
+    },
+    [cacheUserData],
+  );
 
   // Initialize user data on component mount
   useEffect(() => {
@@ -256,7 +234,8 @@ export function useUserData() {
     };
 
     initializeUserData();
-  }, []);
+    // Both callbacks are useCallback-stable, so this still runs once on mount.
+  }, [loadCachedData, fetchUserDataFromBackend]);
 
   return {
     userData,

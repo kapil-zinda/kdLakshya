@@ -17,6 +17,10 @@ export interface Class {
   section: string;
   teacher_id?: string | null;
   teacher_name?: string;
+  // Set when a faculty member is the class teacher rather than just assigned
+  // to the class; the teacher dashboards grant access off either pair.
+  class_teacher_id?: string | null;
+  class_teacher_name?: string;
   room: string;
   academic_year: string;
   description?: string;
@@ -68,9 +72,13 @@ export interface UpdateClassRequest {
 
 export interface ClassStudent {
   id: string;
-  name: string;
+  student_id?: string;
+  first_name?: string;
+  last_name?: string;
+  roll_number?: string;
   email: string;
   phone?: string;
+  is_monitor?: boolean;
   enrollment_date?: number;
   status: string;
 }
@@ -87,8 +95,16 @@ export interface Subject {
   id: string;
   orgId: string;
   classId: string;
-  name: string;
-  code: string;
+  /**
+   * Named subject_name/subject_code on the wire - createSubject and
+   * updateSubject rename the client-side `name` on the way out, and every
+   * page reads these spellings back.
+   */
+  subject_name: string;
+  subject_code?: string;
+  /** Legacy spellings some payloads still use; read as a fallback only. */
+  name?: string;
+  code?: string;
   teacher_id?: string;
   teacher_name?: string;
   description?: string;
@@ -135,15 +151,32 @@ export interface UpdateSubjectRequest {
   credits?: number;
 }
 
+/** One subject scheduled inside an exam. */
+export interface ExamSubjectDetail {
+  subject_id: string;
+  subject_name?: string;
+  max_marks?: number;
+  duration?: number;
+  exam_date?: string | number;
+  start_time?: string;
+}
+
 export interface Exam {
   id: string;
   orgId: string;
-  classId: string;
-  subjectId: string;
-  name: string;
-  exam_type: string;
-  exam_date: number;
-  max_marks: number;
+  classId?: string;
+  /** Named exam_name on the wire, matching CreateExamRequest. */
+  exam_name: string;
+  /** Legacy spelling some payloads still use; read as a fallback only. */
+  name?: string;
+  exam_type?: string;
+  exam_date?: string | number;
+  /** Per-subject schedule; an exam covers one or more subjects. */
+  subjects?: ExamSubjectDetail[];
+  max_marks?: number;
+  instructions?: string;
+  type?: string;
+  status?: string;
   description?: string;
   createdAt: number;
   updatedAt: number;

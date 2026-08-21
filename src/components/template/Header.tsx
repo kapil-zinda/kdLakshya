@@ -128,16 +128,18 @@ export function Header({ organization }: HeaderProps) {
   };
 
   const handleLogout = () => {
-    // Clear persisted Redux auth slice so RTK Query (e.g. useGetUserProfileQuery)
-    // doesn't keep firing /users/me after the redirect.
+    // Clear the persisted Redux auth slice so RTK Query (e.g.
+    // useGetUserProfileQuery) doesn't keep firing /users/me after the redirect.
     dispatch(logoutAction());
 
-    // Clear all authentication data (including student auth)
+    // Clear all authentication data - including student auth and the
+    // redux-persist snapshot, or a shared computer stays logged in.
     localStorage.removeItem('bearerToken');
     localStorage.removeItem('adminAuth');
     localStorage.removeItem('studentAuth');
     localStorage.removeItem('authState');
     localStorage.removeItem('codeVerifier');
+    localStorage.removeItem('persist:root');
     localStorage.removeItem('cachedUserData');
     sessionStorage.removeItem('authCodeProcessed');
     sessionStorage.removeItem('isAuthCallback');

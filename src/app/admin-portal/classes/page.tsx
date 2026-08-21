@@ -251,8 +251,11 @@ export default function ClassManagement() {
   const currentSubjects: Subject[] =
     subjectsResponse?.data.map((s) => ({
       id: s.id,
-      name: s.attributes.name,
-      code: s.attributes.code || '',
+      // The service stores these as subject_name/subject_code (see
+      // createSubject, which renames on the way out); the bare name/code
+      // spellings are only a fallback for older payloads.
+      name: s.attributes.subject_name || s.attributes.name || '',
+      code: s.attributes.subject_code || s.attributes.code || '',
       teacherId: s.attributes.teacher_id,
       teacherName: s.attributes.teacher_name,
       credits: s.attributes.credits || 1,
@@ -262,7 +265,7 @@ export default function ClassManagement() {
   const currentExams: Exam[] =
     examsResponse?.data.map((e) => ({
       id: e.id,
-      name: e.attributes.name,
+      name: e.attributes.exam_name || e.attributes.name || '',
       subjects: (
         (e.attributes as { subjects?: ExamSubjectApiData[] }).subjects || []
       ).map((examSubject: ExamSubjectApiData) => {

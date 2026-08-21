@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
+import Image from 'next/image';
+
 import { Footer } from '@/components/template/Footer';
 import { Header } from '@/components/template/Header';
 import { getCDNUrl } from '@/config/cdn';
@@ -10,10 +12,20 @@ import { ApiService } from '@/services/api';
 import { useGetGalleryQuery } from '@/store/api/galleryApi';
 import { getSubdomain } from '@/utils/subdomainUtils';
 
+/** A gallery item as this page renders it, after CDN-URL resolution. */
+interface GalleryItem {
+  id: string;
+  src: string;
+  alt: string;
+  title: string;
+  description?: string;
+  tags?: string[];
+}
+
 export default function GalleryPage() {
   const { organizationData, loading } = useOrganizationData();
   const [selectedCategory, setSelectedCategory] = useState('All');
-  const [selectedImage, setSelectedImage] = useState<any>(null);
+  const [selectedImage, setSelectedImage] = useState<GalleryItem | null>(null);
   const [orgId, setOrgId] = useState<string>('');
 
   // Get orgId from subdomain (public access)
@@ -227,10 +239,13 @@ export default function GalleryPage() {
                     onClick={() => setSelectedImage(image)}
                   >
                     <div className="relative aspect-square">
-                      <img
+                      <Image
                         src={image.src}
                         alt={image.alt}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                        fill
+                        unoptimized
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                        className="object-cover group-hover:scale-110 transition-transform duration-300"
                       />
                       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300"></div>
                       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent">
@@ -275,10 +290,13 @@ export default function GalleryPage() {
               >
                 ×
               </button>
-              <img
+              <Image
                 src={selectedImage.src}
                 alt={selectedImage.alt}
-                className="max-w-full max-h-full object-contain rounded-lg"
+                width={1600}
+                height={1200}
+                unoptimized
+                className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg"
               />
               <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/60 to-transparent rounded-b-lg">
                 <h3 className="text-white font-medium text-lg">

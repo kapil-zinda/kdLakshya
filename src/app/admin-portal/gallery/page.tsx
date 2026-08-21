@@ -2,16 +2,13 @@
 
 import { useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
-import {
-  useCreateGalleryImageMutation,
-  useDeleteGalleryImageMutation,
-  useUpdateGalleryImageMutation,
-} from '@/store/api/galleryApi';
+import { useCreateGalleryImageMutation } from '@/store/api/galleryApi';
 import { useGetS3UploadUrlMutation } from '@/store/api/s3Api';
 
 interface Photo {
@@ -70,8 +67,11 @@ export default function GalleryManagement() {
   // API Hooks
   const [getS3UploadUrl] = useGetS3UploadUrlMutation();
   const [createGalleryImage] = useCreateGalleryImageMutation();
-  const [updateGalleryImage] = useUpdateGalleryImageMutation();
-  const [deleteGalleryImage] = useDeleteGalleryImageMutation();
+  // NOTE: the publish/delete handlers below (handleBulkDelete,
+  // handleBulkPublish, and the photo-detail modal's buttons) only update local
+  // state - they report success but never persist, so the change is gone on
+  // reload. useUpdateGalleryImageMutation/useDeleteGalleryImageMutation in
+  // @/store/api/galleryApi are the hooks to wire them to.
 
   const categories = [
     'All',
@@ -677,11 +677,14 @@ export default function GalleryManagement() {
                   setViewMode('photos');
                 }}
               >
-                <div className="aspect-video bg-muted overflow-hidden">
-                  <img
+                <div className="relative aspect-video bg-muted overflow-hidden">
+                  <Image
                     src={album.coverPhoto}
                     alt={album.name}
-                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-200"
+                    fill
+                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover hover:scale-105 transition-transform duration-200"
                   />
                 </div>
                 <div className="p-4">
@@ -749,13 +752,16 @@ export default function GalleryManagement() {
 
                 {/* Photo */}
                 <div
-                  className="aspect-square bg-muted overflow-hidden cursor-pointer"
+                  className="relative aspect-square bg-muted overflow-hidden cursor-pointer"
                   onClick={() => setSelectedPhoto(photo)}
                 >
-                  <img
+                  <Image
                     src={photo.url}
                     alt={photo.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                    fill
+                    unoptimized
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-200"
                   />
                 </div>
 
@@ -1167,11 +1173,14 @@ export default function GalleryManagement() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {/* Photo Display */}
                   <div className="space-y-4">
-                    <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-                      <img
+                    <div className="relative aspect-video bg-muted rounded-lg overflow-hidden">
+                      <Image
                         src={selectedPhoto.url}
                         alt={selectedPhoto.title}
-                        className="w-full h-full object-cover"
+                        fill
+                        unoptimized
+                        sizes="(max-width: 1024px) 100vw, 50vw"
+                        className="object-cover"
                       />
                     </div>
                     <div className="flex items-center justify-between">

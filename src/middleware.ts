@@ -36,7 +36,12 @@ export function middleware(request: NextRequest) {
   }
 
   // If user is trying to access /login directly on non-auth subdomain, redirect to auth subdomain
-  if (pathname === '/login' && subdomain !== 'auth') {
+  // (strip a trailing slash first - '/login/' bypassed this check entirely otherwise)
+  const normalizedPathname =
+    pathname.length > 1 && pathname.endsWith('/')
+      ? pathname.slice(0, -1)
+      : pathname;
+  if (normalizedPathname === '/login' && subdomain !== 'auth') {
     const port = hostname.includes(':') ? `:${hostname.split(':')[1]}` : '';
     const baseDomain = hostname.split('.').slice(1).join('.');
     const authUrl = isLocalhost
@@ -54,6 +59,39 @@ export function middleware(request: NextRequest) {
     );
     const loginUrl = new URL('/login', request.url);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Role-based route protection. Every login path (Auth0 admin/teacher flow
+  // and direct student login) writes a `dias_role` cookie alongside its
+  // localStorage/Redux session (see reduxAuthSync.ts) specifically so this
+  // can run here - middleware executes before any page renders, but can't
+  // read localStorage or Redux at all.
+  //
+  // This only redirects on a clear mismatch (a real "student" cookie hitting
+  // /admin-portal); it never redirects for a missing cookie, so a session
+  // this check doesn't know about yet (or a stale/cleared cookie after
+  // logout) still falls through exactly as it did before this existed, to
+  // the client-side check in DashboardWrapper. Real authorization is - and
+  // remains - the backend's own RBAC check on every API call: like
+  // localStorage, this cookie is client-writable, so it stops a role
+  // mismatch from ever rendering the wrong page shell, not a forged token
+  // from reaching real data.
+  const roleRoutePrefixes: Record<string, string> = {
+    '/admin-portal': 'admin',
+    '/teacher-dashboard': 'teacher',
+    '/student-dashboard': 'student',
+  };
+  const matchedPrefix = Object.keys(roleRoutePrefixes).find((prefix) =>
+    pathname.startsWith(prefix),
+  );
+  if (matchedPrefix) {
+    const roleCookie = request.cookies.get('dias_role')?.value;
+    if (roleCookie && roleCookie !== roleRoutePrefixes[matchedPrefix]) {
+      console.log(
+        `🚫 Role mismatch for ${pathname}: cookie says "${roleCookie}", redirecting`,
+      );
+      return NextResponse.redirect(new URL('/', request.url));
+    }
   }
 
   return NextResponse.next();

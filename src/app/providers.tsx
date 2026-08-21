@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import { DynamicTitle } from '@/components/DynamicTitle';
 import { ThemeApplier } from '@/components/ThemeApplier';
 import { ApiService } from '@/services/api';
+import { determineUserRole } from '@/store/api/authApi';
 import { isStudentUser } from '@/utils/authHeaders';
 import {
   loadTokenFromStorage,
@@ -18,11 +19,11 @@ import { isAuthSubdomain } from '@/utils/subdomainUtils';
 import axios from 'axios';
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { type ThemeProviderProps } from 'next-themes/dist/types';
+import { toast } from 'react-toastify';
 
 import { updateUserData } from './interfaces/userInterface';
 
 const AUTH0_Client_Id = process.env.NEXT_PUBLIC_AUTH0_Client_Id || '';
-const AUTH0_Client_Secret = process.env.NEXT_PUBLIC_AUTH0_Client_Secret || '';
 const AUTH0_Domain_Name = process.env.NEXT_PUBLIC_Auth0_DOMAIN_NAME || '';
 const login_redirect = process.env.NEXT_PUBLIC_AUTH0_LOGIN_REDIRECT_URL || '';
 
@@ -168,19 +169,8 @@ export function Providers({ children }: ThemeProviderProps) {
         // Handle both possible field names for org ID
         const orgId = attributes.orgId || attributes.org_id || attributes.org;
 
-        // Determine user role using same logic as authApi
-        let userRole: 'admin' | 'teacher' | 'faculty' | 'student' = 'student';
-        if (attributes.role === 'faculty' || attributes.type === 'faculty') {
-          userRole = 'faculty';
-        } else if (
-          permissions['admin'] ||
-          permissions['organization_admin'] ||
-          permissions['org']
-        ) {
-          userRole = 'admin';
-        } else if (permissions['teacher'] || permissions['instructor']) {
-          userRole = 'teacher';
-        }
+        // Determine user role (shared with authApi.ts - same /users/me shape)
+        const userRole = determineUserRole(userData);
 
         updateUserData({
           userId: attributes.user_id || attributes.id,
@@ -251,6 +241,13 @@ export function Providers({ children }: ThemeProviderProps) {
           localStorage.removeItem('bearerToken');
           setAccessTkn(null);
           loginHandler();
+        } else {
+          // A non-auth failure (network error, 500, timeout) left the
+          // screen just never populating with no feedback at all -
+          // let the user know something actually went wrong.
+          toast.error(
+            'Failed to load your profile. Please check your connection and try again.',
+          );
         }
       }
     },
@@ -302,19 +299,7 @@ export function Providers({ children }: ThemeProviderProps) {
       if (isProcessingCode) return;
       setIsProcessingCode(true);
 
-      console.log('Processing auth code:', code);
-      console.log('Auth0 Config:', {
-        AUTH0_Client_Id,
-        AUTH0_Domain_Name,
-        login_redirect,
-      });
-
       try {
-        const data = new URLSearchParams();
-        data.append('grant_type', 'authorization_code');
-        data.append('client_id', AUTH0_Client_Id);
-        data.append('client_secret', AUTH0_Client_Secret);
-        data.append('code', code);
         // Use dynamic redirect URI based on current domain
         const tokenExchangeHost = window.location.host;
         const tokenIsLocalhost =
@@ -324,31 +309,17 @@ export function Providers({ children }: ThemeProviderProps) {
           ? login_redirect
           : `https://${tokenExchangeHost}/`;
 
-        data.append('redirect_uri', dynamicRedirectUri);
-
-        console.log('Token request data:', Object.fromEntries(data));
-
-        const response = await axios({
-          method: 'post',
-          url: `https://${AUTH0_Domain_Name}/oauth/token`,
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          data: data,
+        // Exchange the code server-side (see /api/auth/exchange-code) so the
+        // Auth0 client secret never has to live in the browser bundle.
+        const response = await axios.post('/api/auth/exchange-code', {
+          code,
+          redirect_uri: dynamicRedirectUri,
         });
 
-        console.log('Token response:', response.data);
         const token = response.data.access_token;
         const expiresIn = response.data.expires_in || 3600; // Default to 1 hour if not provided
         const expiresInHours = Math.max(1, Math.floor(expiresIn / 3600)); // Convert seconds to hours, minimum 1 hour
 
-        console.log(
-          'Token expires in:',
-          expiresIn,
-          'seconds (',
-          expiresInHours,
-          'hours)',
-        );
         setAccessTkn(token);
         setItemWithTTL('bearerToken', token, expiresInHours);
 
@@ -547,6 +518,27 @@ export function Providers({ children }: ThemeProviderProps) {
       console.error('Login redirect error:', error);
     }
   };
+
+  // Every ApiService call independently checks token expiry and throws
+  // 'Authentication token has expired' with no redirect attached — a
+  // mid-session user otherwise sees a scattered, uncaught failure instead of
+  // a clean bounce to login. Catch it globally and send them back to /login.
+  React.useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      const message = event.reason?.message;
+      if (message === 'Authentication token has expired') {
+        localStorage.removeItem('bearerToken');
+        localStorage.removeItem('persist:root');
+        window.location.href = '/login';
+      }
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () =>
+      window.removeEventListener(
+        'unhandledrejection',
+        handleUnhandledRejection,
+      );
+  }, []);
 
   // Initialize auth state — runs once per token, not per navigation
   React.useEffect(() => {

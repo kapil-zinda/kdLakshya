@@ -35,6 +35,7 @@ export interface OrganizationConfig {
   hero: {
     title: string;
     subtitle: string;
+    description?: string;
     backgroundImage: string;
     ctaButtons: {
       primary: { text: string; link: string };
@@ -68,6 +69,8 @@ export interface OrganizationConfig {
   stats: {
     title: string;
     items: {
+      /** Present for stats that came from the API; absent for the defaults. */
+      id?: string;
       label: string;
       value: string;
       icon?: string;

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 
-import { useUserDataRedux } from '@/hooks/useUserDataRedux';
+import { useOrganizationData } from '@/hooks/useOrganizationData';
 import { ApiService } from '@/services/api';
 import {
   Cell,
@@ -11,6 +11,7 @@ import {
   PieChart,
   ResponsiveContainer,
   Tooltip,
+  type TooltipProps,
 } from 'recharts';
 
 import { Button } from '../ui/button';
@@ -88,11 +89,51 @@ const printStyles = `
   }
 `;
 
+/** One row of the payment history, as this component renders it. */
+interface PaymentView {
+  id?: string;
+  receiptNumber?: string;
+  date: string;
+  description?: string;
+  paymentMode?: string;
+  amount: number;
+  month: string;
+  remarks: string;
+}
+
+/** The fee view model built from the student's fee record. */
+interface FeeView {
+  academicYear: string;
+  feeStructure: {
+    tuitionFee: number;
+    developmentFee: number;
+    examFee: number;
+    transportFee: number;
+    libraryFee: number;
+    otherFees: number;
+    totalFee: number;
+  };
+  totalPaid: number;
+  totalDue: number;
+  feePayments: PaymentView[];
+}
+
+/** The cached `studentAuth` fields this receipt needs. */
+interface StudentIdentity {
+  id?: string;
+  orgId?: string;
+  firstName?: string;
+  lastName?: string;
+  gradeLevel?: string;
+  rollNumber?: string;
+  guardianInfo?: { father_name?: string };
+}
+
 const StudentFees: React.FC = () => {
+  const { organizationData } = useOrganizationData();
   const [loading, setLoading] = useState(true);
-  const [feeData, setFeeData] = useState<any>(null);
-  const [studentData, setStudentData] = useState<any>(null);
-  const { userData } = useUserDataRedux();
+  const [feeData, setFeeData] = useState<FeeView | null>(null);
+  const [studentData, setStudentData] = useState<StudentIdentity | null>(null);
 
   useEffect(() => {
     const fetchFeeData = async () => {
@@ -108,9 +149,10 @@ const StudentFees: React.FC = () => {
         const parsed = JSON.parse(storedStudentData);
         setStudentData(parsed);
 
-        // Get org ID from Redux and student ID
-        const orgId = userData?.orgId;
-        if (!orgId) {
+        // Get org ID and student ID from the same student auth object
+        // sibling components (StudentAttendance/StudentMarks) read from
+        const orgId = parsed.orgId;
+        if (!orgId || !parsed.id) {
           console.error('Organization ID not found');
           setLoading(false);
           return;
@@ -140,13 +182,13 @@ const StudentFees: React.FC = () => {
             },
             totalPaid: attributes.total_paid || 0,
             totalDue: attributes.total_due || attributes.remaining_amount || 0,
-            feePayments: (attributes.payments || []).map((payment: any) => ({
+            feePayments: (attributes.payments || []).map((payment) => ({
               id: payment.id,
               receiptNumber: payment.receipt_number,
-              date: payment.date,
+              date: payment.date || '',
               description: payment.description,
               paymentMode: payment.method,
-              amount: payment.amount,
+              amount: payment.amount ?? 0,
               month: payment.month || '',
               remarks: payment.remarks || '',
             })),
@@ -255,7 +297,7 @@ const StudentFees: React.FC = () => {
   };
 
   // Function to download payment slip
-  const handleDownloadSlip = (payment: any) => {
+  const handleDownloadSlip = (payment: PaymentView) => {
     // Create a new window for the receipt
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
@@ -336,9 +378,18 @@ const StudentFees: React.FC = () => {
         </head>
         <body>
           <div class="header">
-            <h1>SHREE LAHARI SINGH MEMO INTER COLLEGE</h1>
-            <p>GHANGHAULI, ALIGARH</p>
-            <p>Phone No. 9897470696</p>
+            <h1>${organizationData?.name || 'School'}</h1>
+            ${
+              organizationData?.contact?.address?.city
+                ? `<p>${[
+                    organizationData.contact.address.city,
+                    organizationData.contact.address.state,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}</p>`
+                : ''
+            }
+            ${organizationData?.contact?.phone ? `<p>Phone No. ${organizationData.contact.phone}</p>` : ''}
             <h2 style="margin-top: 10px;">PAYMENT RECEIPT</h2>
           </div>
 
@@ -518,7 +569,7 @@ const StudentFees: React.FC = () => {
   };
 
   // Custom tooltip for charts
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-card border border-border p-2 rounded shadow-md">
@@ -777,7 +828,7 @@ const StudentFees: React.FC = () => {
           </h3>
           {feeData.feePayments.length > 0 ? (
             <div className="space-y-4">
-              {feeData.feePayments.map((payment: any) => (
+              {feeData.feePayments.map((payment) => (
                 <div
                   key={payment.id}
                   className="bg-muted p-4 rounded-lg border border-border"
@@ -892,9 +943,13 @@ const StudentFees: React.FC = () => {
       <div className="print-only">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-white">
-            SHREE LAHARI SINGH MEMO INTER COLLEGE GHANGHAULI, ALIGARH
+            {organizationData?.name || 'School'}
           </h1>
-          <p className="text-white">Phone No. 9897470696</p>
+          {organizationData?.contact?.phone && (
+            <p className="text-white">
+              Phone No. {organizationData.contact.phone}
+            </p>
+          )}
           <h2 className="text-xl font-bold mt-4 text-white">
             Fee Statement - {feeData.academicYear}
           </h2>
@@ -1020,7 +1075,7 @@ const StudentFees: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {feeData.feePayments.map((payment: any) => (
+              {feeData.feePayments.map((payment) => (
                 <tr key={payment.id}>
                   <td className="border border-black p-2 text-black">
                     {payment.receiptNumber}

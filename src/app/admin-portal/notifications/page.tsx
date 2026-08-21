@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import { useUserDataRedux } from '@/hooks/useUserDataRedux';
+import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
+import { toast } from 'react-toastify';
 
 interface Notification {
   id: string;
@@ -21,6 +24,15 @@ interface Notification {
 }
 
 export default function NotificationManagement() {
+  return (
+    <DashboardWrapper allowedRoles={['admin']} redirectTo="/">
+      {() => <NotificationManagementContent />}
+    </DashboardWrapper>
+  );
+}
+
+function NotificationManagementContent() {
+  const confirm = useConfirm();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -44,7 +56,7 @@ export default function NotificationManagement() {
   const router = useRouter();
   const { userData } = useUserDataRedux();
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -67,9 +79,11 @@ export default function NotificationManagement() {
           title: newsItem.attributes.title,
           content: newsItem.attributes.content,
           image: newsItem.attributes.image,
-          category: 'general' as const, // Map to existing categories based on your needs
-          isNew: true, // You can determine this based on publishedAt date
-          isActive: true, // Assume active if in API
+          category:
+            (newsItem.attributes.category as Notification['category']) ||
+            'general',
+          isNew: newsItem.attributes.isNew ?? true,
+          isActive: newsItem.attributes.isActive ?? true,
           publishedAt: newsItem.attributes.publishedAt,
         }),
       );
@@ -82,7 +96,7 @@ export default function NotificationManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userData?.orgId]);
 
   useEffect(() => {
     const tokenStr = localStorage.getItem('bearerToken');
@@ -104,7 +118,7 @@ export default function NotificationManagement() {
 
     // Load notifications from API
     loadNotifications();
-  }, [router]);
+  }, [router, loadNotifications]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +127,7 @@ export default function NotificationManagement() {
     try {
       const orgId = userData?.orgId;
       if (!orgId) {
-        alert('Organization ID not found. Please refresh the page.');
+        toast.error('Organization ID not found. Please refresh the page.');
         setLoading(false);
         return;
       }
@@ -124,6 +138,9 @@ export default function NotificationManagement() {
           title: formData.title,
           content: formData.content,
           image: formData.image,
+          category: formData.category,
+          isNew: formData.isNew,
+          isActive: formData.isActive,
           publishedAt: Math.floor(Date.now() / 1000),
         });
 
@@ -144,6 +161,9 @@ export default function NotificationManagement() {
           title: formData.title,
           content: formData.content,
           image: formData.image,
+          category: formData.category,
+          isNew: formData.isNew,
+          isActive: formData.isActive,
           publishedAt: Math.floor(Date.now() / 1000),
         });
 
@@ -164,7 +184,7 @@ export default function NotificationManagement() {
       resetForm();
     } catch (error) {
       console.error('Error saving notification:', error);
-      alert('Failed to save notification. Please try again.');
+      toast.error('Failed to save notification. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -197,28 +217,50 @@ export default function NotificationManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this notification?')) {
+    if (await confirm('Are you sure you want to delete this notification?')) {
       try {
         const orgId = userData?.orgId;
         if (!orgId) {
-          alert('Organization ID not found. Please refresh the page.');
+          toast.error('Organization ID not found. Please refresh the page.');
           return;
         }
         await ApiService.deleteNews(orgId, id);
         setNotifications((prev) => prev.filter((notif) => notif.id !== id));
       } catch (error) {
         console.error('Error deleting notification:', error);
-        alert('Failed to delete notification. Please try again.');
+        toast.error('Failed to delete notification. Please try again.');
       }
     }
   };
 
-  const toggleActive = (id: string) => {
+  const toggleActive = async (id: string) => {
+    const orgId = userData?.orgId;
+    if (!orgId) {
+      toast.error('Organization ID not found. Please refresh the page.');
+      return;
+    }
+    const notification = notifications.find((n) => n.id === id);
+    if (!notification) return;
+
+    const newIsActive = !notification.isActive;
+    // Optimistic update, reverted if the save fails
     setNotifications((prev) =>
       prev.map((notif) =>
-        notif.id === id ? { ...notif, isActive: !notif.isActive } : notif,
+        notif.id === id ? { ...notif, isActive: newIsActive } : notif,
       ),
     );
+
+    try {
+      await ApiService.updateNews(orgId, id, { isActive: newIsActive });
+    } catch (error) {
+      console.error('Error toggling notification active state:', error);
+      toast.error('Failed to update notification. Please try again.');
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif.id === id ? { ...notif, isActive: !newIsActive } : notif,
+        ),
+      );
+    }
   };
 
   const getCategoryColor = (category: string) => {

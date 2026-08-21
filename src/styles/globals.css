@@ -162,5 +162,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Baseline until ThemeApplier swaps in the org's configured family. */
+    font-family:
+      'Inter',
+      system-ui,
+      -apple-system,
+      sans-serif;
   }
 }

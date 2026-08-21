@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 import { UserData } from '@/app/interfaces/userInterface';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { ApiService } from '@/services/api';
 
 interface TeacherDashboardCardsProps {
   userData: UserData;
@@ -15,83 +16,52 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
   userData,
 }) => {
   const [isClassTeacher, setIsClassTeacher] = useState(false);
-  const [classTeacherInfo, setClassTeacherInfo] = useState<any>(null);
+  const [classTeacherInfo, setClassTeacherInfo] = useState<{
+    classId: string;
+    className: string;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const checkClassTeacherStatus = async () => {
       try {
-        const tokenData = localStorage.getItem('bearerToken');
-        if (!tokenData) {
+        if (!userData.orgId || !userData.userId) {
           setIsLoading(false);
           return;
         }
 
-        const parsed = JSON.parse(tokenData);
-        // Fetch user/me to check for class teacher info
-        const { makeApiCall } = await import('@/utils/ApiRequest');
+        // The faculty record's own attributes never carry class-teacher
+        // info (that's only ever populated for students) - the real signal
+        // is on the class record itself, same check the Classes and
+        // Attendance pages already use to grant access.
+        const classesResponse = await ApiService.getClasses(userData.orgId);
+        const allowedTeams = userData.allowedTeams || [];
+        const permissions = userData.permission || {};
+        const teamPermissions = Object.keys(permissions).filter((key) =>
+          key.startsWith('team-'),
+        );
 
-        try {
-          const data = await makeApiCall({
-            path: '/users/me?include=permission',
-            method: 'GET',
-            baseUrl: 'auth',
-            customAuthHeaders: {
-              Authorization: `Bearer ${parsed.value}`,
-            },
-          });
-          const attrs = data.data.attributes;
-
-          // Check if user has class_teacher_of or assigned_class field
-          const classTeacherOf =
-            attrs.class_teacher_of ||
-            attrs.assigned_class ||
-            attrs.class_id ||
-            null;
-
-          // Also check if user has team permissions (class teacher permissions)
-          const permissions = attrs.permissions || {};
-          const teamPermissions = Object.keys(permissions).filter((key) =>
-            key.startsWith('team-'),
+        const myClasses = (classesResponse?.data || []).filter((classItem) => {
+          const classAttrs = classItem.attributes;
+          const teamId = classItem.id;
+          return (
+            allowedTeams.includes(teamId) ||
+            teamPermissions.includes(`team-${teamId}`) ||
+            classAttrs.class_teacher_id === userData.userId ||
+            classAttrs.teacher_id === userData.userId
           );
-          const hasTeamPermission =
-            teamPermissions.length > 0 &&
-            teamPermissions.some(
-              (key) =>
-                permissions[key] === 'manage' || permissions[key] === 'edit',
-            );
+        });
 
-          if (classTeacherOf || hasTeamPermission) {
-            setIsClassTeacher(true);
-
-            // Extract team ID from permissions if available
-            let classId = classTeacherOf;
-            const className = attrs.class_name || null;
-
-            if (!classId && hasTeamPermission) {
-              const teamKey = teamPermissions.find(
-                (key) =>
-                  permissions[key] === 'manage' || permissions[key] === 'edit',
-              );
-              if (teamKey) {
-                classId = teamKey.replace('team-', '');
-              }
-            }
-
-            setClassTeacherInfo({
-              classId: classId,
-              className:
-                className || (classId ? `Class ${classId}` : 'your class'),
-            });
-          }
-
-          console.log('Class teacher status:', {
-            isClassTeacher: !!(classTeacherOf || hasTeamPermission),
-            classInfo: classTeacherOf || teamPermissions,
-            permissions: permissions,
+        if (myClasses.length > 0) {
+          setIsClassTeacher(true);
+          const first = myClasses[0];
+          setClassTeacherInfo({
+            classId: first.id,
+            className:
+              [first.attributes.class, first.attributes.section]
+                .filter(Boolean)
+                .join(' ') || 'your class',
           });
-        } catch (error) {
-          console.error('Failed to fetch user data:', error);
         }
       } catch (error) {
         console.error('Error checking class teacher status:', error);
@@ -101,7 +71,7 @@ const TeacherDashboardCards: React.FC<TeacherDashboardCardsProps> = ({
     };
 
     checkClassTeacherStatus();
-  }, []);
+  }, [userData]);
 
   const handleLogout = () => {
     // Clear all authentication data

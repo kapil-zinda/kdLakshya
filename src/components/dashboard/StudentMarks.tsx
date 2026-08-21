@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 
+import { useOrganizationData } from '@/hooks/useOrganizationData';
 import Api from '@/services/api';
 import {
   Bar,
@@ -45,7 +46,6 @@ interface ExamData {
   totalObtained: number;
   percentage: number;
   grade: string;
-  rank?: number;
 }
 
 // Add global styles for print media
@@ -100,6 +100,7 @@ const printStyles = `
 `;
 
 const StudentMarks: React.FC = () => {
+  const { organizationData } = useOrganizationData();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [exams, setExams] = useState<ExamData[]>([]);
@@ -138,8 +139,12 @@ const StudentMarks: React.FC = () => {
           throw new Error('Missing student or organization ID');
         }
 
-        // Use classId from student data, or fallback to test classId
-        const classId = parsed.classId || '68e7e5ce000c9a6998c6aed0';
+        if (!parsed.classId) {
+          throw new Error(
+            'Your class is not set up yet. Please contact your school administrator.',
+          );
+        }
+        const classId = parsed.classId;
 
         // Fetch exams for the student's class
         const examsResponse = await Api.getExamsForStudentClass(
@@ -211,7 +216,9 @@ const StudentMarks: React.FC = () => {
                 examsList.push({
                   examId: exam.id,
                   examName: exam.attributes?.exam_name || 'Exam',
-                  examDate: exam.attributes?.exam_date || '',
+                  examDate: exam.attributes?.exam_date
+                    ? String(exam.attributes.exam_date)
+                    : '',
                   subjects,
                   totalMarks,
                   totalObtained,
@@ -373,7 +380,7 @@ const StudentMarks: React.FC = () => {
                 </Table>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                 <div className="bg-muted p-4 rounded-lg">
                   <h4 className="text-lg font-medium text-muted-foreground mb-2">
                     Grade
@@ -388,14 +395,6 @@ const StudentMarks: React.FC = () => {
                   </h4>
                   <p className="text-3xl font-bold text-foreground">
                     {examData.percentage.toFixed(2)}%
-                  </p>
-                </div>
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="text-lg font-medium text-muted-foreground mb-2">
-                    Rank
-                  </h4>
-                  <p className="text-3xl font-bold text-foreground">
-                    {examData.rank}
                   </p>
                 </div>
               </div>
@@ -447,11 +446,16 @@ const StudentMarks: React.FC = () => {
         <div className="print-only">
           <div className="text-center mb-6">
             <h1 className="text-2xl font-bold text-black">
-              SHREE LAHARI SINGH MEMO. INTER COLLEGE GHANGHAULI, ALIGARH
+              {organizationData?.name || 'School'}
             </h1>
-            <p className="text-black">Phone No. 9897470696</p>
+            {organizationData?.contact?.phone && (
+              <p className="text-black">
+                Phone No. {organizationData.contact.phone}
+              </p>
+            )}
             <h2 className="text-xl font-bold mt-4 text-black">
-              Progress Report - 2022-2023
+              Progress Report
+              {examData.examName ? ` - ${examData.examName}` : ''}
             </h2>
           </div>
 
@@ -540,12 +544,20 @@ const StudentMarks: React.FC = () => {
           <div className="grid grid-cols-3 gap-4 mb-6">
             <div>
               <p className="text-black">
-                <strong>Result:</strong> Passed
+                <strong>Result:</strong>{' '}
+                {examData.grade === 'F' ? 'Failed' : 'Passed'}
               </p>
             </div>
             <div>
               <p className="text-black">
-                <strong>Division:</strong> First
+                <strong>Division:</strong>{' '}
+                {examData.grade === 'F'
+                  ? '-'
+                  : examData.percentage >= 60
+                    ? 'First'
+                    : examData.percentage >= 45
+                      ? 'Second'
+                      : 'Third'}
               </p>
             </div>
             <div>

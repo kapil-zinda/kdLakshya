@@ -1,10 +1,16 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 import Link from 'next/link';
 
 import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
+import { ApiService } from '@/services/api';
+import { useGetClassesQuery } from '@/store/api/classApi';
+import { useGetFacultyQuery } from '@/store/api/facultyApi';
+import { useGetStudentsQuery } from '@/store/api/studentApi';
 
 export default function AdminDashboard() {
   return (
@@ -15,12 +21,55 @@ export default function AdminDashboard() {
 }
 
 function AdminDashboardContent({ userData }: { userData: UserData }) {
+  const orgId = userData?.orgId;
+
+  const { data: studentsResponse } = useGetStudentsQuery(orgId, {
+    skip: !orgId,
+  });
+  const { data: facultyResponse } = useGetFacultyQuery(orgId, {
+    skip: !orgId,
+  });
+  const { data: classesResponse } = useGetClassesQuery(orgId, {
+    skip: !orgId,
+  });
+  const [galleryCount, setGalleryCount] = useState<number | null>(null);
+  const [notificationsCount, setNotificationsCount] = useState<number | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!orgId) return;
+    ApiService.getGalleryImages(orgId)
+      .then((images) => setGalleryCount(images.length))
+      .catch((error) => {
+        console.error('Failed to load gallery count:', error);
+        setGalleryCount(null);
+      });
+    ApiService.getNews(orgId)
+      .then((response) => setNotificationsCount(response.data?.length ?? 0))
+      .catch((error) => {
+        console.error('Failed to load notifications count:', error);
+        setNotificationsCount(null);
+      });
+  }, [orgId]);
+
+  const studentCount = studentsResponse?.data?.length;
+  const teacherCount = facultyResponse?.data?.length;
+  const classCount = classesResponse?.data?.length;
+
+  // Cursor-paginated endpoints don't return a true total - a count that
+  // exactly hits the page size likely means there's more beyond this page.
+  const formatCount = (count: number | undefined, pageSize = 50) =>
+    count === undefined ? '...' : count >= pageSize ? `${count}+` : `${count}`;
+
   const handleLogout = () => {
-    // Clear all authentication data
+    // Clear all authentication data, including the redux-persist snapshot
+    // (without this, a shared computer keeps the session after "logout")
     localStorage.removeItem('bearerToken');
     localStorage.removeItem('adminAuth');
     localStorage.removeItem('authState');
     localStorage.removeItem('codeVerifier');
+    localStorage.removeItem('persist:root');
     sessionStorage.removeItem('authCodeProcessed');
     sessionStorage.removeItem('isAuthCallback');
 
@@ -28,14 +77,10 @@ function AdminDashboardContent({ userData }: { userData: UserData }) {
     window.location.href = '/';
   };
 
-  // Check if user has 'superwise' permission
-  const hasSuperWisePermission = userData?.permission?.org === 'superwise';
-  console.log(
-    'User permission level:',
-    userData?.permission?.org,
-    'Has SuperWise:',
-    hasSuperWisePermission,
-  );
+  // Check if user has 'superwise' (clerk) permission. userData.permission is
+  // the real UserPermissionsObject shape, so the role lives at `.role`, not
+  // the nonexistent `.org` field this used to check.
+  const hasSuperWisePermission = userData?.permission?.role === 'superwise';
 
   const dashboardCards = [
     {
@@ -58,7 +103,7 @@ function AdminDashboardContent({ userData }: { userData: UserData }) {
       ),
       color: 'from-blue-500 to-blue-600',
       href: '/admin-portal/students',
-      stats: '1,248 Students',
+      stats: `${formatCount(studentCount)} Students`,
     },
     {
       title: 'Teacher Management',
@@ -80,7 +125,7 @@ function AdminDashboardContent({ userData }: { userData: UserData }) {
       ),
       color: 'from-green-500 to-green-600',
       href: '/admin-portal/teachers',
-      stats: '86 Teachers',
+      stats: `${formatCount(teacherCount)} Teachers`,
     },
     {
       title: 'Notifications',
@@ -102,7 +147,10 @@ function AdminDashboardContent({ userData }: { userData: UserData }) {
       ),
       color: 'from-yellow-500 to-orange-600',
       href: '/admin-portal/notifications',
-      stats: '12 Active',
+      stats:
+        notificationsCount === null
+          ? '...'
+          : `${notificationsCount} Notification${notificationsCount === 1 ? '' : 's'}`,
     },
     {
       title: 'Class Management',
@@ -124,7 +172,7 @@ function AdminDashboardContent({ userData }: { userData: UserData }) {
       ),
       color: 'from-purple-500 to-purple-600',
       href: '/admin-portal/classes',
-      stats: '45 Classes',
+      stats: `${formatCount(classCount)} Classes`,
     },
     {
       title: 'Fee Management',
@@ -196,7 +244,10 @@ function AdminDashboardContent({ userData }: { userData: UserData }) {
       ),
       color: 'from-pink-500 to-pink-600',
       href: '/admin-portal/gallery',
-      stats: '284 Photos',
+      stats:
+        galleryCount === null
+          ? '...'
+          : `${galleryCount} Photo${galleryCount === 1 ? '' : 's'}`,
     },
     {
       title: 'Statistics Management',
@@ -221,30 +272,8 @@ function AdminDashboardContent({ userData }: { userData: UserData }) {
       stats: 'Manage',
     },
     {
-      title: 'Reports & Analytics',
-      description: 'View attendance, performance, and system reports',
-      icon: (
-        <svg
-          className="w-8 h-8"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-          />
-        </svg>
-      ),
-      color: 'from-teal-500 to-teal-600',
-      href: '/admin-portal/reports',
-      stats: 'Analytics',
-    },
-    {
       title: 'Role Management',
-      description: 'Manage user roles and access permissions',
+      description: 'Give trusted teachers admin or clerk access',
       icon: (
         <svg
           className="w-8 h-8"
@@ -256,13 +285,13 @@ function AdminDashboardContent({ userData }: { userData: UserData }) {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+            d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
           />
         </svg>
       ),
-      color: 'from-red-500 to-red-600',
+      color: 'from-violet-500 to-violet-600',
       href: '/admin-portal/roles',
-      stats: '8 Roles',
+      stats: 'Manage',
     },
   ];
 
@@ -424,11 +453,14 @@ function AdminDashboardContent({ userData }: { userData: UserData }) {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {dashboardCards
                 .filter((card) => {
-                  // Hide School Settings and Statistics Management tabs for users with 'superwise' permission
+                  // Hide School Settings, Statistics Management, and Role
+                  // Management for users with 'superwise' permission - the
+                  // backend restricts all of these to head/super admins.
                   if (
                     hasSuperWisePermission &&
                     (card.href === '/admin-portal/school-settings' ||
-                      card.href.startsWith('/admin-portal/school-settings?'))
+                      card.href.startsWith('/admin-portal/school-settings?') ||
+                      card.href === '/admin-portal/roles')
                   ) {
                     return false;
                   }

@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import Image from 'next/image';
 
-import { useOrganizationData } from '@/hooks/useOrganizationData';
-import { useUserDataRedux } from '@/hooks/useUserDataRedux';
+import { makeApiCall } from '@/utils/ApiRequest';
 
 interface Message {
   id: string;
@@ -19,13 +18,58 @@ export function PravahaChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const { userData } = useUserDataRedux();
-  const { organizationData } = useOrganizationData();
 
-  // Add initial welcome message when chat opens
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
+  // Load message history from backend
+  const loadMessageHistory = useCallback(async (sid: string) => {
+    try {
+      const response = await makeApiCall({
+        path: `/chat/session/${sid}/messages`,
+        method: 'GET',
+        baseUrl: 'ragantic',
+      });
+
+      // Each backend entry is one query+response exchange, not a single
+      // chat turn - expand it into a user message followed by an AI message.
+      const exchanges: {
+        id: string;
+        query: string;
+        response: string;
+        timestamp: number;
+      }[] = response.data.attributes.messages || [];
+
+      const loadedMessages: Message[] = exchanges.flatMap((exchange) => [
+        {
+          id: `${exchange.id}-user`,
+          text: exchange.query,
+          sender: 'user' as const,
+          timestamp: exchange.timestamp * 1000,
+        },
+        {
+          id: `${exchange.id}-ai`,
+          text: exchange.response,
+          sender: 'ai' as const,
+          timestamp: exchange.timestamp * 1000,
+        },
+      ]);
+
+      if (loadedMessages.length > 0) {
+        setMessages(loadedMessages);
+      } else {
+        // Add welcome message if no history
+        setMessages([
+          {
+            id: 'welcome',
+            text: 'Hi! How can I assist you today?',
+            sender: 'ai',
+            timestamp: Date.now(),
+          },
+        ]);
+      }
+    } catch (error) {
+      console.error('Error loading message history:', error);
+      // Add welcome message on error
       setMessages([
         {
           id: 'welcome',
@@ -35,7 +79,58 @@ export function PravahaChat() {
         },
       ]);
     }
-  }, [isOpen, messages.length]);
+  }, []);
+
+  // Create or restore session when chat opens. org_id/user_id come from the
+  // caller's own auth token server-side - this widget is only ever shown to
+  // logged-in users (student, teacher, or admin), so no org/subdomain needs
+  // to be sent up here at all.
+  const initializeSession = useCallback(async () => {
+    try {
+      const storedSessionId = localStorage.getItem('pravahaSessionId');
+
+      const response = await makeApiCall({
+        path: '/chat/session',
+        method: 'POST',
+        baseUrl: 'ragantic',
+        payload: {
+          data: {
+            type: 'session',
+            attributes: storedSessionId ? { sessionId: storedSessionId } : {},
+          },
+        },
+      });
+
+      const returnedSessionId = response.data.attributes.sessionId;
+      setSessionId(returnedSessionId);
+      localStorage.setItem('pravahaSessionId', returnedSessionId);
+
+      // Load message history if session exists
+      await loadMessageHistory(returnedSessionId);
+    } catch (error) {
+      console.error('Error initializing session:', error);
+      // Fallback to client-side session
+      const fallbackSessionId = `sess_${Date.now()}`;
+      setSessionId(fallbackSessionId);
+      localStorage.setItem('pravahaSessionId', fallbackSessionId);
+      // Add welcome message on error
+      setMessages([
+        {
+          id: 'welcome',
+          text: 'Hi! How can I assist you today?',
+          sender: 'ai',
+          timestamp: Date.now(),
+        },
+      ]);
+    }
+  }, [loadMessageHistory]);
+
+  // Initialize session when chat opens
+  useEffect(() => {
+    if (isOpen && !sessionId) {
+      initializeSession();
+    }
+  }, [isOpen, sessionId, initializeSession]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -43,7 +138,7 @@ export function PravahaChat() {
   }, [messages]);
 
   const sendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading || !sessionId) return;
 
     const userMessage: Message = {
       id: `user-${Date.now()}`,
@@ -57,57 +152,24 @@ export function PravahaChat() {
     setIsLoading(true);
 
     try {
-      // Get auth token from localStorage
-      const tokenStr = localStorage.getItem('bearerToken');
-      let authToken = '';
-      if (tokenStr) {
-        const tokenData = JSON.parse(tokenStr);
-        authToken = tokenData.value;
-      }
-
-      // Get org_id from organizationData (loaded from subdomain)
-      const orgId = organizationData?.orgId || userData?.orgId;
-
-      if (!orgId) {
-        throw new Error('Organization ID not found. Please refresh the page.');
-      }
-
-      // Get subdomain from organizationData (loaded dynamically)
-      const subdomain = organizationData?.subdomain || 'kdlakshya';
-
-      console.log('Sending Pravaha chat request:', {
-        org_id: orgId,
-        has_token: !!authToken,
-        subdomain,
+      // org_id/user_id come from the caller's own auth token server-side -
+      // no need to resolve or send them from here.
+      const response = await makeApiCall({
+        path: '/chat/query',
+        method: 'POST',
+        baseUrl: 'ragantic',
+        payload: {
+          data: {
+            type: 'chat_query',
+            attributes: {
+              query: userMessage.text,
+              sessionId: sessionId,
+            },
+          },
+        },
       });
 
-      const response = await fetch(
-        'https://apis.testkdlakshya.uchhal.in/pravaha/chat/query',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/vnd.api+json',
-          },
-          body: JSON.stringify({
-            data: {
-              type: 'pravaha_query',
-              attributes: {
-                query: userMessage.text,
-                org_id: orgId,
-                auth_token: authToken,
-                subdomain: subdomain,
-              },
-            },
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to get response from AI');
-      }
-
-      const data = await response.json();
-      const aiResponse = data.data.attributes.response;
+      const aiResponse = response.data.attributes.response;
 
       const aiMessage: Message = {
         id: `ai-${Date.now()}`,
@@ -136,6 +198,17 @@ export function PravahaChat() {
       e.preventDefault();
       sendMessage();
     }
+  };
+
+  // Start a new chat session
+  const startNewChat = () => {
+    // Clear current session from localStorage
+    localStorage.removeItem('pravahaSessionId');
+    // Reset state
+    setSessionId('');
+    setMessages([]);
+    // Initialize new session
+    initializeSession();
   };
 
   return (
@@ -187,25 +260,47 @@ export function PravahaChat() {
                 <p className="text-xs text-indigo-100">AI-powered assistant</p>
               </div>
             </div>
-            <button
-              onClick={() => setIsOpen(false)}
-              className="text-white hover:text-indigo-100 transition-colors"
-              aria-label="Close chat"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={startNewChat}
+                className="text-white hover:text-indigo-100 transition-colors p-1"
+                aria-label="Start new chat"
+                title="Start new chat"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-white hover:text-indigo-100 transition-colors p-1"
+                aria-label="Close chat"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
           </div>
 
           {/* Messages Area */}

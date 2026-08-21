@@ -8,6 +8,7 @@ import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ApiService } from '@/services/api';
+import { toast } from 'react-toastify';
 
 interface AttendanceRecord {
   class_id: string;
@@ -43,8 +44,9 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
     Map<string, string>
   >(new Map());
   const todayDate = new Date().toISOString().split('T')[0];
-  const [selectedDate] = useState<string>(todayDate);
+  const [selectedDate, setSelectedDate] = useState<string>(todayDate);
   const [isLoading, setIsLoading] = useState(true);
+  const [attendanceLoadFailed, setAttendanceLoadFailed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showMonthlyModal, setShowMonthlyModal] = useState(false);
@@ -57,7 +59,16 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
   );
   const [isLoadingMonthly, setIsLoadingMonthly] = useState(false);
 
-  const orgId = userData.orgId || '68d6b128d88f00c8b1b4a89a';
+  // Only fall back to a dev/test org id on localhost - never in production,
+  // where a missing orgId should surface as an empty/error state, not
+  // silently read/write another organization's attendance data.
+  const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1' ||
+      window.location.hostname.startsWith('localhost:'));
+  const orgId = userData.orgId || (isLocalhost ? LOCALHOST_ORG_ID : '');
 
   // Load classes where teacher is assigned
   useEffect(() => {
@@ -70,17 +81,17 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
 
         // Filter classes based on permissions
         const myClasses = classesData.data
-          .filter((classItem: any) => {
+          .filter((classItem) => {
             const teamId = classItem.id;
             const classAttrs = classItem.attributes;
 
             return (
               allowedTeams.includes(teamId) ||
               classAttrs.teacher_id === userData.userId ||
-              (classAttrs as any).class_teacher_id === userData.userId
+              classAttrs.class_teacher_id === userData.userId
             );
           })
-          .map((classItem: any) => ({
+          .map((classItem) => ({
             id: classItem.id,
             name: classItem.attributes.class,
             section: classItem.attributes.section,
@@ -114,38 +125,43 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
           selectedClass.id,
         );
 
-        const studentsList: Student[] = studentsData.data.map((s: any) => ({
+        const studentsList: Student[] = studentsData.data.map((s) => ({
           id: s.attributes.student_id || s.id,
           name: `${s.attributes.first_name || ''} ${s.attributes.last_name || ''}`.trim(),
           rollNumber: s.attributes.roll_number || 'N/A',
-          email: s.attributes.email,
+          email: s.attributes.email ?? '',
         }));
 
         setStudents(studentsList);
+        setAttendanceLoadFailed(false);
 
-        // Load existing attendance for selected date
+        // Load existing attendance for selected date. A 404 (no attendance
+        // recorded for this class yet) resolves to { data: null } rather
+        // than throwing - see ApiService.getClassAttendance - so anything
+        // that lands in the catch below is a genuine fetch failure, not
+        // "no data yet", and must not be silently treated the same way.
         try {
           const attendanceData = await ApiService.getClassAttendance(
             orgId,
             selectedClass.id,
           );
 
-          // Parse attendance data
+          // Default every student to Present, then override with actual
+          // attendance for the selected date if any was recorded.
           const records = new Map<string, string>();
-
-          // First, initialize all students with 'P' (Present)
           studentsList.forEach((student) => {
             records.set(student.id, 'P');
           });
 
-          // Then, override with actual attendance data if it exists for the selected date
           if (attendanceData.data && attendanceData.data.attributes) {
             const attrs = attendanceData.data.attributes;
             const attendanceList = Array.isArray(attrs) ? attrs : [attrs];
 
-            attendanceList.forEach((record: AttendanceRecord) => {
-              // Filter by selected date and override default
-              if (record.date === formatDateForAPI(selectedDate)) {
+            attendanceList.forEach((record) => {
+              if (
+                record.student_id &&
+                record.date === formatDateForAPI(selectedDate)
+              ) {
                 records.set(record.student_id, record.status);
               }
             });
@@ -154,24 +170,33 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
           setAttendanceRecords(records);
           setHasUnsavedChanges(false);
         } catch (error) {
-          console.log('No existing attendance data for this date');
-          // Initialize with default 'P' (Present) for all students
+          console.error('Error loading existing attendance:', error);
+          // Real fetch failure (not "no data yet") - don't pretend we know
+          // the true state. Show Present-by-default so the page is still
+          // usable, but flag it so Save is blocked until a reload succeeds,
+          // preventing a silent overwrite of real attendance.
           const defaultRecords = new Map<string, string>();
           studentsList.forEach((student) => {
             defaultRecords.set(student.id, 'P');
           });
           setAttendanceRecords(defaultRecords);
           setHasUnsavedChanges(false);
+          setAttendanceLoadFailed(true);
+          toast.error(
+            "Couldn't confirm existing attendance for this date - showing defaults. Reload before saving.",
+          );
         }
       } catch (error) {
         console.error('Error loading attendance data:', error);
+        setAttendanceLoadFailed(true);
+        toast.error('Failed to load class roster. Please try again.');
       } finally {
         setIsLoading(false);
       }
     };
 
     loadAttendanceData();
-  }, [selectedClass, orgId]);
+  }, [selectedClass, orgId, selectedDate]);
 
   const formatDateForAPI = (dateString: string): string => {
     const date = new Date(dateString);
@@ -208,6 +233,12 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
 
   const handleSaveAttendance = async () => {
     if (!selectedClass) return;
+    if (attendanceLoadFailed) {
+      toast.error(
+        "Attendance couldn't be confirmed for this date - reload before saving to avoid overwriting existing records.",
+      );
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -227,10 +258,10 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
       );
 
       setHasUnsavedChanges(false);
-      alert('Attendance saved successfully!');
+      toast.success('Attendance saved successfully!');
     } catch (error) {
       console.error('Error saving attendance:', error);
-      alert('Failed to save attendance. Please try again.');
+      toast.error('Failed to save attendance. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -273,7 +304,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
       const [year, monthNum] = month.split('-');
       const apiMonth = `${monthNum}-${year}`;
 
-      const data = await ApiService.getStudentMonthlyAttendance(
+      const data = await ApiService.getStudentMonthlyAttendanceAsStaff(
         orgId,
         studentId,
         apiMonth,
@@ -283,6 +314,9 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
     } catch (error) {
       console.error('Error loading monthly attendance:', error);
       setMonthlyAttendance([]);
+      toast.error(
+        "Couldn't load this student's monthly attendance. Please try again.",
+      );
     } finally {
       setIsLoadingMonthly(false);
     }
@@ -386,38 +420,45 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">
+                  <label
+                    htmlFor="attendance-date"
+                    className="block text-sm font-medium text-muted-foreground mb-2"
+                  >
                     Date
                   </label>
-                  <div className="flex items-center px-4 py-2 bg-muted border border-border rounded-lg">
-                    <svg
-                      className="w-5 h-5 mr-2 text-muted-foreground"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    <span className="text-foreground font-medium">
-                      {new Date(selectedDate).toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </span>
-                    <span className="ml-2 px-2 py-1 bg-blue-500/20 border border-blue-500/30 text-foreground text-xs font-semibold rounded">
-                      Today
-                    </span>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id="attendance-date"
+                      type="date"
+                      value={selectedDate}
+                      max={todayDate}
+                      onChange={(e) => {
+                        if (hasUnsavedChanges) {
+                          toast.warn(
+                            'Unsaved changes were discarded when you switched dates.',
+                          );
+                        }
+                        setSelectedDate(e.target.value);
+                      }}
+                      className="flex-1 px-4 py-2 bg-muted border border-border rounded-lg text-foreground font-medium"
+                    />
+                    {selectedDate === todayDate && (
+                      <span className="px-2 py-1 bg-blue-500/20 border border-blue-500/30 text-foreground text-xs font-semibold rounded whitespace-nowrap">
+                        Today
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
+
+            {attendanceLoadFailed && (
+              <div className="bg-yellow-500/10 border border-yellow-500 text-yellow-600 dark:text-yellow-400 px-4 py-3 rounded-lg mb-4">
+                Couldn&apos;t confirm existing attendance for this date, so Save
+                is disabled to avoid overwriting real records. Reload the page
+                or pick a different date and try again.
+              </div>
+            )}
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -570,7 +611,12 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                     </span>
                     <button
                       onClick={handleSaveAttendance}
-                      disabled={isSaving}
+                      disabled={isSaving || attendanceLoadFailed}
+                      title={
+                        attendanceLoadFailed
+                          ? "Couldn't confirm existing attendance - reload before saving"
+                          : undefined
+                      }
                       className="px-6 py-2 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors flex items-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSaving ? (

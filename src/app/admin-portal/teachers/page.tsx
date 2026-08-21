@@ -6,16 +6,22 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { BulkImportModal } from '@/components/admin/BulkImportModal';
+import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { getCDNUrl } from '@/config/cdn';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { ApiService } from '@/services/api';
-import { useGetClassesQuery } from '@/store/api/classApi';
+import {
+  useGetClassesQuery,
+  useUpdateClassMutation,
+} from '@/store/api/classApi';
 import {
   useCreateFacultyMutation,
   useGetFacultyQuery,
   useUpdateFacultyMutation,
 } from '@/store/api/facultyApi';
+import { toast } from 'react-toastify';
 
 interface Teacher {
   id: string;
@@ -43,24 +49,76 @@ interface Teacher {
 }
 
 export default function TeacherManagement() {
+  return (
+    <DashboardWrapper allowedRoles={['admin']} redirectTo="/">
+      {() => <TeacherManagementContent />}
+    </DashboardWrapper>
+  );
+}
+
+function TeacherManagementContent() {
   // Get orgId from Redux
   const { userData } = useUserDataRedux();
   const orgId = userData?.orgId;
 
   // RTK Query hooks for data fetching
-  const { data: facultyResponse, isLoading: facultyLoading } =
-    useGetFacultyQuery(orgId!, {
-      skip: !orgId,
-      // Removed refetchOnMountOrArgChange to use RTK Query caching
-    });
-  const { data: classesResponse, isLoading: classesLoading } =
-    useGetClassesQuery(orgId!, {
-      skip: !orgId,
-    });
+  const {
+    data: facultyResponse,
+    isLoading: facultyLoading,
+    isError: facultyError,
+    refetch: refetchFaculty,
+  } = useGetFacultyQuery(orgId!, {
+    skip: !orgId,
+    // Removed refetchOnMountOrArgChange to use RTK Query caching
+  });
+  const {
+    data: classesResponse,
+    isLoading: classesLoading,
+    isError: classesError,
+    refetch: refetchClasses,
+  } = useGetClassesQuery(orgId!, {
+    skip: !orgId,
+  });
 
   // RTK Query mutations
   const [createFaculty] = useCreateFacultyMutation();
   const [updateFaculty] = useUpdateFacultyMutation();
+  const [updateClass] = useUpdateClassMutation();
+
+  // Resolves the "Assign as Class Teacher" Class + Section fields to a
+  // real class id, the same way admin-portal/classes assigns a class
+  // teacher (updateClass classData.teacher_id) - the checkbox previously
+  // only updated local form state and was never sent anywhere.
+  const assignAsClassTeacher = async (
+    facultyId: string,
+    className?: string,
+    section?: string,
+  ) => {
+    if (!orgId || !className) return;
+    const matchingClass = classesResponse?.data.find(
+      (c) =>
+        c.attributes.class === className &&
+        (!section || c.attributes.section === section),
+    );
+    if (!matchingClass) {
+      toast.error(
+        `Could not find class "${className}${section ? ` - ${section}` : ''}" to assign as class teacher.`,
+      );
+      return;
+    }
+    try {
+      await updateClass({
+        orgId,
+        classId: matchingClass.id,
+        classData: { teacher_id: facultyId },
+      }).unwrap();
+    } catch (error) {
+      console.error('Error assigning class teacher:', error);
+      toast.error(
+        'Faculty saved, but assigning them as class teacher failed. Assign it from the Classes page instead.',
+      );
+    }
+  };
 
   // Local UI state
   const [selectedRole, setSelectedRole] = useState('All');
@@ -69,6 +127,7 @@ export default function TeacherManagement() {
   const [editFormData, setEditFormData] = useState<Partial<Teacher>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [addFormData, setAddFormData] = useState<Partial<Teacher>>({
     name: '',
     designation: '',
@@ -127,6 +186,7 @@ export default function TeacherManagement() {
 
   // Combined loading state
   const loading = facultyLoading || classesLoading;
+  const hasError = facultyError || classesError;
 
   // Add new faculty member using RTK Query mutation
   const handleAddFaculty = async () => {
@@ -137,12 +197,12 @@ export default function TeacherManagement() {
         !addFormData.email ||
         !addFormData.phone
       ) {
-        alert('Please fill in all required fields');
+        toast.error('Please fill in all required fields');
         return;
       }
 
       if (!orgId) {
-        alert('Organization ID not found');
+        toast.error('Organization ID not found');
         return;
       }
 
@@ -162,7 +222,15 @@ export default function TeacherManagement() {
       };
 
       // Use RTK Query mutation - cache will auto-update!
-      await createFaculty({ orgId, facultyData }).unwrap();
+      const created = await createFaculty({ orgId, facultyData }).unwrap();
+
+      if (addFormData.isClassTeacher && addFormData.assignedClass) {
+        await assignAsClassTeacher(
+          created.data.id,
+          addFormData.assignedClass,
+          addFormData.assignedSection,
+        );
+      }
 
       setShowAddModal(false);
 
@@ -180,10 +248,10 @@ export default function TeacherManagement() {
         temporary_password: 'TempPass@123',
       });
 
-      alert('Faculty member added successfully!');
+      toast.success('Faculty member added successfully!');
     } catch (error) {
       console.error('Error adding faculty:', error);
-      alert('Failed to add faculty member. Please try again.');
+      toast.error('Failed to add faculty member. Please try again.');
     }
   };
 
@@ -296,12 +364,20 @@ export default function TeacherManagement() {
         facultyData,
       }).unwrap();
 
+      if (editFormData.isClassTeacher && editFormData.assignedClass) {
+        await assignAsClassTeacher(
+          editFormData.id,
+          editFormData.assignedClass,
+          editFormData.assignedSection,
+        );
+      }
+
       setEditingTeacher(null);
       setEditFormData({});
-      alert('Teacher details updated successfully!');
+      toast.success('Teacher details updated successfully!');
     } catch (error) {
       console.error('Error updating teacher:', error);
-      alert('Failed to update teacher. Please try again.');
+      toast.error('Failed to update teacher. Please try again.');
     }
   };
 
@@ -351,7 +427,7 @@ export default function TeacherManagement() {
       updateFormField('photo', signedUrlResponse.data.file_path);
     } catch (error) {
       console.error('Error uploading photo:', error);
-      alert('Failed to upload photo. Please try again.');
+      toast.error('Failed to upload photo. Please try again.');
     } finally {
       setUploadingPhoto(false);
     }
@@ -382,6 +458,25 @@ export default function TeacherManagement() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-background gap-4 px-4 text-center">
+        <p className="text-muted-foreground">
+          Couldn&apos;t load teachers. This may be a temporary connection issue.
+        </p>
+        <button
+          onClick={() => {
+            refetchFaculty();
+            refetchClasses();
+          }}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          Retry
+        </button>
       </div>
     );
   }
@@ -417,6 +512,25 @@ export default function TeacherManagement() {
             </div>
             <div className="flex items-center space-x-4">
               <ThemeToggle />
+              <button
+                onClick={() => setShowBulkImportModal(true)}
+                className="flex items-center px-4 py-2 bg-background text-indigo-600 border border-indigo-600 text-sm font-medium rounded-md hover:bg-indigo-500/10 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 12m4-4v12"
+                  />
+                </svg>
+                Import CSV
+              </button>
               <button
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors"
@@ -761,6 +875,46 @@ export default function TeacherManagement() {
             </div>
           </div>
         )}
+
+        <BulkImportModal
+          title="Import Teachers from CSV"
+          open={showBulkImportModal}
+          onClose={() => setShowBulkImportModal(false)}
+          templateFilename="teachers_template.csv"
+          templateHeaders={[
+            'name',
+            'email',
+            'designation',
+            'phone',
+            'gender',
+            'employee_id',
+          ]}
+          requiredHeaders={['name', 'email', 'designation']}
+          onImport={async (rows) => {
+            if (!orgId) throw new Error('Organization not found');
+            const payload = rows.map((row) => ({
+              name: row['name'],
+              email: row['email'],
+              designation: row['designation'],
+              phone: row['phone'] || '',
+              gender: row['gender'] || 'Male',
+              employee_id: row['employee_id'] || '',
+              role: 'faculty',
+            }));
+            const response = await ApiService.bulkCreateFaculty(orgId, payload);
+            return {
+              succeeded: response.meta?.succeeded ?? 0,
+              failed: response.meta?.failed ?? 0,
+              errors: (response.errors || []).map((e) => ({
+                index: e.index,
+                error: e.error,
+              })),
+            };
+          }}
+          onSuccess={() => {
+            refetchFaculty();
+          }}
+        />
 
         {/* Add Teacher Modal */}
         {showAddModal && (

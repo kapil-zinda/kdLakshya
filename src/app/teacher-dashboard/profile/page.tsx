@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 
-import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
@@ -20,13 +20,26 @@ interface TeacherProfileContentProps {
   };
 }
 
-function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
-  const router = useRouter();
+/** The profile view model this page assembles from the Redux user record. */
+interface TeacherProfile {
+  id: string;
+  orgId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  designation: string;
+  experience: string;
+  profilePhoto: string;
+  type: string;
+  role: string;
+}
 
+function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
   // Get full user data from Redux (includes all fields like email, type, phone, etc.)
   const { userData: fullUserData } = useUserDataRedux();
 
-  const [teacherData, setTeacherData] = useState<any>(null);
+  const [teacherData, setTeacherData] = useState<TeacherProfile | null>(null);
   const [profilePhotoUrl, setProfilePhotoUrl] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -47,6 +60,7 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
 
       const profileData = {
         id: fullUserData.id || '',
+        orgId: fullUserData.orgId || '',
         email: fullUserData.email || '',
         firstName: fullUserData.firstName || userData.firstName,
         lastName: fullUserData.lastName || userData.lastName,
@@ -110,10 +124,17 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
       const parsed = JSON.parse(tokenData);
       const { makeApiCall } = await import('@/utils/ApiRequest');
 
+      if (!teacherData.orgId) {
+        throw new Error('Organization not found');
+      }
+
+      // Dedicated faculty profile-picture endpoint: issues a presigned S3
+      // URL and persists the S3 key on the faculty record server-side as
+      // soon as it's issued, so the photo survives across logins/devices.
       const signedData = await makeApiCall({
-        path: '/s3/signed-url',
+        path: `/${teacherData.orgId}/faculty/${teacherData.id}/profile-picture`,
         method: 'POST',
-        baseUrl: 'workspace',
+        baseUrl: 'auth',
         customAuthHeaders: {
           Authorization: `Bearer ${parsed.value}`,
         },
@@ -121,17 +142,13 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
           'Content-Type': 'application/json',
         },
         payload: {
-          type: 'upload',
-          id: teacherData.id,
-          attributes: {
-            title: 'profile_photo',
-            role: 'faculty',
-          },
+          content_type: file.type,
         },
       });
-      const signedUrl = signedData.data.signed_url;
-      const filePath = signedData.data.file_path;
-      const bucket = signedData.data.bucket || 'workspace-test-org-data-v1';
+      const signedUrl = signedData.data?.attributes?.upload_url;
+      if (!signedUrl) {
+        throw new Error('Invalid response from server');
+      }
 
       const uploadResponse = await fetch(signedUrl, {
         method: 'PUT',
@@ -145,31 +162,14 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
         throw new Error(`S3 upload failed: ${uploadResponse.status}`);
       }
 
-      // Store only the file path in database (CloudFront domain will be added when displaying)
-      // Update the profile photo using faculty endpoint for teachers/admins/supervisors
-      try {
-        await makeApiCall({
-          path: `/${fullUserData.orgId}/faculty/${teacherData.id}`,
-          method: 'PUT',
-          baseUrl: 'workspace',
-          customAuthHeaders: {
-            Authorization: `Bearer ${parsed.value}`,
-          },
-          payload: {
-            data: {
-              type: 'faculty',
-              attributes: {
-                photo: filePath,
-              },
-            },
-          },
-        });
-      } catch (error) {
-        console.warn('Failed to update profile photo in backend:', error);
-        // Don't throw error, photo is uploaded to S3 successfully
-      }
+      // The presigned URL minus its query is the stored object's location.
+      // No follow-up PUT of this path is needed: the profile-picture endpoint
+      // above persists the S3 key on the faculty record when it issues the
+      // URL, so writing it again here would only risk clobbering that key.
+      const filePath = signedUrl.split('?')[0];
 
-      // For displaying, add CloudFront domain to the file path
+      // getCDNUrl fronts a bare S3 key with the CloudFront domain and returns
+      // an already-complete URL unchanged.
       const displayUrl = getCDNUrl(filePath);
 
       // Update teacher data with new photo URL
@@ -261,9 +261,12 @@ function TeacherProfileContent({ userData }: TeacherProfileContentProps) {
             <div className="relative flex flex-col items-center">
               <div className="relative mb-3">
                 {profilePhotoUrl ? (
-                  <img
+                  <Image
                     src={profilePhotoUrl}
                     alt="Profile"
+                    width={96}
+                    height={96}
+                    unoptimized
                     className="w-24 h-24 rounded-full object-cover border-4 border-border"
                     onError={(e) => {
                       console.error(

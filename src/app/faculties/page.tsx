@@ -50,6 +50,17 @@ export default function FacultiesPage() {
         const orgId = apiData.subdomain.config.organizationId;
         console.log('🏫 Using cached Organization ID:', orgId);
 
+        // Without an org the faculty URL can't be built, so skip the request
+        // and land on the same empty state the fetch-failure path uses.
+        if (!orgId) {
+          console.error(
+            '❌ No organization ID in subdomain config; skipping faculty fetch',
+          );
+          setFacultyMembers([]);
+          setSubjects(['All']);
+          return;
+        }
+
         // Fetch faculty data
         console.log('🎓 Fetching faculty data...');
 
@@ -267,6 +278,8 @@ export default function FacultiesPage() {
                         src={faculty.image}
                         alt={faculty.name}
                         fill
+                        unoptimized
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
                         className="object-cover group-hover:scale-110 transition-transform duration-300"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
@@ -381,6 +394,8 @@ export default function FacultiesPage() {
                     src={selectedFaculty.image}
                     alt={selectedFaculty.name}
                     fill
+                    unoptimized
+                    sizes="(max-width: 768px) 100vw, 50vw"
                     className="object-cover"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>

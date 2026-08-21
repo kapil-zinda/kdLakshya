@@ -2,10 +2,10 @@ import { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: '10k-hours',
-    short_name: '10k-hours',
+    name: 'kdLakshya',
+    short_name: 'kdLakshya',
     description:
-      '10k-hours — simplifying task management with seamless efficiency and mastering your time effectively',
+      'kdLakshya is a school management platform for students, teachers, and administrators.',
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait',
