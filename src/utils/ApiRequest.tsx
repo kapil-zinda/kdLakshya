@@ -11,9 +11,13 @@ const BaseURLAuth =
 const BaseURLWorkspace =
   process.env.NEXT_PUBLIC_BaseURLWorkspace ||
   'https://apis.testkdlakshya.uchhal.in/workspace';
+// `ragentic`, not `ragantic`. The backend directory is services/ragantic and
+// the frontend said ragantic, but the deployed api_mapping_key (and the
+// Terraform stack) is `ragentic` - and an unmapped path answers
+// `403 Missing Authentication Token`, not 404.
 const BaseURLRagantic =
   process.env.NEXT_PUBLIC_BaseURLRagantic ||
-  'https://apis.testkdlakshya.uchhal.in/ragantic';
+  'https://apis.testkdlakshya.uchhal.in/ragentic';
 
 interface ApiRequest {
   path: string;
@@ -150,37 +154,30 @@ export const makeApiCall = async ({
 
   const executeRequest = async () => {
     try {
-      console.log('🔵 API Request:', {
-        url: fullUrl,
-        method,
-        headers: config.headers,
-        payload: updatedPayload,
-      });
-
       const response = await axios(config);
-
-      console.log('🟢 API Response:', {
-        url: fullUrl,
-        status: response.status,
-        data: response.data,
-      });
 
       return response.data;
     } catch (error) {
+      // Never log `config.headers` or the response headers: they carry the
+      // Authorization value, which is a live Auth0 bearer token for staff and
+      // base64(username:date-of-birth) for students. This used to print on
+      // every request, in production, putting a replayable credential in the
+      // browser console for anything with devtools or console access to read.
+      //
+      // Route/method/status is enough to locate a failure; the body is
+      // deliberately omitted too, since request payloads carry student PII.
       if (axios.isAxiosError(error)) {
-        console.error('🔴 API call failed:', {
+        console.error('API call failed', {
           url: fullUrl,
           method,
-          error: error.message,
-          response: error.response?.data,
           status: error.response?.status,
-          headers: error.response?.headers,
+          message: error.message,
         });
       } else {
-        console.error('🔴 API call failed:', {
+        console.error('API call failed', {
           url: fullUrl,
           method,
-          error: error instanceof Error ? error.message : String(error),
+          message: error instanceof Error ? error.message : String(error),
         });
       }
       throw error;
@@ -194,7 +191,6 @@ export const makeApiCall = async ({
     const dedupeKey = `GET:${fullUrl}`;
     const existing = inflightGetRequests.get(dedupeKey);
     if (existing) {
-      console.log('🔄 Deduplicating GET request:', fullUrl);
       return existing;
     }
 

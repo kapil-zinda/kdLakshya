@@ -10,16 +10,28 @@ import {
 import type { RootState } from '../index';
 
 // API Configuration
+//
+// Each path segment below MUST match the api_mapping_key the gateway is
+// actually deployed under (swaroop/terraform/<service>/api_gw.tf). A mismatch
+// does not 404 - API Gateway answers an unmapped path with
+// `403 Missing Authentication Token`, and because gateway-generated errors
+// carry no CORS headers the browser reports an opaque network failure. So a
+// one-character typo here surfaces as "the API randomly returns 403".
+//
+// Three were wrong: CLASS_API said `/class` against a deployed `classes`,
+// WORKSPACE_API omitted its `/workspace` prefix entirely while the endpoint
+// paths assume it, and the ragantic base (in utils/ApiRequest.tsx) said
+// `ragantic` against a deployed `ragentic`.
 const API_CONFIG = {
   EXTERNAL_API:
     process.env.NEXT_PUBLIC_BaseURLAuth ||
     'https://apis.testkdlakshya.uchhal.in/auth',
   CLASS_API:
     process.env.NEXT_PUBLIC_BaseURLClass ||
-    'https://apis.testkdlakshya.uchhal.in/class', // Base URL includes /class prefix
+    'https://apis.testkdlakshya.uchhal.in/classes',
   WORKSPACE_API:
     process.env.NEXT_PUBLIC_BaseURLWorkspace ||
-    'https://apis.testkdlakshya.uchhal.in',
+    'https://apis.testkdlakshya.uchhal.in/workspace',
 };
 
 /**
@@ -63,42 +75,39 @@ const baseQueryWithAuth = fetchBaseQuery({
   },
 });
 
+/**
+ * Whether a failed request may be sent again.
+ *
+ * Only idempotent methods. The retry below exists for Lambda cold starts, but
+ * it used to fire on any 500 whatever the method - and the backend returns 500
+ * for several cases where the write has already been committed: response-schema
+ * validation running after the handler, and InvalidPayload/Conflict/InvalidInput
+ * all mapped to 500 instead of 400/409. So a POST that had actually succeeded
+ * was sent a second time, producing duplicate students, duplicate fee payments
+ * and duplicate enrollments. Retrying is only ever safe when repeating the call
+ * cannot change server state.
+ *
+ * A bare string arg is a URL with no method, which fetchBaseQuery treats as GET.
+ */
+const IDEMPOTENT_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+const isRetriable = (args: string | FetchArgs): boolean =>
+  typeof args === 'string'
+    ? true
+    : IDEMPOTENT_METHODS.has((args.method ?? 'GET').toUpperCase());
+
 // Base query with retry logic for 500 errors (Lambda cold starts)
 const baseQueryWithRetry: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  console.log('🔵 [RTK Query] Request:', args);
-
   let result = await baseQueryWithAuth(args, api, extraOptions);
 
-  if (result.error) {
-    console.error('🔴 [RTK Query] Error:', {
-      args,
-      error: result.error,
-      status: result.error.status,
-      // FETCH_ERROR variants carry no payload, so only read `data` when present.
-      data: 'data' in result.error ? result.error.data : undefined,
-    });
-  } else {
-    console.log('🟢 [RTK Query] Success:', {
-      args,
-      data: result.data,
-    });
-  }
-
-  // Retry on 500 errors (Lambda cold start)
-  if (result.error && result.error.status === 500) {
-    console.log('🔄 Retrying request due to 500 error (Lambda cold start)...');
+  // Retry on 500 (Lambda cold start) - reads only, never writes.
+  if (result.error && result.error.status === 500 && isRetriable(args)) {
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1s
     result = await baseQueryWithAuth(args, api, extraOptions);
-
-    if (result.error) {
-      console.error('🔴 [RTK Query] Retry failed:', result.error);
-    } else {
-      console.log('🟢 [RTK Query] Retry succeeded:', result.data);
-    }
   }
 
   return result;
@@ -154,11 +163,8 @@ const classQueryWithRetry: BaseQueryFn<
 > = async (args, api, extraOptions) => {
   let result = await classBaseQuery(args, api, extraOptions);
 
-  // Retry on 500 errors (Lambda cold start)
-  if (result.error && result.error.status === 500) {
-    console.log(
-      '🔄 [classApi] Retrying request due to 500 error (Lambda cold start)...',
-    );
+  // Retry on 500 (Lambda cold start) - reads only. See isRetriable above.
+  if (result.error && result.error.status === 500 && isRetriable(args)) {
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1s
     result = await classBaseQuery(args, api, extraOptions);
   }
