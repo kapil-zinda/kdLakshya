@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -26,6 +27,7 @@ import {
   dummyPriorityOptions,
   dummyStatusOptions,
 } from '@/data/teacherDashboardDummyData';
+import { toast } from 'react-toastify';
 
 interface AcademicTask {
   id: string;
@@ -39,6 +41,7 @@ interface AcademicTask {
 }
 
 const AcademicTasks: React.FC = () => {
+  const confirm = useConfirm();
   const [tasks, setTasks] = useState<AcademicTask[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<AcademicTask[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -108,7 +111,7 @@ const AcademicTasks: React.FC = () => {
 
   const handleAddTask = async () => {
     if (!newTask.title || !newTask.dueDate) {
-      alert('Please fill in all required fields');
+      toast.error('Please fill in all required fields');
       return;
     }
 
@@ -152,7 +155,7 @@ const AcademicTasks: React.FC = () => {
       setShowNewTaskForm(false);
     } catch (error) {
       console.error('Error adding task:', error);
-      alert('Failed to add task. Please try again.');
+      toast.error('Failed to add task. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -191,14 +194,18 @@ const AcademicTasks: React.FC = () => {
       );
     } catch (error) {
       console.error('Error updating task status:', error);
-      alert('Failed to update task status. Please try again.');
+      toast.error('Failed to update task status. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDeleteTask = async (taskId: string) => {
-    if (!confirm('Are you sure you want to delete this task?')) {
+    if (
+      !(await confirm('Are you sure you want to delete this task?', {
+        destructive: true,
+      }))
+    ) {
       return;
     }
 
@@ -218,7 +225,7 @@ const AcademicTasks: React.FC = () => {
       setTasks(tasks.filter((task) => task.id !== taskId));
     } catch (error) {
       console.error('Error deleting task:', error);
-      alert('Failed to delete task. Please try again.');
+      toast.error('Failed to delete task. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -256,7 +263,7 @@ const AcademicTasks: React.FC = () => {
         <h2 className="text-xl font-bold text-white">Academic Tasks</h2>
         <Button
           onClick={() => setShowNewTaskForm(!showNewTaskForm)}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-info hover:bg-info/90"
         >
           {showNewTaskForm ? 'Cancel' : 'Add New Task'}
         </Button>
@@ -359,7 +366,7 @@ const AcademicTasks: React.FC = () => {
           <div className="flex justify-end">
             <Button
               onClick={handleAddTask}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-success hover:bg-success/90"
               disabled={isLoading}
             >
               {isLoading ? 'Adding...' : 'Add Task'}
@@ -506,7 +513,7 @@ const AcademicTasks: React.FC = () => {
                       </Select>
                       <Button
                         onClick={() => handleDeleteTask(task.id)}
-                        className="bg-red-600 hover:bg-red-700 h-8 w-8 p-0"
+                        className="bg-destructive hover:bg-destructive/90 h-8 w-8 p-0"
                         size="sm"
                       >
                         X
