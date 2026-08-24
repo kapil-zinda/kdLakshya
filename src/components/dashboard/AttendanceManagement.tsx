@@ -24,6 +24,7 @@ import {
   dummyAttendanceData,
   dummyClassOptions,
 } from '@/data/teacherDashboardDummyData';
+import { toast } from 'react-toastify';
 
 interface Student {
   id: string;
@@ -72,7 +73,7 @@ const AttendanceManagement: React.FC = () => {
 
   const handleSaveAttendance = async () => {
     if (!selectedClass || !date) {
-      alert('Please select a class and date');
+      toast.error('Please select a class and date');
       return;
     }
 
@@ -101,10 +102,10 @@ const AttendanceManagement: React.FC = () => {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      alert('Attendance saved successfully!');
+      toast.success('Attendance saved successfully!');
     } catch (error) {
       console.error('Error saving attendance:', error);
-      alert('Failed to save attendance. Please try again.');
+      toast.error('Failed to save attendance. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -174,19 +175,19 @@ const AttendanceManagement: React.FC = () => {
           <div className="mb-4 flex flex-wrap gap-2">
             <Button
               onClick={() => handleMarkAll('present')}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-success hover:bg-success/90"
             >
               Mark All Present
             </Button>
             <Button
               onClick={() => handleMarkAll('absent')}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Mark All Absent
             </Button>
             <Button
               onClick={() => handleMarkAll('late')}
-              className="bg-yellow-600 hover:bg-yellow-700"
+              className="bg-warning hover:bg-warning/90"
             >
               Mark All Late
             </Button>
@@ -270,7 +271,7 @@ const AttendanceManagement: React.FC = () => {
           <div className="mt-6 flex justify-end">
             <Button
               onClick={handleSaveAttendance}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-info hover:bg-info/90"
               disabled={isSaving}
             >
               {isSaving ? 'Saving...' : 'Save Attendance'}

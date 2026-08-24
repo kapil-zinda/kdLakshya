@@ -21,8 +21,10 @@ echo "$FILES" | while read -r file; do
   fi
 done
 
-# Check if Prettier modified any files
-PRETTIER_MODIFIED=$(git diff --name-only)
+# Check if Prettier modified any files (scoped to the files we just touched,
+# not the whole working tree, so unrelated pre-existing unstaged changes
+# don't falsely trip this check)
+PRETTIER_MODIFIED=$(echo "$FILES" | xargs git diff --name-only --)
 
 if [ -z "$PRETTIER_MODIFIED" ]; then
   echo "✨ No formatting changes needed."
@@ -51,8 +53,8 @@ echo "$LINT_FILES" | while read -r file; do
   fi
 done
 
-# Check if ESLint modified any files
-ESLINT_MODIFIED=$(git diff --name-only)
+# Check if ESLint modified any files (scoped to the files we just touched)
+ESLINT_MODIFIED=$(echo "$FILES" | xargs git diff --name-only --)
 
 if [ -z "$ESLINT_MODIFIED" ]; then
   echo "✨ No linting fixes needed."

@@ -9,6 +9,7 @@ import type { Metadata } from 'next';
 import { ConditionalLayout } from '@/components/layout/ConditionalLayout';
 import { ConfirmDialogProvider } from '@/components/ui/confirm-dialog';
 import { ThemedToastContainer } from '@/components/ui/ThemedToastContainer';
+import { resolveBrandTokens } from '@/lib/branding.server';
 import { ReduxProvider } from '@/store/ReduxProvider';
 
 import { Providers } from './providers';
@@ -110,13 +111,33 @@ const websiteJsonLd = {
   url: SITE_URL,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const brand = await resolveBrandTokens();
+
+  // Sets this school's colours as the actual --primary/--secondary tokens
+  // (see src/styles/globals.css) directly in the server-rendered <html>, so
+  // every `bg-primary`/`text-primary-foreground` etc. in the app already
+  // reflects them before a single byte of client JS runs - no flash of
+  // default colours while ThemeApplier's useEffect used to catch up.
+  // Inline style on the root element outranks the class-selector rules in
+  // globals.css that define these same variables, in both light and dark
+  // mode, which is what lets one set of values apply regardless of theme -
+  // matching ThemeApplier's previous behaviour of applying one brand colour
+  // pair everywhere rather than a separate one per theme.
+  const brandStyle: React.CSSProperties = {
+    ['--primary' as string]: brand.primary,
+    ['--primary-foreground' as string]: brand.primaryForeground,
+    ['--secondary' as string]: brand.secondary,
+    ['--secondary-foreground' as string]: brand.secondaryForeground,
+    fontFamily: `${brand.fontFamily}, sans-serif`,
+  };
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning style={brandStyle}>
       <head>
         {/*
           Loaded as a stylesheet rather than via next/font on purpose. The

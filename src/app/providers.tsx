@@ -5,7 +5,6 @@ import * as React from 'react';
 import { usePathname } from 'next/navigation';
 
 import { DynamicTitle } from '@/components/DynamicTitle';
-import { ThemeApplier } from '@/components/ThemeApplier';
 import { ApiService } from '@/services/api';
 import { determineUserRole } from '@/store/api/authApi';
 import { isStudentUser } from '@/utils/authHeaders';
@@ -693,7 +692,6 @@ export function Providers({ children }: ThemeProviderProps) {
       enableSystem
       disableTransitionOnChange
     >
-      <ThemeApplier />
       <DynamicTitle />
       {children}
     </NextThemesProvider>

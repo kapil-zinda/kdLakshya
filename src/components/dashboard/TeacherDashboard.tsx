@@ -9,6 +9,7 @@ import {
   dummyDashboardStats,
   dummyPerformanceChartData,
 } from '@/data/teacherDashboardDummyData';
+import { toast } from 'react-toastify';
 import {
   Bar,
   BarChart,
@@ -31,16 +32,28 @@ interface TeacherDashboardProps {
   userData: UserData;
 }
 
-const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
+interface TeacherProfileData {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  phone?: string;
+  designation?: string;
+  experience?: string | number;
+  profilePhoto: string;
+  type?: string;
+  role?: string;
+}
+
+const TeacherDashboard: React.FC<TeacherDashboardProps> = () => {
   const [activeTab, setActiveTab] = useState<string>('profile');
-  const [statistics, setStatistics] = useState(dummyDashboardStats);
+  const [statistics] = useState(dummyDashboardStats);
   const [isLoading, setIsLoading] = useState(true);
-  const [teacherData, setTeacherData] = useState<any>(null);
+  const [teacherData, setTeacherData] = useState<TeacherProfileData | null>(
+    null,
+  );
   const [profilePhoto, setProfilePhoto] = useState<string>('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [showPhotoModal, setShowPhotoModal] = useState(false);
-  const [isClassTeacher, setIsClassTeacher] = useState(false);
-  const [classTeacherInfo, setClassTeacherInfo] = useState<any>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Get current date in DD/MM/YY format
@@ -126,11 +139,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
     const file = event.target.files?.[0];
     if (file) {
       if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+        toast.error('Please select an image file');
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        alert('Image size should be less than 5MB');
+        toast.error('Image size should be less than 5MB');
         return;
       }
       handlePhotoUpload(file);
@@ -202,12 +215,11 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
         profilePhoto: photoUrl,
       };
       setTeacherData(updatedTeacherData);
-      setShowPhotoModal(false);
 
-      alert('Profile photo updated successfully!');
+      toast.success('Profile photo updated successfully!');
     } catch (error) {
       console.error('Error uploading photo:', error);
-      alert('Failed to upload photo. Please try again.');
+      toast.error('Failed to upload photo. Please try again.');
     } finally {
       setIsUploadingPhoto(false);
     }
@@ -259,7 +271,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
         <h2 className="text-2xl font-bold text-white">Teacher Dashboard</h2>
         <button
           onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition-colors"
+          className="bg-destructive hover:bg-destructive/90 text-white px-4 py-2 rounded-md transition-colors"
         >
           Logout
         </button>
@@ -348,13 +360,13 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
         <div>
           {/* Header */}
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-blue-500 p-4 rounded-lg">
+            <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-info p-4 rounded-lg">
               <h1 className="text-xl md:text-2xl font-bold">
                 TEACHER DASHBOARD
               </h1>
               <p>Classroom Management System</p>
             </div>
-            <div className="bg-green-500 p-4 rounded-lg hidden sm:block">
+            <div className="bg-success p-4 rounded-lg hidden sm:block">
               <h2 className="font-bold text-sm md:text-base">
                 TODAY&apos;S DATE
               </h2>
@@ -364,19 +376,19 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
 
           {/* Stats */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-            <div className="bg-blue-500 p-4 rounded-lg">
+            <div className="bg-info p-4 rounded-lg">
               <h2 className="font-bold text-sm md:text-base">TOTAL STUDENTS</h2>
               <p className="text-xl md:text-2xl">{statistics.totalStudents}</p>
             </div>
-            <div className="bg-blue-500 p-4 rounded-lg">
+            <div className="bg-info p-4 rounded-lg">
               <h2 className="font-bold text-sm md:text-base">PRESENT TODAY</h2>
               <p className="text-xl md:text-2xl">{statistics.presentToday}</p>
             </div>
-            <div className="bg-blue-500 p-4 rounded-lg">
+            <div className="bg-info p-4 rounded-lg">
               <h2 className="font-bold text-sm md:text-base">ABSENT TODAY</h2>
               <p className="text-xl md:text-2xl">{statistics.absentToday}</p>
             </div>
-            <div className="bg-blue-500 p-4 rounded-lg">
+            <div className="bg-info p-4 rounded-lg">
               <h2 className="font-bold text-sm md:text-base">PENDING TASKS</h2>
               <p className="text-xl md:text-2xl">{statistics.pendingTasks}</p>
             </div>
@@ -451,19 +463,19 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <button
                 onClick={() => setActiveTab('attendance')}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded"
+                className="bg-info hover:bg-info/90 text-white font-medium py-2 px-4 rounded"
               >
                 Take Attendance
               </button>
               <button
                 onClick={() => setActiveTab('marksheet')}
-                className="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded"
+                className="bg-success hover:bg-success/90 text-white font-medium py-2 px-4 rounded"
               >
                 Update Marks
               </button>
               <button
                 onClick={() => setActiveTab('results')}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded"
+                className="bg-warning hover:bg-warning/90 text-white font-medium py-2 px-4 rounded"
               >
                 View Results
               </button>
@@ -538,7 +550,7 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploadingPhoto}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-info hover:bg-info/90 text-white font-medium py-2 px-6 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isUploadingPhoto ? 'Uploading...' : 'Change Photo'}
                   </button>
@@ -562,40 +574,40 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
                 {teacherData ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                      <span className="block text-sm font-medium text-gray-400 mb-1">
                         Name
-                      </label>
+                      </span>
                       <p className="text-white">
                         {teacherData.firstName} {teacherData.lastName}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-400 mb-1">
+                      <span className="block text-sm font-medium text-gray-400 mb-1">
                         Email
-                      </label>
+                      </span>
                       <p className="text-white">{teacherData.email}</p>
                     </div>
                     {teacherData.phone && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                        <span className="block text-sm font-medium text-gray-400 mb-1">
                           Phone
-                        </label>
+                        </span>
                         <p className="text-white">{teacherData.phone}</p>
                       </div>
                     )}
                     {teacherData.designation && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                        <span className="block text-sm font-medium text-gray-400 mb-1">
                           Designation
-                        </label>
+                        </span>
                         <p className="text-white">{teacherData.designation}</p>
                       </div>
                     )}
                     {teacherData.experience && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                        <span className="block text-sm font-medium text-gray-400 mb-1">
                           Experience
-                        </label>
+                        </span>
                         <p className="text-white">
                           {teacherData.experience} years
                         </p>
@@ -603,9 +615,9 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ userData }) => {
                     )}
                     {teacherData.type && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">
+                        <span className="block text-sm font-medium text-gray-400 mb-1">
                           Type
-                        </label>
+                        </span>
                         <p className="text-white capitalize">
                           {teacherData.type}
                         </p>

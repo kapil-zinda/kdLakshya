@@ -5,10 +5,12 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { useGetClassesQuery } from '@/store/api/classApi';
 import { makeApiCall } from '@/utils/ApiRequest';
+import { toast } from 'react-toastify';
 
 // Types
 type FeeType =
@@ -163,6 +165,7 @@ export default function FeeManagementERP() {
   // Get orgId from Redux
   const { userData } = useUserDataRedux();
   const orgId = userData?.orgId;
+  const confirm = useConfirm();
 
   // Fetch classes using RTK Query
   const { data: classesResponse, isLoading: classesLoading } =
@@ -544,11 +547,11 @@ export default function FeeManagementERP() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Paid':
-        return 'bg-green-100 text-green-800';
+        return 'bg-success/10 text-success';
       case 'Partial':
-        return 'bg-yellow-100 text-yellow-800';
+        return 'bg-warning/10 text-warning';
       case 'Overdue':
-        return 'bg-red-100 text-red-800';
+        return 'bg-destructive/10 text-destructive';
       case 'Pending':
         return 'bg-muted text-foreground';
       default:
@@ -612,7 +615,7 @@ export default function FeeManagementERP() {
         },
       });
 
-      alert(
+      toast.success(
         `Payment of ₹${paymentData.amount} recorded successfully for ${selectedRecord.studentName}`,
       );
       setShowPaymentModal(false);
@@ -621,19 +624,21 @@ export default function FeeManagementERP() {
       loadFeeData();
     } catch (error) {
       console.error('Error recording payment:', error);
-      alert('Failed to record payment. Please try again.');
+      toast.error('Failed to record payment. Please try again.');
     }
   };
 
   const _sendReminder = (record: StudentFeeRecord) => {
-    alert(`Payment reminder sent to ${record.studentName} (${record.email})`);
+    toast.info(
+      `Payment reminder sent to ${record.studentName} (${record.email})`,
+    );
   };
 
   // Create fee structure handler
   const handleCreateFeeStructure = async () => {
     try {
       if (!createFeeStructureData.className) {
-        alert('Please select a class');
+        toast.error('Please select a class');
         return;
       }
 
@@ -642,7 +647,7 @@ export default function FeeManagementERP() {
       const classId = classIdMap.get(createFeeStructureData.className);
 
       if (!classId) {
-        alert('Invalid class selected');
+        toast.error('Invalid class selected');
         setLoading(false);
         return;
       }
@@ -668,7 +673,7 @@ export default function FeeManagementERP() {
         },
       });
 
-      alert('Fee structure created successfully!');
+      toast.success('Fee structure created successfully!');
       setShowCreateFeeStructureModal(false);
       setCreateFeeStructureData({
         className: '',
@@ -684,7 +689,7 @@ export default function FeeManagementERP() {
       setLoading(false);
     } catch (error) {
       console.error('Error creating fee structure:', error);
-      alert('Failed to create fee structure. Please try again.');
+      toast.error('Failed to create fee structure. Please try again.');
       setLoading(false);
     }
   };
@@ -695,9 +700,10 @@ export default function FeeManagementERP() {
     className: string,
   ) => {
     if (
-      !confirm(
+      !(await confirm(
         `Are you sure you want to delete the fee structure for ${className}?`,
-      )
+        { destructive: true },
+      ))
     ) {
       return;
     }
@@ -711,14 +717,14 @@ export default function FeeManagementERP() {
         baseUrl: 'default',
       });
 
-      alert('Fee structure deleted successfully!');
+      toast.success('Fee structure deleted successfully!');
 
       // Reload fee data
       await loadFeeData();
       setLoading(false);
     } catch (error) {
       console.error('Error deleting fee structure:', error);
-      alert('Failed to delete fee structure. Please try again.');
+      toast.error('Failed to delete fee structure. Please try again.');
       setLoading(false);
     }
   };
@@ -819,9 +825,9 @@ export default function FeeManagementERP() {
               <p className="text-sm font-medium text-muted-foreground">
                 Total Collected
               </p>
-              <div className="bg-green-100 p-2 rounded-lg">
+              <div className="bg-success/10 p-2 rounded-lg">
                 <svg
-                  className="w-5 h-5 text-green-600"
+                  className="w-5 h-5 text-success"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -838,7 +844,7 @@ export default function FeeManagementERP() {
             <p className="text-2xl font-bold text-foreground">
               ₹{totalCollected.toLocaleString()}
             </p>
-            <p className="text-sm text-green-600 mt-1">
+            <p className="text-sm text-success mt-1">
               {collectionPercentage.toFixed(1)}% of total
             </p>
           </div>
@@ -848,9 +854,9 @@ export default function FeeManagementERP() {
               <p className="text-sm font-medium text-muted-foreground">
                 Total Due
               </p>
-              <div className="bg-red-100 p-2 rounded-lg">
+              <div className="bg-destructive/10 p-2 rounded-lg">
                 <svg
-                  className="w-5 h-5 text-red-600"
+                  className="w-5 h-5 text-destructive"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -877,9 +883,9 @@ export default function FeeManagementERP() {
               <p className="text-sm font-medium text-muted-foreground">
                 Fully Paid
               </p>
-              <div className="bg-blue-100 p-2 rounded-lg">
+              <div className="bg-info/10 p-2 rounded-lg">
                 <svg
-                  className="w-5 h-5 text-blue-600"
+                  className="w-5 h-5 text-info"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -966,20 +972,24 @@ export default function FeeManagementERP() {
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Filter
-                </label>
-                <select
-                  value={selectedClass}
-                  onChange={(e) => handleClassSelection(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                <label
+                  htmlFor="fee-filter-class"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
                 >
-                  {classes.map((cls) => (
-                    <option key={cls} value={cls}>
-                      {cls}
-                    </option>
-                  ))}
-                </select>
+                  Filter
+                  <select
+                    id="fee-filter-class"
+                    value={selectedClass}
+                    onChange={(e) => handleClassSelection(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    {classes.map((cls) => (
+                      <option key={cls} value={cls}>
+                        {cls}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
 
               {/* <div>
@@ -1017,16 +1027,20 @@ export default function FeeManagementERP() {
               </div> */}
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="fee-search"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Search
+                  <input
+                    id="fee-search"
+                    type="text"
+                    placeholder="Name, Roll No..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  />
                 </label>
-                <input
-                  type="text"
-                  placeholder="Name, Roll No..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                />
               </div>
             </div>
           </div>
@@ -1114,10 +1128,10 @@ export default function FeeManagementERP() {
                         {record.feeStructure?.totalAmount?.toLocaleString() ||
                           '0'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-green-600 font-medium">
+                      <td className="px-6 py-4 text-sm text-success font-medium">
                         ₹{record.totalPaid?.toLocaleString() || '0'}
                       </td>
-                      <td className="px-6 py-4 text-sm text-red-600 font-medium">
+                      <td className="px-6 py-4 text-sm text-destructive font-medium">
                         ₹{record.totalDue?.toLocaleString() || '0'}
                       </td>
                       <td className="px-6 py-4">
@@ -1240,7 +1254,7 @@ export default function FeeManagementERP() {
                               <>
                                 <button
                                   onClick={() => handlePayment(record)}
-                                  className="text-green-600 hover:text-green-900 font-medium"
+                                  className="text-success hover:text-success/80 font-medium"
                                 >
                                   Pay
                                 </button>
@@ -1289,7 +1303,7 @@ export default function FeeManagementERP() {
                       <span className="text-sm text-muted-foreground">
                         Collected:
                       </span>
-                      <span className="text-sm font-semibold text-green-600">
+                      <span className="text-sm font-semibold text-success">
                         ₹{summary.totalCollected.toLocaleString()}
                       </span>
                     </div>
@@ -1297,19 +1311,19 @@ export default function FeeManagementERP() {
                       <span className="text-sm text-muted-foreground">
                         Due:
                       </span>
-                      <span className="text-sm font-semibold text-red-600">
+                      <span className="text-sm font-semibold text-destructive">
                         ₹{summary.totalDue.toLocaleString()}
                       </span>
                     </div>
                     <div className="pt-3 border-t border-border">
                       <div className="flex justify-between text-xs">
-                        <span className="text-green-600">
+                        <span className="text-success">
                           Paid: {summary.paidStudents}
                         </span>
                         <span className="text-muted-foreground">
                           Pending: {summary.pendingStudents}
                         </span>
-                        <span className="text-red-600">
+                        <span className="text-destructive">
                           Overdue: {summary.overdueStudents}
                         </span>
                       </div>
@@ -1344,7 +1358,7 @@ export default function FeeManagementERP() {
                     <h4 className="font-semibold text-foreground mb-2">
                       {month}
                     </h4>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-2xl font-bold text-success">
                       ₹{monthTotal.toLocaleString()}
                     </p>
                     <p className="text-sm text-muted-foreground mt-1">
@@ -1374,148 +1388,172 @@ export default function FeeManagementERP() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-muted-foreground mb-2">
-                Fee Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={paymentData.feeType}
-                onChange={(e) => {
-                  const feeType = e.target.value as FeeType;
-                  let amount = '';
-                  let description = '';
-                  const month = '';
-
-                  // Auto-fill amount based on fee type
-                  if (feeType === 'Admission Fee') {
-                    amount =
-                      selectedRecord.feeStructure?.components?.admissionFee?.toString() ||
-                      '0';
-                    description = 'Admission Fee';
-                  } else if (feeType === 'Registration Fee') {
-                    amount =
-                      selectedRecord.feeStructure?.components?.registrationFee?.toString() ||
-                      '0';
-                    description = 'Registration Fee';
-                  } else if (feeType === 'Monthly Fee') {
-                    amount = (
-                      (selectedRecord.feeStructure?.components?.tuitionFees ||
-                        0) / 12
-                    ).toFixed(2);
-                    description = 'Tuition Fee (Monthly)';
-                  } else if (feeType === 'Exam Fee') {
-                    amount =
-                      selectedRecord.feeStructure?.components?.examFees?.toString() ||
-                      '0';
-                    description = 'Exam Fee';
-                  } else if (feeType === 'Other Fees') {
-                    amount =
-                      selectedRecord.feeStructure?.components?.otherFees?.toString() ||
-                      '0';
-                    description = 'Other Fees';
-                  }
-
-                  setPaymentData({
-                    ...paymentData,
-                    feeType,
-                    amount,
-                    description,
-                    month,
-                  });
-                }}
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              <label
+                htmlFor="payment-fee-type"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
-                <option value="Monthly Fee">Monthly Fee</option>
-                <option value="Exam Fee">Exam Fee</option>
-                <option value="Registration Fee">Registration Fee</option>
-                <option value="Admission Fee">Admission Fee</option>
-                <option value="Other Fees">Other Fees</option>
-              </select>
+                Fee Type <span className="text-destructive">*</span>
+                <select
+                  id="payment-fee-type"
+                  value={paymentData.feeType}
+                  onChange={(e) => {
+                    const feeType = e.target.value as FeeType;
+                    let amount = '';
+                    let description = '';
+                    const month = '';
+
+                    // Auto-fill amount based on fee type
+                    if (feeType === 'Admission Fee') {
+                      amount =
+                        selectedRecord.feeStructure?.components?.admissionFee?.toString() ||
+                        '0';
+                      description = 'Admission Fee';
+                    } else if (feeType === 'Registration Fee') {
+                      amount =
+                        selectedRecord.feeStructure?.components?.registrationFee?.toString() ||
+                        '0';
+                      description = 'Registration Fee';
+                    } else if (feeType === 'Monthly Fee') {
+                      amount = (
+                        (selectedRecord.feeStructure?.components?.tuitionFees ||
+                          0) / 12
+                      ).toFixed(2);
+                      description = 'Tuition Fee (Monthly)';
+                    } else if (feeType === 'Exam Fee') {
+                      amount =
+                        selectedRecord.feeStructure?.components?.examFees?.toString() ||
+                        '0';
+                      description = 'Exam Fee';
+                    } else if (feeType === 'Other Fees') {
+                      amount =
+                        selectedRecord.feeStructure?.components?.otherFees?.toString() ||
+                        '0';
+                      description = 'Other Fees';
+                    }
+
+                    setPaymentData({
+                      ...paymentData,
+                      feeType,
+                      amount,
+                      description,
+                      month,
+                    });
+                  }}
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="Monthly Fee">Monthly Fee</option>
+                  <option value="Exam Fee">Exam Fee</option>
+                  <option value="Registration Fee">Registration Fee</option>
+                  <option value="Admission Fee">Admission Fee</option>
+                  <option value="Other Fees">Other Fees</option>
+                </select>
+              </label>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-muted-foreground mb-2">
+              <label
+                htmlFor="payment-description"
+                className="block text-sm font-medium text-muted-foreground mb-2"
+              >
                 Description
+                <input
+                  id="payment-description"
+                  type="text"
+                  value={paymentData.description}
+                  onChange={(e) =>
+                    setPaymentData({
+                      ...paymentData,
+                      description: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Payment description"
+                />
               </label>
-              <input
-                type="text"
-                value={paymentData.description}
-                onChange={(e) =>
-                  setPaymentData({
-                    ...paymentData,
-                    description: e.target.value,
-                  })
-                }
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Payment description"
-              />
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-muted-foreground mb-2">
-                Amount <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="number"
-                value={paymentData.amount}
-                onChange={(e) =>
-                  setPaymentData({ ...paymentData, amount: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Enter amount"
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-muted-foreground mb-2">
-                Payment Method
-              </label>
-              <select
-                value={paymentData.method}
-                onChange={(e) =>
-                  setPaymentData({
-                    ...paymentData,
-                    method: e.target.value as Payment['method'],
-                  })
-                }
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              <label
+                htmlFor="payment-amount"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
-                <option value="Cash">Cash</option>
-                <option value="Online">Online Transfer</option>
-                <option value="UPI">UPI</option>
-                <option value="Cheque">Cheque</option>
-                <option value="Bank Transfer">Bank Transfer</option>
-              </select>
+                Amount <span className="text-destructive">*</span>
+                <input
+                  id="payment-amount"
+                  type="number"
+                  value={paymentData.amount}
+                  onChange={(e) =>
+                    setPaymentData({ ...paymentData, amount: e.target.value })
+                  }
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Enter amount"
+                />
+              </label>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-muted-foreground mb-2">
-                Receipt Number
+              <label
+                htmlFor="payment-method"
+                className="block text-sm font-medium text-muted-foreground mb-2"
+              >
+                Payment Method
+                <select
+                  id="payment-method"
+                  value={paymentData.method}
+                  onChange={(e) =>
+                    setPaymentData({
+                      ...paymentData,
+                      method: e.target.value as Payment['method'],
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="Online">Online Transfer</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                </select>
               </label>
-              <input
-                type="text"
-                value={paymentData.receiptNumber}
-                onChange={(e) =>
-                  setPaymentData({
-                    ...paymentData,
-                    receiptNumber: e.target.value,
-                  })
-                }
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
+            </div>
+
+            <div className="mb-4">
+              <label
+                htmlFor="payment-receipt-number"
+                className="block text-sm font-medium text-muted-foreground mb-2"
+              >
+                Receipt Number
+                <input
+                  id="payment-receipt-number"
+                  type="text"
+                  value={paymentData.receiptNumber}
+                  onChange={(e) =>
+                    setPaymentData({
+                      ...paymentData,
+                      receiptNumber: e.target.value,
+                    })
+                  }
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </label>
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-medium text-muted-foreground mb-2">
+              <label
+                htmlFor="payment-remarks"
+                className="block text-sm font-medium text-muted-foreground mb-2"
+              >
                 Remarks
+                <textarea
+                  id="payment-remarks"
+                  value={paymentData.remarks}
+                  onChange={(e) =>
+                    setPaymentData({ ...paymentData, remarks: e.target.value })
+                  }
+                  rows={3}
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                />
               </label>
-              <textarea
-                value={paymentData.remarks}
-                onChange={(e) =>
-                  setPaymentData({ ...paymentData, remarks: e.target.value })
-                }
-                rows={3}
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              />
             </div>
 
             <div className="flex space-x-3">
@@ -1588,13 +1626,13 @@ export default function FeeManagementERP() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Paid Amount:</span>
-                  <span className="font-semibold text-green-600">
+                  <span className="font-semibold text-success">
                     ₹{selectedRecord.totalPaid?.toLocaleString() || '0'}
                   </span>
                 </div>
                 <div className="flex justify-between border-t pt-2">
                   <span className="text-muted-foreground">Due Amount:</span>
-                  <span className="font-semibold text-red-600">
+                  <span className="font-semibold text-destructive">
                     ₹{selectedRecord.totalDue?.toLocaleString() || '0'}
                   </span>
                 </div>
@@ -1724,7 +1762,7 @@ export default function FeeManagementERP() {
                     <div key={payment.id} className="border rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
                         <div>
-                          <p className="font-semibold text-green-600">
+                          <p className="font-semibold text-success">
                             ₹{payment.amount.toLocaleString()}
                           </p>
                           <p className="text-sm text-muted-foreground">
@@ -1767,7 +1805,7 @@ export default function FeeManagementERP() {
                             setEditingPayment(payment);
                             setShowDeletePaymentModal(true);
                           }}
-                          className="text-sm text-red-600 hover:text-red-900 font-medium"
+                          className="text-sm text-destructive hover:text-destructive/80 font-medium"
                         >
                           Delete
                         </button>
@@ -1802,7 +1840,7 @@ export default function FeeManagementERP() {
               </h2>
               <button
                 onClick={() => setShowCreateFeeStructureModal(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+                className="px-4 py-2 bg-success text-white rounded-md hover:bg-success/90 font-medium"
               >
                 + Create New
               </button>
@@ -1846,7 +1884,7 @@ export default function FeeManagementERP() {
                           structure.className,
                         )
                       }
-                      className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                      className="px-3 py-1 bg-destructive text-white text-sm rounded hover:bg-destructive/90"
                     >
                       Delete
                     </button>
@@ -1854,35 +1892,33 @@ export default function FeeManagementERP() {
                 </div>
                 <div className="space-y-3">
                   {/* Admission & Registration */}
-                  <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
-                    <p className="font-medium text-blue-900">Admission Fee</p>
-                    <p className="font-semibold text-blue-900">
+                  <div className="flex justify-between items-center p-2 bg-info/10 rounded">
+                    <p className="font-medium text-info">Admission Fee</p>
+                    <p className="font-semibold text-info">
                       ₹{structure.components.admissionFee.toLocaleString()}
                     </p>
                   </div>
-                  <div className="flex justify-between items-center p-2 bg-blue-50 rounded">
-                    <p className="font-medium text-blue-900">
-                      Registration Fee
-                    </p>
-                    <p className="font-semibold text-blue-900">
+                  <div className="flex justify-between items-center p-2 bg-info/10 rounded">
+                    <p className="font-medium text-info">Registration Fee</p>
+                    <p className="font-semibold text-info">
                       ₹{structure.components.registrationFee.toLocaleString()}
                     </p>
                   </div>
 
                   {/* Tuition Fees */}
-                  <div className="flex justify-between items-center p-2 bg-green-50 rounded">
-                    <p className="font-medium text-green-900">
+                  <div className="flex justify-between items-center p-2 bg-success/10 rounded">
+                    <p className="font-medium text-success">
                       Tuition Fees (Annual)
                     </p>
-                    <p className="font-semibold text-green-900">
+                    <p className="font-semibold text-success">
                       ₹{structure.components.tuitionFees.toLocaleString()}
                     </p>
                   </div>
 
                   {/* Exam Fees */}
-                  <div className="flex justify-between items-center p-2 bg-yellow-50 rounded">
-                    <p className="font-medium text-yellow-900">Exam Fees</p>
-                    <p className="font-semibold text-yellow-900">
+                  <div className="flex justify-between items-center p-2 bg-warning/10 rounded">
+                    <p className="font-medium text-warning">Exam Fees</p>
+                    <p className="font-semibold text-warning">
                       ₹{structure.components.examFees.toLocaleString()}
                     </p>
                   </div>
@@ -1919,117 +1955,137 @@ export default function FeeManagementERP() {
             <div className="space-y-6">
               {/* Admission Fee */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="edit-structure-admission-fee"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Admission Fee
+                  <input
+                    id="edit-structure-admission-fee"
+                    type="number"
+                    value={editingStructure.components.admissionFee}
+                    onChange={(e) => {
+                      const newStructure = {
+                        ...editingStructure,
+                        components: {
+                          ...editingStructure.components,
+                          admissionFee: parseInt(e.target.value) || 0,
+                        },
+                      };
+                      setEditingStructure(newStructure);
+                    }}
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                    placeholder="Enter admission fee"
+                  />
                 </label>
-                <input
-                  type="number"
-                  value={editingStructure.components.admissionFee}
-                  onChange={(e) => {
-                    const newStructure = {
-                      ...editingStructure,
-                      components: {
-                        ...editingStructure.components,
-                        admissionFee: parseInt(e.target.value) || 0,
-                      },
-                    };
-                    setEditingStructure(newStructure);
-                  }}
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
-                  placeholder="Enter admission fee"
-                />
               </div>
 
               {/* Registration Fee */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="edit-structure-registration-fee"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Registration Fee
+                  <input
+                    id="edit-structure-registration-fee"
+                    type="number"
+                    value={editingStructure.components.registrationFee}
+                    onChange={(e) => {
+                      const newStructure = {
+                        ...editingStructure,
+                        components: {
+                          ...editingStructure.components,
+                          registrationFee: parseInt(e.target.value) || 0,
+                        },
+                      };
+                      setEditingStructure(newStructure);
+                    }}
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                    placeholder="Enter registration fee"
+                  />
                 </label>
-                <input
-                  type="number"
-                  value={editingStructure.components.registrationFee}
-                  onChange={(e) => {
-                    const newStructure = {
-                      ...editingStructure,
-                      components: {
-                        ...editingStructure.components,
-                        registrationFee: parseInt(e.target.value) || 0,
-                      },
-                    };
-                    setEditingStructure(newStructure);
-                  }}
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
-                  placeholder="Enter registration fee"
-                />
               </div>
 
               {/* Tuition Fees */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="edit-structure-tuition-fees"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Tuition Fees (Annual)
+                  <input
+                    id="edit-structure-tuition-fees"
+                    type="number"
+                    value={editingStructure.components.tuitionFees}
+                    onChange={(e) => {
+                      const newStructure = {
+                        ...editingStructure,
+                        components: {
+                          ...editingStructure.components,
+                          tuitionFees: parseInt(e.target.value) || 0,
+                        },
+                      };
+                      setEditingStructure(newStructure);
+                    }}
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                    placeholder="Enter annual tuition fee"
+                  />
                 </label>
-                <input
-                  type="number"
-                  value={editingStructure.components.tuitionFees}
-                  onChange={(e) => {
-                    const newStructure = {
-                      ...editingStructure,
-                      components: {
-                        ...editingStructure.components,
-                        tuitionFees: parseInt(e.target.value) || 0,
-                      },
-                    };
-                    setEditingStructure(newStructure);
-                  }}
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
-                  placeholder="Enter annual tuition fee"
-                />
               </div>
 
               {/* Exam Fees */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="edit-structure-exam-fees"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Exam Fees
+                  <input
+                    id="edit-structure-exam-fees"
+                    type="number"
+                    value={editingStructure.components.examFees}
+                    onChange={(e) => {
+                      const newStructure = {
+                        ...editingStructure,
+                        components: {
+                          ...editingStructure.components,
+                          examFees: parseInt(e.target.value) || 0,
+                        },
+                      };
+                      setEditingStructure(newStructure);
+                    }}
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                    placeholder="Enter exam fees"
+                  />
                 </label>
-                <input
-                  type="number"
-                  value={editingStructure.components.examFees}
-                  onChange={(e) => {
-                    const newStructure = {
-                      ...editingStructure,
-                      components: {
-                        ...editingStructure.components,
-                        examFees: parseInt(e.target.value) || 0,
-                      },
-                    };
-                    setEditingStructure(newStructure);
-                  }}
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
-                  placeholder="Enter exam fees"
-                />
               </div>
 
               {/* Other Fees */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="edit-structure-other-fees"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Other Fees
+                  <input
+                    id="edit-structure-other-fees"
+                    type="number"
+                    value={editingStructure.components.otherFees}
+                    onChange={(e) => {
+                      const newStructure = {
+                        ...editingStructure,
+                        components: {
+                          ...editingStructure.components,
+                          otherFees: parseInt(e.target.value) || 0,
+                        },
+                      };
+                      setEditingStructure(newStructure);
+                    }}
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                    placeholder="Enter other fees"
+                  />
                 </label>
-                <input
-                  type="number"
-                  value={editingStructure.components.otherFees}
-                  onChange={(e) => {
-                    const newStructure = {
-                      ...editingStructure,
-                      components: {
-                        ...editingStructure.components,
-                        otherFees: parseInt(e.target.value) || 0,
-                      },
-                    };
-                    setEditingStructure(newStructure);
-                  }}
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
-                  placeholder="Enter other fees"
-                />
               </div>
 
               {/* Total Calculation */}
@@ -2111,7 +2167,7 @@ export default function FeeManagementERP() {
                         },
                       });
                     }
-                    alert('Fee structure updated successfully!');
+                    toast.success('Fee structure updated successfully!');
 
                     // Update the fee structure in the state
                     const updatedStructures = feeStructures.map((s) =>
@@ -2158,7 +2214,9 @@ export default function FeeManagementERP() {
                     loadFeeData();
                   } catch (error) {
                     console.error('Error saving fee structure:', error);
-                    alert('Failed to save fee structure. Please try again.');
+                    toast.error(
+                      'Failed to save fee structure. Please try again.',
+                    );
                   }
                 }}
                 className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium"
@@ -2190,85 +2248,101 @@ export default function FeeManagementERP() {
             <div className="space-y-6">
               {/* Class Selection */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Select Class *
-                </label>
-                <select
-                  value={createFeeStructureData.className}
-                  onChange={(e) =>
-                    setCreateFeeStructureData({
-                      ...createFeeStructureData,
-                      className: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                <label
+                  htmlFor="create-structure-class"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
                 >
-                  <option value="">Choose a class...</option>
-                  {classes
-                    .filter((c) => c !== 'All')
-                    .filter(
-                      (c) => !feeStructures.find((s) => s.className === c),
-                    )
-                    .map((className) => (
-                      <option key={className} value={className}>
-                        {className}
-                      </option>
-                    ))}
-                </select>
+                  Select Class *
+                  <select
+                    id="create-structure-class"
+                    value={createFeeStructureData.className}
+                    onChange={(e) =>
+                      setCreateFeeStructureData({
+                        ...createFeeStructureData,
+                        className: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="">Choose a class...</option>
+                    {classes
+                      .filter((c) => c !== 'All')
+                      .filter(
+                        (c) => !feeStructures.find((s) => s.className === c),
+                      )
+                      .map((className) => (
+                        <option key={className} value={className}>
+                          {className}
+                        </option>
+                      ))}
+                  </select>
+                </label>
               </div>
 
               {/* Admission Fee */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="create-structure-admission-fee"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Admission Fee (₹)
+                  <input
+                    id="create-structure-admission-fee"
+                    type="number"
+                    value={createFeeStructureData.admissionFee}
+                    onChange={(e) =>
+                      setCreateFeeStructureData({
+                        ...createFeeStructureData,
+                        admissionFee: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
                 </label>
-                <input
-                  type="number"
-                  value={createFeeStructureData.admissionFee}
-                  onChange={(e) =>
-                    setCreateFeeStructureData({
-                      ...createFeeStructureData,
-                      admissionFee: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
               </div>
 
               {/* Registration Fee */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="create-structure-registration-fee"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Registration Fee (₹)
+                  <input
+                    id="create-structure-registration-fee"
+                    type="number"
+                    value={createFeeStructureData.registrationFee}
+                    onChange={(e) =>
+                      setCreateFeeStructureData({
+                        ...createFeeStructureData,
+                        registrationFee: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
                 </label>
-                <input
-                  type="number"
-                  value={createFeeStructureData.registrationFee}
-                  onChange={(e) =>
-                    setCreateFeeStructureData({
-                      ...createFeeStructureData,
-                      registrationFee: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
               </div>
 
               {/* Tuition Fees */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="create-structure-tuition-fees"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Total Tuition Fees (₹) - Annual
+                  <input
+                    id="create-structure-tuition-fees"
+                    type="number"
+                    value={createFeeStructureData.tuitionFees}
+                    onChange={(e) =>
+                      setCreateFeeStructureData({
+                        ...createFeeStructureData,
+                        tuitionFees: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
                 </label>
-                <input
-                  type="number"
-                  value={createFeeStructureData.tuitionFees}
-                  onChange={(e) =>
-                    setCreateFeeStructureData({
-                      ...createFeeStructureData,
-                      tuitionFees: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
                 <p className="text-sm text-muted-foreground mt-1">
                   Monthly: ₹
                   {(createFeeStructureData.tuitionFees / 12).toFixed(2)}
@@ -2277,38 +2351,46 @@ export default function FeeManagementERP() {
 
               {/* Exam Fees */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="create-structure-exam-fees"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Total Exam Fees (₹)
+                  <input
+                    id="create-structure-exam-fees"
+                    type="number"
+                    value={createFeeStructureData.examFees}
+                    onChange={(e) =>
+                      setCreateFeeStructureData({
+                        ...createFeeStructureData,
+                        examFees: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
                 </label>
-                <input
-                  type="number"
-                  value={createFeeStructureData.examFees}
-                  onChange={(e) =>
-                    setCreateFeeStructureData({
-                      ...createFeeStructureData,
-                      examFees: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
               </div>
 
               {/* Other Fees */}
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="create-structure-other-fees"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Other Fees (₹)
+                  <input
+                    id="create-structure-other-fees"
+                    type="number"
+                    value={createFeeStructureData.otherFees}
+                    onChange={(e) =>
+                      setCreateFeeStructureData({
+                        ...createFeeStructureData,
+                        otherFees: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
                 </label>
-                <input
-                  type="number"
-                  value={createFeeStructureData.otherFees}
-                  onChange={(e) =>
-                    setCreateFeeStructureData({
-                      ...createFeeStructureData,
-                      otherFees: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
               </div>
 
               {/* Total Display */}
@@ -2335,7 +2417,7 @@ export default function FeeManagementERP() {
               <button
                 onClick={handleCreateFeeStructure}
                 disabled={!createFeeStructureData.className}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 font-medium disabled:bg-muted disabled:cursor-not-allowed"
+                className="flex-1 bg-success text-white px-4 py-2 rounded-md hover:bg-success/90 font-medium disabled:bg-muted disabled:cursor-not-allowed"
               >
                 Create Fee Structure
               </button>
@@ -2383,25 +2465,29 @@ export default function FeeManagementERP() {
             </div>
 
             <div className="mb-6">
-              <label className="block text-sm font-medium text-muted-foreground mb-2">
-                Select Fee Structure <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={selectedFeeStructureId}
-                onChange={(e) => setSelectedFeeStructureId(e.target.value)}
-                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+              <label
+                htmlFor="assign-fee-structure"
+                className="block text-sm font-medium text-muted-foreground mb-2"
               >
-                <option value="">Select a fee structure...</option>
-                {feeStructures
-                  .filter((s) => s.className === selectedRecord.class)
-                  .map((structure) => (
-                    <option key={structure.id} value={structure.id}>
-                      {structure.className} - ₹
-                      {structure.totalAmount.toLocaleString()} (
-                      {structure.academicYear})
-                    </option>
-                  ))}
-              </select>
+                Select Fee Structure <span className="text-destructive">*</span>
+                <select
+                  id="assign-fee-structure"
+                  value={selectedFeeStructureId}
+                  onChange={(e) => setSelectedFeeStructureId(e.target.value)}
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                >
+                  <option value="">Select a fee structure...</option>
+                  {feeStructures
+                    .filter((s) => s.className === selectedRecord.class)
+                    .map((structure) => (
+                      <option key={structure.id} value={structure.id}>
+                        {structure.className} - ₹
+                        {structure.totalAmount.toLocaleString()} (
+                        {structure.academicYear})
+                      </option>
+                    ))}
+                </select>
+              </label>
             </div>
 
             <div className="flex gap-3">
@@ -2409,7 +2495,7 @@ export default function FeeManagementERP() {
                 onClick={async () => {
                   try {
                     if (!selectedFeeStructureId) {
-                      alert('Please select a fee structure');
+                      toast.error('Please select a fee structure');
                       return;
                     }
 
@@ -2417,7 +2503,7 @@ export default function FeeManagementERP() {
                     const classId = classIdMap.get(selectedRecord.class);
 
                     if (!classId) {
-                      alert('Class ID not found');
+                      toast.error('Class ID not found');
                       return;
                     }
 
@@ -2427,7 +2513,7 @@ export default function FeeManagementERP() {
                     );
 
                     if (!feeStructure) {
-                      alert('Fee structure not found');
+                      toast.error('Fee structure not found');
                       return;
                     }
 
@@ -2460,7 +2546,7 @@ export default function FeeManagementERP() {
                       },
                     });
 
-                    alert('Fee assigned successfully!');
+                    toast.success('Fee assigned successfully!');
                     setShowAssignFeeModal(false);
                     setSelectedFeeStructureId('');
 
@@ -2468,7 +2554,7 @@ export default function FeeManagementERP() {
                     await handleClassSelection(selectedRecord.class);
                   } catch (error) {
                     console.error('Error assigning fee:', error);
-                    alert('Failed to assign fee. Please try again.');
+                    toast.error('Failed to assign fee. Please try again.');
                   }
                 }}
                 disabled={!selectedFeeStructureId}
@@ -2500,129 +2586,157 @@ export default function FeeManagementERP() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Amount (₹) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={editingPayment.amount}
-                  onChange={(e) =>
-                    setEditingPayment({
-                      ...editingPayment,
-                      amount: parseFloat(e.target.value) || 0,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={editingPayment.date}
-                  onChange={(e) =>
-                    setEditingPayment({
-                      ...editingPayment,
-                      date: e.target.value,
-                    })
-                  }
-                  placeholder="DD/MM/YYYY"
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Receipt Number <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={editingPayment.receiptNumber}
-                  onChange={(e) =>
-                    setEditingPayment({
-                      ...editingPayment,
-                      receiptNumber: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
-                  Payment Method
-                </label>
-                <select
-                  value={editingPayment.method}
-                  onChange={(e) =>
-                    setEditingPayment({
-                      ...editingPayment,
-                      method: e.target.value as Payment['method'],
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                <label
+                  htmlFor="edit-payment-amount"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
                 >
-                  <option value="Cash">Cash</option>
-                  <option value="Online">Online</option>
-                  <option value="Cheque">Cheque</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                  <option value="UPI">UPI</option>
-                </select>
+                  Amount (₹) <span className="text-destructive">*</span>
+                  <input
+                    id="edit-payment-amount"
+                    type="number"
+                    value={editingPayment.amount}
+                    onChange={(e) =>
+                      setEditingPayment({
+                        ...editingPayment,
+                        amount: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                  />
+                </label>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="edit-payment-date"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
+                  Date <span className="text-destructive">*</span>
+                  <input
+                    id="edit-payment-date"
+                    type="text"
+                    value={editingPayment.date}
+                    onChange={(e) =>
+                      setEditingPayment({
+                        ...editingPayment,
+                        date: e.target.value,
+                      })
+                    }
+                    placeholder="DD/MM/YYYY"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                  />
+                </label>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="edit-payment-receipt-number"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
+                  Receipt Number <span className="text-destructive">*</span>
+                  <input
+                    id="edit-payment-receipt-number"
+                    type="text"
+                    value={editingPayment.receiptNumber}
+                    onChange={(e) =>
+                      setEditingPayment({
+                        ...editingPayment,
+                        receiptNumber: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                  />
+                </label>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="edit-payment-method"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
+                  Payment Method
+                  <select
+                    id="edit-payment-method"
+                    value={editingPayment.method}
+                    onChange={(e) =>
+                      setEditingPayment({
+                        ...editingPayment,
+                        method: e.target.value as Payment['method'],
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                  >
+                    <option value="Cash">Cash</option>
+                    <option value="Online">Online</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                    <option value="UPI">UPI</option>
+                  </select>
+                </label>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="edit-payment-description"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Description
+                  <input
+                    id="edit-payment-description"
+                    type="text"
+                    value={editingPayment.description}
+                    onChange={(e) =>
+                      setEditingPayment({
+                        ...editingPayment,
+                        description: e.target.value,
+                      })
+                    }
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                  />
                 </label>
-                <input
-                  type="text"
-                  value={editingPayment.description}
-                  onChange={(e) =>
-                    setEditingPayment({
-                      ...editingPayment,
-                      description: e.target.value,
-                    })
-                  }
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
-                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="edit-payment-month"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Month (Optional)
+                  <input
+                    id="edit-payment-month"
+                    type="text"
+                    value={editingPayment.month || ''}
+                    onChange={(e) =>
+                      setEditingPayment({
+                        ...editingPayment,
+                        month: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., January 2025"
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                  />
                 </label>
-                <input
-                  type="text"
-                  value={editingPayment.month || ''}
-                  onChange={(e) =>
-                    setEditingPayment({
-                      ...editingPayment,
-                      month: e.target.value,
-                    })
-                  }
-                  placeholder="e.g., January 2025"
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
-                />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-2">
+                <label
+                  htmlFor="edit-payment-remarks"
+                  className="block text-sm font-medium text-muted-foreground mb-2"
+                >
                   Remarks
+                  <textarea
+                    id="edit-payment-remarks"
+                    value={editingPayment.remarks}
+                    onChange={(e) =>
+                      setEditingPayment({
+                        ...editingPayment,
+                        remarks: e.target.value,
+                      })
+                    }
+                    rows={3}
+                    className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
+                  />
                 </label>
-                <textarea
-                  value={editingPayment.remarks}
-                  onChange={(e) =>
-                    setEditingPayment({
-                      ...editingPayment,
-                      remarks: e.target.value,
-                    })
-                  }
-                  rows={3}
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-foreground bg-white"
-                />
               </div>
             </div>
 
@@ -2652,7 +2766,7 @@ export default function FeeManagementERP() {
                       },
                     });
 
-                    alert('Payment updated successfully!');
+                    toast.success('Payment updated successfully!');
                     setShowEditPaymentModal(false);
                     setEditingPayment(null);
 
@@ -2660,7 +2774,7 @@ export default function FeeManagementERP() {
                     setShowDetailsModal(false);
                   } catch (error) {
                     console.error('Error updating payment:', error);
-                    alert('Failed to update payment. Please try again.');
+                    toast.error('Failed to update payment. Please try again.');
                   }
                 }}
                 className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 font-medium"
@@ -2707,7 +2821,7 @@ export default function FeeManagementERP() {
                       baseUrl: 'default',
                     });
 
-                    alert('Payment deleted successfully!');
+                    toast.success('Payment deleted successfully!');
                     setShowDeletePaymentModal(false);
                     setEditingPayment(null);
 
@@ -2715,10 +2829,10 @@ export default function FeeManagementERP() {
                     setShowDetailsModal(false);
                   } catch (error) {
                     console.error('Error deleting payment:', error);
-                    alert('Failed to delete payment. Please try again.');
+                    toast.error('Failed to delete payment. Please try again.');
                   }
                 }}
-                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 font-medium"
+                className="flex-1 bg-destructive text-white px-4 py-2 rounded-md hover:bg-destructive/90 font-medium"
               >
                 Delete
               </button>

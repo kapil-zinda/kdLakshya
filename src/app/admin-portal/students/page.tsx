@@ -19,6 +19,7 @@ import {
   useUpdateStudentMutation,
 } from '@/store/api/studentApi';
 import { makeApiCall } from '@/utils/ApiRequest';
+import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
 
 interface Student {
@@ -377,10 +378,10 @@ export default function StudentManagement() {
 
       setEditingStudent(null);
       setEditFormData({});
-      alert('Student details updated successfully!');
+      toast.success('Student details updated successfully!');
     } catch (error) {
       console.error('Error updating student:', error);
-      alert('Failed to update student. Please try again.');
+      toast.error('Failed to update student. Please try again.');
     }
   };
 
@@ -433,12 +434,12 @@ export default function StudentManagement() {
 
   const handleAddStudent = async () => {
     if (!addFormData.firstName || !addFormData.lastName) {
-      alert('Please fill in required fields: First Name and Last Name');
+      toast.error('Please fill in required fields: First Name and Last Name');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -477,10 +478,10 @@ export default function StudentManagement() {
           address: '',
         },
       });
-      alert('Student added successfully!');
+      toast.success('Student added successfully!');
     } catch (error) {
       console.error('Error creating student:', error);
-      alert('Failed to create student. Please try again.');
+      toast.error('Failed to create student. Please try again.');
     }
   };
 
@@ -614,17 +615,17 @@ export default function StudentManagement() {
 
   const handleBulkUpload = async () => {
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
     if (bulkUploadData.length === 0) {
-      alert('No data to upload');
+      toast.error('No data to upload');
       return;
     }
 
     if (bulkUploadErrors.length > 0) {
-      alert('Please fix the errors before uploading');
+      toast.error('Please fix the errors before uploading');
       return;
     }
 
@@ -674,7 +675,7 @@ export default function StudentManagement() {
       setBulkUploadResult(result);
 
       if (result.failed === 0) {
-        alert(`Successfully uploaded ${result.success} students!`);
+        toast.success(`Successfully uploaded ${result.success} students!`);
         // Reset and close modal
         setBulkUploadData([]);
         setBulkUploadErrors([]);
@@ -701,32 +702,6 @@ export default function StudentManagement() {
     setBulkUploadErrors([]);
     setBulkUploadResult(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const downloadTemplate = () => {
-    const templateData = [
-      {
-        'First Name': 'John',
-        'Last Name': 'Doe',
-        Email: 'john.doe@example.com',
-        'Date of Birth': '15/08/2005',
-        'Class Name': '10-A',
-        Phone: '9876543210',
-        Gender: 'Male',
-        'Roll Number': '101',
-        'Father Name': 'Robert Doe',
-        'Mother Name': 'Jane Doe',
-        'Guardian Phone': '9876543211',
-        'Guardian Email': 'parent@example.com',
-        Address: '123 Main St, City',
-        'Admission Date': '01/04/2024',
-      },
-    ];
-
-    const ws = XLSX.utils.json_to_sheet(templateData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Students');
-    XLSX.writeFile(wb, 'student_upload_template.xlsx');
   };
 
   if (loading) {
@@ -789,7 +764,7 @@ export default function StudentManagement() {
               </button>
               <button
                 onClick={() => setShowBulkUploadModal(true)}
-                className="flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+                className="flex items-center px-4 py-2 bg-success text-white text-sm font-medium rounded-md hover:bg-success/90 transition-colors"
               >
                 <svg
                   className="w-4 h-4 mr-2"
@@ -817,34 +792,42 @@ export default function StudentManagement() {
           <div className="flex items-end gap-6">
             {/* Search - Takes remaining space */}
             <div className="flex-1">
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label
+                htmlFor="student-search"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
                 Search Students
+                <input
+                  id="student-search"
+                  type="text"
+                  placeholder="Search by name, roll number, or father's name..."
+                  className="w-full px-4 py-2.5 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </label>
-              <input
-                type="text"
-                placeholder="Search by name, roll number, or father's name..."
-                className="w-full px-4 py-2.5 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
             </div>
 
             {/* Class Filter Dropdown */}
             <div className="w-52">
-              <label className="block text-sm font-medium text-foreground mb-2">
-                Filter by Class
-              </label>
-              <select
-                value={selectedClass}
-                onChange={(e) => handleClassSelection(e.target.value)}
-                className="w-full px-4 py-2.5 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              <label
+                htmlFor="student-class-filter"
+                className="block text-sm font-medium text-foreground mb-2"
               >
-                {classes.map((cls) => (
-                  <option key={cls} value={cls}>
-                    {cls}
-                  </option>
-                ))}
-              </select>
+                Filter by Class
+                <select
+                  id="student-class-filter"
+                  value={selectedClass}
+                  onChange={(e) => handleClassSelection(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  {classes.map((cls) => (
+                    <option key={cls} value={cls}>
+                      {cls}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             {/* Total Students Count */}
@@ -951,7 +934,7 @@ export default function StudentManagement() {
                       </button>
                       <button
                         onClick={() => handleEditStudent(student)}
-                        className="text-green-600 hover:text-green-900"
+                        className="text-success hover:text-success/80"
                       >
                         Edit
                       </button>
@@ -1013,6 +996,7 @@ export default function StudentManagement() {
                 </div>
                 <button
                   onClick={() => setSelectedStudent(null)}
+                  aria-label="Close"
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
@@ -1043,17 +1027,17 @@ export default function StudentManagement() {
                       <div className="space-y-3">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <p className="text-sm font-medium text-muted-foreground">
                               First Name
-                            </label>
+                            </p>
                             <p className="text-sm text-foreground">
                               {selectedStudent.firstName}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <p className="text-sm font-medium text-muted-foreground">
                               Last Name
-                            </label>
+                            </p>
                             <p className="text-sm text-foreground">
                               {selectedStudent.lastName}
                             </p>
@@ -1061,17 +1045,17 @@ export default function StudentManagement() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <p className="text-sm font-medium text-muted-foreground">
                               Date of Birth
-                            </label>
+                            </p>
                             <p className="text-sm text-foreground">
                               {selectedStudent.dateOfBirth}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <p className="text-sm font-medium text-muted-foreground">
                               Gender
-                            </label>
+                            </p>
                             <p className="text-sm text-foreground">
                               {selectedStudent.gender || 'Not specified'}
                             </p>
@@ -1079,26 +1063,26 @@ export default function StudentManagement() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <p className="text-sm font-medium text-muted-foreground">
                               Email
-                            </label>
+                            </p>
                             <p className="text-sm text-foreground">
                               {selectedStudent.email}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <p className="text-sm font-medium text-muted-foreground">
                               Phone
-                            </label>
+                            </p>
                             <p className="text-sm text-foreground">
                               {selectedStudent.phone}
                             </p>
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-muted-foreground">
+                          <p className="text-sm font-medium text-muted-foreground">
                             Admission Date
-                          </label>
+                          </p>
                           <p className="text-sm text-foreground">
                             {selectedStudent.admissionDate}
                           </p>
@@ -1112,43 +1096,43 @@ export default function StudentManagement() {
                       </h4>
                       <div className="space-y-3">
                         <div>
-                          <label className="text-sm font-medium text-muted-foreground">
+                          <p className="text-sm font-medium text-muted-foreground">
                             Father&apos;s Name
-                          </label>
+                          </p>
                           <p className="text-sm text-foreground">
                             {selectedStudent.guardianInfo.fatherName}
                           </p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-muted-foreground">
+                          <p className="text-sm font-medium text-muted-foreground">
                             Mother&apos;s Name
-                          </label>
+                          </p>
                           <p className="text-sm text-foreground">
                             {selectedStudent.guardianInfo.motherName}
                           </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <p className="text-sm font-medium text-muted-foreground">
                               Guardian Phone
-                            </label>
+                            </p>
                             <p className="text-sm text-foreground">
                               {selectedStudent.guardianInfo.phone}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <p className="text-sm font-medium text-muted-foreground">
                               Guardian Email
-                            </label>
+                            </p>
                             <p className="text-sm text-foreground">
                               {selectedStudent.guardianInfo.email}
                             </p>
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-muted-foreground">
+                          <p className="text-sm font-medium text-muted-foreground">
                             Address
-                          </label>
+                          </p>
                           <p className="text-sm text-foreground">
                             {selectedStudent.guardianInfo.address}
                           </p>
@@ -1207,6 +1191,7 @@ export default function StudentManagement() {
                 </div>
                 <button
                   onClick={handleCancelEdit}
+                  aria-label="Close"
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
@@ -1237,108 +1222,138 @@ export default function StudentManagement() {
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              First Name <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={editFormData.firstName || ''}
-                              onChange={(e) =>
-                                updateFormField('firstName', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter first name"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              Last Name <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                              type="text"
-                              value={editFormData.lastName || ''}
-                              onChange={(e) =>
-                                updateFormField('lastName', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter last name"
-                            />
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              Date of Birth{' '}
-                              <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                              type="date"
-                              value={editFormData.dateOfBirth || ''}
-                              onChange={(e) =>
-                                updateFormField('dateOfBirth', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              Gender
-                            </label>
-                            <select
-                              value={editFormData.gender || ''}
-                              onChange={(e) =>
-                                updateFormField('gender', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            <label
+                              htmlFor="edit-student-first-name"
+                              className="block text-sm font-medium text-foreground mb-1"
                             >
-                              <option value="Male">Male</option>
-                              <option value="Female">Female</option>
-                            </select>
+                              First Name{' '}
+                              <span className="text-destructive">*</span>
+                              <input
+                                id="edit-student-first-name"
+                                type="text"
+                                value={editFormData.firstName || ''}
+                                onChange={(e) =>
+                                  updateFormField('firstName', e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Enter first name"
+                              />
+                            </label>
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="edit-student-last-name"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
+                              Last Name{' '}
+                              <span className="text-destructive">*</span>
+                              <input
+                                id="edit-student-last-name"
+                                type="text"
+                                value={editFormData.lastName || ''}
+                                onChange={(e) =>
+                                  updateFormField('lastName', e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Enter last name"
+                              />
+                            </label>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              Email <span className="text-red-500">*</span>
+                            <label
+                              htmlFor="edit-student-dob"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
+                              Date of Birth{' '}
+                              <span className="text-destructive">*</span>
+                              <input
+                                id="edit-student-dob"
+                                type="date"
+                                value={editFormData.dateOfBirth || ''}
+                                onChange={(e) =>
+                                  updateFormField('dateOfBirth', e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              />
                             </label>
-                            <input
-                              type="email"
-                              value={editFormData.email || ''}
-                              onChange={(e) =>
-                                updateFormField('email', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter email address"
-                            />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              Phone <span className="text-red-500">*</span>
+                            <label
+                              htmlFor="edit-student-gender"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
+                              Gender
+                              <select
+                                id="edit-student-gender"
+                                value={editFormData.gender || ''}
+                                onChange={(e) =>
+                                  updateFormField('gender', e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              >
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                              </select>
                             </label>
-                            <input
-                              type="tel"
-                              value={editFormData.phone || ''}
-                              onChange={(e) =>
-                                updateFormField('phone', e.target.value)
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter phone number"
-                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label
+                              htmlFor="edit-student-email"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
+                              Email <span className="text-destructive">*</span>
+                              <input
+                                id="edit-student-email"
+                                type="email"
+                                value={editFormData.email || ''}
+                                onChange={(e) =>
+                                  updateFormField('email', e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Enter email address"
+                              />
+                            </label>
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="edit-student-phone"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
+                              Phone <span className="text-destructive">*</span>
+                              <input
+                                id="edit-student-phone"
+                                type="tel"
+                                value={editFormData.phone || ''}
+                                onChange={(e) =>
+                                  updateFormField('phone', e.target.value)
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Enter phone number"
+                              />
+                            </label>
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="edit-student-profile"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Profile Photo URL
+                            <input
+                              id="edit-student-profile"
+                              type="url"
+                              value={editFormData.profile || ''}
+                              onChange={(e) =>
+                                updateFormField('profile', e.target.value)
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="https://example.com/photo.jpg"
+                            />
                           </label>
-                          <input
-                            type="url"
-                            value={editFormData.profile || ''}
-                            onChange={(e) =>
-                              updateFormField('profile', e.target.value)
-                            }
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="https://example.com/photo.jpg"
-                          />
                         </div>
                       </div>
                     </div>
@@ -1352,98 +1367,122 @@ export default function StudentManagement() {
                       </h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="edit-student-father-name"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Father&apos;s Name{' '}
-                            <span className="text-red-500">*</span>
+                            <span className="text-destructive">*</span>
+                            <input
+                              id="edit-student-father-name"
+                              type="text"
+                              value={
+                                editFormData.guardianInfo?.fatherName || ''
+                              }
+                              onChange={(e) =>
+                                updateNestedField(
+                                  'guardianInfo',
+                                  'fatherName',
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter father's name"
+                            />
                           </label>
-                          <input
-                            type="text"
-                            value={editFormData.guardianInfo?.fatherName || ''}
-                            onChange={(e) =>
-                              updateNestedField(
-                                'guardianInfo',
-                                'fatherName',
-                                e.target.value,
-                              )
-                            }
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter father's name"
-                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="edit-student-mother-name"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Mother&apos;s Name{' '}
-                            <span className="text-red-500">*</span>
+                            <span className="text-destructive">*</span>
+                            <input
+                              id="edit-student-mother-name"
+                              type="text"
+                              value={
+                                editFormData.guardianInfo?.motherName || ''
+                              }
+                              onChange={(e) =>
+                                updateNestedField(
+                                  'guardianInfo',
+                                  'motherName',
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter mother's name"
+                            />
                           </label>
-                          <input
-                            type="text"
-                            value={editFormData.guardianInfo?.motherName || ''}
-                            onChange={(e) =>
-                              updateNestedField(
-                                'guardianInfo',
-                                'motherName',
-                                e.target.value,
-                              )
-                            }
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter mother's name"
-                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="edit-student-guardian-phone"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Guardian Phone{' '}
-                            <span className="text-red-500">*</span>
+                            <span className="text-destructive">*</span>
+                            <input
+                              id="edit-student-guardian-phone"
+                              type="tel"
+                              value={editFormData.guardianInfo?.phone || ''}
+                              onChange={(e) =>
+                                updateNestedField(
+                                  'guardianInfo',
+                                  'phone',
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter guardian phone number"
+                            />
                           </label>
-                          <input
-                            type="tel"
-                            value={editFormData.guardianInfo?.phone || ''}
-                            onChange={(e) =>
-                              updateNestedField(
-                                'guardianInfo',
-                                'phone',
-                                e.target.value,
-                              )
-                            }
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter guardian phone number"
-                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="edit-student-guardian-email"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Guardian Email{' '}
-                            <span className="text-red-500">*</span>
+                            <span className="text-destructive">*</span>
+                            <input
+                              id="edit-student-guardian-email"
+                              type="email"
+                              value={editFormData.guardianInfo?.email || ''}
+                              onChange={(e) =>
+                                updateNestedField(
+                                  'guardianInfo',
+                                  'email',
+                                  e.target.value,
+                                )
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter guardian email address"
+                            />
                           </label>
-                          <input
-                            type="email"
-                            value={editFormData.guardianInfo?.email || ''}
-                            onChange={(e) =>
-                              updateNestedField(
-                                'guardianInfo',
-                                'email',
-                                e.target.value,
-                              )
-                            }
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter guardian email address"
-                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
-                            Address <span className="text-red-500">*</span>
+                          <label
+                            htmlFor="edit-student-address"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
+                            Address <span className="text-destructive">*</span>
+                            <textarea
+                              id="edit-student-address"
+                              value={editFormData.guardianInfo?.address || ''}
+                              onChange={(e) =>
+                                updateNestedField(
+                                  'guardianInfo',
+                                  'address',
+                                  e.target.value,
+                                )
+                              }
+                              rows={3}
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter home address"
+                            />
                           </label>
-                          <textarea
-                            value={editFormData.guardianInfo?.address || ''}
-                            onChange={(e) =>
-                              updateNestedField(
-                                'guardianInfo',
-                                'address',
-                                e.target.value,
-                              )
-                            }
-                            rows={3}
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter home address"
-                          />
                         </div>
                       </div>
                     </div>
@@ -1461,7 +1500,7 @@ export default function StudentManagement() {
                 </button>
                 <button
                   onClick={handleSaveStudent}
-                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-white bg-success hover:bg-success/90 rounded-md"
                 >
                   Save Changes
                 </button>
@@ -1486,6 +1525,7 @@ export default function StudentManagement() {
                 </div>
                 <button
                   onClick={handleCancelAdd}
+                  aria-label="Close"
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
@@ -1516,194 +1556,236 @@ export default function StudentManagement() {
                       <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              First Name <span className="text-red-500">*</span>
+                            <label
+                              htmlFor="add-student-first-name"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
+                              First Name{' '}
+                              <span className="text-destructive">*</span>
+                              <input
+                                id="add-student-first-name"
+                                type="text"
+                                value={addFormData.firstName}
+                                onChange={(e) =>
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    firstName: e.target.value,
+                                  }))
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Enter first name"
+                              />
                             </label>
-                            <input
-                              type="text"
-                              value={addFormData.firstName}
-                              onChange={(e) =>
-                                setAddFormData((prev) => ({
-                                  ...prev,
-                                  firstName: e.target.value,
-                                }))
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter first name"
-                            />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              Last Name <span className="text-red-500">*</span>
+                            <label
+                              htmlFor="add-student-last-name"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
+                              Last Name{' '}
+                              <span className="text-destructive">*</span>
+                              <input
+                                id="add-student-last-name"
+                                type="text"
+                                value={addFormData.lastName}
+                                onChange={(e) =>
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    lastName: e.target.value,
+                                  }))
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Enter last name"
+                              />
                             </label>
-                            <input
-                              type="text"
-                              value={addFormData.lastName}
-                              onChange={(e) =>
-                                setAddFormData((prev) => ({
-                                  ...prev,
-                                  lastName: e.target.value,
-                                }))
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter last name"
-                            />
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
+                            <label
+                              htmlFor="add-student-dob"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
                               Date of Birth{' '}
-                              <span className="text-red-500">*</span>
+                              <span className="text-destructive">*</span>
+                              <input
+                                id="add-student-dob"
+                                type="date"
+                                value={addFormData.dob}
+                                onChange={(e) =>
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    dob: e.target.value,
+                                  }))
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              />
                             </label>
-                            <input
-                              type="date"
-                              value={addFormData.dob}
-                              onChange={(e) =>
-                                setAddFormData((prev) => ({
-                                  ...prev,
-                                  dob: e.target.value,
-                                }))
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
+                            <label
+                              htmlFor="add-student-gender"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
                               Gender
+                              <select
+                                id="add-student-gender"
+                                value={addFormData.gender}
+                                onChange={(e) =>
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    gender: e.target.value,
+                                  }))
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              >
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                              </select>
                             </label>
-                            <select
-                              value={addFormData.gender}
-                              onChange={(e) =>
-                                setAddFormData((prev) => ({
-                                  ...prev,
-                                  gender: e.target.value,
-                                }))
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            >
-                              <option value="Male">Male</option>
-                              <option value="Female">Female</option>
-                            </select>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              Email <span className="text-red-500">*</span>
+                            <label
+                              htmlFor="add-student-email"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
+                              Email <span className="text-destructive">*</span>
+                              <input
+                                id="add-student-email"
+                                type="email"
+                                value={addFormData.email}
+                                onChange={(e) =>
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    email: e.target.value,
+                                  }))
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Enter email address"
+                              />
                             </label>
-                            <input
-                              type="email"
-                              value={addFormData.email}
-                              onChange={(e) =>
-                                setAddFormData((prev) => ({
-                                  ...prev,
-                                  email: e.target.value,
-                                }))
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter email address"
-                            />
                           </div>
                           <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              Phone <span className="text-red-500">*</span>
+                            <label
+                              htmlFor="add-student-phone"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
+                              Phone <span className="text-destructive">*</span>
+                              <input
+                                id="add-student-phone"
+                                type="tel"
+                                value={addFormData.phone}
+                                onChange={(e) =>
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    phone: e.target.value,
+                                  }))
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Enter phone number"
+                              />
                             </label>
-                            <input
-                              type="tel"
-                              value={addFormData.phone}
-                              onChange={(e) =>
-                                setAddFormData((prev) => ({
-                                  ...prev,
-                                  phone: e.target.value,
-                                }))
-                              }
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter phone number"
-                            />
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="add-student-profile"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Profile Photo URL
-                          </label>
-                          <input
-                            type="url"
-                            value={addFormData.profile}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                profile: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="https://example.com/photo.jpg"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              Class
-                            </label>
-                            <select
-                              value={addFormData.classId}
-                              onChange={(e) => {
-                                const selectedClassData =
-                                  classesResponse?.data.find(
-                                    (cls) => cls.id === e.target.value,
-                                  );
-                                setAddFormData((prev) => ({
-                                  ...prev,
-                                  classId: e.target.value,
-                                  className: selectedClassData
-                                    ? `${selectedClassData.attributes.class}-${selectedClassData.attributes.section}`
-                                    : '',
-                                }));
-                              }}
-                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            >
-                              <option value="">Select Class</option>
-                              {classesResponse?.data.map((cls) => (
-                                <option key={cls.id} value={cls.id}>
-                                  {cls.attributes.class} -{' '}
-                                  {cls.attributes.section}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-foreground mb-1">
-                              Roll Number
-                            </label>
                             <input
-                              type="text"
-                              value={addFormData.rollNumber}
+                              id="add-student-profile"
+                              type="url"
+                              value={addFormData.profile}
                               onChange={(e) =>
                                 setAddFormData((prev) => ({
                                   ...prev,
-                                  rollNumber: e.target.value,
+                                  profile: e.target.value,
                                 }))
                               }
                               className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                              placeholder="Enter roll number"
+                              placeholder="https://example.com/photo.jpg"
                             />
+                          </label>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label
+                              htmlFor="add-student-class"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
+                              Class
+                              <select
+                                id="add-student-class"
+                                value={addFormData.classId}
+                                onChange={(e) => {
+                                  const selectedClassData =
+                                    classesResponse?.data.find(
+                                      (cls) => cls.id === e.target.value,
+                                    );
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    classId: e.target.value,
+                                    className: selectedClassData
+                                      ? `${selectedClassData.attributes.class}-${selectedClassData.attributes.section}`
+                                      : '',
+                                  }));
+                                }}
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              >
+                                <option value="">Select Class</option>
+                                {classesResponse?.data.map((cls) => (
+                                  <option key={cls.id} value={cls.id}>
+                                    {cls.attributes.class} -{' '}
+                                    {cls.attributes.section}
+                                  </option>
+                                ))}
+                              </select>
+                            </label>
+                          </div>
+                          <div>
+                            <label
+                              htmlFor="add-student-roll-number"
+                              className="block text-sm font-medium text-foreground mb-1"
+                            >
+                              Roll Number
+                              <input
+                                id="add-student-roll-number"
+                                type="text"
+                                value={addFormData.rollNumber}
+                                onChange={(e) =>
+                                  setAddFormData((prev) => ({
+                                    ...prev,
+                                    rollNumber: e.target.value,
+                                  }))
+                                }
+                                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                placeholder="Enter roll number"
+                              />
+                            </label>
                           </div>
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="add-student-admission-date"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Admission Date
+                            <input
+                              id="add-student-admission-date"
+                              type="date"
+                              value={addFormData.admissionDate}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  admissionDate: e.target.value,
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            />
                           </label>
-                          <input
-                            type="date"
-                            value={addFormData.admissionDate}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                admissionDate: e.target.value,
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          />
                         </div>
                       </div>
                     </div>
@@ -1717,107 +1799,127 @@ export default function StudentManagement() {
                       </h4>
                       <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="add-student-father-name"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Father&apos;s Name{' '}
-                            <span className="text-red-500">*</span>
+                            <span className="text-destructive">*</span>
+                            <input
+                              id="add-student-father-name"
+                              type="text"
+                              value={addFormData.guardianInfo.fatherName}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  guardianInfo: {
+                                    ...prev.guardianInfo,
+                                    fatherName: e.target.value,
+                                  },
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter father's name"
+                            />
                           </label>
-                          <input
-                            type="text"
-                            value={addFormData.guardianInfo.fatherName}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                guardianInfo: {
-                                  ...prev.guardianInfo,
-                                  fatherName: e.target.value,
-                                },
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter father's name"
-                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="add-student-mother-name"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Mother&apos;s Name{' '}
-                            <span className="text-red-500">*</span>
+                            <span className="text-destructive">*</span>
+                            <input
+                              id="add-student-mother-name"
+                              type="text"
+                              value={addFormData.guardianInfo.motherName}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  guardianInfo: {
+                                    ...prev.guardianInfo,
+                                    motherName: e.target.value,
+                                  },
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter mother's name"
+                            />
                           </label>
-                          <input
-                            type="text"
-                            value={addFormData.guardianInfo.motherName}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                guardianInfo: {
-                                  ...prev.guardianInfo,
-                                  motherName: e.target.value,
-                                },
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter mother's name"
-                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="add-student-guardian-phone"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Guardian Phone{' '}
-                            <span className="text-red-500">*</span>
+                            <span className="text-destructive">*</span>
+                            <input
+                              id="add-student-guardian-phone"
+                              type="tel"
+                              value={addFormData.guardianInfo.phone}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  guardianInfo: {
+                                    ...prev.guardianInfo,
+                                    phone: e.target.value,
+                                  },
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter guardian phone number"
+                            />
                           </label>
-                          <input
-                            type="tel"
-                            value={addFormData.guardianInfo.phone}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                guardianInfo: {
-                                  ...prev.guardianInfo,
-                                  phone: e.target.value,
-                                },
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter guardian phone number"
-                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="add-student-guardian-email"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Guardian Email
+                            <input
+                              id="add-student-guardian-email"
+                              type="email"
+                              value={addFormData.guardianInfo.email}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  guardianInfo: {
+                                    ...prev.guardianInfo,
+                                    email: e.target.value,
+                                  },
+                                }))
+                              }
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter guardian email address"
+                            />
                           </label>
-                          <input
-                            type="email"
-                            value={addFormData.guardianInfo.email}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                guardianInfo: {
-                                  ...prev.guardianInfo,
-                                  email: e.target.value,
-                                },
-                              }))
-                            }
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter guardian email address"
-                          />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-foreground mb-1">
+                          <label
+                            htmlFor="add-student-address"
+                            className="block text-sm font-medium text-foreground mb-1"
+                          >
                             Address
+                            <textarea
+                              id="add-student-address"
+                              value={addFormData.guardianInfo.address}
+                              onChange={(e) =>
+                                setAddFormData((prev) => ({
+                                  ...prev,
+                                  guardianInfo: {
+                                    ...prev.guardianInfo,
+                                    address: e.target.value,
+                                  },
+                                }))
+                              }
+                              rows={3}
+                              className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              placeholder="Enter home address"
+                            />
                           </label>
-                          <textarea
-                            value={addFormData.guardianInfo.address}
-                            onChange={(e) =>
-                              setAddFormData((prev) => ({
-                                ...prev,
-                                guardianInfo: {
-                                  ...prev.guardianInfo,
-                                  address: e.target.value,
-                                },
-                              }))
-                            }
-                            rows={3}
-                            className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                            placeholder="Enter home address"
-                          />
                         </div>
                       </div>
                     </div>
@@ -1860,6 +1962,7 @@ export default function StudentManagement() {
                 </div>
                 <button
                   onClick={handleCloseBulkUploadModal}
+                  aria-label="Close"
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
@@ -1882,22 +1985,22 @@ export default function StudentManagement() {
               <div className="p-6 space-y-6">
                 {/* File Upload Section */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <p className="block text-sm font-medium text-foreground mb-2">
                     Upload File
-                  </label>
+                  </p>
                   <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-indigo-500 transition-colors">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".xlsx,.xls,.csv"
-                      onChange={handleFileSelect}
-                      className="hidden"
-                      id="bulk-upload-input"
-                    />
                     <label
                       htmlFor="bulk-upload-input"
                       className="cursor-pointer"
                     >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".xlsx,.xls,.csv"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        id="bulk-upload-input"
+                      />
                       <svg
                         className="w-12 h-12 mx-auto text-muted-foreground mb-4"
                         fill="none"
@@ -1926,10 +2029,10 @@ export default function StudentManagement() {
 
                 {/* Errors Section */}
                 {bulkUploadErrors.length > 0 && (
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                  <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
                     <div className="flex items-start gap-3">
                       <svg
-                        className="w-5 h-5 text-red-600 mt-0.5"
+                        className="w-5 h-5 text-destructive mt-0.5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -1942,15 +2045,15 @@ export default function StudentManagement() {
                         />
                       </svg>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">
+                        <p className="text-sm font-medium text-destructive mb-2">
                           Validation Errors ({bulkUploadErrors.length})
                         </p>
-                        <ul className="text-sm text-red-700 dark:text-red-300 space-y-1 max-h-32 overflow-y-auto">
+                        <ul className="text-sm text-destructive space-y-1 max-h-32 overflow-y-auto">
                           {bulkUploadErrors.slice(0, 10).map((error, index) => (
                             <li key={index}>• {error}</li>
                           ))}
                           {bulkUploadErrors.length > 10 && (
-                            <li className="text-red-500">
+                            <li className="text-destructive">
                               ...and {bulkUploadErrors.length - 10} more errors
                             </li>
                           )}
@@ -1965,22 +2068,22 @@ export default function StudentManagement() {
                   <div
                     className={`border rounded-lg p-4 ${
                       bulkUploadResult.failed === 0
-                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                        : 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800'
+                        ? 'bg-success/10 border-success/20'
+                        : 'bg-warning/10 border-warning/20'
                     }`}
                   >
                     <p
                       className={`text-sm font-medium mb-2 ${
                         bulkUploadResult.failed === 0
-                          ? 'text-green-800 dark:text-green-200'
-                          : 'text-yellow-800 dark:text-yellow-200'
+                          ? 'text-success'
+                          : 'text-warning'
                       }`}
                     >
                       Upload Results: {bulkUploadResult.success} succeeded,{' '}
                       {bulkUploadResult.failed} failed
                     </p>
                     {bulkUploadResult.errors.length > 0 && (
-                      <ul className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+                      <ul className="text-sm text-warning space-y-1">
                         {bulkUploadResult.errors.map((error, index) => (
                           <li key={index}>• {error}</li>
                         ))}
@@ -2071,7 +2174,7 @@ export default function StudentManagement() {
                     bulkUploadErrors.length > 0 ||
                     bulkUploadLoading
                   }
-                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 text-sm font-medium text-white bg-success hover:bg-success/90 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {bulkUploadLoading ? (
                     <>
