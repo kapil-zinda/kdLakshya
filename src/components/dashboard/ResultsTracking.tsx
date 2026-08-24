@@ -28,6 +28,7 @@ import {
   dummyResultsData,
   dummySubjects,
 } from '@/data/teacherDashboardDummyData';
+import { toast } from 'react-toastify';
 import {
   Bar,
   BarChart,
@@ -64,6 +65,11 @@ interface ClassPerformance {
   lowestMarks: number;
 }
 
+interface GradeDistribution {
+  grade: string;
+  count: number;
+}
+
 const ResultsTracking: React.FC = () => {
   const [results, setResults] = useState<StudentResult[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -74,7 +80,9 @@ const ResultsTracking: React.FC = () => {
   const [performanceData, setPerformanceData] = useState<ClassPerformance[]>(
     [],
   );
-  const [distributionData, setDistributionData] = useState<any[]>([]);
+  const [distributionData, setDistributionData] = useState<GradeDistribution[]>(
+    [],
+  );
 
   useEffect(() => {
     // In a real application, this would fetch subjects for the selected class
@@ -100,7 +108,7 @@ const ResultsTracking: React.FC = () => {
 
   const handleGenerateReports = async () => {
     if (!selectedClass || !selectedExam) {
-      alert('Please select a class and exam');
+      toast.error('Please select a class and exam');
       return;
     }
 
@@ -114,10 +122,10 @@ const ResultsTracking: React.FC = () => {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      alert('Reports generated and sent successfully!');
+      toast.success('Reports generated and sent successfully!');
     } catch (error) {
       console.error('Error generating reports:', error);
-      alert('Failed to generate reports. Please try again.');
+      toast.error('Failed to generate reports. Please try again.');
     }
   };
 
@@ -320,12 +328,12 @@ const ResultsTracking: React.FC = () => {
               <div className="flex justify-end space-x-4">
                 <Button
                   onClick={handleGenerateReports}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-success hover:bg-success/90"
                 >
                   Generate & Send Reports
                 </Button>
                 <Button
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-info hover:bg-info/90"
                   onClick={() => window.print()}
                 >
                   Print Results

@@ -26,6 +26,7 @@ import {
   dummyMarkSheetData,
   dummySubjects,
 } from '@/data/teacherDashboardDummyData';
+import { toast } from 'react-toastify';
 
 interface Student {
   id: string;
@@ -101,7 +102,7 @@ const MarkSheet: React.FC = () => {
 
   const handleSaveMarks = async () => {
     if (!selectedClass || !selectedExam) {
-      alert('Please select a class and exam');
+      toast.error('Please select a class and exam');
       return;
     }
 
@@ -133,10 +134,10 @@ const MarkSheet: React.FC = () => {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      alert('Marks saved successfully!');
+      toast.success('Marks saved successfully!');
     } catch (error) {
       console.error('Error saving marks:', error);
-      alert('Failed to save marks. Please try again.');
+      toast.error('Failed to save marks. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -297,7 +298,7 @@ const MarkSheet: React.FC = () => {
           <div className="mt-6 flex justify-end">
             <Button
               onClick={handleSaveMarks}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-info hover:bg-info/90"
               disabled={isSaving}
             >
               {isSaving ? 'Saving...' : 'Save Marks'}
