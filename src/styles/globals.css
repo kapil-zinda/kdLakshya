@@ -28,6 +28,25 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 20% 98%;
 
+    /*
+     * success/warning/info: added so status colour meant something more
+     * specific than "whichever shade of green/yellow/blue looked right at
+     * that call site" - counted at 200+ raw bg-green, text-yellow and
+     * bg-blue utility usages across the app, each picked
+     * independently with no shared source of truth for what "this succeeded"
+     * or "this needs attention" should look like, or how it should look in
+     * dark mode. New code should reach for these; migrating the existing raw
+     * usages is tracked separately rather than done as one blind sweep.
+     */
+    --success: 142 71% 30%;
+    --success-foreground: 210 20% 98%;
+
+    --warning: 38 92% 40%;
+    --warning-foreground: 210 20% 98%;
+
+    --info: 217 91% 45%;
+    --info-foreground: 210 20% 98%;
+
     --border: 220 13% 91%;
     --input: 220 13% 91%;
     --ring: 224 71.4% 4.1%;
@@ -69,6 +88,15 @@
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 20% 98%;
+
+    --success: 142 71% 24%;
+    --success-foreground: 210 20% 98%;
+
+    --warning: 38 92% 34%;
+    --warning-foreground: 210 20% 98%;
+
+    --info: 217 91% 60%;
+    --info-foreground: 224 71.4% 4.1%;
 
     --border: 215 27.9% 16.9%;
     --input: 215 27.9% 16.9%;
@@ -162,7 +190,9 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Baseline until ThemeApplier swaps in the org's configured family. */
+    /* Baseline; overridden by the org's configured font-family, set as an
+       inline style on <html> in the root layout (see resolveBrandTokens in
+       src/lib/branding.server.ts), which inherits down to this. */
     font-family:
       'Inter',
       system-ui,
