@@ -1,7 +1,11 @@
 {
   "parser": "@typescript-eslint/parser",
-  "extends": ["plugin:@typescript-eslint/recommended", "next/core-web-vitals"],
-  "plugins": ["unused-imports"],
+  "extends": [
+    "plugin:@typescript-eslint/recommended",
+    "next/core-web-vitals",
+    "plugin:jsx-a11y/recommended"
+  ],
+  "plugins": ["unused-imports", "jsx-a11y"],
   "rules": {
     "@typescript-eslint/no-unused-vars": [
       "warn",
@@ -19,7 +23,68 @@
     ],
     "@typescript-eslint/no-explicit-any": "warn", // Disable no-explicit-any rule
     "react-hooks/rules-of-hooks": "warn", // Ensure hooks are used properly
-    "react-hooks/exhaustive-deps": "warn" // Warn for missing dependencies in hooks
+    "react-hooks/exhaustive-deps": "warn", // Warn for missing dependencies in hooks
+
+    // jsx-a11y/recommended surfaced ~275 pre-existing violations on adoption,
+    // concentrated in hand-rolled modals (fixed inset-0 divs with onClick and
+    // no keyboard equivalent, no focus trap) that predate this config. `next
+    // build` runs ESLint and fails the build on any error-level violation, so
+    // turning these on at their default severity would break CI immediately
+    // over debt this change didn't create. Warn makes every violation visible
+    // in `next lint` and inline in editors without blocking merges; ratchet
+    // the ones below to "error" as the existing violations get fixed.
+    "jsx-a11y/alt-text": "warn",
+    "jsx-a11y/anchor-ambiguous-text": "warn",
+    "jsx-a11y/anchor-has-content": "warn",
+    "jsx-a11y/anchor-is-valid": "warn",
+    "jsx-a11y/aria-activedescendant-has-tabindex": "warn",
+    "jsx-a11y/aria-props": "warn",
+    "jsx-a11y/aria-proptypes": "warn",
+    "jsx-a11y/aria-role": "warn",
+    "jsx-a11y/aria-unsupported-elements": "warn",
+    "jsx-a11y/autocomplete-valid": "warn",
+    "jsx-a11y/click-events-have-key-events": "warn",
+    "jsx-a11y/control-has-associated-label": "warn",
+    "jsx-a11y/heading-has-content": "warn",
+    "jsx-a11y/html-has-lang": "warn",
+    "jsx-a11y/iframe-has-title": "warn",
+    "jsx-a11y/img-redundant-alt": "warn",
+    "jsx-a11y/interactive-supports-focus": "warn",
+    "jsx-a11y/label-has-associated-control": "warn",
+    "jsx-a11y/label-has-for": "warn",
+    "jsx-a11y/media-has-caption": "warn",
+    "jsx-a11y/mouse-events-have-key-events": "warn",
+    "jsx-a11y/no-access-key": "warn",
+    "jsx-a11y/no-autofocus": "warn",
+    "jsx-a11y/no-distracting-elements": "warn",
+    "jsx-a11y/no-interactive-element-to-noninteractive-role": "warn",
+    "jsx-a11y/no-noninteractive-element-interactions": "warn",
+    "jsx-a11y/no-noninteractive-element-to-interactive-role": "warn",
+    "jsx-a11y/no-noninteractive-tabindex": "warn",
+    "jsx-a11y/no-redundant-roles": "warn",
+    "jsx-a11y/no-static-element-interactions": "warn",
+    "jsx-a11y/role-has-required-aria-props": "warn",
+    "jsx-a11y/role-supports-aria-props": "warn",
+    "jsx-a11y/scope": "warn",
+    "jsx-a11y/tabindex-no-positive": "warn",
+
+    // S2: status colour (error/success/warning/info) should come from the
+    // success/warning/info/destructive tokens in globals.css, not a
+    // hand-picked Tailwind palette shade - counted at 200+ existing raw
+    // occurrences (bg-green-600, text-red-800, bg-yellow-500, ...), each
+    // chosen independently with no shared definition of what "this failed"
+    // should look like, or how it should look in dark mode. Warn-level and
+    // scoped to className so it doesn't fire on this file's own class-name
+    // strings inside comments/config, and doesn't touch non-status colours
+    // (indigo, purple, ...) used as this app's actual interactive/brand
+    // accent, which is not what this rule is about.
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "JSXAttribute[name.name='className'] > Literal[value=/(^|\\s)(bg|text|border|ring|from|via|to)-(red|green|yellow|amber|blue)-[0-9]+(\\s|$)/]",
+        "message": "Use text-destructive/bg-success/bg-warning/bg-info (or their -foreground pair) instead of a raw Tailwind palette colour for status."
+      }
+    ]
   },
   "ignorePatterns": ["*.md", "*.css", ".claude/"]
 }
