@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import {
   useCreateClassMutation,
@@ -25,6 +26,7 @@ import {
 } from '@/store/api/classApi';
 import { useGetFacultyQuery } from '@/store/api/facultyApi';
 import { useLazyGetUnassignedStudentsQuery } from '@/store/api/studentApi';
+import { toast } from 'react-toastify';
 
 interface Student {
   id: string; // enrollment ID
@@ -135,6 +137,7 @@ interface Class {
 
 export default function ClassManagement() {
   const router = useRouter();
+  const confirm = useConfirm();
 
   // Get orgId from Redux
   const { userData } = useUserDataRedux();
@@ -455,12 +458,12 @@ export default function ClassManagement() {
 
   const handleCreateClass = async () => {
     if (!classFormData.name || !classFormData.section) {
-      alert('Please fill in required fields');
+      toast.error('Please fill in required fields');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -485,10 +488,10 @@ export default function ClassManagement() {
         academicYear: '2024-25',
         room: '',
       });
-      alert('Class created successfully!');
+      toast.success('Class created successfully!');
     } catch (error) {
       console.error('Error creating class:', error);
-      alert('Failed to create class. Please try again.');
+      toast.error('Failed to create class. Please try again.');
     }
   };
 
@@ -509,12 +512,12 @@ export default function ClassManagement() {
       !editClassFormData.section ||
       !editingClass
     ) {
-      alert('Please fill in required fields');
+      toast.error('Please fill in required fields');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -541,24 +544,25 @@ export default function ClassManagement() {
         academicYear: '',
         room: '',
       });
-      alert('Class updated successfully!');
+      toast.success('Class updated successfully!');
     } catch (error) {
       console.error('Error updating class:', error);
-      alert('Failed to update class. Please try again.');
+      toast.error('Failed to update class. Please try again.');
     }
   };
 
   const handleDeleteClass = async (classToDelete: Class) => {
     if (
-      !confirm(
+      !(await confirm(
         `Are you sure you want to delete ${classToDelete.name} - ${classToDelete.section}? This action cannot be undone.`,
-      )
+        { destructive: true },
+      ))
     ) {
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -574,10 +578,10 @@ export default function ClassManagement() {
         setSelectedClassId(null);
       }
 
-      alert('Class deleted successfully!');
+      toast.success('Class deleted successfully!');
     } catch (error) {
       console.error('Error deleting class:', error);
-      alert('Failed to delete class. Please try again.');
+      toast.error('Failed to delete class. Please try again.');
     }
   };
 
@@ -592,12 +596,12 @@ export default function ClassManagement() {
 
   const handleUpdateClassTeacher = async () => {
     if (!selectedClass) {
-      alert('No class selected');
+      toast.error('No class selected');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -613,10 +617,10 @@ export default function ClassManagement() {
 
       setShowAssignTeacherModal(false);
       setAssignTeacherFormData({ teacherId: '' });
-      alert('Class teacher updated successfully!');
+      toast.success('Class teacher updated successfully!');
     } catch (error) {
       console.error('Error updating class teacher:', error);
-      alert('Failed to update class teacher. Please try again.');
+      toast.error('Failed to update class teacher. Please try again.');
     }
   };
 
@@ -625,7 +629,7 @@ export default function ClassManagement() {
     setShowAddStudentModal(true);
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -647,7 +651,7 @@ export default function ClassManagement() {
       setUnassignedStudents(formattedUnassigned);
     } catch (error) {
       console.error('Error fetching unassigned students:', error);
-      alert('Failed to load students. Please try again.');
+      toast.error('Failed to load students. Please try again.');
     }
   };
 
@@ -664,12 +668,12 @@ export default function ClassManagement() {
       !rollNumberFormData.rollNumber ||
       !selectedClass
     ) {
-      alert('Please enter a roll number');
+      toast.error('Please enter a roll number');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -692,29 +696,30 @@ export default function ClassManagement() {
       setShowRollNumberModal(false);
       setSelectedStudentForAssignment(null);
       setRollNumberFormData({ rollNumber: '' });
-      alert('Student added to class successfully!');
+      toast.success('Student added to class successfully!');
     } catch (error) {
       console.error('Error assigning student to class:', error);
-      alert('Failed to add student to class. Please try again.');
+      toast.error('Failed to add student to class. Please try again.');
     }
   };
 
   const handleUnenrollStudent = async (student: Student) => {
     if (!selectedClass) {
-      alert('No class selected');
+      toast.error('No class selected');
       return;
     }
 
     if (
-      !confirm(
+      !(await confirm(
         `Are you sure you want to remove ${student.name} from ${selectedClass.name} - Section ${selectedClass.section}? This action will unenroll the student from this class.`,
-      )
+        { destructive: true },
+      ))
     ) {
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -737,26 +742,26 @@ export default function ClassManagement() {
 
       setUnassignedStudents((prev) => [...prev, unenrolledStudent]);
 
-      alert('Student removed from class successfully!');
+      toast.success('Student removed from class successfully!');
     } catch (error) {
       console.error('Error unenrolling student from class:', error);
-      alert('Failed to remove student from class. Please try again.');
+      toast.error('Failed to remove student from class. Please try again.');
     }
   };
 
   const handleAddSubject = async () => {
     if (!subjectFormData.name || !subjectFormData.teacherId) {
-      alert('Please fill in required fields (Subject Name and Teacher)');
+      toast.error('Please fill in required fields (Subject Name and Teacher)');
       return;
     }
 
     if (!selectedClass) {
-      alert('No class selected');
+      toast.error('No class selected');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -781,26 +786,26 @@ export default function ClassManagement() {
         credits: 1,
         type: 'Core',
       });
-      alert('Subject added successfully!');
+      toast.success('Subject added successfully!');
     } catch (error) {
       console.error('Error creating subject:', error);
-      alert('Failed to create subject. Please try again.');
+      toast.error('Failed to create subject. Please try again.');
     }
   };
 
   const handleEditSubject = async () => {
     if (!editSubjectFormData.teacherId) {
-      alert('Please select a teacher');
+      toast.error('Please select a teacher');
       return;
     }
 
     if (!selectedClass || !selectedSubjectForEdit) {
-      alert('No class or subject selected');
+      toast.error('No class or subject selected');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -818,21 +823,21 @@ export default function ClassManagement() {
       setShowEditSubjectModal(false);
       setSelectedSubjectForEdit(null);
       setEditSubjectFormData({ teacherId: '' });
-      alert('Subject updated successfully!');
+      toast.success('Subject updated successfully!');
     } catch (error) {
       console.error('Error updating subject:', error);
-      alert('Failed to update subject. Please try again.');
+      toast.error('Failed to update subject. Please try again.');
     }
   };
 
   const handleDeleteSubject = async () => {
     if (!selectedClass || !selectedSubjectForDelete) {
-      alert('No class or subject selected');
+      toast.error('No class or subject selected');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -846,10 +851,10 @@ export default function ClassManagement() {
 
       setShowDeleteSubjectModal(false);
       setSelectedSubjectForDelete(null);
-      alert('Subject deleted successfully!');
+      toast.success('Subject deleted successfully!');
     } catch (error) {
       console.error('Error deleting subject:', error);
-      alert('Failed to delete subject. Please try again.');
+      toast.error('Failed to delete subject. Please try again.');
     }
   };
 
@@ -859,19 +864,19 @@ export default function ClassManagement() {
       !examFormData.date ||
       examFormData.subjects.length === 0
     ) {
-      alert(
+      toast.error(
         'Please fill in required fields (Name, Date) and add at least one subject',
       );
       return;
     }
 
     if (!selectedClass) {
-      alert('No class selected');
+      toast.error('No class selected');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -908,10 +913,10 @@ export default function ClassManagement() {
         endTime: '',
         room: '',
       });
-      alert('Exam created successfully!');
+      toast.success('Exam created successfully!');
     } catch (error) {
       console.error('Error creating exam:', error);
-      alert('Failed to create exam. Please try again.');
+      toast.error('Failed to create exam. Please try again.');
     }
   };
 
@@ -922,7 +927,7 @@ export default function ClassManagement() {
       !tempExamSubject.startTime ||
       !tempExamSubject.endTime
     ) {
-      alert(
+      toast.error(
         'Please fill in all subject details including date, start time, and end time',
       );
       return;
@@ -985,19 +990,19 @@ export default function ClassManagement() {
       !examFormData.date ||
       examFormData.subjects.length === 0
     ) {
-      alert(
+      toast.error(
         'Please fill in required fields (Name, Date) and add at least one subject',
       );
       return;
     }
 
     if (!selectedClass || !selectedExamForEdit) {
-      alert('No exam selected');
+      toast.error('No exam selected');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -1034,21 +1039,21 @@ export default function ClassManagement() {
         endTime: '',
         room: '',
       });
-      alert('Exam updated successfully!');
+      toast.success('Exam updated successfully!');
     } catch (error) {
       console.error('Error updating exam:', error);
-      alert('Failed to update exam. Please try again.');
+      toast.error('Failed to update exam. Please try again.');
     }
   };
 
   const handleDeleteExam = async () => {
     if (!selectedClass || !selectedExamForDelete) {
-      alert('No exam selected');
+      toast.error('No exam selected');
       return;
     }
 
     if (!orgId) {
-      alert('Organization ID not found');
+      toast.error('Organization ID not found');
       return;
     }
 
@@ -1062,10 +1067,10 @@ export default function ClassManagement() {
 
       setShowDeleteExamModal(false);
       setSelectedExamForDelete(null);
-      alert('Exam deleted successfully!');
+      toast.success('Exam deleted successfully!');
     } catch (error) {
       console.error('Error deleting exam:', error);
-      alert('Failed to delete exam. Please try again.');
+      toast.error('Failed to delete exam. Please try again.');
     }
   };
 
@@ -1075,12 +1080,12 @@ export default function ClassManagement() {
       !timeSlotFormData.startTime ||
       !timeSlotFormData.endTime
     ) {
-      alert('Please fill in all time slot fields');
+      toast.error('Please fill in all time slot fields');
       return;
     }
 
     if (!selectedClass) {
-      alert('No class selected');
+      toast.error('No class selected');
       return;
     }
 
@@ -1100,7 +1105,7 @@ export default function ClassManagement() {
     // For now, just close the modal
     setShowTimeSlotModal(false);
     setTimeSlotFormData({ name: '', startTime: '', endTime: '' });
-    alert('Time slot functionality is not yet fully implemented.');
+    toast.info('Time slot functionality is not yet fully implemented.');
   };
 
   const getStatusColor = (status: string) => {
@@ -1202,6 +1207,14 @@ export default function ClassManagement() {
                     <div className="flex items-start justify-between">
                       <div
                         onClick={() => setSelectedClassId(cls.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            setSelectedClassId(cls.id);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
                         className="flex-1 cursor-pointer"
                       >
                         <h3 className="text-sm font-semibold text-gray-900">
@@ -1223,8 +1236,9 @@ export default function ClassManagement() {
                             e.stopPropagation();
                             handleEditClass(cls);
                           }}
-                          className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-100 rounded"
+                          className="p-1 text-info hover:text-info hover:bg-info/10 rounded"
                           title="Edit Class"
+                          aria-label="Edit Class"
                         >
                           <svg
                             className="w-4 h-4"
@@ -1245,8 +1259,9 @@ export default function ClassManagement() {
                             e.stopPropagation();
                             handleDeleteClass(cls);
                           }}
-                          className="p-1 text-red-600 hover:text-red-800 hover:bg-red-100 rounded"
+                          className="p-1 text-destructive hover:text-destructive hover:bg-destructive/10 rounded"
                           title="Delete Class"
+                          aria-label="Delete Class"
                         >
                           <svg
                             className="w-4 h-4"
@@ -1275,12 +1290,12 @@ export default function ClassManagement() {
             {selectedClass ? (
               <div className="space-y-6">
                 {/* Class Header */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-sm border border-blue-100 p-8">
+                <div className="bg-gradient-to-r from-info/5 to-indigo-50 rounded-xl shadow-sm border border-info/10 p-8">
                   <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-3">
                         <div className="flex-shrink-0">
-                          <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                          <div className="w-12 h-12 bg-info rounded-lg flex items-center justify-center">
                             <svg
                               className="w-6 h-6 text-white"
                               fill="none"
@@ -1301,7 +1316,7 @@ export default function ClassManagement() {
                             {selectedClass.name} - Section{' '}
                             {selectedClass.section}
                           </h2>
-                          <p className="text-sm text-blue-600 font-medium">
+                          <p className="text-sm text-info font-medium">
                             Academic Year {selectedClass.academicYear}
                           </p>
                         </div>
@@ -1311,7 +1326,7 @@ export default function ClassManagement() {
                         <div className="bg-white rounded-lg p-4 border border-gray-200">
                           <div className="flex items-center space-x-2">
                             <svg
-                              className="w-5 h-5 text-blue-500"
+                              className="w-5 h-5 text-info"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1335,7 +1350,7 @@ export default function ClassManagement() {
                         <div className="bg-white rounded-lg p-4 border border-gray-200">
                           <div className="flex items-center space-x-2">
                             <svg
-                              className="w-5 h-5 text-green-500"
+                              className="w-5 h-5 text-success"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1392,7 +1407,7 @@ export default function ClassManagement() {
                       <div className="flex flex-col sm:flex-row gap-3 items-center">
                         <button
                           onClick={handleAssignTeacher}
-                          className="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg text-white bg-blue-600 border border-blue-600 hover:bg-blue-700 hover:border-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-md hover:shadow-lg h-10"
+                          className="inline-flex items-center justify-center px-4 py-2.5 text-sm font-medium rounded-lg text-white bg-info border border-info hover:bg-info hover:border-info focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-info transition-all duration-200 shadow-md hover:shadow-lg h-10"
                         >
                           <svg
                             className="w-4 h-4 mr-2 flex-shrink-0"
@@ -1477,7 +1492,7 @@ export default function ClassManagement() {
                             </span>
                             <button
                               onClick={handleAddStudentToClass}
-                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-success hover:bg-success focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-success transition-colors"
                             >
                               <svg
                                 className="w-4 h-4 mr-1.5"
@@ -1552,7 +1567,7 @@ export default function ClassManagement() {
                                       onClick={() =>
                                         handleUnenrollStudent(student)
                                       }
-                                      className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors"
+                                      className="inline-flex items-center px-2 py-1 border border-transparent text-xs font-medium rounded text-destructive bg-destructive/10 hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-destructive transition-colors"
                                       title="Remove student from class"
                                     >
                                       <svg
@@ -1588,7 +1603,7 @@ export default function ClassManagement() {
                           </h3>
                           <button
                             onClick={() => setShowAddSubjectModal(true)}
-                            className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700"
+                            className="px-4 py-2 bg-success text-white text-sm font-medium rounded-md hover:bg-success"
                           >
                             Add Subject
                           </button>
@@ -1630,7 +1645,7 @@ export default function ClassManagement() {
                                     });
                                     setShowEditSubjectModal(true);
                                   }}
-                                  className="px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700"
+                                  className="px-3 py-1 bg-info text-white text-xs font-medium rounded hover:bg-info"
                                 >
                                   Edit
                                 </button>
@@ -1639,7 +1654,7 @@ export default function ClassManagement() {
                                     setSelectedSubjectForDelete(subject);
                                     setShowDeleteSubjectModal(true);
                                   }}
-                                  className="px-3 py-1 bg-red-600 text-white text-xs font-medium rounded hover:bg-red-700"
+                                  className="px-3 py-1 bg-destructive text-white text-xs font-medium rounded hover:bg-destructive"
                                 >
                                   Delete
                                 </button>
@@ -1689,7 +1704,7 @@ export default function ClassManagement() {
                                   </span>
                                   <button
                                     onClick={() => handleEditExam(exam)}
-                                    className="px-3 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                                    className="px-3 py-1 text-sm font-medium text-info hover:bg-info/5 rounded-md transition-colors"
                                     title="Edit Exam"
                                   >
                                     Edit
@@ -1699,7 +1714,7 @@ export default function ClassManagement() {
                                       setSelectedExamForDelete(exam);
                                       setShowDeleteExamModal(true);
                                     }}
-                                    className="px-3 py-1 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                    className="px-3 py-1 text-sm font-medium text-destructive hover:bg-destructive/5 rounded-md transition-colors"
                                     title="Delete Exam"
                                   >
                                     Delete
@@ -1834,74 +1849,90 @@ export default function ClassManagement() {
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Class Name <span className="text-red-500">*</span>
+                    <label
+                      htmlFor="create-class-name"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Class Name <span className="text-destructive">*</span>
+                      <input
+                        id="create-class-name"
+                        type="text"
+                        value={classFormData.name}
+                        onChange={(e) =>
+                          setClassFormData((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Enter class name"
+                      />
                     </label>
-                    <input
-                      type="text"
-                      value={classFormData.name}
-                      onChange={(e) =>
-                        setClassFormData((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Enter class name"
-                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Section <span className="text-red-500">*</span>
+                    <label
+                      htmlFor="create-class-section"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Section <span className="text-destructive">*</span>
+                      <input
+                        id="create-class-section"
+                        type="text"
+                        value={classFormData.section}
+                        onChange={(e) =>
+                          setClassFormData((prev) => ({
+                            ...prev,
+                            section: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="A, B, C..."
+                      />
                     </label>
-                    <input
-                      type="text"
-                      value={classFormData.section}
-                      onChange={(e) =>
-                        setClassFormData((prev) => ({
-                          ...prev,
-                          section: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="A, B, C..."
-                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="create-class-academic-year"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Academic Year
+                      <input
+                        id="create-class-academic-year"
+                        type="text"
+                        value={classFormData.academicYear}
+                        onChange={(e) =>
+                          setClassFormData((prev) => ({
+                            ...prev,
+                            academicYear: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="2024-25"
+                      />
                     </label>
-                    <input
-                      type="text"
-                      value={classFormData.academicYear}
-                      onChange={(e) =>
-                        setClassFormData((prev) => ({
-                          ...prev,
-                          academicYear: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="2024-25"
-                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="create-class-room"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Room
+                      <input
+                        id="create-class-room"
+                        type="text"
+                        value={classFormData.room}
+                        onChange={(e) =>
+                          setClassFormData((prev) => ({
+                            ...prev,
+                            room: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Room 101"
+                      />
                     </label>
-                    <input
-                      type="text"
-                      value={classFormData.room}
-                      onChange={(e) =>
-                        setClassFormData((prev) => ({
-                          ...prev,
-                          room: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Room 101"
-                    />
                   </div>
                 </div>
               </div>
@@ -1935,79 +1966,95 @@ export default function ClassManagement() {
               <div className="p-6 space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Class Name <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      value={editClassFormData.name}
-                      onChange={(e) =>
-                        setEditClassFormData((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    <label
+                      htmlFor="edit-class-name"
+                      className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      <option value="">Select Class</option>
-                      {availableClassNames.map((className) => (
-                        <option key={className} value={className}>
-                          {className}
-                        </option>
-                      ))}
-                    </select>
+                      Class Name <span className="text-destructive">*</span>
+                      <select
+                        id="edit-class-name"
+                        value={editClassFormData.name}
+                        onChange={(e) =>
+                          setEditClassFormData((prev) => ({
+                            ...prev,
+                            name: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">Select Class</option>
+                        {availableClassNames.map((className) => (
+                          <option key={className} value={className}>
+                            {className}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Section <span className="text-red-500">*</span>
+                    <label
+                      htmlFor="edit-class-section"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Section <span className="text-destructive">*</span>
+                      <input
+                        id="edit-class-section"
+                        type="text"
+                        value={editClassFormData.section}
+                        onChange={(e) =>
+                          setEditClassFormData((prev) => ({
+                            ...prev,
+                            section: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="A, B, C..."
+                      />
                     </label>
-                    <input
-                      type="text"
-                      value={editClassFormData.section}
-                      onChange={(e) =>
-                        setEditClassFormData((prev) => ({
-                          ...prev,
-                          section: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="A, B, C..."
-                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="edit-class-academic-year"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Academic Year
+                      <input
+                        id="edit-class-academic-year"
+                        type="text"
+                        value={editClassFormData.academicYear}
+                        onChange={(e) =>
+                          setEditClassFormData((prev) => ({
+                            ...prev,
+                            academicYear: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="2024-25"
+                      />
                     </label>
-                    <input
-                      type="text"
-                      value={editClassFormData.academicYear}
-                      onChange={(e) =>
-                        setEditClassFormData((prev) => ({
-                          ...prev,
-                          academicYear: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="2024-25"
-                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="edit-class-room"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Room
+                      <input
+                        id="edit-class-room"
+                        type="text"
+                        value={editClassFormData.room}
+                        onChange={(e) =>
+                          setEditClassFormData((prev) => ({
+                            ...prev,
+                            room: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Room 101"
+                      />
                     </label>
-                    <input
-                      type="text"
-                      value={editClassFormData.room}
-                      onChange={(e) =>
-                        setEditClassFormData((prev) => ({
-                          ...prev,
-                          room: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Room 101"
-                    />
                   </div>
                 </div>
               </div>
@@ -2043,60 +2090,72 @@ export default function ClassManagement() {
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subject Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={subjectFormData.name}
-                    onChange={(e) =>
-                      setSubjectFormData((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Mathematics"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subject Code <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={subjectFormData.code}
-                    onChange={(e) =>
-                      setSubjectFormData((prev) => ({
-                        ...prev,
-                        code: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="MATH10"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Assign Teacher <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={subjectFormData.teacherId}
-                    onChange={(e) =>
-                      setSubjectFormData((prev) => ({
-                        ...prev,
-                        teacherId: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  <label
+                    htmlFor="add-subject-name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    <option value="">Select Teacher</option>
-                    {teachers.map((teacher) => (
-                      <option key={teacher.id} value={teacher.id}>
-                        {teacher.name}
-                      </option>
-                    ))}
-                  </select>
+                    Subject Name <span className="text-destructive">*</span>
+                    <input
+                      id="add-subject-name"
+                      type="text"
+                      value={subjectFormData.name}
+                      onChange={(e) =>
+                        setSubjectFormData((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Mathematics"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label
+                    htmlFor="add-subject-code"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Subject Code <span className="text-destructive">*</span>
+                    <input
+                      id="add-subject-code"
+                      type="text"
+                      value={subjectFormData.code}
+                      onChange={(e) =>
+                        setSubjectFormData((prev) => ({
+                          ...prev,
+                          code: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="MATH10"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label
+                    htmlFor="add-subject-teacher"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Assign Teacher <span className="text-destructive">*</span>
+                    <select
+                      id="add-subject-teacher"
+                      value={subjectFormData.teacherId}
+                      onChange={(e) =>
+                        setSubjectFormData((prev) => ({
+                          ...prev,
+                          teacherId: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="">Select Teacher</option>
+                      {teachers.map((teacher) => (
+                        <option key={teacher.id} value={teacher.id}>
+                          {teacher.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
@@ -2108,7 +2167,7 @@ export default function ClassManagement() {
                 </button>
                 <button
                   onClick={handleAddSubject}
-                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-white bg-success hover:bg-success rounded-md"
                 >
                   Add Subject
                 </button>
@@ -2128,37 +2187,45 @@ export default function ClassManagement() {
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Exam Name <span className="text-red-500">*</span>
+                  <label
+                    htmlFor="create-exam-name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Exam Name <span className="text-destructive">*</span>
+                    <input
+                      id="create-exam-name"
+                      type="text"
+                      value={examFormData.name}
+                      onChange={(e) =>
+                        setExamFormData((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Unit Test 1"
+                    />
                   </label>
-                  <input
-                    type="text"
-                    value={examFormData.name}
-                    onChange={(e) =>
-                      setExamFormData((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Unit Test 1"
-                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Exam Date <span className="text-red-500">*</span>
+                  <label
+                    htmlFor="create-exam-date"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Exam Date <span className="text-destructive">*</span>
+                    <input
+                      id="create-exam-date"
+                      type="date"
+                      value={examFormData.date}
+                      onChange={(e) =>
+                        setExamFormData((prev) => ({
+                          ...prev,
+                          date: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
                   </label>
-                  <input
-                    type="date"
-                    value={examFormData.date}
-                    onChange={(e) =>
-                      setExamFormData((prev) => ({
-                        ...prev,
-                        date: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
                 </div>
 
                 {/* Add Subjects Section */}
@@ -2171,130 +2238,154 @@ export default function ClassManagement() {
                   <div className="space-y-3 mb-4">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Subject *
-                        </label>
-                        <select
-                          value={tempExamSubject.subjectId}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              subjectId: e.target.value,
-                            }))
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          disabled={currentSubjects.length === 0}
+                        <label
+                          htmlFor="create-exam-temp-subject"
+                          className="block text-xs font-medium text-gray-700 mb-1"
                         >
-                          <option value="">
-                            {currentSubjects.length === 0
-                              ? 'No subjects available for this class'
-                              : 'Select Subject'}
-                          </option>
-                          {currentSubjects
-                            .filter(
-                              (sub) =>
-                                !examFormData.subjects.find(
-                                  (es) => es.subjectId === sub.id,
-                                ),
-                            )
-                            .map((subject) => (
-                              <option key={subject.id} value={subject.id}>
-                                {subject.name}
-                              </option>
-                            ))}
-                        </select>
+                          Subject *
+                          <select
+                            id="create-exam-temp-subject"
+                            value={tempExamSubject.subjectId}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                subjectId: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            disabled={currentSubjects.length === 0}
+                          >
+                            <option value="">
+                              {currentSubjects.length === 0
+                                ? 'No subjects available for this class'
+                                : 'Select Subject'}
+                            </option>
+                            {currentSubjects
+                              .filter(
+                                (sub) =>
+                                  !examFormData.subjects.find(
+                                    (es) => es.subjectId === sub.id,
+                                  ),
+                              )
+                              .map((subject) => (
+                                <option key={subject.id} value={subject.id}>
+                                  {subject.name}
+                                </option>
+                              ))}
+                          </select>
+                        </label>
                         {currentSubjects.length === 0 && (
-                          <p className="text-xs text-red-600 mt-1">
+                          <p className="text-xs text-destructive mt-1">
                             Please add subjects to this class first from the
                             Subjects tab.
                           </p>
                         )}
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="create-exam-temp-room"
+                          className="block text-xs font-medium text-gray-700 mb-1"
+                        >
                           Room
+                          <input
+                            id="create-exam-temp-room"
+                            type="text"
+                            value={tempExamSubject.room}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                room: e.target.value,
+                              }))
+                            }
+                            placeholder="Room 101"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
                         </label>
-                        <input
-                          type="text"
-                          value={tempExamSubject.room}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              room: e.target.value,
-                            }))
-                          }
-                          placeholder="Room 101"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-4 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="create-exam-temp-date"
+                          className="block text-xs font-medium text-gray-700 mb-1"
+                        >
                           Date (dd/mm/yyyy) *
+                          <input
+                            id="create-exam-temp-date"
+                            type="date"
+                            value={tempExamSubject.date}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                date: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
                         </label>
-                        <input
-                          type="date"
-                          value={tempExamSubject.date}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              date: e.target.value,
-                            }))
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="create-exam-temp-start-time"
+                          className="block text-xs font-medium text-gray-700 mb-1"
+                        >
                           Start Time *
+                          <input
+                            id="create-exam-temp-start-time"
+                            type="time"
+                            value={tempExamSubject.startTime}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                startTime: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
                         </label>
-                        <input
-                          type="time"
-                          value={tempExamSubject.startTime}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              startTime: e.target.value,
-                            }))
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="create-exam-temp-end-time"
+                          className="block text-xs font-medium text-gray-700 mb-1"
+                        >
                           End Time *
+                          <input
+                            id="create-exam-temp-end-time"
+                            type="time"
+                            value={tempExamSubject.endTime}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                endTime: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
                         </label>
-                        <input
-                          type="time"
-                          value={tempExamSubject.endTime}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              endTime: e.target.value,
-                            }))
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="create-exam-temp-marks"
+                          className="block text-xs font-medium text-gray-700 mb-1"
+                        >
                           Marks
+                          <input
+                            id="create-exam-temp-marks"
+                            type="number"
+                            value={tempExamSubject.marks}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                marks: parseInt(e.target.value) || 50,
+                              }))
+                            }
+                            placeholder="50"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            min="1"
+                          />
                         </label>
-                        <input
-                          type="number"
-                          value={tempExamSubject.marks}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              marks: parseInt(e.target.value) || 50,
-                            }))
-                          }
-                          placeholder="50"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          min="1"
-                        />
                       </div>
                     </div>
 
@@ -2302,7 +2393,7 @@ export default function ClassManagement() {
                       <button
                         type="button"
                         onClick={handleAddExamSubject}
-                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                        className="px-4 py-2 bg-success text-white text-sm rounded-md hover:bg-success"
                       >
                         Add Subject to Exam
                       </button>
@@ -2334,7 +2425,7 @@ export default function ClassManagement() {
                             </div>
                             <button
                               onClick={() => handleRemoveExamSubject(index)}
-                              className="text-red-600 hover:text-red-800 text-sm font-medium"
+                              className="text-destructive hover:text-destructive text-sm font-medium"
                             >
                               Remove
                             </button>
@@ -2381,60 +2472,68 @@ export default function ClassManagement() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="create-exam-room"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Room
+                      <input
+                        id="create-exam-room"
+                        type="text"
+                        value={examFormData.room}
+                        onChange={(e) =>
+                          setExamFormData((prev) => ({
+                            ...prev,
+                            room: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Room 101"
+                      />
                     </label>
-                    <input
-                      type="text"
-                      value={examFormData.room}
-                      onChange={(e) =>
-                        setExamFormData((prev) => ({
-                          ...prev,
-                          room: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Room 101"
-                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Exam Type
-                    </label>
-                    <select
-                      value={examFormData.type}
-                      onChange={(e) =>
-                        setExamFormData((prev) => ({
-                          ...prev,
-                          type: e.target.value as ExamType,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    <label
+                      htmlFor="create-exam-type"
+                      className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      <option value="Unit Test">Unit Test</option>
-                      <option value="Mid Term">Mid Term</option>
-                      <option value="Final">Final</option>
-                      <option value="Assignment">Assignment</option>
-                    </select>
+                      Exam Type
+                      <select
+                        id="create-exam-type"
+                        value={examFormData.type}
+                        onChange={(e) =>
+                          setExamFormData((prev) => ({
+                            ...prev,
+                            type: e.target.value as ExamType,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="Unit Test">Unit Test</option>
+                        <option value="Mid Term">Mid Term</option>
+                        <option value="Final">Final</option>
+                        <option value="Assignment">Assignment</option>
+                      </select>
+                    </label>
                   </div>
                 </div>
 
                 {/* Summary */}
                 {examFormData.subjects.length > 0 && (
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-blue-900 mb-2">
+                  <div className="bg-info/5 p-4 rounded-lg">
+                    <h4 className="font-semibold text-info mb-2">
                       Exam Summary
                     </h4>
-                    <div className="grid grid-cols-3 gap-4 text-sm text-blue-800">
+                    <div className="grid grid-cols-3 gap-4 text-sm text-info">
                       <div>
                         <span className="font-medium">Total Subjects:</span>
-                        <p className="text-blue-900">
+                        <p className="text-info">
                           {examFormData.subjects.length}
                         </p>
                       </div>
                       <div>
                         <span className="font-medium">Total Marks:</span>
-                        <p className="text-blue-900">
+                        <p className="text-info">
                           {examFormData.subjects.reduce(
                             (sum, s) => sum + s.marks,
                             0,
@@ -2443,7 +2542,7 @@ export default function ClassManagement() {
                       </div>
                       <div>
                         <span className="font-medium">Total Duration:</span>
-                        <p className="text-blue-900">
+                        <p className="text-info">
                           {examFormData.subjects.reduce(
                             (sum, s) => sum + s.duration,
                             0,
@@ -2452,7 +2551,7 @@ export default function ClassManagement() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-2 text-sm text-blue-700">
+                    <div className="mt-2 text-sm text-info">
                       <span className="font-medium">Exam Dates:</span>{' '}
                       {Array.from(
                         new Set(
@@ -2465,21 +2564,25 @@ export default function ClassManagement() {
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="create-exam-instructions"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Instructions
+                    <textarea
+                      id="create-exam-instructions"
+                      value={examFormData.instructions}
+                      onChange={(e) =>
+                        setExamFormData((prev) => ({
+                          ...prev,
+                          instructions: e.target.value,
+                        }))
+                      }
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Exam instructions for students..."
+                    />
                   </label>
-                  <textarea
-                    value={examFormData.instructions}
-                    onChange={(e) =>
-                      setExamFormData((prev) => ({
-                        ...prev,
-                        instructions: e.target.value,
-                      }))
-                    }
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Exam instructions for students..."
-                  />
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
@@ -2511,37 +2614,45 @@ export default function ClassManagement() {
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Exam Name <span className="text-red-500">*</span>
+                  <label
+                    htmlFor="edit-exam-name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Exam Name <span className="text-destructive">*</span>
+                    <input
+                      id="edit-exam-name"
+                      type="text"
+                      value={examFormData.name}
+                      onChange={(e) =>
+                        setExamFormData((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Unit Test 1"
+                    />
                   </label>
-                  <input
-                    type="text"
-                    value={examFormData.name}
-                    onChange={(e) =>
-                      setExamFormData((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Unit Test 1"
-                  />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Exam Date <span className="text-red-500">*</span>
+                  <label
+                    htmlFor="edit-exam-date"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Exam Date <span className="text-destructive">*</span>
+                    <input
+                      id="edit-exam-date"
+                      type="date"
+                      value={examFormData.date}
+                      onChange={(e) =>
+                        setExamFormData((prev) => ({
+                          ...prev,
+                          date: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    />
                   </label>
-                  <input
-                    type="date"
-                    value={examFormData.date}
-                    onChange={(e) =>
-                      setExamFormData((prev) => ({
-                        ...prev,
-                        date: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  />
                 </div>
 
                 {/* Add Subjects Section */}
@@ -2554,130 +2665,154 @@ export default function ClassManagement() {
                   <div className="space-y-3 mb-4">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Subject *
-                        </label>
-                        <select
-                          value={tempExamSubject.subjectId}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              subjectId: e.target.value,
-                            }))
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          disabled={currentSubjects.length === 0}
+                        <label
+                          htmlFor="edit-exam-temp-subject"
+                          className="block text-xs font-medium text-gray-700 mb-1"
                         >
-                          <option value="">
-                            {currentSubjects.length === 0
-                              ? 'No subjects available for this class'
-                              : 'Select Subject'}
-                          </option>
-                          {currentSubjects
-                            .filter(
-                              (sub) =>
-                                !examFormData.subjects.find(
-                                  (es) => es.subjectId === sub.id,
-                                ),
-                            )
-                            .map((subject) => (
-                              <option key={subject.id} value={subject.id}>
-                                {subject.name}
-                              </option>
-                            ))}
-                        </select>
+                          Subject *
+                          <select
+                            id="edit-exam-temp-subject"
+                            value={tempExamSubject.subjectId}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                subjectId: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            disabled={currentSubjects.length === 0}
+                          >
+                            <option value="">
+                              {currentSubjects.length === 0
+                                ? 'No subjects available for this class'
+                                : 'Select Subject'}
+                            </option>
+                            {currentSubjects
+                              .filter(
+                                (sub) =>
+                                  !examFormData.subjects.find(
+                                    (es) => es.subjectId === sub.id,
+                                  ),
+                              )
+                              .map((subject) => (
+                                <option key={subject.id} value={subject.id}>
+                                  {subject.name}
+                                </option>
+                              ))}
+                          </select>
+                        </label>
                         {currentSubjects.length === 0 && (
-                          <p className="text-xs text-red-600 mt-1">
+                          <p className="text-xs text-destructive mt-1">
                             Please add subjects to this class first from the
                             Subjects tab.
                           </p>
                         )}
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="edit-exam-temp-room"
+                          className="block text-xs font-medium text-gray-700 mb-1"
+                        >
                           Room
+                          <input
+                            id="edit-exam-temp-room"
+                            type="text"
+                            value={tempExamSubject.room}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                room: e.target.value,
+                              }))
+                            }
+                            placeholder="Room 101"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
                         </label>
-                        <input
-                          type="text"
-                          value={tempExamSubject.room}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              room: e.target.value,
-                            }))
-                          }
-                          placeholder="Room 101"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-4 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="edit-exam-temp-date"
+                          className="block text-xs font-medium text-gray-700 mb-1"
+                        >
                           Date (dd/mm/yyyy) *
+                          <input
+                            id="edit-exam-temp-date"
+                            type="date"
+                            value={tempExamSubject.date}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                date: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
                         </label>
-                        <input
-                          type="date"
-                          value={tempExamSubject.date}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              date: e.target.value,
-                            }))
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="edit-exam-temp-start-time"
+                          className="block text-xs font-medium text-gray-700 mb-1"
+                        >
                           Start Time *
+                          <input
+                            id="edit-exam-temp-start-time"
+                            type="time"
+                            value={tempExamSubject.startTime}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                startTime: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
                         </label>
-                        <input
-                          type="time"
-                          value={tempExamSubject.startTime}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              startTime: e.target.value,
-                            }))
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="edit-exam-temp-end-time"
+                          className="block text-xs font-medium text-gray-700 mb-1"
+                        >
                           End Time *
+                          <input
+                            id="edit-exam-temp-end-time"
+                            type="time"
+                            value={tempExamSubject.endTime}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                endTime: e.target.value,
+                              }))
+                            }
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          />
                         </label>
-                        <input
-                          type="time"
-                          value={tempExamSubject.endTime}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              endTime: e.target.value,
-                            }))
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                        <label
+                          htmlFor="edit-exam-temp-marks"
+                          className="block text-xs font-medium text-gray-700 mb-1"
+                        >
                           Marks
+                          <input
+                            id="edit-exam-temp-marks"
+                            type="number"
+                            value={tempExamSubject.marks}
+                            onChange={(e) =>
+                              setTempExamSubject((prev) => ({
+                                ...prev,
+                                marks: parseInt(e.target.value) || 50,
+                              }))
+                            }
+                            placeholder="50"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                            min="1"
+                          />
                         </label>
-                        <input
-                          type="number"
-                          value={tempExamSubject.marks}
-                          onChange={(e) =>
-                            setTempExamSubject((prev) => ({
-                              ...prev,
-                              marks: parseInt(e.target.value) || 50,
-                            }))
-                          }
-                          placeholder="50"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                          min="1"
-                        />
                       </div>
                     </div>
 
@@ -2685,7 +2820,7 @@ export default function ClassManagement() {
                       <button
                         type="button"
                         onClick={handleAddExamSubject}
-                        className="px-4 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                        className="px-4 py-2 bg-success text-white text-sm rounded-md hover:bg-success"
                       >
                         Add Subject to Exam
                       </button>
@@ -2717,7 +2852,7 @@ export default function ClassManagement() {
                             </div>
                             <button
                               onClick={() => handleRemoveExamSubject(index)}
-                              className="text-red-600 hover:text-red-800 text-sm font-medium"
+                              className="text-destructive hover:text-destructive text-sm font-medium"
                             >
                               Remove
                             </button>
@@ -2764,60 +2899,68 @@ export default function ClassManagement() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="edit-exam-room"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Room
+                      <input
+                        id="edit-exam-room"
+                        type="text"
+                        value={examFormData.room}
+                        onChange={(e) =>
+                          setExamFormData((prev) => ({
+                            ...prev,
+                            room: e.target.value,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        placeholder="Room 101"
+                      />
                     </label>
-                    <input
-                      type="text"
-                      value={examFormData.room}
-                      onChange={(e) =>
-                        setExamFormData((prev) => ({
-                          ...prev,
-                          room: e.target.value,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Room 101"
-                    />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Exam Type
-                    </label>
-                    <select
-                      value={examFormData.type}
-                      onChange={(e) =>
-                        setExamFormData((prev) => ({
-                          ...prev,
-                          type: e.target.value as ExamType,
-                        }))
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    <label
+                      htmlFor="edit-exam-type"
+                      className="block text-sm font-medium text-gray-700 mb-1"
                     >
-                      <option value="Unit Test">Unit Test</option>
-                      <option value="Mid Term">Mid Term</option>
-                      <option value="Final">Final</option>
-                      <option value="Assignment">Assignment</option>
-                    </select>
+                      Exam Type
+                      <select
+                        id="edit-exam-type"
+                        value={examFormData.type}
+                        onChange={(e) =>
+                          setExamFormData((prev) => ({
+                            ...prev,
+                            type: e.target.value as ExamType,
+                          }))
+                        }
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="Unit Test">Unit Test</option>
+                        <option value="Mid Term">Mid Term</option>
+                        <option value="Final">Final</option>
+                        <option value="Assignment">Assignment</option>
+                      </select>
+                    </label>
                   </div>
                 </div>
 
                 {/* Summary */}
                 {examFormData.subjects.length > 0 && (
-                  <div className="bg-blue-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-blue-900 mb-2">
+                  <div className="bg-info/5 p-4 rounded-lg">
+                    <h4 className="font-semibold text-info mb-2">
                       Exam Summary
                     </h4>
-                    <div className="grid grid-cols-3 gap-4 text-sm text-blue-800">
+                    <div className="grid grid-cols-3 gap-4 text-sm text-info">
                       <div>
                         <span className="font-medium">Total Subjects:</span>
-                        <p className="text-blue-900">
+                        <p className="text-info">
                           {examFormData.subjects.length}
                         </p>
                       </div>
                       <div>
                         <span className="font-medium">Total Marks:</span>
-                        <p className="text-blue-900">
+                        <p className="text-info">
                           {examFormData.subjects.reduce(
                             (sum, s) => sum + s.marks,
                             0,
@@ -2826,7 +2969,7 @@ export default function ClassManagement() {
                       </div>
                       <div>
                         <span className="font-medium">Total Duration:</span>
-                        <p className="text-blue-900">
+                        <p className="text-info">
                           {examFormData.subjects.reduce(
                             (sum, s) => sum + s.duration,
                             0,
@@ -2835,7 +2978,7 @@ export default function ClassManagement() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-2 text-sm text-blue-700">
+                    <div className="mt-2 text-sm text-info">
                       <span className="font-medium">Exam Dates:</span>{' '}
                       {Array.from(
                         new Set(
@@ -2848,21 +2991,25 @@ export default function ClassManagement() {
                   </div>
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="edit-exam-instructions"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Instructions
+                    <textarea
+                      id="edit-exam-instructions"
+                      value={examFormData.instructions}
+                      onChange={(e) =>
+                        setExamFormData((prev) => ({
+                          ...prev,
+                          instructions: e.target.value,
+                        }))
+                      }
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Exam instructions for students..."
+                    />
                   </label>
-                  <textarea
-                    value={examFormData.instructions}
-                    onChange={(e) =>
-                      setExamFormData((prev) => ({
-                        ...prev,
-                        instructions: e.target.value,
-                      }))
-                    }
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Exam instructions for students..."
-                  />
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
@@ -2931,7 +3078,7 @@ export default function ClassManagement() {
                 </button>
                 <button
                   onClick={handleDeleteExam}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-white bg-destructive hover:bg-destructive rounded-md"
                 >
                   Delete
                 </button>
@@ -2957,58 +3104,70 @@ export default function ClassManagement() {
                   </h4>
                   <div className="grid grid-cols-4 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="time-slot-name"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
                         Slot Name
+                        <input
+                          id="time-slot-name"
+                          type="text"
+                          value={timeSlotFormData.name}
+                          onChange={(e) =>
+                            setTimeSlotFormData((prev) => ({
+                              ...prev,
+                              name: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                          placeholder="Period 1"
+                        />
                       </label>
-                      <input
-                        type="text"
-                        value={timeSlotFormData.name}
-                        onChange={(e) =>
-                          setTimeSlotFormData((prev) => ({
-                            ...prev,
-                            name: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        placeholder="Period 1"
-                      />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="time-slot-start-time"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
                         Start Time
+                        <input
+                          id="time-slot-start-time"
+                          type="time"
+                          value={timeSlotFormData.startTime}
+                          onChange={(e) =>
+                            setTimeSlotFormData((prev) => ({
+                              ...prev,
+                              startTime: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        />
                       </label>
-                      <input
-                        type="time"
-                        value={timeSlotFormData.startTime}
-                        onChange={(e) =>
-                          setTimeSlotFormData((prev) => ({
-                            ...prev,
-                            startTime: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label
+                        htmlFor="time-slot-end-time"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
                         End Time
+                        <input
+                          id="time-slot-end-time"
+                          type="time"
+                          value={timeSlotFormData.endTime}
+                          onChange={(e) =>
+                            setTimeSlotFormData((prev) => ({
+                              ...prev,
+                              endTime: e.target.value,
+                            }))
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                        />
                       </label>
-                      <input
-                        type="time"
-                        value={timeSlotFormData.endTime}
-                        onChange={(e) =>
-                          setTimeSlotFormData((prev) => ({
-                            ...prev,
-                            endTime: e.target.value,
-                          }))
-                        }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                      />
                     </div>
                     <div className="flex items-end">
                       <button
                         onClick={handleAddTimeSlot}
-                        className="w-full px-3 py-2 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                        className="w-full px-3 py-2 bg-success text-white text-sm rounded-md hover:bg-success"
                       >
                         Add Time Slot
                       </button>
@@ -3037,23 +3196,24 @@ export default function ClassManagement() {
                           </span>
                         </div>
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             if (
                               selectedClass &&
-                              confirm(
+                              (await confirm(
                                 'Remove this time slot? This will affect existing timetable entries.',
-                              )
+                                { destructive: true },
+                              ))
                             ) {
                               const _updatedTimeSlots = currentTimeSlots.filter(
                                 (t) => t.id !== slot.id,
                               );
                               // TODO: Timetable functionality needs API implementation
-                              alert(
+                              toast.info(
                                 'Time slot removal is not yet fully implemented.',
                               );
                             }
                           }}
-                          className="text-red-600 hover:text-red-800 text-sm"
+                          className="text-destructive hover:text-destructive text-sm"
                         >
                           Remove
                         </button>
@@ -3090,26 +3250,30 @@ export default function ClassManagement() {
               </div>
               <div className="p-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select Teacher
-                  </label>
-                  <select
-                    value={assignTeacherFormData.teacherId}
-                    onChange={(e) =>
-                      setAssignTeacherFormData((prev) => ({
-                        ...prev,
-                        teacherId: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  <label
+                    htmlFor="assign-teacher-select"
+                    className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    <option value="">Select a teacher...</option>
-                    {teachers.map((teacher) => (
-                      <option key={teacher.id} value={teacher.id}>
-                        {teacher.name} ({teacher.department})
-                      </option>
-                    ))}
-                  </select>
+                    Select Teacher
+                    <select
+                      id="assign-teacher-select"
+                      value={assignTeacherFormData.teacherId}
+                      onChange={(e) =>
+                        setAssignTeacherFormData((prev) => ({
+                          ...prev,
+                          teacherId: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select a teacher...</option>
+                      {teachers.map((teacher) => (
+                        <option key={teacher.id} value={teacher.id}>
+                          {teacher.name} ({teacher.department})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                   <p className="text-xs text-gray-500 mt-2">
                     Leave empty to remove the current class teacher assignment.
                   </p>
@@ -3127,7 +3291,7 @@ export default function ClassManagement() {
                 </button>
                 <button
                   onClick={handleUpdateClassTeacher}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-white bg-info hover:bg-info rounded-md"
                 >
                   {selectedClass?.classTeacherName
                     ? 'Update Teacher'
@@ -3270,7 +3434,7 @@ export default function ClassManagement() {
                         {studentSearchQuery && (
                           <button
                             onClick={() => setStudentSearchQuery('')}
-                            className="mt-2 text-sm text-blue-600 hover:text-blue-700"
+                            className="mt-2 text-sm text-info hover:text-info"
                           >
                             Clear search
                           </button>
@@ -3295,11 +3459,24 @@ export default function ClassManagement() {
                           onClick={() =>
                             handleSelectStudentForAssignment(student)
                           }
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleSelectStudentForAssignment(student);
+                            }
+                          }}
+                          role="button"
+                          tabIndex={0}
+                          aria-label={`Select ${
+                            student.firstName || student.lastName
+                              ? `${student.firstName || ''} ${student.lastName || ''}`.trim()
+                              : student.email || 'student'
+                          }`}
                         >
                           <div className="flex items-center space-x-4">
                             <div className="flex-shrink-0">
-                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                <span className="text-lg font-semibold text-blue-600">
+                              <div className="w-12 h-12 bg-info/10 rounded-full flex items-center justify-center">
+                                <span className="text-lg font-semibold text-info">
                                   {(student.firstName?.[0] || '') +
                                     (student.lastName?.[0] || '') ||
                                     student.email?.[0]?.toUpperCase() ||
@@ -3350,9 +3527,9 @@ export default function ClassManagement() {
                             </div>
                           </div>
                           <div className="flex-shrink-0">
-                            <div className="flex items-center justify-center w-8 h-8 bg-green-100 rounded-full">
+                            <div className="flex items-center justify-center w-8 h-8 bg-success/10 rounded-full">
                               <svg
-                                className="w-5 h-5 text-green-600"
+                                className="w-5 h-5 text-success"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -3416,22 +3593,25 @@ export default function ClassManagement() {
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Roll Number <span className="text-red-500">*</span>
+                  <label
+                    htmlFor="add-student-roll-number"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Roll Number <span className="text-destructive">*</span>
+                    <input
+                      id="add-student-roll-number"
+                      type="text"
+                      value={rollNumberFormData.rollNumber}
+                      onChange={(e) =>
+                        setRollNumberFormData((prev) => ({
+                          ...prev,
+                          rollNumber: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Enter roll number (e.g., 001, A01, etc.)"
+                    />
                   </label>
-                  <input
-                    type="text"
-                    value={rollNumberFormData.rollNumber}
-                    onChange={(e) =>
-                      setRollNumberFormData((prev) => ({
-                        ...prev,
-                        rollNumber: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="Enter roll number (e.g., 001, A01, etc.)"
-                    autoFocus
-                  />
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
@@ -3447,7 +3627,7 @@ export default function ClassManagement() {
                 </button>
                 <button
                   onClick={handleAssignStudentWithRollNumber}
-                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-white bg-success hover:bg-success rounded-md"
                 >
                   Add Student
                 </button>
@@ -3479,26 +3659,31 @@ export default function ClassManagement() {
                   </p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Select New Teacher <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={editSubjectFormData.teacherId}
-                    onChange={(e) =>
-                      setEditSubjectFormData((prev) => ({
-                        ...prev,
-                        teacherId: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  <label
+                    htmlFor="edit-subject-teacher"
+                    className="block text-sm font-medium text-gray-700 mb-1"
                   >
-                    <option value="">Select a teacher</option>
-                    {teachers.map((teacher) => (
-                      <option key={teacher.id} value={teacher.id}>
-                        {teacher.name}
-                      </option>
-                    ))}
-                  </select>
+                    Select New Teacher{' '}
+                    <span className="text-destructive">*</span>
+                    <select
+                      id="edit-subject-teacher"
+                      value={editSubjectFormData.teacherId}
+                      onChange={(e) =>
+                        setEditSubjectFormData((prev) => ({
+                          ...prev,
+                          teacherId: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Select a teacher</option>
+                      {teachers.map((teacher) => (
+                        <option key={teacher.id} value={teacher.id}>
+                          {teacher.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               </div>
               <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
@@ -3514,7 +3699,7 @@ export default function ClassManagement() {
                 </button>
                 <button
                   onClick={handleEditSubject}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-white bg-info hover:bg-info rounded-md"
                 >
                   Update Subject
                 </button>
@@ -3536,15 +3721,15 @@ export default function ClassManagement() {
                 </p>
               </div>
               <div className="p-6">
-                <div className="mb-4 p-4 bg-red-50 rounded-lg border border-red-200">
-                  <h4 className="font-medium text-red-900">
+                <div className="mb-4 p-4 bg-destructive/5 rounded-lg border border-destructive/20">
+                  <h4 className="font-medium text-destructive">
                     {selectedSubjectForDelete.name}
                   </h4>
-                  <p className="text-sm text-red-700 mt-1">
+                  <p className="text-sm text-destructive mt-1">
                     Teacher:{' '}
                     {selectedSubjectForDelete.teacherName || 'Not Assigned'}
                   </p>
-                  <p className="text-sm text-red-600 mt-2">
+                  <p className="text-sm text-destructive mt-2">
                     <strong>Warning:</strong> This action cannot be undone. The
                     subject will be permanently deleted.
                   </p>
@@ -3562,7 +3747,7 @@ export default function ClassManagement() {
                 </button>
                 <button
                   onClick={handleDeleteSubject}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md"
+                  className="px-4 py-2 text-sm font-medium text-white bg-destructive hover:bg-destructive rounded-md"
                 >
                   Delete Subject
                 </button>

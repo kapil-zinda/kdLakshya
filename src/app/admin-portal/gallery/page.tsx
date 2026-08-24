@@ -6,10 +6,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
+import { useConfirm } from '@/components/ui/confirm-dialog';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { useUserDataRedux } from '@/hooks/useUserDataRedux';
 import { useCreateGalleryImageMutation } from '@/store/api/galleryApi';
 import { useGetS3UploadUrlMutation } from '@/store/api/s3Api';
+import { toast } from 'react-toastify';
 
 interface Photo {
   id: string;
@@ -63,6 +65,7 @@ export default function GalleryManagement() {
   });
   const router = useRouter();
   const { userData } = useUserDataRedux();
+  const confirm = useConfirm();
 
   // API Hooks
   const [getS3UploadUrl] = useGetS3UploadUrlMutation();
@@ -297,17 +300,17 @@ export default function GalleryManagement() {
 
   const processUpload = async () => {
     if (!uploadFiles || uploadFiles.length === 0) {
-      alert('Please select files to upload');
+      toast.error('Please select files to upload');
       return;
     }
 
     if (!uploadFormData.title.trim()) {
-      alert('Please enter a title for the image');
+      toast.error('Please enter a title for the image');
       return;
     }
 
     if (!userData?.orgId) {
-      alert('Organization ID not found. Please log in again.');
+      toast.error('Organization ID not found. Please log in again.');
       return;
     }
 
@@ -384,13 +387,13 @@ export default function GalleryManagement() {
       });
       setUploadProgress(0);
 
-      alert('Image uploaded successfully!');
+      toast.success('Image uploaded successfully!');
 
       // Refresh the page to show new image
       window.location.reload();
     } catch (error) {
       console.error('Upload error:', error);
-      alert(
+      toast.error(
         `Failed to upload image: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     } finally {
@@ -400,7 +403,7 @@ export default function GalleryManagement() {
 
   const handleCreateAlbum = () => {
     if (!albumFormData.name) {
-      alert('Please enter album name');
+      toast.error('Please enter album name');
       return;
     }
 
@@ -418,7 +421,7 @@ export default function GalleryManagement() {
     setAlbums((prev) => [...prev, newAlbum]);
     setShowCreateAlbumModal(false);
     setAlbumFormData({ name: '', description: '', category: 'Events' });
-    alert('Album created successfully!');
+    toast.success('Album created successfully!');
   };
 
   const togglePhotoSelection = (photoId: string) => {
@@ -429,24 +432,28 @@ export default function GalleryManagement() {
     );
   };
 
-  const handleBulkDelete = () => {
+  const handleBulkDelete = async () => {
     if (selectedPhotos.length === 0) {
-      alert('Please select photos to delete');
+      toast.error('Please select photos to delete');
       return;
     }
 
-    if (confirm(`Delete ${selectedPhotos.length} selected photo(s)?`)) {
+    if (
+      await confirm(`Delete ${selectedPhotos.length} selected photo(s)?`, {
+        destructive: true,
+      })
+    ) {
       setPhotos((prev) =>
         prev.filter((photo) => !selectedPhotos.includes(photo.id)),
       );
       setSelectedPhotos([]);
-      alert('Photos deleted successfully');
+      toast.success('Photos deleted successfully');
     }
   };
 
   const handleBulkPublish = () => {
     if (selectedPhotos.length === 0) {
-      alert('Please select photos to publish');
+      toast.error('Please select photos to publish');
       return;
     }
 
@@ -458,7 +465,7 @@ export default function GalleryManagement() {
       ),
     );
     setSelectedPhotos([]);
-    alert(`${selectedPhotos.length} photo(s) published successfully`);
+    toast.success(`${selectedPhotos.length} photo(s) published successfully`);
   };
 
   if (loading) {
@@ -501,7 +508,10 @@ export default function GalleryManagement() {
             <div className="flex items-center space-x-4">
               <ThemeToggle />
               {/* Upload Photos */}
-              <label className="cursor-pointer flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors">
+              <label
+                htmlFor="gallery-upload-input"
+                className="cursor-pointer flex items-center px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 transition-colors"
+              >
                 <svg
                   className="w-4 h-4 mr-2"
                   fill="none"
@@ -517,6 +527,7 @@ export default function GalleryManagement() {
                 </svg>
                 Upload Photos
                 <input
+                  id="gallery-upload-input"
                   type="file"
                   multiple
                   accept="image/*"
@@ -527,7 +538,7 @@ export default function GalleryManagement() {
               {/* Create Album */}
               <button
                 onClick={() => setShowCreateAlbumModal(true)}
-                className="flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+                className="flex items-center px-4 py-2 bg-success text-white text-sm font-medium rounded-md hover:bg-success transition-colors"
               >
                 <svg
                   className="w-4 h-4 mr-2"
@@ -577,9 +588,9 @@ export default function GalleryManagement() {
         <div className="mb-6 space-y-4">
           {/* Category Filter */}
           <div>
-            <label className="block text-sm font-medium text-foreground mb-2">
+            <span className="block text-sm font-medium text-foreground mb-2">
               Filter by Category
-            </label>
+            </span>
             <div className="flex flex-wrap gap-2">
               {categories.map((category) => (
                 <button
@@ -600,55 +611,63 @@ export default function GalleryManagement() {
           {/* Search and Album Filter */}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <label className="block text-sm font-medium text-foreground mb-2">
+              <label
+                htmlFor="gallery-search-input"
+                className="block text-sm font-medium text-foreground mb-2"
+              >
                 Search
+                <input
+                  id="gallery-search-input"
+                  type="text"
+                  placeholder="Search photos, albums, or tags..."
+                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
               </label>
-              <input
-                type="text"
-                placeholder="Search photos, albums, or tags..."
-                className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
             </div>
             {viewMode === 'photos' && (
               <div className="sm:w-48">
-                <label className="block text-sm font-medium text-foreground mb-2">
-                  Filter by Album
-                </label>
-                <select
-                  value={selectedAlbum}
-                  onChange={(e) => setSelectedAlbum(e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                <label
+                  htmlFor="gallery-album-filter"
+                  className="block text-sm font-medium text-foreground mb-2"
                 >
-                  <option value="All">All Albums</option>
-                  {albums.map((album) => (
-                    <option key={album.id} value={album.name}>
-                      {album.name}
-                    </option>
-                  ))}
-                </select>
+                  Filter by Album
+                  <select
+                    id="gallery-album-filter"
+                    value={selectedAlbum}
+                    onChange={(e) => setSelectedAlbum(e.target.value)}
+                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  >
+                    <option value="All">All Albums</option>
+                    {albums.map((album) => (
+                      <option key={album.id} value={album.name}>
+                        {album.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
             )}
           </div>
 
           {/* Bulk Actions for Photos */}
           {viewMode === 'photos' && selectedPhotos.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="bg-info/10 border border-info/20 rounded-lg p-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-blue-900">
+                <span className="text-sm font-medium text-info">
                   {selectedPhotos.length} photo(s) selected
                 </span>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={handleBulkPublish}
-                    className="px-3 py-1 bg-green-600 text-white text-sm rounded-md hover:bg-green-700"
+                    className="px-3 py-1 bg-success text-white text-sm rounded-md hover:bg-success"
                   >
                     Publish
                   </button>
                   <button
                     onClick={handleBulkDelete}
-                    className="px-3 py-1 bg-red-600 text-white text-sm rounded-md hover:bg-red-700"
+                    className="px-3 py-1 bg-destructive text-white text-sm rounded-md hover:bg-destructive"
                   >
                     Delete
                   </button>
@@ -671,10 +690,19 @@ export default function GalleryManagement() {
             {filteredAlbums.map((album) => (
               <div
                 key={album.id}
+                role="button"
+                tabIndex={0}
                 className="bg-card rounded-lg shadow-sm border border-border hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden"
                 onClick={() => {
                   setSelectedAlbum(album.name);
                   setViewMode('photos');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setSelectedAlbum(album.name);
+                    setViewMode('photos');
+                  }
                 }}
               >
                 <div className="relative aspect-video bg-muted overflow-hidden">
@@ -744,7 +772,7 @@ export default function GalleryManagement() {
                 {/* Published Status */}
                 {photo.isPublished && (
                   <div className="absolute top-2 right-2 z-10">
-                    <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                    <span className="bg-success text-white text-xs px-2 py-1 rounded-full">
                       Published
                     </span>
                   </div>
@@ -752,8 +780,16 @@ export default function GalleryManagement() {
 
                 {/* Photo */}
                 <div
+                  role="button"
+                  tabIndex={0}
                   className="relative aspect-square bg-muted overflow-hidden cursor-pointer"
                   onClick={() => setSelectedPhoto(photo)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setSelectedPhoto(photo);
+                    }
+                  }}
                 >
                   <Image
                     src={photo.url}
@@ -832,9 +868,13 @@ export default function GalleryManagement() {
                 Create Album
               </button>
             ) : (
-              <label className="cursor-pointer px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 inline-block">
+              <label
+                htmlFor="gallery-upload-input-empty"
+                className="cursor-pointer px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 inline-block"
+              >
                 Upload Photos
                 <input
+                  id="gallery-upload-input-empty"
                   type="file"
                   multiple
                   accept="image/*"
@@ -868,6 +908,7 @@ export default function GalleryManagement() {
                     }
                   }}
                   disabled={isUploading}
+                  aria-label="Close upload dialog"
                   className="text-muted-foreground hover:text-foreground disabled:opacity-50"
                 >
                   <svg
@@ -888,9 +929,9 @@ export default function GalleryManagement() {
               <div className="p-6 space-y-4">
                 {/* File Preview */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
+                  <span className="block text-sm font-medium text-foreground mb-2">
                     Selected File
-                  </label>
+                  </span>
                   <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                     <span className="text-sm text-foreground truncate">
                       {uploadFiles[0].name}
@@ -903,62 +944,74 @@ export default function GalleryManagement() {
 
                 {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Title <span className="text-red-500">*</span>
+                  <label
+                    htmlFor="gallery-image-title"
+                    className="block text-sm font-medium text-foreground mb-1"
+                  >
+                    Title <span className="text-destructive">*</span>
+                    <input
+                      id="gallery-image-title"
+                      type="text"
+                      value={uploadFormData.title}
+                      onChange={(e) =>
+                        setUploadFormData((prev) => ({
+                          ...prev,
+                          title: e.target.value,
+                        }))
+                      }
+                      disabled={isUploading}
+                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                      placeholder="Enter image title"
+                    />
                   </label>
-                  <input
-                    type="text"
-                    value={uploadFormData.title}
-                    onChange={(e) =>
-                      setUploadFormData((prev) => ({
-                        ...prev,
-                        title: e.target.value,
-                      }))
-                    }
-                    disabled={isUploading}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
-                    placeholder="Enter image title"
-                  />
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
+                  <label
+                    htmlFor="gallery-image-description"
+                    className="block text-sm font-medium text-foreground mb-1"
+                  >
                     Description
+                    <textarea
+                      id="gallery-image-description"
+                      value={uploadFormData.description}
+                      onChange={(e) =>
+                        setUploadFormData((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
+                      disabled={isUploading}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                      placeholder="Enter image description"
+                    />
                   </label>
-                  <textarea
-                    value={uploadFormData.description}
-                    onChange={(e) =>
-                      setUploadFormData((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    disabled={isUploading}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
-                    placeholder="Enter image description"
-                  />
                 </div>
 
                 {/* Tags */}
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
+                  <label
+                    htmlFor="gallery-image-tags"
+                    className="block text-sm font-medium text-foreground mb-1"
+                  >
                     Tags
+                    <input
+                      id="gallery-image-tags"
+                      type="text"
+                      value={uploadFormData.tags}
+                      onChange={(e) =>
+                        setUploadFormData((prev) => ({
+                          ...prev,
+                          tags: e.target.value,
+                        }))
+                      }
+                      disabled={isUploading}
+                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
+                      placeholder="Enter tags separated by commas (e.g. event, sports, campus)"
+                    />
                   </label>
-                  <input
-                    type="text"
-                    value={uploadFormData.tags}
-                    onChange={(e) =>
-                      setUploadFormData((prev) => ({
-                        ...prev,
-                        tags: e.target.value,
-                      }))
-                    }
-                    disabled={isUploading}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-50"
-                    placeholder="Enter tags separated by commas (e.g. event, sports, campus)"
-                  />
                   <p className="text-xs text-muted-foreground mt-1">
                     Separate tags with commas
                   </p>
@@ -966,23 +1019,23 @@ export default function GalleryManagement() {
 
                 {/* Active Checkbox */}
                 <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="active-checkbox"
-                    checked={uploadFormData.active}
-                    onChange={(e) =>
-                      setUploadFormData((prev) => ({
-                        ...prev,
-                        active: e.target.checked,
-                      }))
-                    }
-                    disabled={isUploading}
-                    className="w-4 h-4 text-indigo-600 bg-background border-border rounded focus:ring-indigo-500 disabled:opacity-50"
-                  />
                   <label
                     htmlFor="active-checkbox"
-                    className="ml-2 text-sm text-foreground"
+                    className="flex items-center text-sm text-foreground"
                   >
+                    <input
+                      type="checkbox"
+                      id="active-checkbox"
+                      checked={uploadFormData.active}
+                      onChange={(e) =>
+                        setUploadFormData((prev) => ({
+                          ...prev,
+                          active: e.target.checked,
+                        }))
+                      }
+                      disabled={isUploading}
+                      className="w-4 h-4 text-indigo-600 bg-background border-border rounded focus:ring-indigo-500 disabled:opacity-50 mr-2"
+                    />
                     Make this image active (visible on public gallery)
                   </label>
                 </div>
@@ -1048,6 +1101,7 @@ export default function GalleryManagement() {
                 </h3>
                 <button
                   onClick={() => setShowCreateAlbumModal(false)}
+                  aria-label="Close create album dialog"
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
@@ -1067,61 +1121,73 @@ export default function GalleryManagement() {
               </div>
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Album Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={albumFormData.name}
-                    onChange={(e) =>
-                      setAlbumFormData((prev) => ({
-                        ...prev,
-                        name: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter album name"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={albumFormData.description}
-                    onChange={(e) =>
-                      setAlbumFormData((prev) => ({
-                        ...prev,
-                        description: e.target.value,
-                      }))
-                    }
-                    rows={3}
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Enter album description"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-1">
-                    Category
-                  </label>
-                  <select
-                    value={albumFormData.category}
-                    onChange={(e) =>
-                      setAlbumFormData((prev) => ({
-                        ...prev,
-                        category: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                  <label
+                    htmlFor="gallery-album-name"
+                    className="block text-sm font-medium text-foreground mb-1"
                   >
-                    {categories
-                      .filter((cat) => cat !== 'All')
-                      .map((category) => (
-                        <option key={category} value={category}>
-                          {category}
-                        </option>
-                      ))}
-                  </select>
+                    Album Name <span className="text-destructive">*</span>
+                    <input
+                      id="gallery-album-name"
+                      type="text"
+                      value={albumFormData.name}
+                      onChange={(e) =>
+                        setAlbumFormData((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter album name"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label
+                    htmlFor="gallery-album-description"
+                    className="block text-sm font-medium text-foreground mb-1"
+                  >
+                    Description
+                    <textarea
+                      id="gallery-album-description"
+                      value={albumFormData.description}
+                      onChange={(e) =>
+                        setAlbumFormData((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
+                      rows={3}
+                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Enter album description"
+                    />
+                  </label>
+                </div>
+                <div>
+                  <label
+                    htmlFor="gallery-album-category"
+                    className="block text-sm font-medium text-foreground mb-1"
+                  >
+                    Category
+                    <select
+                      id="gallery-album-category"
+                      value={albumFormData.category}
+                      onChange={(e) =>
+                        setAlbumFormData((prev) => ({
+                          ...prev,
+                          category: e.target.value,
+                        }))
+                      }
+                      className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      {categories
+                        .filter((cat) => cat !== 'All')
+                        .map((category) => (
+                          <option key={category} value={category}>
+                            {category}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
                 </div>
                 <div className="flex items-center justify-end space-x-3 pt-4">
                   <button
@@ -1132,7 +1198,7 @@ export default function GalleryManagement() {
                   </button>
                   <button
                     onClick={handleCreateAlbum}
-                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-md"
+                    className="px-4 py-2 text-sm font-medium text-white bg-success hover:bg-success rounded-md"
                   >
                     Create Album
                   </button>
@@ -1152,6 +1218,7 @@ export default function GalleryManagement() {
                 </h3>
                 <button
                   onClick={() => setSelectedPhoto(null)}
+                  aria-label="Close photo details"
                   className="text-muted-foreground hover:text-foreground"
                 >
                   <svg
@@ -1208,16 +1275,20 @@ export default function GalleryManagement() {
                         {selectedPhoto.isPublished ? 'Unpublish' : 'Publish'}
                       </button>
                       <button
-                        onClick={() => {
-                          if (confirm('Delete this photo?')) {
+                        onClick={async () => {
+                          if (
+                            await confirm('Delete this photo?', {
+                              destructive: true,
+                            })
+                          ) {
                             setPhotos((prev) =>
                               prev.filter((p) => p.id !== selectedPhoto.id),
                             );
                             setSelectedPhoto(null);
-                            alert('Photo deleted successfully');
+                            toast.success('Photo deleted successfully');
                           }
                         }}
-                        className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 text-sm font-medium"
+                        className="px-4 py-2 bg-destructive text-white rounded-md hover:bg-destructive text-sm font-medium"
                       >
                         Delete Photo
                       </button>
@@ -1232,26 +1303,26 @@ export default function GalleryManagement() {
                       </h4>
                       <div className="space-y-3">
                         <div>
-                          <label className="text-sm font-medium text-muted-foreground">
+                          <span className="text-sm font-medium text-muted-foreground">
                             Description
-                          </label>
+                          </span>
                           <p className="text-sm text-foreground">
                             {selectedPhoto.description}
                           </p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <span className="text-sm font-medium text-muted-foreground">
                               Category
-                            </label>
+                            </span>
                             <p className="text-sm text-foreground">
                               {selectedPhoto.category}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <span className="text-sm font-medium text-muted-foreground">
                               Album
-                            </label>
+                            </span>
                             <p className="text-sm text-foreground">
                               {selectedPhoto.album}
                             </p>
@@ -1259,26 +1330,26 @@ export default function GalleryManagement() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <span className="text-sm font-medium text-muted-foreground">
                               File Size
-                            </label>
+                            </span>
                             <p className="text-sm text-foreground">
                               {selectedPhoto.fileSize}
                             </p>
                           </div>
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <span className="text-sm font-medium text-muted-foreground">
                               Dimensions
-                            </label>
+                            </span>
                             <p className="text-sm text-foreground">
                               {selectedPhoto.dimensions}
                             </p>
                           </div>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-muted-foreground">
+                          <span className="text-sm font-medium text-muted-foreground">
                             Upload Date
-                          </label>
+                          </span>
                           <p className="text-sm text-foreground">
                             {new Date(
                               selectedPhoto.uploadDate,
@@ -1286,9 +1357,9 @@ export default function GalleryManagement() {
                           </p>
                         </div>
                         <div>
-                          <label className="text-sm font-medium text-muted-foreground">
+                          <span className="text-sm font-medium text-muted-foreground">
                             Status
-                          </label>
+                          </span>
                           <span
                             className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
                               selectedPhoto.isPublished
@@ -1301,14 +1372,14 @@ export default function GalleryManagement() {
                         </div>
                         {selectedPhoto.tags.length > 0 && (
                           <div>
-                            <label className="text-sm font-medium text-muted-foreground">
+                            <span className="text-sm font-medium text-muted-foreground">
                               Tags
-                            </label>
+                            </span>
                             <div className="flex flex-wrap gap-1 mt-1">
                               {selectedPhoto.tags.map((tag, index) => (
                                 <span
                                   key={index}
-                                  className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                                  className="px-2 py-1 bg-info/10 text-info text-xs rounded-full"
                                 >
                                   {tag}
                                 </span>
