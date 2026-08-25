@@ -488,7 +488,7 @@ export default function LoginPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
                   {error}
                 </div>
               )}
@@ -497,7 +497,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-info hover:bg-info/90 text-white font-medium py-2 px-4 rounded-md transition-colors focus:ring-2 focus:ring-info focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center">
@@ -549,12 +549,12 @@ export default function LoginPage() {
         <div className="text-center text-sm text-muted-foreground">
           <p>
             Having trouble logging in?{' '}
-            <a
-              href="#"
+            <button
+              type="button"
               className="text-indigo-600 hover:text-indigo-500 underline"
             >
               Contact Support
-            </a>
+            </button>
           </p>
         </div>
       </div>

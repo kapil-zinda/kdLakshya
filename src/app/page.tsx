@@ -83,7 +83,7 @@ export default function Home() {
     <>
       {/* Debug indicator to show data source */}
       {process.env.NODE_ENV === 'development' && (
-        <div className="fixed top-0 right-0 z-50 bg-blue-500 text-white px-3 py-1 text-xs">
+        <div className="fixed top-0 right-0 z-50 bg-info text-white px-3 py-1 text-xs">
           API Data
         </div>
       )}
