@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { determineUserRole } from '@/store/api/authApi';
+import { LOCALHOST_ORG_ID } from '@/utils/userDataCache';
 
 export interface CachedUserData {
   id: string;
@@ -109,8 +110,6 @@ export function useUserData() {
 
         console.log('Determined role:', role);
 
-        // For localhost development, use hardcoded orgId
-        const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
         const isLocalhost =
           typeof window !== 'undefined' &&
           (window.location.hostname === 'localhost' ||

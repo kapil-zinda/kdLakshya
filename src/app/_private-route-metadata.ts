@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 import type { Metadata } from 'next';
 
 /**
@@ -18,3 +20,11 @@ export const noIndexMetadata: Metadata = {
     },
   },
 };
+
+/**
+ * Passthrough layout shell shared by private route-group layouts that need
+ * nothing beyond the noIndexMetadata above - just renders their children.
+ */
+export function PrivateRouteLayout({ children }: { children: ReactNode }) {
+  return children;
+}

@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ApiService } from '@/services/api';
+import { canonicalDashboardPath } from '@/utils/authRoutes';
+import { LOCALHOST_ORG_ID } from '@/utils/userDataCache';
 
 interface StudentLoginData {
   firstName: string;
@@ -41,7 +43,7 @@ export default function LoginPage() {
       // If on 'auth' subdomain, use default org_id (auth subdomain doesn't have its own org)
       if (subdomain === 'auth') {
         console.log('🔐 On auth subdomain, using default org_id');
-        const defaultOrgId = '68d6b128d88f00c8b1b4a89a';
+        const defaultOrgId = LOCALHOST_ORG_ID;
         setOrgId(defaultOrgId);
         return;
       }
@@ -93,7 +95,7 @@ export default function LoginPage() {
       // For localhost without subdomain, use default org_id
       if (isLocalhost && !hasSubdomain) {
         console.log('🏠 Using default org_id for localhost without subdomain');
-        const defaultOrgId = '68d6b128d88f00c8b1b4a89a';
+        const defaultOrgId = LOCALHOST_ORG_ID;
         setOrgId(defaultOrgId);
         localStorage.setItem('orgId', defaultOrgId);
         localStorage.setItem('cachedSubdomain', subdomain);
@@ -139,14 +141,14 @@ export default function LoginPage() {
           console.error('❌ Failed to fetch org_id from subdomain API:', error);
         }
         // Fallback to default if API fails
-        const fallbackOrgId = '68d6b128d88f00c8b1b4a89a';
+        const fallbackOrgId = LOCALHOST_ORG_ID;
         setOrgId(fallbackOrgId);
         localStorage.setItem('orgId', fallbackOrgId);
         localStorage.setItem('cachedSubdomain', subdomain);
       } catch (error) {
         console.error('❌ Error fetching org_id:', error);
         // Fallback to default if error occurs
-        const fallbackOrgId = '68d6b128d88f00c8b1b4a89a';
+        const fallbackOrgId = LOCALHOST_ORG_ID;
         setOrgId(fallbackOrgId);
         localStorage.setItem('orgId', fallbackOrgId);
         localStorage.setItem('cachedSubdomain', subdomain);
@@ -307,44 +309,42 @@ export default function LoginPage() {
                 targetSubdomain,
               );
 
-              // Encode student auth data to pass it to the org subdomain via URL hash
+              // Encode student auth data to pass it to the org subdomain via
+              // URL hash, landing straight on the canonical student
+              // dashboard - Providers' global hash handler (any page, since
+              // it wraps the whole app) picks this up on arrival, so no
+              // further navigation is needed there.
               const encodedAuthData = encodeURIComponent(
                 JSON.stringify(studentAuthData),
               );
+              const destination = canonicalDashboardPath('student');
 
               if (isLocalhost) {
                 const port = currentHost.split(':')[1] || '3000';
-                // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
-                const redirectUrl = `http://${targetSubdomain}.localhost:${port}/#student_auth=${encodedAuthData}`;
+                const redirectUrl = `http://${targetSubdomain}.localhost:${port}${destination}#student_auth=${encodedAuthData}`;
                 console.log('🔗 Student redirect URL (dev):', redirectUrl);
-                console.log(
-                  '📦 Passing student auth data via URL hash for cross-subdomain auth',
-                );
                 window.location.href = redirectUrl;
               } else {
                 const domain = currentHost.split('.').slice(1).join('.');
-                // Redirect to homepage with hash, page.tsx will process and redirect to dashboard
-                const redirectUrl = `https://${targetSubdomain}.${domain}/#student_auth=${encodedAuthData}`;
+                const redirectUrl = `https://${targetSubdomain}.${domain}${destination}#student_auth=${encodedAuthData}`;
                 console.log('🔗 Student redirect URL (prod):', redirectUrl);
-                console.log(
-                  '📦 Passing student auth data via URL hash for cross-subdomain auth',
-                );
                 window.location.href = redirectUrl;
               }
               sessionStorage.removeItem('loginOriginSubdomain');
             } else {
-              // No org subdomain found, stay on auth subdomain dashboard
+              // No org subdomain found, stay on auth subdomain
               console.log(
-                '⚠️ No org subdomain available, redirecting to dashboard on auth subdomain',
+                '⚠️ No org subdomain available, redirecting to student dashboard on auth subdomain',
               );
-              router.push('/dashboard');
+              router.push(canonicalDashboardPath('student'));
             }
           } else {
-            // Normal redirect to dashboard on same subdomain
+            // Same subdomain - go straight to the canonical route, no
+            // generic /dashboard stopover.
             console.log(
-              '✅ Student login successful, redirecting to dashboard on same subdomain',
+              '✅ Student login successful, redirecting to student dashboard',
             );
-            router.push('/dashboard');
+            router.push(canonicalDashboardPath('student'));
           }
         } else {
           setError(
@@ -488,7 +488,7 @@ export default function LoginPage() {
 
               {/* Error Message */}
               {error && (
-                <div className="p-3 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+                <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
                   {error}
                 </div>
               )}
@@ -497,7 +497,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-info hover:bg-info/90 text-white font-medium py-2 px-4 rounded-md transition-colors focus:ring-2 focus:ring-info focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <div className="flex items-center justify-center">
@@ -549,12 +549,12 @@ export default function LoginPage() {
         <div className="text-center text-sm text-muted-foreground">
           <p>
             Having trouble logging in?{' '}
-            <a
-              href="#"
+            <button
+              type="button"
               className="text-indigo-600 hover:text-indigo-500 underline"
             >
               Contact Support
-            </a>
+            </button>
           </p>
         </div>
       </div>

@@ -136,6 +136,18 @@ export default async function RootLayout({
     fontFamily: `${brand.fontFamily}, sans-serif`,
   };
 
+  // Only request the brand's actual font family (plus Inter as the hard
+  // fallback baseline used throughout globals.css), instead of the fixed
+  // 8-family list this used to request for every org regardless of which
+  // font it actually uses.
+  const googleFontFamilies = Array.from(new Set([brand.fontFamily, 'Inter']));
+  const googleFontsHref = `https://fonts.googleapis.com/css2?${googleFontFamilies
+    .map(
+      (family) =>
+        `family=${encodeURIComponent(family).replace(/%20/g, '+')}:wght@400;500;600;700`,
+    )
+    .join('&')}&display=swap`;
+
   return (
     <html lang="en" suppressHydrationWarning style={brandStyle}>
       <head>
@@ -156,10 +168,7 @@ export default async function RootLayout({
           crossOrigin="anonymous"
         />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&family=Press+Start+2P&family=Pacifico&display=swap"
-          rel="stylesheet"
-        />
+        <link href={googleFontsHref} rel="stylesheet" />
         <script
           type="application/ld+json"
           // eslint-disable-next-line react/no-danger
