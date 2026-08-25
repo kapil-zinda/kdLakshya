@@ -4,7 +4,7 @@
  */
 
 // Hardcoded orgId for localhost development
-const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
+export const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
 
 interface UserMeData {
   id: string;
