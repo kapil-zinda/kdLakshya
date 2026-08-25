@@ -8,6 +8,7 @@ import { UserData } from '@/app/interfaces/userInterface';
 import { DashboardWrapper } from '@/components/auth/DashboardWrapper';
 import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import { ApiService } from '@/services/api';
+import { LOCALHOST_ORG_ID } from '@/utils/userDataCache';
 import { toast } from 'react-toastify';
 
 interface AttendanceRecord {
@@ -62,7 +63,6 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
   // Only fall back to a dev/test org id on localhost - never in production,
   // where a missing orgId should surface as an empty/error state, not
   // silently read/write another organization's attendance data.
-  const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
   const isLocalhost =
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' ||
@@ -400,23 +400,29 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
             <div className="bg-card border border-border rounded-lg shadow-sm p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-muted-foreground mb-2">
-                    Select Class
-                  </label>
-                  <select
-                    value={selectedClass?.id || ''}
-                    onChange={(e) => {
-                      const cls = classes.find((c) => c.id === e.target.value);
-                      setSelectedClass(cls || null);
-                    }}
-                    className="w-full px-4 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                  <label
+                    htmlFor="attendance-class-select"
+                    className="block text-sm font-medium text-muted-foreground mb-2"
                   >
-                    {classes.map((cls) => (
-                      <option key={cls.id} value={cls.id}>
-                        {cls.name} - Section {cls.section}
-                      </option>
-                    ))}
-                  </select>
+                    Select Class
+                    <select
+                      id="attendance-class-select"
+                      value={selectedClass?.id || ''}
+                      onChange={(e) => {
+                        const cls = classes.find(
+                          (c) => c.id === e.target.value,
+                        );
+                        setSelectedClass(cls || null);
+                      }}
+                      className="mt-2 w-full px-4 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                    >
+                      {classes.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name} - Section {cls.section}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
 
                 <div>
@@ -425,35 +431,35 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                     className="block text-sm font-medium text-muted-foreground mb-2"
                   >
                     Date
+                    <div className="mt-2 flex items-center gap-2">
+                      <input
+                        id="attendance-date"
+                        type="date"
+                        value={selectedDate}
+                        max={todayDate}
+                        onChange={(e) => {
+                          if (hasUnsavedChanges) {
+                            toast.warn(
+                              'Unsaved changes were discarded when you switched dates.',
+                            );
+                          }
+                          setSelectedDate(e.target.value);
+                        }}
+                        className="flex-1 px-4 py-2 bg-muted border border-border rounded-lg text-foreground font-medium"
+                      />
+                      {selectedDate === todayDate && (
+                        <span className="px-2 py-1 bg-info/20 border border-info/30 text-foreground text-xs font-semibold rounded whitespace-nowrap">
+                          Today
+                        </span>
+                      )}
+                    </div>
                   </label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="attendance-date"
-                      type="date"
-                      value={selectedDate}
-                      max={todayDate}
-                      onChange={(e) => {
-                        if (hasUnsavedChanges) {
-                          toast.warn(
-                            'Unsaved changes were discarded when you switched dates.',
-                          );
-                        }
-                        setSelectedDate(e.target.value);
-                      }}
-                      className="flex-1 px-4 py-2 bg-muted border border-border rounded-lg text-foreground font-medium"
-                    />
-                    {selectedDate === todayDate && (
-                      <span className="px-2 py-1 bg-blue-500/20 border border-blue-500/30 text-foreground text-xs font-semibold rounded whitespace-nowrap">
-                        Today
-                      </span>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
 
             {attendanceLoadFailed && (
-              <div className="bg-yellow-500/10 border border-yellow-500 text-yellow-600 dark:text-yellow-400 px-4 py-3 rounded-lg mb-4">
+              <div className="bg-warning/10 border border-warning text-warning px-4 py-3 rounded-lg mb-4">
                 Couldn&apos;t confirm existing attendance for this date, so Save
                 is disabled to avoid overwriting real records. Reload the page
                 or pick a different date and try again.
@@ -462,7 +468,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-card border border-border rounded-lg shadow-sm p-6 border-l-4 border-green-500">
+              <div className="bg-card border border-border rounded-lg shadow-sm p-6 border-l-4 border-success">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
@@ -472,9 +478,9 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                       {stats.present}
                     </p>
                   </div>
-                  <div className="p-3 bg-green-500/20 rounded-full">
+                  <div className="p-3 bg-success/20 rounded-full">
                     <svg
-                      className="w-6 h-6 text-green-600"
+                      className="w-6 h-6 text-success"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -490,7 +496,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                 </div>
               </div>
 
-              <div className="bg-card border border-border rounded-lg shadow-sm p-6 border-l-4 border-red-500">
+              <div className="bg-card border border-border rounded-lg shadow-sm p-6 border-l-4 border-destructive">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
@@ -500,9 +506,9 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                       {stats.absent}
                     </p>
                   </div>
-                  <div className="p-3 bg-red-500/20 rounded-full">
+                  <div className="p-3 bg-destructive/20 rounded-full">
                     <svg
-                      className="w-6 h-6 text-red-600"
+                      className="w-6 h-6 text-destructive"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -518,7 +524,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                 </div>
               </div>
 
-              <div className="bg-card border border-border rounded-lg shadow-sm p-6 border-l-4 border-yellow-500">
+              <div className="bg-card border border-border rounded-lg shadow-sm p-6 border-l-4 border-warning">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">
@@ -528,9 +534,9 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                       {stats.late}
                     </p>
                   </div>
-                  <div className="p-3 bg-yellow-500/20 rounded-full">
+                  <div className="p-3 bg-warning/20 rounded-full">
                     <svg
-                      className="w-6 h-6 text-yellow-600"
+                      className="w-6 h-6 text-warning"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -553,7 +559,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                 <div className="flex items-center space-x-3">
                   <button
                     onClick={handleMarkAllPresent}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center text-sm font-medium"
+                    className="px-4 py-2 bg-success text-white rounded-lg hover:bg-success/90 transition-colors flex items-center text-sm font-medium"
                   >
                     <svg
                       className="w-4 h-4 mr-2"
@@ -572,7 +578,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                   </button>
                   <button
                     onClick={handleMarkAllAbsent}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center text-sm font-medium"
+                    className="px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive/90 transition-colors flex items-center text-sm font-medium"
                   >
                     <svg
                       className="w-4 h-4 mr-2"
@@ -715,10 +721,11 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                                 onClick={() =>
                                   handleAttendanceChange(student.id, 'P')
                                 }
+                                aria-label={`Mark ${student.name} present`}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                   status === 'P'
-                                    ? 'bg-green-600 text-white shadow-md'
-                                    : 'bg-muted text-foreground hover:bg-green-500/20'
+                                    ? 'bg-success text-white shadow-md'
+                                    : 'bg-muted text-foreground hover:bg-success/20'
                                 }`}
                                 title="Present"
                               >
@@ -728,10 +735,11 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                                 onClick={() =>
                                   handleAttendanceChange(student.id, 'A')
                                 }
+                                aria-label={`Mark ${student.name} absent`}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                   status === 'A'
-                                    ? 'bg-red-600 text-white shadow-md'
-                                    : 'bg-muted text-foreground hover:bg-red-500/20'
+                                    ? 'bg-destructive text-white shadow-md'
+                                    : 'bg-muted text-foreground hover:bg-destructive/20'
                                 }`}
                                 title="Absent"
                               >
@@ -741,10 +749,11 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                                 onClick={() =>
                                   handleAttendanceChange(student.id, 'L')
                                 }
+                                aria-label={`Mark ${student.name} late`}
                                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                                   status === 'L'
-                                    ? 'bg-yellow-600 text-white shadow-md'
-                                    : 'bg-muted text-foreground hover:bg-yellow-500/20'
+                                    ? 'bg-warning text-white shadow-md'
+                                    : 'bg-muted text-foreground hover:bg-warning/20'
                                 }`}
                                 title="Late"
                               >
@@ -825,6 +834,7 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                 </div>
                 <button
                   onClick={() => setShowMonthlyModal(false)}
+                  aria-label="Close monthly attendance dialog"
                   className="text-white hover:text-gray-200 transition-colors"
                 >
                   <svg
@@ -846,18 +856,20 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
 
             {/* Month Selector */}
             <div className="px-6 py-4 bg-muted border-b border-border">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-foreground">
-                  Select Month:
-                </label>
+              <label
+                htmlFor="attendance-month-select"
+                className="flex items-center justify-between text-sm font-medium text-foreground"
+              >
+                Select Month:
                 <input
+                  id="attendance-month-select"
                   type="month"
                   value={selectedMonth}
                   onChange={(e) => handleMonthChange(e.target.value)}
                   max={new Date().toISOString().slice(0, 7)}
                   className="px-4 py-2 bg-background text-foreground border border-border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                 />
-              </div>
+              </label>
             </div>
 
             {/* Modal Body - Calendar View */}
@@ -909,16 +921,16 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                             <div
                               className={`aspect-square border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all ${
                                 isToday
-                                  ? 'border-blue-500 bg-blue-500/10'
+                                  ? 'border-info bg-info/10'
                                   : 'border-border'
                               } ${
                                 attendance
                                   ? attendance.status === 'P'
-                                    ? 'bg-green-50 dark:bg-green-500/20 border-green-300'
+                                    ? 'bg-success/10 border-success/30'
                                     : attendance.status === 'A'
-                                      ? 'bg-red-50 dark:bg-red-500/20 border-red-300'
+                                      ? 'bg-destructive/10 border-destructive/30'
                                       : attendance.status === 'L'
-                                        ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-300'
+                                        ? 'bg-warning/10 border-warning/30'
                                         : 'bg-muted'
                                   : 'bg-card'
                               }`}
@@ -930,12 +942,12 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                                 <span
                                   className={`text-xs font-bold mt-1 px-2 py-0.5 rounded ${
                                     attendance.status === 'P'
-                                      ? 'bg-green-600 text-white'
+                                      ? 'bg-success text-white'
                                       : attendance.status === 'A'
-                                        ? 'bg-red-600 text-white'
+                                        ? 'bg-destructive text-white'
                                         : attendance.status === 'L'
-                                          ? 'bg-yellow-600 text-white'
-                                          : 'bg-gray-600 text-white'
+                                          ? 'bg-warning text-white'
+                                          : 'bg-muted-foreground text-white'
                                   }`}
                                 >
                                   {attendance.status}
@@ -950,17 +962,15 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                         <div
                           key={`day-${day}`}
                           className={`aspect-square border-2 rounded-lg p-2 flex flex-col items-center justify-center transition-all ${
-                            isToday
-                              ? 'border-blue-500 bg-blue-500/10'
-                              : 'border-border'
+                            isToday ? 'border-info bg-info/10' : 'border-border'
                           } ${
                             attendance
                               ? attendance.status === 'P'
-                                ? 'bg-green-50 dark:bg-green-500/20 border-green-300'
+                                ? 'bg-success/10 border-success/30'
                                 : attendance.status === 'A'
-                                  ? 'bg-red-50 dark:bg-red-500/20 border-red-300'
+                                  ? 'bg-destructive/10 border-destructive/30'
                                   : attendance.status === 'L'
-                                    ? 'bg-yellow-50 dark:bg-yellow-500/20 border-yellow-300'
+                                    ? 'bg-warning/10 border-warning/30'
                                     : 'bg-muted'
                               : 'bg-card'
                           }`}
@@ -972,12 +982,12 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                             <span
                               className={`text-xs font-bold mt-1 px-2 py-0.5 rounded ${
                                 attendance.status === 'P'
-                                  ? 'bg-green-600 text-white'
+                                  ? 'bg-success text-white'
                                   : attendance.status === 'A'
-                                    ? 'bg-red-600 text-white'
+                                    ? 'bg-destructive text-white'
                                     : attendance.status === 'L'
-                                      ? 'bg-yellow-600 text-white'
-                                      : 'bg-gray-600 text-white'
+                                      ? 'bg-warning text-white'
+                                      : 'bg-muted-foreground text-white'
                               }`}
                             >
                               {attendance.status}
@@ -995,19 +1005,19 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
                     </h4>
                     <div className="flex flex-wrap gap-4">
                       <div className="flex items-center">
-                        <div className="w-6 h-6 bg-green-600 rounded mr-2"></div>
+                        <div className="w-6 h-6 bg-success rounded mr-2"></div>
                         <span className="text-sm text-muted-foreground">
                           Present (P)
                         </span>
                       </div>
                       <div className="flex items-center">
-                        <div className="w-6 h-6 bg-red-600 rounded mr-2"></div>
+                        <div className="w-6 h-6 bg-destructive rounded mr-2"></div>
                         <span className="text-sm text-muted-foreground">
                           Absent (A)
                         </span>
                       </div>
                       <div className="flex items-center">
-                        <div className="w-6 h-6 bg-yellow-600 rounded mr-2"></div>
+                        <div className="w-6 h-6 bg-warning rounded mr-2"></div>
                         <span className="text-sm text-muted-foreground">
                           Late (L)
                         </span>
@@ -1022,27 +1032,27 @@ function AttendanceContent({ userData }: AttendanceContentProps) {
 
                     {/* Summary */}
                     <div className="mt-4 grid grid-cols-3 gap-4">
-                      <div className="bg-green-50 dark:bg-green-500/20 rounded-lg p-3 border border-green-200">
+                      <div className="bg-success/10 rounded-lg p-3 border border-success/20">
                         <p className="text-xs text-muted-foreground">Present</p>
-                        <p className="text-xl font-bold text-green-600">
+                        <p className="text-xl font-bold text-success">
                           {
                             monthlyAttendance.filter((a) => a.status === 'P')
                               .length
                           }
                         </p>
                       </div>
-                      <div className="bg-red-50 dark:bg-red-500/20 rounded-lg p-3 border border-red-200">
+                      <div className="bg-destructive/10 rounded-lg p-3 border border-destructive/20">
                         <p className="text-xs text-muted-foreground">Absent</p>
-                        <p className="text-xl font-bold text-red-600">
+                        <p className="text-xl font-bold text-destructive">
                           {
                             monthlyAttendance.filter((a) => a.status === 'A')
                               .length
                           }
                         </p>
                       </div>
-                      <div className="bg-yellow-50 dark:bg-yellow-500/20 rounded-lg p-3 border border-yellow-200">
+                      <div className="bg-warning/10 rounded-lg p-3 border border-warning/20">
                         <p className="text-xs text-muted-foreground">Late</p>
-                        <p className="text-xl font-bold text-yellow-600">
+                        <p className="text-xl font-bold text-warning">
                           {
                             monthlyAttendance.filter((a) => a.status === 'L')
                               .length
