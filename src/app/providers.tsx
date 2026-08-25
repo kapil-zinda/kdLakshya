@@ -5,9 +5,9 @@ import * as React from 'react';
 import { usePathname } from 'next/navigation';
 
 import { DynamicTitle } from '@/components/DynamicTitle';
-import { ApiService } from '@/services/api';
 import { determineUserRole } from '@/store/api/authApi';
 import { isStudentUser } from '@/utils/authHeaders';
+import { canonicalDashboardPath } from '@/utils/authRoutes';
 import {
   loadTokenFromStorage,
   loadUserFromStorage,
@@ -57,78 +57,16 @@ const isCachedUserDataFresh = (): boolean => {
 export function Providers({ children }: ThemeProviderProps) {
   const [accessTkn, setAccessTkn] = React.useState<string | null>(null);
   const [isProcessingCode, setIsProcessingCode] = React.useState(false);
-  const [isRedirecting, setIsRedirecting] = React.useState(false);
+  // No longer set anywhere - the old redirectToOrgSubdomain helper that used
+  // to flip this (and duplicated the redirect logic fetchAuthToken already
+  // does correctly) was dead code, unreachable from any real call site, and
+  // was removed as part of the R3 hop-count fix.
+  const [isRedirecting] = React.useState(false);
   const pathname = usePathname();
   const fetchedUserForTokenRef = React.useRef<string | null>(null);
 
-  const redirectToOrgSubdomain = async (
-    orgId: string,
-    accessToken?: string,
-  ) => {
-    try {
-      // Show loader during redirect
-      setIsRedirecting(true);
-
-      // Get organization data to determine subdomain
-      const orgData = await ApiService.getOrganizationById(orgId, accessToken);
-      const expectedSubdomain = orgData.data.attributes.subdomain;
-
-      if (expectedSubdomain) {
-        // Check current subdomain to avoid unnecessary redirects
-        const currentHost = window.location.host;
-        const currentHostParts = currentHost.split('.');
-        const currentSubdomain =
-          currentHostParts.length > 2 ? currentHostParts[0] : null;
-
-        // Only redirect if user is on wrong subdomain or on AUTH
-        const isOnAuth = currentSubdomain === 'auth';
-        const needsRedirect =
-          currentSubdomain !== expectedSubdomain || isOnAuth;
-
-        if (needsRedirect) {
-          const isLocalhost =
-            currentHost.includes('localhost') ||
-            currentHost.includes('127.0.0.1');
-
-          // Pass the access token via URL hash for cross-subdomain authentication
-          const tokenParam = accessToken
-            ? `#access_token=${encodeURIComponent(accessToken)}`
-            : '';
-
-          if (isLocalhost) {
-            // For development, redirect to subdomain on localhost with dashboard
-            const port = currentHost.split(':')[1] || '3000';
-            const redirectUrl = `http://${expectedSubdomain}.localhost:${port}/dashboard${tokenParam}`;
-            window.location.href = redirectUrl;
-          } else {
-            // For production, redirect to the actual subdomain with dashboard
-            const domain = currentHost.split('.').slice(1).join('.'); // Get base domain
-            const redirectUrl = `https://${expectedSubdomain}.${domain}/dashboard${tokenParam}`;
-
-            // Add a small delay to ensure logs are visible
-            window.location.href = redirectUrl;
-          }
-        } else {
-          // User is already on correct subdomain, just go to dashboard
-          setIsRedirecting(false);
-          // Use router.push instead of window.location.href to stay on current domain
-          window.location.href = '/dashboard';
-        }
-      } else {
-        // Fallback to dashboard if no subdomain found
-        setIsRedirecting(false);
-        window.location.href = '/dashboard';
-      }
-    } catch (error) {
-      console.error('Error fetching organization data for redirect:', error);
-      // Fallback to dashboard on error
-      setIsRedirecting(false);
-      window.location.href = '/dashboard';
-    }
-  };
-
   const userMeData = React.useCallback(
-    async (bearerToken: string, shouldRedirect: boolean = false) => {
+    async (bearerToken: string) => {
       if (!bearerToken) return;
 
       // Skip /users/me call for students as we already have their data
@@ -144,8 +82,7 @@ export function Providers({ children }: ThemeProviderProps) {
 
       // Skip when cached user data is within the 24h TTL.
       // loadUserFromStorage has already hydrated Redux from this same cache.
-      // shouldRedirect=true callers want fresh data, so bypass the cache.
-      if (!shouldRedirect && isCachedUserDataFresh()) {
+      if (isCachedUserDataFresh()) {
         console.log('✅ Using cached /users/me data (within 24h TTL)');
         return;
       }
@@ -226,11 +163,6 @@ export function Providers({ children }: ThemeProviderProps) {
             cacheTimestamp: Date.now(), // Add timestamp for cache validation
           }),
         );
-
-        // Only redirect if explicitly requested and has org ID
-        if (shouldRedirect && orgId) {
-          await redirectToOrgSubdomain(orgId, bearerToken);
-        }
       } catch (error) {
         console.error('Error fetching user data:', error);
         // If we get a 401 or 403, the token is invalid
@@ -373,7 +305,13 @@ export function Providers({ children }: ThemeProviderProps) {
               userData.attributes.org_id ||
               userData.attributes.org;
 
-            console.log('🏢 Extracted orgId:', orgId);
+            // Same normalizer userMeData/authApi.ts use, not the raw
+            // attributes.role field - that's a faculty-record field
+            // ('faculty'/'staff'/...), not the RBAC role this app routes on.
+            const role = determineUserRole(userData);
+            const destination = canonicalDashboardPath(role);
+
+            console.log('🏢 Extracted orgId:', orgId, '| role:', role);
 
             // Sync user data to Redux store
             syncUserToRedux({
@@ -387,15 +325,15 @@ export function Providers({ children }: ThemeProviderProps) {
                 userData.attributes.last_name ||
                 userData.attributes.name?.split(' ').slice(1).join(' ') ||
                 '',
-              role: userData.attributes.role || 'student',
+              role,
               orgId: orgId || '',
             });
 
             if (!orgId) {
               console.error(
-                '❌ No orgId found in user data, going to dashboard',
+                `❌ No orgId found in user data, going straight to ${destination}`,
               );
-              window.location.href = '/dashboard';
+              window.location.href = destination;
               return;
             }
 
@@ -425,13 +363,17 @@ export function Providers({ children }: ThemeProviderProps) {
 
             if (!targetSubdomain) {
               console.error(
-                '❌ No subdomain found in org data, going to dashboard',
+                `❌ No subdomain found in org data, going straight to ${destination}`,
               );
-              window.location.href = '/dashboard';
+              window.location.href = destination;
               return;
             }
 
-            // Step 3: Redirect to org subdomain
+            // Step 3: Redirect straight to the canonical destination - one
+            // hop, whether or not a cross-subdomain jump is also needed,
+            // instead of landing on '/' or '/dashboard' and letting a
+            // second effect (page.tsx, then dashboard/page.tsx) figure out
+            // the role and navigate again.
             const currentHost = window.location.host;
             const currentSubdomain = currentHost.split('.')[0];
 
@@ -445,33 +387,40 @@ export function Providers({ children }: ThemeProviderProps) {
               currentSubdomain !== targetSubdomain; // Different org subdomain
 
             if (needsRedirect) {
-              console.log('🔄 Redirecting to org subdomain:', targetSubdomain);
+              console.log(
+                '🔄 Redirecting to org subdomain:',
+                targetSubdomain,
+                destination,
+              );
 
               if (isLocalhost) {
                 const port = currentHost.split(':')[1] || '3000';
-                const redirectUrl = `http://${targetSubdomain}.localhost:${port}/#access_token=${encodeURIComponent(token)}`;
+                const redirectUrl = `http://${targetSubdomain}.localhost:${port}${destination}#access_token=${encodeURIComponent(token)}`;
                 console.log('🔗 Redirect URL:', redirectUrl);
                 window.location.href = redirectUrl;
               } else {
                 const domain = currentHost.split('.').slice(1).join('.');
-                const redirectUrl = `https://${targetSubdomain}.${domain}/#access_token=${encodeURIComponent(token)}`;
+                const redirectUrl = `https://${targetSubdomain}.${domain}${destination}#access_token=${encodeURIComponent(token)}`;
                 console.log('🔗 Redirect URL:', redirectUrl);
                 window.location.href = redirectUrl;
               }
             } else {
               console.log(
-                '✅ Already on correct subdomain, going to dashboard',
+                '✅ Already on correct subdomain, going to',
+                destination,
               );
-              window.location.href = '/dashboard';
+              window.location.href = destination;
             }
           } catch (error) {
             console.error('❌ Error in faculty login flow:', error);
-            // Fallback to dashboard on error
+            // Fallback to the generic /dashboard forwarder on error, since
+            // the role (and therefore the real destination) is exactly what
+            // failed to resolve here.
             window.location.href = '/dashboard';
           }
         } else {
           console.log('⚠️ Not an auth callback, calling userMeData normally');
-          await userMeData(token, false);
+          await userMeData(token);
         }
       } catch (error) {
         console.error('Error fetching auth token:', error);
@@ -575,10 +524,43 @@ export function Providers({ children }: ThemeProviderProps) {
 
     const onPublicRoute = isPublicRoute(pathname);
 
-    // Check for access token in URL hash first (from cross-subdomain redirect)
+    // Check for access token / student auth data in the URL hash first (from
+    // a cross-subdomain redirect - see login/page.tsx and the faculty login
+    // flow above, both of which now redirect straight to the canonical
+    // dashboard route with this hash attached, landing here regardless of
+    // which page that route renders since Providers wraps the whole app).
     const urlHash = window.location.hash;
     const hashParams = new URLSearchParams(urlHash.substring(1));
     const tokenFromHash = hashParams.get('access_token');
+    const studentAuthFromHash = hashParams.get('student_auth');
+
+    if (studentAuthFromHash) {
+      try {
+        const decodedStudentAuth = JSON.parse(
+          decodeURIComponent(studentAuthFromHash),
+        );
+        console.log('🎓 Found student auth data in URL hash, storing it');
+        localStorage.setItem('studentAuth', JSON.stringify(decodedStudentAuth));
+        localStorage.setItem(
+          'bearerToken',
+          JSON.stringify({
+            value: decodedStudentAuth.basicAuthToken,
+            expiry: Date.now() + 24 * 60 * 60 * 1000, // 24 hours
+          }),
+        );
+      } catch (error) {
+        console.error('❌ Error processing student auth data:', error);
+      }
+
+      // Clean the URL by removing the hash - DashboardWrapper reads
+      // studentAuth straight from localStorage, no further navigation needed.
+      window.history.replaceState(
+        {},
+        document.title,
+        window.location.pathname + window.location.search,
+      );
+      return;
+    }
 
     if (tokenFromHash) {
       console.log('🔑 Found access token in URL hash, storing it');
@@ -597,7 +579,7 @@ export function Providers({ children }: ThemeProviderProps) {
 
       if (!onPublicRoute && fetchedUserForTokenRef.current !== tokenFromHash) {
         fetchedUserForTokenRef.current = tokenFromHash;
-        userMeData(tokenFromHash, false);
+        userMeData(tokenFromHash);
       }
       return;
     }
@@ -619,7 +601,7 @@ export function Providers({ children }: ThemeProviderProps) {
         fetchedUserForTokenRef.current !== token
       ) {
         fetchedUserForTokenRef.current = token;
-        userMeData(token, false);
+        userMeData(token);
       }
     }
   }, [pathname, userMeData]);
