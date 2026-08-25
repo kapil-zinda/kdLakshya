@@ -1,6 +1,7 @@
 import { makeApiCall } from '@/utils/ApiRequest';
 import { studentApiKeyHeader } from '@/utils/authHeaders';
 import { convertGoogleDriveUrl } from '@/utils/imageUtils';
+import { LOCALHOST_ORG_ID } from '@/utils/userDataCache';
 import axios from 'axios';
 
 // ---------------------------------------------------------------------------
@@ -1295,7 +1296,7 @@ export class ApiService {
           hostname === '127.0.0.1' ||
           hostname.startsWith('localhost:');
         if (isLocalhost) {
-          const localhostOrgId = '68d6b128d88f00c8b1b4a89a';
+          const localhostOrgId = LOCALHOST_ORG_ID;
           console.log('🏠 Using hardcoded localhost orgId:', localhostOrgId);
           return localhostOrgId;
         }

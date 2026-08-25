@@ -1,3 +1,5 @@
+import { LOCALHOST_ORG_ID } from '@/utils/userDataCache';
+
 import { baseApi } from './baseApi';
 
 // User data interface matching backend response
@@ -163,8 +165,6 @@ export const determineUserRole = (
 
 // Helper function to get orgId
 const getOrgId = (userData: UserApiResponse['data']): string => {
-  // For localhost development, use hardcoded orgId
-  const LOCALHOST_ORG_ID = '68d6b128d88f00c8b1b4a89a';
   const isLocalhost =
     typeof window !== 'undefined' &&
     (window.location.hostname === 'localhost' ||
